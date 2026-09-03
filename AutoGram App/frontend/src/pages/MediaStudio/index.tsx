@@ -5692,9 +5692,17 @@ function MediaDriveDesktop({
           const notableLog = [...(rec?.logs || [])]
             .reverse()
             .find((entry) => entry.level === 'error' || entry.level === 'warn');
-          if (notableLog) {
-            // Surface the authoritative Telegram/fallback reason in the same
-            // Transfer Manager banner used by the legacy progress session.
+          if (rec?.logs && rec.logs.length > 0) {
+            const formatted = rec.logs.map((entry) => {
+              const time = new Date(entry.timestampMs).toLocaleTimeString();
+              return `[${time}] [${entry.level.toUpperCase()}] ${entry.message}`;
+            });
+            setTransfer((current) => ({
+              ...current,
+              banner: notableLog ? notableLog.message : current.banner,
+              debugLogs: [...(current.debugLogs || []), ...formatted],
+            }));
+          } else if (notableLog) {
             setTransfer((current) => ({
               ...current,
               banner: notableLog.message,

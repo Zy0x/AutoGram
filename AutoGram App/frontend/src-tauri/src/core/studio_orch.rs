@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::thread;
@@ -577,6 +578,36 @@ fn persist_transfer_log(tid: &str, level: &str, operation: &str, message: impl A
             "message": message,
         }),
     );
+}
+
+/// Format an informative, complete diagnostic log entry for Telegram API/server events
+fn format_telegram_log_message(
+    media_desc: &str,
+    err: &crate::core::tg_error::TgError,
+    action_desc: &str,
+) -> String {
+    let rpc = err.rpc_name().unwrap_or(match err.code() {
+        crate::core::tg_error::TgErrorCode::Timeout => "WORKER_BUSY_TOO_LONG_RETRY",
+        crate::core::tg_error::TgErrorCode::FloodWait => "FLOOD_WAIT",
+        _ => "RPC_ERROR",
+    });
+    let code_str = format!("{:?}", err.code());
+    let user_msg = err.user_message();
+    let reason = match err.code() {
+        crate::core::tg_error::TgErrorCode::Timeout => {
+            "Server datacenter Telegram sibuk atau membutuhkan waktu lebih lama untuk indexing video besar."
+        }
+        crate::core::tg_error::TgErrorCode::FloodWait => {
+            "Akun melebihi kuota laju permintaan Telegram sementara."
+        }
+        crate::core::tg_error::TgErrorCode::PeerFlood => {
+            "Terjadi pembatasan aksi dari Telegram (PEER_FLOOD)."
+        }
+        _ => user_msg.as_str(),
+    };
+    format!(
+        "Media [{media_desc}] terkena limit/status server Telegram [{rpc} ({code_str})]. Alasan: {reason} | Aksi: {action_desc}"
+    )
 }
 
 fn handle_oversize_prepared(
@@ -1268,9 +1299,8 @@ fn run_intelligent_album(
             &classification,
             runtime_limit,
         )?;
-        persist_transfer_log(
-            tid,
-            "info",
+        tg_log::debug(
+            "studio_orch",
             "album_item_classified",
             format!(
                 "index={} category={:?} payload_class={:?} native_validated={} transformed={} reason={}",
@@ -1563,10 +1593,10 @@ fn run_intelligent_album(
         "info",
         "album_plan_frozen",
         format!(
-            "groups={} singles={} packing={packing:?} group_size={album_grid_size} explanations={}",
+            "Rencana pengiriman media siap: {} grup album (ukuran grid {}), {} berkas tunggal. Kebijakan packing: {packing:?}.",
             plan.groups.len(),
-            plan.singles.len(),
-            plan.explanations.join(",")
+            album_grid_size,
+            plan.singles.len()
         ),
     );
 
@@ -1669,15 +1699,28 @@ fn run_intelligent_album(
                                 | crate::core::tg_error::TgErrorCode::Network
                                 | crate::core::tg_error::TgErrorCode::Io
                         );
+                    let item_names = group
+                        .items
+                        .iter()
+                        .take(3)
+                        .map(|i| Path::new(&i.path).file_name().and_then(|n| n.to_str()).unwrap_or("?"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let media_desc = if group.items.len() > 3 {
+                        format!("Album {} berkas: {}, dst", group.items.len(), item_names)
+                    } else {
+                        format!("Album {} berkas: {}", group.items.len(), item_names)
+                    };
+
                     if !is_retryable && !permanent_album_error {
                         persist_transfer_log(
                             tid,
                             "warn",
-                            "album_retry_suppressed_unknown_commit",
-                            format!(
-                                "attempt={} code={:?} action=reconcile_then_single_fallback",
-                                album_attempts,
-                                err.code()
+                            "album_retry_suppressed",
+                            format_telegram_log_message(
+                                &media_desc,
+                                &err,
+                                "Mencoba rekonsiliasi riwayat lalu fallback ke pengiriman per berkas.",
                             ),
                         );
                     }
@@ -1685,27 +1728,24 @@ fn run_intelligent_album(
                         let wait_secs = err
                             .flood_wait_secs()
                             .unwrap_or_else(|| match err.code() {
-                                crate::core::tg_error::TgErrorCode::Timeout => 2,
-                                _ => (album_attempts * 2) as u32,
+                                crate::core::tg_error::TgErrorCode::Timeout => (6 + album_attempts * 2) as u32,
+                                _ => (album_attempts * 3) as u32,
                             });
+                        let retry_msg = format_telegram_log_message(
+                            &media_desc,
+                            &err,
+                            &format!("Percobaan {album_attempts}/3. Menjeda {wait_secs}s untuk rekonsiliasi status server sebelum mencoba kembali."),
+                        );
                         tg_log::warn(
                             "studio_orch",
                             "album_upload_network_retry",
-                            format!(
-                                "Album upload attempt {}/3 encountered transient error ({:?}): {}. Retrying in {}s...",
-                                album_attempts, err.code(), err.user_message(), wait_secs
-                            ),
+                            format!("{retry_msg} (internal error: {})", err.user_message()),
                         );
                         persist_transfer_log(
                             tid,
                             "warn",
                             "album_upload_network_retry",
-                            format!(
-                                "attempt={album_attempts}/3 code={:?} wait_seconds={} error={}",
-                                err.code(),
-                                wait_secs,
-                                err.user_message()
-                            ),
+                            &retry_msg,
                         );
                         if !wait_retry_with_cancel(tid, wait_secs) {
                             break Err(crate::core::tg_error::TgError::new(
@@ -1827,14 +1867,27 @@ fn run_intelligent_album(
                     let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
                     return Err("Transfer cancelled by user".into());
                 }
+                let item_names = group
+                    .items
+                    .iter()
+                    .take(3)
+                    .map(|i| Path::new(&i.path).file_name().and_then(|n| n.to_str()).unwrap_or("?"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let media_desc = if group.items.len() > 3 {
+                    format!("Album {} berkas: {}, dst", group.items.len(), item_names)
+                } else {
+                    format!("Album {} berkas: {}", group.items.len(), item_names)
+                };
                 let err_msg = error.user_message();
                 persist_transfer_log(
                     tid,
                     "error",
                     "album_send_failed",
-                    format!(
-                        "code={:?} error={err_msg}; fallback=single_send",
-                        error.code()
+                    format_telegram_log_message(
+                        &media_desc,
+                        &error,
+                        &format!("Menjalankan fallback otomatis: mengirim {} berkas secara mandiri (single).", group.items.len())
                     ),
                 );
                 tg_log::warn(
@@ -1967,16 +2020,16 @@ fn run_intelligent_album(
                                             single_attempts, err.code(), err.user_message(), wait_secs
                                         ),
                                     );
+                                    let filename = Path::new(&item.path).file_name().and_then(|n| n.to_str()).unwrap_or("?");
+                                    let item_desc = format!("{filename} (indeks {})", item.index);
                                     persist_transfer_log(
                                         tid,
                                         "warn",
                                         "fallback_single_upload_retry",
-                                        format!(
-                                            "index={} attempt={single_attempts}/3 code={:?} wait_seconds={} error={}",
-                                            item.index,
-                                            err.code(),
-                                            wait_secs,
-                                            err.user_message()
+                                        format_telegram_log_message(
+                                            &item_desc,
+                                            &err,
+                                            &format!("Percobaan {single_attempts}/3. Menjeda {wait_secs}s sebelum mencoba kembali."),
                                         ),
                                     );
                                     if !wait_retry_with_cancel(tid, wait_secs) {
@@ -2069,14 +2122,16 @@ fn run_intelligent_album(
                             }
                             fallback_complete = false;
                             let message = error.user_message();
+                            let filename = Path::new(&item.path).file_name().and_then(|n| n.to_str()).unwrap_or("?");
+                            let item_desc = format!("{filename} (indeks {})", item.index);
                             persist_transfer_log(
                                 tid,
                                 "error",
                                 "fallback_single_upload_failed",
-                                format!(
-                                    "index={} code={:?} error={message}",
-                                    item.index,
-                                    error.code()
+                                format_telegram_log_message(
+                                    &item_desc,
+                                    &error,
+                                    "Pengiriman gagal setelah batas percobaan habis.",
                                 ),
                             );
                             let state = ItemState::Failed;
@@ -2266,6 +2321,18 @@ fn run_intelligent_album(
                     Some(message.clone()),
                 );
                 emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                let filename = Path::new(&item.path).file_name().and_then(|n| n.to_str()).unwrap_or("?");
+                let item_desc = format!("{filename} (indeks {})", item.index);
+                persist_transfer_log(
+                    tid,
+                    "error",
+                    "single_upload_failed",
+                    format_telegram_log_message(
+                        &item_desc,
+                        &error,
+                        "Pengiriman berkas tunggal gagal.",
+                    ),
+                );
                 if first_error.is_none() {
                     first_error = Some(message);
                 }

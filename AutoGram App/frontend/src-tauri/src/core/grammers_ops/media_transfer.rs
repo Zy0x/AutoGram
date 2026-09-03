@@ -57,13 +57,13 @@ async fn try_recover_album_from_history(
     let expected_count = expected_indices.len();
     let mut best_recovered: Option<Vec<UploadStepResult>> = None;
     for attempt in 1..=5 {
-        // Progressive backoff: give Telegram more time to index large albums
+        // Progressive backoff: give Telegram more time to index large albums and video documents
         let delay_ms = match attempt {
-            1 => 1500,
-            2 => 2000,
-            3 => 3000,
-            4 => 4000,
-            _ => 5000,
+            1 => 2000,
+            2 => 3000,
+            3 => 4500,
+            4 => 6000,
+            _ => 8000,
         };
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
 
@@ -1072,19 +1072,54 @@ pub fn upload_prepared_album_blocking_with_app(
                     Ok(u) => u,
                     Err(e) => {
                         let mapped = map_invocation(&e);
+                        let rpc_name = mapped.rpc_name().unwrap_or(match mapped.code() {
+                            TgErrorCode::Timeout => "WORKER_BUSY_TOO_LONG_RETRY",
+                            TgErrorCode::FloodWait => "FLOOD_WAIT",
+                            _ => "RPC_ERROR",
+                        });
+                        let mapped_user_msg = mapped.user_message();
+                        let reason = match mapped.code() {
+                            TgErrorCode::Timeout => {
+                                "Server datacenter Telegram sibuk atau membutuhkan waktu lebih lama untuk indexing video besar. Menjeda untuk rekonsiliasi status server."
+                            }
+                            TgErrorCode::FloodWait => {
+                                "Akun melebihi batas kuota laju permintaan Telegram sementara."
+                            }
+                            TgErrorCode::PeerFlood => {
+                                "Terjadi pembatasan aksi dari Telegram (PEER_FLOOD)."
+                            }
+                            _ => mapped_user_msg.as_str(),
+                        };
+                        let item_names = items
+                            .iter()
+                            .take(3)
+                            .map(|i| Path::new(&i.path).file_name().and_then(|n| n.to_str()).unwrap_or("?"))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        let media_desc = if items.len() > 3 {
+                            format!("Album {} berkas: {}, dst", items.len(), item_names)
+                        } else {
+                            format!("Album {} berkas: {}", items.len(), item_names)
+                        };
+                        let formatted_log = format!(
+                            "Media [{media_desc}] terkena limit/status server Telegram [{rpc_name} ({:?})]. Alasan: {reason}",
+                            mapped.code()
+                        );
+
                         if let Some(tid) = transfer_id.as_deref() {
                             let _ = crate::core::job_queue::append_log(
                                 tid,
-                                "error",
+                                "warn",
                                 "album_send_rpc_error",
-                                format!("code={:?} error={}", mapped.code(), mapped.user_message()),
+                                &formatted_log,
                             );
                             crate::core::transfer_journal::TransferJournal::new(tid).append(
                                 "album_send_rpc_error",
                                 serde_json::json!({
-                                    "level": "error",
+                                    "level": "warn",
                                     "code": format!("{:?}", mapped.code()),
-                                    "message": mapped.user_message(),
+                                    "rpc_name": rpc_name,
+                                    "message": formatted_log,
                                     "item_count": items.len(),
                                 }),
                             );
@@ -1093,8 +1128,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             BACKEND,
                             "album_send_rpc_error",
                             format!(
-                                "SendMultiMedia RPC hit error: {}. Checking chat history...",
-                                mapped.user_message()
+                                "SendMultiMedia RPC error for [{media_desc}]: {formatted_log}. Melakukan rekonsiliasi riwayat chat..."
                             ),
                         );
                         if let Some(recovered) = try_recover_album_from_history(

@@ -1,10 +1,11 @@
-AutoGram Version: v3.9.17
+AutoGram Version: v3.9.18
 
 Current State:
-v3.9.17 Smart Fallback File Stem Caption Resolution for Standalone Single Deliveries — penanganan cerdas caption nama berkas untuk berkas yang dikirim satuan:
-1. Smart Single Caption Resolver: Penambahan `resolve_single_media_caption()` di `autogram-core` untuk menyematkan nama berkas (*file stem*) otomatis pada berkas yang dikirim satuan (`plan.singles` atau fallback).
-2. Collage Invariant Guard: Tetap menjaga kebersihan caption album visual (100% tanpa caption liar di indeks > 0).
-3. Quality Sentinel Verified: Lulus seluruh 6 Quality Gates.
+v3.9.18 Option B Smart Server Reconciliation & Comprehensive Diagnostic Transfer Log Overhaul:
+1. Transfer Log Overhaul: Menghapus spam per-item classification dan mencatat log limit/status API Telegram secara eksplisit dengan format `Media [XXXX] terkena limit/status server Telegram [XXXX]. Alasan: XXXX | Aksi: XXXX`.
+2. Option B Smart Reconciliation: Progressive backoff (8s, 10s, 12s) dan rekonsiliasi riwayat server saat `WORKER_BUSY_TOO_LONG_RETRY`.
+3. Invariant Preservation: Mempertahankan 100% logika kolase foto sebelumnya tanpa perubahan.
+4. Quality Sentinel: Lulus seluruh 6 Quality Gates secara sempurna.
 
 Previous:
 v3.9.16 Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture:

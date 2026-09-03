@@ -120,6 +120,12 @@ impl TgError {
         }
     }
 
+    pub fn rpc_name(&self) -> Option<&str> {
+        match self {
+            Self::Structured { rpc_name, .. } => rpc_name.as_deref(),
+        }
+    }
+
     /// JSON-friendly payload for Tauri (no secrets).
     pub fn to_public(&self) -> TgErrorPublic {
         match self {
