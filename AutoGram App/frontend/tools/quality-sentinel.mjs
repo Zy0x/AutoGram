@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
@@ -216,11 +216,43 @@ try {
 }
 
 // ============================================================================
+// 6. GATE 6: TELEGRAM VISUAL ALBUM & COLLAGE INVARIANTS GATE
+// ============================================================================
+logHeader('6. TELEGRAM VISUAL ALBUM & COLLAGE INVARIANTS GATE');
+try {
+  // 1. Run cargo test for transfer, album and caption modules in autogram-core
+  const coreDir = path.join(appRoot, 'crates', 'autogram-core');
+  const cargoTestOut = execSync('cargo test --lib transfer::', { cwd: coreDir, stdio: 'pipe' }).toString();
+  const testMatch = cargoTestOut.match(/(\d+)\s+passed/);
+  const coreTestCount = testMatch ? testMatch[1] : 'All';
+  logPass('MTProto Album Invariants', `All core album & caption tests passed (${coreTestCount} tests: 10-cap, empty caption > 0, idempotent retry).`);
+
+  // 2. Static scan on MediaStudio/index.tsx to guarantee cleanCaption in album mode never injects filename
+  const mediaStudioFile = path.join(srcRoot, 'pages', 'MediaStudio', 'index.tsx');
+  if (fs.existsSync(mediaStudioFile)) {
+    const studioContent = fs.readFileSync(mediaStudioFile, 'utf8');
+    const hasAlbumCheck = studioContent.includes('const isAlbum = !!task.options.group_as_album;');
+    const preventsFilenameInAlbum = studioContent.includes('else if (!isAlbum)');
+    if (hasAlbumCheck && preventsFilenameInAlbum) {
+      logPass('Album Caption Hygiene', 'MediaStudio UI strictly prohibits filename stem injection in album mode.');
+    } else {
+      logFail('Album Caption Hygiene', 'MediaStudio UI filename stem guard missing or modified!');
+      allPassed = false;
+    }
+  } else {
+    logWarn('Album Caption Hygiene', 'MediaStudio/index.tsx not found for static audit.');
+  }
+} catch (e) {
+  logFail('Album Invariants Gate', e.stdout?.toString() || e.stderr?.toString() || e.message);
+  allPassed = false;
+}
+
+// ============================================================================
 // FINAL CERTIFICATION SUMMARY
 // ============================================================================
 console.log(`\n${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}`);
 if (allPassed) {
-  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 5 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 6 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
   console.log(`${colors.bright}${colors.green}  AutoGram is certified production-ready, regress-free, and safe.${colors.reset}`);
   console.log(`${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}\n`);
   process.exit(0);

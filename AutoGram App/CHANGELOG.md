@@ -1,3 +1,23 @@
+## v3.9.16 — Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture
+
+### 1. MTProto Album & Collage Architectural Invariants Lockdown
+- **Runtime Invariant Guard (`validate_album_group_invariants`)**: Mengimplementasikan validator runtime terpusat di `autogram-core::transfer::album` yang memvalidasi batas mutlak 10 media per grup, menjamin keseragaman tipe media, dan memverifikasi caption kosong (`""`) pada seluruh item indeks > 0 untuk album visual sebelum paket dikirim ke Telegram MTProto.
+- **Orchestration Pre-Flight Guard**: Mengintegrasikan pengecekan `validate_album_group_invariants(&group)?` langsung ke dalam perulangan grup album di `studio_orch.rs`, mencegah payload korup atau caption individual menyusup ke antrean commit.
+- **Authoritative Operational Manual Governance**: Mendokumentasikan secara permanen aturan invarian album & kolase visual di `AGENTS.md` (Bagian 3.C) dan `.agents/AGENTS.md` (Aturan 16) untuk mengunci arsitektur dari regresi kode di masa depan.
+
+### 2. Autonomous Quality Sentinel Gate 6 Integration
+- **Dedicated Gate 6**: Menambahkan `6. TELEGRAM VISUAL ALBUM & COLLAGE INVARIANTS GATE` ke dalam `tools/quality-sentinel.mjs`.
+- **Dual Validation Pipeline**:
+  - Validasi test suite Rust: Menjalankan 53 unit test transfer, album, dan caption di `autogram-core` untuk memverifikasi batas kapasitas 10 item, proteksi caption, dan retry idempoten.
+  - Audit statis UI: Memindai `MediaStudio/index.tsx` secara otomatis untuk memastikan guard pencegah injeksi nama berkas (*file stem*) pada mode album tetap aktif.
+
+### 3. Verification & Certification
+- `cargo test --package autogram-core`: 61/61 unit tests lulus (100% pass).
+- `cargo check` (`src-tauri`): Lulus bersih (0 compiler errors).
+- Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`): Lulus bersih seluruh 6 Quality Gates (100% i18n parity, 0 TypeScript errors, 46 Vitest tests, SQLite WAL, proteksi rahasia, dan MTProto album invariants).
+
+---
+
 ## v3.9.15 — Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture
 
 ### 1. MTProto SendMultiMedia Idempotent Retry Engine

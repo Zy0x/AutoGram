@@ -1,12 +1,14 @@
-AutoGram Version: v3.9.15
+AutoGram Version: v3.9.16
 
 Current State:
-v3.9.15 Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture — penanganan retry idempoten pada timeout server dan garansi kolase utuh 10+6:
-1. Idempotent Timeout & WorkerBusy Retry: Memperbarui penanganan error album di `studio_orch.rs` agar menangani `TgErrorCode::Timeout`, `Network`, dan `Io` sebagai error yang dapat dicoba ulang (*retryable*) menggunakan `random_ids` persisten.
-2. Elimination of Erroneous Single-Message Fallback: Menghilangkan degradasi palsu item ke-10 menjadi pesan tunggal terpisah (`single_send`), mencegah album 10 foto terpecah menjadi 9 + 1 pada Telegram Web dan Telegram Desktop.
-3. Live Verified 10+6 Collage: Terverifikasi secara live di Telegram Web bahwa 16 foto dari `D:\temp` tampil rapi sebagai kolase utuh 10 foto (3-4-3) dan 6 foto (3-3) dengan konsistensi 100% pada `groupedId`.
+v3.9.16 Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture — penguncian arsitektur invarian album kolase MTProto dan penambahan Gate 6 pada Quality Sentinel:
+1. Runtime Invariant Guard: Penerapan `validate_album_group_invariants()` di `autogram-core` yang memverifikasi batas 10 media, caption kosong pada indeks > 0, dan keseragaman tipe grup sebelum dikirim ke MTProto.
+2. Orchestration Pre-Flight Guard: Integrasi pemanggilan validator langsung di `studio_orch.rs` sebelum album commit dibentuk.
+3. Quality Sentinel Gate 6: Penambahan gate baru di `quality-sentinel.mjs` yang menjalankan unit test album core dan scan proteksi caption UI.
+4. Operational Governance: Penguncian aturan di `AGENTS.md` (Bagian 3.C) dan `.agents/AGENTS.md` (Aturan 16).
 
 Previous:
+v3.9.15 Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture:
 v3.9.14 Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination:
 v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture:
 v3.9.12 Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid:

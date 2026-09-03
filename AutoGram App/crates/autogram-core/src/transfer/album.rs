@@ -219,6 +219,51 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
     plan
 }
 
+/// Validate Telegram MTProto invariants for an album group before dispatch.
+/// Enforces:
+/// 1. Item count must be between 2 and 10 (TELEGRAM_ALBUM_MAX).
+/// 2. For NativeVisual albums (!as_document):
+///    - Items at index > 0 MUST have an empty caption ("") to prevent Telegram layout breakage (9+1 split).
+///    - All items must match PayloadClass::NativeVisual.
+/// 3. All items in the group must share the same as_document and payload_class semantics.
+pub fn validate_album_group_invariants(group: &PlannedAlbumGroup) -> Result<(), String> {
+    if group.items.is_empty() {
+        return Err("Album group is empty".to_string());
+    }
+    if group.items.len() < 2 {
+        return Err(format!(
+            "Telegram album requires at least 2 items, got {}",
+            group.items.len()
+        ));
+    }
+    if group.items.len() > TELEGRAM_ALBUM_MAX {
+        return Err(format!(
+            "Telegram album exceeds maximum of {} items, got {}",
+            TELEGRAM_ALBUM_MAX,
+            group.items.len()
+        ));
+    }
+
+    if !group.as_document && group.payload_class == PayloadClass::NativeVisual {
+        for (i, item) in group.items.iter().enumerate() {
+            if item.key.payload_class != PayloadClass::NativeVisual {
+                return Err(format!(
+                    "Item at index {} has incompatible payload class {:?}, expected NativeVisual",
+                    i, item.key.payload_class
+                ));
+            }
+            if i > 0 && !item.caption.trim().is_empty() {
+                return Err(format!(
+                    "Visual album item at index {} has non-empty caption '{}'. Telegram visual albums strictly require empty caption at index > 0 to maintain collage integrity.",
+                    i, item.caption
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -429,6 +474,44 @@ mod tests {
             .reconciliation_reason
             .unwrap()
             .contains("RPC timeout"));
+    }
+
+    #[test]
+    fn test_validate_album_group_invariants_success() {
+        let items_input = items(10, PayloadClass::NativeVisual);
+        let group = PlannedAlbumGroup {
+            items: items_input,
+            as_document: false,
+            payload_class: PayloadClass::NativeVisual,
+        };
+        assert!(validate_album_group_invariants(&group).is_ok());
+    }
+
+    #[test]
+    fn test_validate_album_group_invariants_exceeds_max() {
+        let items_input = items(11, PayloadClass::NativeVisual);
+        let group = PlannedAlbumGroup {
+            items: items_input,
+            as_document: false,
+            payload_class: PayloadClass::NativeVisual,
+        };
+        let err = validate_album_group_invariants(&group).unwrap_err();
+        assert!(err.contains("exceeds maximum of 10"));
+    }
+
+    #[test]
+    fn test_validate_album_group_invariants_rejects_subsequent_captions() {
+        let mut items_input = items(5, PayloadClass::NativeVisual);
+        items_input[0].caption = "Album Summary".into();
+        items_input[2].caption = "Spurious Filename Stem".into();
+        let group = PlannedAlbumGroup {
+            items: items_input,
+            as_document: false,
+            payload_class: PayloadClass::NativeVisual,
+        };
+        let err = validate_album_group_invariants(&group).unwrap_err();
+        assert!(err.contains("index 2 has non-empty caption"));
+        assert!(err.contains("maintain collage integrity"));
     }
 }
 

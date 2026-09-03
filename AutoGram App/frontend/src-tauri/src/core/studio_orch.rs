@@ -1579,6 +1579,7 @@ fn run_intelligent_album(
             let _ = super::autogram_core::transfer::update_transfer_run_state(tid, "CANCELLED");
             return Err(error);
         }
+        super::autogram_core::transfer::validate_album_group_invariants(&group)?;
         let first_index = group.items.first().map(|item| item.index).unwrap_or(0);
         let commit_id = format!("{tid}:album:{first_index}");
         let indices: Vec<usize> = group.items.iter().map(|item| item.index).collect();
