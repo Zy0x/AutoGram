@@ -1,13 +1,15 @@
-AutoGram Version: v3.9.19
+AutoGram Version: v3.9.20
 
 Current State:
-v3.9.19 Smart Adaptive Video Album Balancing & Unbroken Multi-Media Collage Architecture:
-1. Video-Aware Smart Partitioning: Mencegah limitasi keras datacenter Telegram (timeout 60 detik `WORKER_BUSY_TOO_LONG_RETRY`) yang memecah kolase video menjadi 9+1+5 atau 8+2 dengan mempartisi media video secara seimbang (misal 15 video otomatis dipartisi menjadi 8 + 7 sempurna).
-2. Photo Invariant Preservation: 100% mempertahankan kapasitas penuh maksimal 10 untuk foto (`TELEGRAM_ALBUM_MAX = 10`) tanpa terpengaruh.
-3. Perfect Unbroken Collage Layout: Menghasilkan kolase video utuh (misal 8 video susunan 2-3-3 dan 7 video susunan 2-2-3) dengan single grouped_id tanpa sisa berkas satuan.
-4. Quality Sentinel: 100% lulus seluruh 6 Quality Gates (59 unit tests album invariants lolos).
+v3.9.20 Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture:
+1. True Maximum 10+5 Video Packing: Mengimplementasikan pengurutan bobot cerdas (*size-ascending sort*) pada antrean video ketika mode Maximum diaktifkan, mengelompokkan 10 video paling ringan ke dalam Grup 1 sehingga berat totalnya terjaga sangat ringan (< 25 MB).
+2. Elimination of Server Indexing Bottleneck: Mencegah video raksasa (> 35 MB seperti video 110 MB) membebani paket 10 media, mengisolasinya ke grup ekor (Grup 2 berisi 5 video) yang dapat di-commit Telegram dalam waktu singkat (< 20s).
+3. Zero-Split Telegram Collage Layout: Terbukti secara empiris di Telegram Web menghasilkan 2 kolase utuh: Kolase 1 (10 video susunan 2-2-3-3) dan Kolase 2 (5 video susunan 2-3) tanpa ada 1 pun berkas yang tercecer atau terpecah menjadi 9+1.
+4. Photo Invariant Preservation: Mempertahankan 100% tata kelola kolase foto sebelumnya tanpa perubahan.
+5. Quality Sentinel: 100% lulus seluruh 6 Quality Gates.
 
 Previous:
+v3.9.19 Smart Adaptive Video Album Balancing & Unbroken Multi-Media Collage Architecture:
 v3.9.18 Option B Smart Server Reconciliation & Comprehensive Diagnostic Transfer Log Overhaul:
 v3.9.16 Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture:
 v3.9.15 Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture:

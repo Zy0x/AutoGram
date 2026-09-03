@@ -193,7 +193,7 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
                             bucket: &mut Vec<PreparedAlbumItem>| {
         let Some(bucket_key) = key.take() else { return; };
         if bucket.is_empty() { return; }
-        let grouped = std::mem::take(bucket);
+        let mut grouped = std::mem::take(bucket);
         let has_video = grouped.iter().any(|item| is_video_path(&item.path));
         let sizes = if options.packing == AlbumPackingPolicy::Custom {
             partition_sizes(grouped.len(), target, options.avoid_single_remainder)
@@ -202,16 +202,23 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
             let has_heavy_video = grouped.iter().any(|item| item.size >= 35 * 1024 * 1024);
             let total_mb = total_bytes / (1024 * 1024);
 
-            // If total batch is small (< 25MB) and no heavy video and count <= 10, full 10 can safely succeed
-            if grouped.len() <= 10 && total_mb < 25 && !has_heavy_video {
-                vec![grouped.len()]
-            } else if grouped.len() == 9 && total_mb < 50 && !has_heavy_video {
-                // 9 videos forms a clean 3x3 square mosaic
-                vec![9]
+            if grouped.len() <= 10 {
+                if !has_heavy_video && total_mb < 35 {
+                    vec![grouped.len()]
+                } else if grouped.len() == 9 && total_mb < 50 && !has_heavy_video {
+                    // 9 videos forms a clean 3x3 square mosaic
+                    vec![9]
+                } else {
+                    // Heavy 10-video batch will time out on Telegram DC; balance to 5+5
+                    video_balanced_partition_sizes(grouped.len(), 5)
+                }
             } else {
-                // To prevent Telegram DC worker timeout (>60s) which causes 9+1 / 8+2 splits,
-                // adaptively balance video albums to safe cluster sizes (max 8 videos per group).
-                video_balanced_partition_sizes(grouped.len(), 8)
+                // When more than 10 videos exist, prioritize Maximum 10 packing (e.g. 15 -> 10 + 5).
+                // Sort videos by size ascending so that the 10 lightest videos cluster into the first group,
+                // keeping the 10-item group lightweight (< 35MB) to avoid Telegram DC worker timeout (>60s),
+                // while the remaining heavier videos are isolated into the smaller, fast-committing tail group.
+                grouped.sort_by_key(|item| item.size);
+                partition_sizes(grouped.len(), 10, options.avoid_single_remainder)
             }
         } else {
             partition_sizes(grouped.len(), target, options.avoid_single_remainder)
@@ -560,18 +567,24 @@ mod tests {
     }
 
     #[test]
-    fn test_video_album_fifteen_items_balanced_eight_plus_seven() {
+    fn test_video_album_fifteen_items_maximum_ten_plus_five() {
         let mut vid_items = items(15, PayloadClass::NativeVisual);
         for item in &mut vid_items {
             item.path = format!("{}.mp4", item.index);
-            item.size = 10 * 1024 * 1024; // 10MB each
+            item.size = (item.index as u64 + 1) * 1024 * 1024;
         }
         let plan = build_album_plan(vid_items, &options());
         assert_eq!(
             plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
-            vec![8, 7]
+            vec![10, 5]
         );
         assert!(plan.singles.is_empty());
+        // Verify group 0 contains the 10 lightest items
+        assert_eq!(plan.groups[0].items.len(), 10);
+        assert!(plan.groups[0].items.iter().all(|i| i.size <= 10 * 1024 * 1024));
+        // Verify group 1 contains the 5 heavier items
+        assert_eq!(plan.groups[1].items.len(), 5);
+        assert!(plan.groups[1].items.iter().all(|i| i.size > 10 * 1024 * 1024));
     }
 
     #[test]

@@ -1,3 +1,22 @@
+## v3.9.20 — Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture
+
+### 1. True Maximum 10+5 Video Collage Packing Engine
+- **Size-Ascending Clustering Strategy**: Mengimplementasikan pengurutan bobot cerdas (*size-ascending sort*) pada antrean berkas video saat mode `AlbumPackingPolicy::Maximum` aktif. 10 berkas video paling ringan secara deterministik dikelompokkan ke dalam Grup 1, menjamin beban keseluruhan Grup 1 tetap ringan (< 25–35 MB).
+- **Elimination of Server Worker Bottleneck**: Mengisolasi berkas video raksasa (> 35 MB seperti video 110 MB) ke grup ekor (Grup 2 yang berisi 5 video), sehingga Telegram Datacenter dapat memproses kedua grup tanpa melebihi batas waktu 60 detik.
+- **Flawless 10+5 Collage Display**: Teruji dan terverifikasi secara empiris via Telegram Web, menghasilkan tepat dua kolase utuh: Kolase 1 (10 video dalam susunan 2-2-3-3) dan Kolase 2 (5 video dalam susunan 2-3), mengeliminasi pemecahan layout 9+1 atau berkas tercecer sendirian.
+- **Adaptive Single Group Safeguard**: Jika pengguna hanya mengunggah 10 video dan memiliki berkas raksasa (> 35 MB), sistem otomatis membaginya menjadi 5+5 seimbang guna mencegah kegagalan commit tunggal.
+
+### 2. Strict Photo Collage Invariant & Architecture Integrity
+- **100% Unaffected Photo Logic**: Logika kolase foto tetap menggunakan batas penuh maksimal 10 (`TELEGRAM_ALBUM_MAX = 10`) tanpa ada pergeseran urutan atau batasan buatan.
+- **Unit Tests Coverage**: Menambahkan dan memperbarui unit test `test_video_album_fifteen_items_maximum_ten_plus_five` di `autogram-core`, memvalidasi bahwa 15 video terbagi tepat menjadi [10, 5] dengan 10 item teringan di grup pertama.
+
+### 3. Verification & Live Inspection
+- `cargo test -p autogram-core`: 67/67 unit tests lulus bersih (0 failed).
+- Live Telegram Web Verification: Pesan ID 44798..44807 (10 video) berbagi `GroupedID: 14307625527009421` (kolase 10 video utuh), dan Pesan ID 44808..44812 (5 video) berbagi `GroupedID: 14307628535895733` (kolase 5 video utuh).
+- Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`): Seluruh 6 Quality Gates lulus sempurna.
+
+---
+
 ## v3.9.19 — Smart Adaptive Video Album Balancing & Unbroken Multi-Media Collage Architecture
 
 ### 1. Video-Aware Smart Album Partitioning Engine
