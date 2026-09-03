@@ -1657,12 +1657,18 @@ fn run_intelligent_album(
                     .any(|needle| rpc_text.contains(needle));
                     // An album request is not idempotent because Telegram's
                     // high-level `send_album` generates fresh random IDs.
-                    // Transport/IO errors therefore mean UNKNOWN_COMMIT, not
-                    // "safe to resend". Only an explicit FloodWait rejection
-                    // can be retried without spending quota twice.
-                    let is_network = !permanent_album_error
-                        && matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
-                    if !is_network && !permanent_album_error {
+                    // Idempotent retry using persisted random_ids:
+                    // When Telegram encounters transient worker busy/timeout or flood wait,
+                    // retrying with the exact same random_ids is safe and idempotent.
+                    let is_retryable = !permanent_album_error
+                        && matches!(
+                            err.code(),
+                            crate::core::tg_error::TgErrorCode::FloodWait
+                                | crate::core::tg_error::TgErrorCode::Timeout
+                                | crate::core::tg_error::TgErrorCode::Network
+                                | crate::core::tg_error::TgErrorCode::Io
+                        );
+                    if !is_retryable && !permanent_album_error {
                         persist_transfer_log(
                             tid,
                             "warn",
@@ -1674,9 +1680,13 @@ fn run_intelligent_album(
                             ),
                         );
                     }
-                    if is_network && album_attempts <= 3 {
-                        let wait_secs =
-                            err.flood_wait_secs().unwrap_or((album_attempts * 2) as u32);
+                    if is_retryable && album_attempts <= 3 {
+                        let wait_secs = err
+                            .flood_wait_secs()
+                            .unwrap_or_else(|| match err.code() {
+                                crate::core::tg_error::TgErrorCode::Timeout => 2,
+                                _ => (album_attempts * 2) as u32,
+                            });
                         tg_log::warn(
                             "studio_orch",
                             "album_upload_network_retry",

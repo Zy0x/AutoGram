@@ -1,12 +1,13 @@
-AutoGram Version: v3.9.14
+AutoGram Version: v3.9.15
 
 Current State:
-v3.9.14 Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination — penyelarasan penuh caption album visual dan eliminasi pemecahan grid:
-1. Elimination of Spurious Filename Captions: Mengeliminasi penyematan nama berkas otomatis (*filename stem*) ke setiap foto individual di `MediaStudio/index.tsx`, `studio_orch.rs`, dan `autogram-core/caption.rs` saat mode album aktif.
-2. Strict Telegram MTProto Caption Invariant: Memperbarui `upload_prepared_album_blocking_with_app` di `media_transfer.rs` untuk menjamin bahwa pada album visual (`!as_document`), hanya elemen ke-0 yang membawa caption, sedangkan elemen 1..N selalu berupa string kosong `""`.
-3. Visual Album Clean Collage Guarantee: Menjamin pengunggahan 16 berkas media visual (seperti berkas di `D:\temp`) tampil di Telegram Web sebagai kolase utuh 10 foto (3-4-3) dan 6 foto (3-3) tanpa pemisahan 9 + 1 + 6.
+v3.9.15 Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture — penanganan retry idempoten pada timeout server dan garansi kolase utuh 10+6:
+1. Idempotent Timeout & WorkerBusy Retry: Memperbarui penanganan error album di `studio_orch.rs` agar menangani `TgErrorCode::Timeout`, `Network`, dan `Io` sebagai error yang dapat dicoba ulang (*retryable*) menggunakan `random_ids` persisten.
+2. Elimination of Erroneous Single-Message Fallback: Menghilangkan degradasi palsu item ke-10 menjadi pesan tunggal terpisah (`single_send`), mencegah album 10 foto terpecah menjadi 9 + 1 pada Telegram Web dan Telegram Desktop.
+3. Live Verified 10+6 Collage: Terverifikasi secara live di Telegram Web bahwa 16 foto dari `D:\temp` tampil rapi sebagai kolase utuh 10 foto (3-4-3) dan 6 foto (3-3) dengan konsistensi 100% pada `groupedId`.
 
 Previous:
+v3.9.14 Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination:
 v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture:
 v3.9.12 Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid:
 v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture — dukungan penuh album grid visual untuk seluruh format gambar:

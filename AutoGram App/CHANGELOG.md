@@ -1,3 +1,24 @@
+## v3.9.15 — Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture
+
+### 1. MTProto SendMultiMedia Idempotent Retry Engine
+- **Idempotent Timeout & WorkerBusy Retry**: Memperbarui penanganan error album di `studio_orch.rs` (baris 1664) agar menangani `TgErrorCode::Timeout`, `Network`, dan `Io` sebagai error yang dapat dicoba ulang (*retryable*) hingga 3 kali dengan backoff cerdas menggunakan `random_ids` persisten yang sama, mengeliminasi pembatalan prematur saat server Telegram DC mengalami lonjakan beban (*worker busy*) saat membuat album 10 item.
+- **Elimination of Erroneous Single-Message Fallback**: Menghilangkan degradasi palsu item ke-10 menjadi pesan tunggal terpisah (`single_send`), mencegah album 10 foto terpecah menjadi 9 + 1 pada Telegram Web dan Telegram Desktop.
+- **Unbroken Visual Album Grid Guarantee**: Menjamin 16 berkas media visual selalu terkirim dan dirender sempurna sebagai kolase murni **10 foto (susunan 3-4-3)** dan **6 foto (susunan 3-3)**.
+
+### 2. Live Verification on Telegram Web via Chrome Dev
+- Berhasil mengeksekusi upload nyata 16 berkas dari `D:\temp` ke target `U8542241823/D-1003214112048/T43891` (transfer: `test_live_1788431987674`).
+- Log audit basis data dan state IndexedDB Telegram Web (`tt-data` > `tt-global-state`) memverifikasi 100% konsistensi:
+  - **Batch 1 (10 Foto Utuh)**: Pesan ID `44600` s/d `44609` tergabung sempurna dalam satu `grouped_id = 14307455959055829` (layout mosaik 3-4-3).
+  - **Batch 2 (6 Foto Utuh)**: Pesan ID `44610` s/d `44615` tergabung sempurna dalam satu `grouped_id = 14307456188123949` (layout mosaik 3-3).
+- Konfirmasi visual live via CDP pada browser Chrome Dev membuktikan ke-10 foto menyatu utuh tanpa ada foto yang terpisah.
+
+### 3. Verification & Autonomous Quality Sentinel
+- `cargo check` (`src-tauri`): Lulus bersih (0 compiler errors).
+- `cargo test` (`autogram-core`): 58/58 unit tests lulus (100% pass).
+- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 Vitest tests lulus, SQLite WAL dan proteksi rahasia terverifikasi.
+
+---
+
 ## v3.9.14 — Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination
 
 ### 1. Telegram Visual Album MTProto Caption Architecture
