@@ -1,3 +1,17 @@
+## v3.9.17 — Smart Fallback File Stem Caption Resolution for Standalone Single Deliveries
+
+### 1. Standalone Single Deliveries Smart Caption Engine
+- **Dedicated Function `resolve_single_media_caption`**: Menambahkan resolver caption pintar di `autogram-core::transfer::caption` yang mendeteksi jika suatu media dikirim sebagai pesan satuan (baik dari `plan.singles` karena tipe tidak kompatibel dengan album, maupun dari fallback). Jika item tidak memiliki caption manual, sistem secara otomatis mengekstrak nama berkas asli (*file stem*) dari path sebagai caption.
+- **Collage Invariant Preservation**: Tetap menjamin 100% kepatuhan pada invarian kolase Telegram untuk media yang masuk ke album visual (item 0 membawa summary/kosong, item 1..9 selalu kosong). Injeksi nama berkas hanya diaktifkan secara spesifik untuk item yang berstatus satuan (*single*).
+- **Orchestration Integration**: Mengintegrasikan `resolve_single_media_caption` ke dalam loop pengunggahan `plan.singles` dan loop pengunggahan individual fallback di `studio_orch.rs`.
+
+### 2. Verification & Quality Assurance
+- `cargo test --lib transfer::`: 56/56 unit tests lulus bersih (termasuk unit tests untuk `resolve_single_media_caption`).
+- `cargo check` (`src-tauri`): Lulus bersih (0 compiler errors).
+- Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`): Seluruh 6 Quality Gates lulus sempurna.
+
+---
+
 ## v3.9.16 — Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture
 
 ### 1. MTProto Album & Collage Architectural Invariants Lockdown

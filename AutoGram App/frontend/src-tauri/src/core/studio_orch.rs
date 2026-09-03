@@ -1910,6 +1910,14 @@ fn run_intelligent_album(
                     let _ =
                         job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
                     let as_document = item.key.payload_class != PayloadClass::NativeVisual;
+                    let effective_caption = {
+                        let orig_path = rec
+                            .items
+                            .get(item.index)
+                            .map(|i| i.path.as_str())
+                            .unwrap_or(&item.path);
+                        super::autogram_core::transfer::resolve_single_media_caption(orig_path, &item.caption)
+                    };
 
                     let mut single_attempts = 0usize;
                     let single_exec_res = loop {
@@ -1919,7 +1927,7 @@ fn run_intelligent_album(
                             delivery_identity,
                             &rec.chat_id,
                             &item.path,
-                            &item.caption,
+                            &effective_caption,
                             as_document,
                             silent,
                             item.spoiler,
@@ -2121,6 +2129,14 @@ fn run_intelligent_album(
         }
         let _ = job_queue::update_item(tid, item.index, ItemState::Uploading, None, None);
         let as_document = item.key.payload_class != PayloadClass::NativeVisual;
+        let effective_caption = {
+            let orig_path = rec
+                .items
+                .get(item.index)
+                .map(|i| i.path.as_str())
+                .unwrap_or(&item.path);
+            super::autogram_core::transfer::resolve_single_media_caption(orig_path, &item.caption)
+        };
 
         let mut single_attempts = 0usize;
         let single_exec_res = loop {
@@ -2130,7 +2146,7 @@ fn run_intelligent_album(
                 delivery_identity,
                 &rec.chat_id,
                 &item.path,
-                &item.caption,
+                &effective_caption,
                 as_document,
                 silent,
                 item.spoiler,

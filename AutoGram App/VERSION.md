@@ -1,13 +1,13 @@
-AutoGram Version: v3.9.16
+AutoGram Version: v3.9.17
 
 Current State:
-v3.9.16 Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture — penguncian arsitektur invarian album kolase MTProto dan penambahan Gate 6 pada Quality Sentinel:
-1. Runtime Invariant Guard: Penerapan `validate_album_group_invariants()` di `autogram-core` yang memverifikasi batas 10 media, caption kosong pada indeks > 0, dan keseragaman tipe grup sebelum dikirim ke MTProto.
-2. Orchestration Pre-Flight Guard: Integrasi pemanggilan validator langsung di `studio_orch.rs` sebelum album commit dibentuk.
-3. Quality Sentinel Gate 6: Penambahan gate baru di `quality-sentinel.mjs` yang menjalankan unit test album core dan scan proteksi caption UI.
-4. Operational Governance: Penguncian aturan di `AGENTS.md` (Bagian 3.C) dan `.agents/AGENTS.md` (Aturan 16).
+v3.9.17 Smart Fallback File Stem Caption Resolution for Standalone Single Deliveries — penanganan cerdas caption nama berkas untuk berkas yang dikirim satuan:
+1. Smart Single Caption Resolver: Penambahan `resolve_single_media_caption()` di `autogram-core` untuk menyematkan nama berkas (*file stem*) otomatis pada berkas yang dikirim satuan (`plan.singles` atau fallback).
+2. Collage Invariant Guard: Tetap menjaga kebersihan caption album visual (100% tanpa caption liar di indeks > 0).
+3. Quality Sentinel Verified: Lulus seluruh 6 Quality Gates.
 
 Previous:
+v3.9.16 Strict Album & Collage Invariants Lockdown & Multi-Tier Quality Sentinel Gate 6 Architecture:
 v3.9.15 Idempotent Timeout Retry Resilience & Native 10+6 Unbroken Visual Collage Architecture:
 v3.9.14 Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination:
 v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture:

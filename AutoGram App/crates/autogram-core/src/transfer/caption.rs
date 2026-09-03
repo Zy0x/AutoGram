@@ -233,6 +233,24 @@ pub fn apply_album_caption_policy(
     })
 }
 
+/// Resolve a smart fallback caption for media sent individually (single messages).
+/// If explicit caption is provided, preserves it.
+/// If caption is empty, extracts the file stem from the original file path.
+pub fn resolve_single_media_caption(original_path: &str, explicit_caption: &str) -> String {
+    let trimmed = explicit_caption.trim();
+    if !trimmed.is_empty() {
+        return trimmed.to_string();
+    }
+    if original_path.is_empty() {
+        return String::new();
+    }
+    std::path::Path::new(original_path)
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -366,5 +384,30 @@ mod tests {
         assert!(render_caption_template("{unknown}", &context)
             .unwrap_err()
             .contains("UNKNOWN_VARIABLE"));
+    }
+
+    #[test]
+    fn test_resolve_single_media_caption_uses_explicit() {
+        assert_eq!(
+            resolve_single_media_caption("D:/temp/photo.jpg", "Custom Caption"),
+            "Custom Caption"
+        );
+    }
+
+    #[test]
+    fn test_resolve_single_media_caption_extracts_stem() {
+        assert_eq!(
+            resolve_single_media_caption("D:/temp/20241228_044606.jpg", ""),
+            "20241228_044606"
+        );
+        assert_eq!(
+            resolve_single_media_caption("C:\\Downloads\\archive.tar.gz", "   "),
+            "archive.tar"
+        );
+    }
+
+    #[test]
+    fn test_resolve_single_media_caption_empty_path() {
+        assert_eq!(resolve_single_media_caption("", ""), "");
     }
 }
