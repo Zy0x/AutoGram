@@ -803,10 +803,44 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
             PathBuf::from("C:\\ffmpeg\\ffmpeg.exe"),
             PathBuf::from("C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe"),
             PathBuf::from("C:\\Tools\\ffmpeg.exe"),
+            PathBuf::from("F:\\AutoGram\\bin\\ffmpeg.exe"),
+            PathBuf::from("F:\\AutoGram\\AutoGram App\\plugins\\ffmpeg-extractor\\bin\\ffmpeg.exe"),
         ];
         for candidate in win_candidates {
             if candidate.is_file() {
                 candidates.push(candidate);
+            }
+        }
+        if let Ok(exe_path) = std::env::current_exe() {
+            let mut curr = exe_path.parent();
+            for _ in 0..6 {
+                if let Some(p) = curr {
+                    let c1 = p.join("bin").join("ffmpeg.exe");
+                    if c1.is_file() { candidates.push(c1); }
+                    let c2 = p.join("plugins").join("ffmpeg-extractor").join("bin").join("ffmpeg.exe");
+                    if c2.is_file() { candidates.push(c2); }
+                    let c3 = p.join("AutoGram App").join("plugins").join("ffmpeg-extractor").join("bin").join("ffmpeg.exe");
+                    if c3.is_file() { candidates.push(c3); }
+                    curr = p.parent();
+                } else {
+                    break;
+                }
+            }
+        }
+        if let Ok(cwd) = std::env::current_dir() {
+            let mut curr = Some(cwd.as_path());
+            for _ in 0..6 {
+                if let Some(p) = curr {
+                    let c1 = p.join("bin").join("ffmpeg.exe");
+                    if c1.is_file() { candidates.push(c1); }
+                    let c2 = p.join("plugins").join("ffmpeg-extractor").join("bin").join("ffmpeg.exe");
+                    if c2.is_file() { candidates.push(c2); }
+                    let c3 = p.join("AutoGram App").join("plugins").join("ffmpeg-extractor").join("bin").join("ffmpeg.exe");
+                    if c3.is_file() { candidates.push(c3); }
+                    curr = p.parent();
+                } else {
+                    break;
+                }
             }
         }
         let mut app_search_roots = Vec::new();

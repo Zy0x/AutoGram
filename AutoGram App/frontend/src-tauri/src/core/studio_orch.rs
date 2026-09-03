@@ -1588,14 +1588,20 @@ fn run_intelligent_album(
             plan.singles.len()
         ),
     );
+    let group_partition_summary = plan
+        .groups
+        .iter()
+        .map(|g| g.items.len().to_string())
+        .collect::<Vec<_>>()
+        .join("+");
     persist_transfer_log(
         tid,
         "info",
         "album_plan_frozen",
         format!(
-            "Rencana pengiriman media siap: {} grup album (ukuran grid {}), {} berkas tunggal. Kebijakan packing: {packing:?}.",
+            "Rencana pengiriman media siap: {} grup album (partisi kolase: [{}]), {} berkas tunggal. Kebijakan: {packing:?}.",
             plan.groups.len(),
-            album_grid_size,
+            if group_partition_summary.is_empty() { "0".to_string() } else { group_partition_summary },
             plan.singles.len()
         ),
     );

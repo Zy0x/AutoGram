@@ -154,6 +154,30 @@ fn groupable(class: PayloadClass, _options: &AlbumPlanOptions) -> bool {
     }
 }
 
+fn is_video_path(path: &str) -> bool {
+    let ext = std::path::Path::new(path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    matches!(
+        ext.as_str(),
+        "mp4" | "mkv" | "mov" | "webm" | "avi" | "wmv" | "ts" | "m4v" | "flv" | "3gp"
+    )
+}
+
+fn video_balanced_partition_sizes(total: usize, max_safe: usize) -> Vec<usize> {
+    if total <= max_safe {
+        return vec![total];
+    }
+    let k = (total + max_safe - 1) / max_safe;
+    let base = total / k;
+    let rem = total % k;
+    (0..k)
+        .map(|i| if i < rem { base + 1 } else { base })
+        .collect()
+}
+
 pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOptions) -> AlbumPlan {
     let mut plan = AlbumPlan::default();
     if !options.enabled || options.packing == AlbumPackingPolicy::Never {
@@ -170,7 +194,28 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
         let Some(bucket_key) = key.take() else { return; };
         if bucket.is_empty() { return; }
         let grouped = std::mem::take(bucket);
-        let sizes = partition_sizes(grouped.len(), target, options.avoid_single_remainder);
+        let has_video = grouped.iter().any(|item| is_video_path(&item.path));
+        let sizes = if options.packing == AlbumPackingPolicy::Custom {
+            partition_sizes(grouped.len(), target, options.avoid_single_remainder)
+        } else if has_video {
+            let total_bytes: u64 = grouped.iter().map(|item| item.size).sum();
+            let has_heavy_video = grouped.iter().any(|item| item.size >= 35 * 1024 * 1024);
+            let total_mb = total_bytes / (1024 * 1024);
+
+            // If total batch is small (< 25MB) and no heavy video and count <= 10, full 10 can safely succeed
+            if grouped.len() <= 10 && total_mb < 25 && !has_heavy_video {
+                vec![grouped.len()]
+            } else if grouped.len() == 9 && total_mb < 50 && !has_heavy_video {
+                // 9 videos forms a clean 3x3 square mosaic
+                vec![9]
+            } else {
+                // To prevent Telegram DC worker timeout (>60s) which causes 9+1 / 8+2 splits,
+                // adaptively balance video albums to safe cluster sizes (max 8 videos per group).
+                video_balanced_partition_sizes(grouped.len(), 8)
+            }
+        } else {
+            partition_sizes(grouped.len(), target, options.avoid_single_remainder)
+        };
         let mut cursor = 0usize;
         for size in sizes {
             let end = cursor + size;
@@ -512,6 +557,51 @@ mod tests {
         let err = validate_album_group_invariants(&group).unwrap_err();
         assert!(err.contains("index 2 has non-empty caption"));
         assert!(err.contains("maintain collage integrity"));
+    }
+
+    #[test]
+    fn test_video_album_fifteen_items_balanced_eight_plus_seven() {
+        let mut vid_items = items(15, PayloadClass::NativeVisual);
+        for item in &mut vid_items {
+            item.path = format!("{}.mp4", item.index);
+            item.size = 10 * 1024 * 1024; // 10MB each
+        }
+        let plan = build_album_plan(vid_items, &options());
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![8, 7]
+        );
+        assert!(plan.singles.is_empty());
+    }
+
+    #[test]
+    fn test_video_album_ten_heavy_items_balanced_five_plus_five() {
+        let mut vid_items = items(10, PayloadClass::NativeVisual);
+        for item in &mut vid_items {
+            item.path = format!("{}.mp4", item.index);
+            item.size = 10 * 1024 * 1024; // 10MB each
+        }
+        let plan = build_album_plan(vid_items, &options());
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![5, 5]
+        );
+        assert!(plan.singles.is_empty());
+    }
+
+    #[test]
+    fn test_video_album_nine_items_stays_nine() {
+        let mut vid_items = items(9, PayloadClass::NativeVisual);
+        for item in &mut vid_items {
+            item.path = format!("{}.mp4", item.index);
+            item.size = 3 * 1024 * 1024; // 3MB each
+        }
+        let plan = build_album_plan(vid_items, &options());
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![9]
+        );
+        assert!(plan.singles.is_empty());
     }
 }
 

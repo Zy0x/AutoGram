@@ -995,11 +995,11 @@ pub fn probe_video_metadata(path: &str) -> (u32, u32, f64) {
     let Some(ff) = find_ffmpeg_binary() else {
         return (0, 0, 0.0);
     };
-    // Try ffprobe first (same dir as ffmpeg)
+    let exe_suffix = if cfg!(windows) { ".exe" } else { "" };
     let ffprobe = ff
         .parent()
-        .map(|p| p.join("ffprobe"))
-        .unwrap_or_else(|| PathBuf::from("ffprobe"));
+        .map(|p| p.join(format!("ffprobe{exe_suffix}")))
+        .unwrap_or_else(|| PathBuf::from(format!("ffprobe{exe_suffix}")));
 
     let mut cmd = Command::new(&ffprobe);
     cmd.args([
