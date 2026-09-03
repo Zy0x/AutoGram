@@ -588,6 +588,23 @@ mod tests {
     }
 
     #[test]
+    fn test_video_album_seventeen_items_maximum_ten_plus_seven() {
+        let mut vid_items = items(17, PayloadClass::NativeVisual);
+        for item in &mut vid_items {
+            item.path = format!("{}.mp4", item.index);
+            item.size = (item.index as u64 + 1) * 1024 * 1024;
+        }
+        let plan = build_album_plan(vid_items, &options());
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![10, 7]
+        );
+        assert!(plan.singles.is_empty());
+        assert_eq!(plan.groups[0].items.len(), 10);
+        assert_eq!(plan.groups[1].items.len(), 7);
+    }
+
+    #[test]
     fn test_video_album_ten_heavy_items_balanced_five_plus_five() {
         let mut vid_items = items(10, PayloadClass::NativeVisual);
         for item in &mut vid_items {
