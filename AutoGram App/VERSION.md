@@ -1,12 +1,12 @@
-AutoGram Version: v3.9.13
+AutoGram Version: v3.9.14
 
 Current State:
-v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture — penyelarasan penuh penanganan video tanpa suara dalam album MTProto dan eliminasi pemecahan batch album:
-1. Native Silent Video MTProto Integration: Mengirimkan flag `nosound_video` secara dinamis pada `InputMediaUploadedDocument` di `media_transfer.rs` sesuai ada/tidaknya trek audio, sehingga video tanpa suara diterima langsung dalam album visual Telegram.
-2. Elimination of Premature Document Demotion: Menghilangkan pemaksaan `force_single = true` dan demosi ke `DocumentGroup` pada `studio_orch.rs`, menjaga seluruh run media visual tetap utuh dalam `NativeVisual`.
-3. Unbroken Clean Grid Batching: Menjamin pengunggahan 16 media dipartisi secara rapi menjadi 10 + 6 (Maksimum Telegram) atau 8 + 8 (Grid Ukuran 8) tanpa terbentuknya pemisahan 9 + 1 + 6.
+v3.9.14 Unbroken 10-Photo Album Mosaic Grid & Caption-Free Album Normalization — normalisasi caption pada mode album untuk menjamin rendering kolase grid 10 foto utuh (3-4-3) tanpa pemecahan:
+1. Caption-Free Album Item Normalization: Menghentikan penyematan otomatis nama berkas lokal (*stem*) sebagai caption individual saat `group_as_album` aktif pada `MediaStudio/index.tsx`, menjaga seluruh item foto dalam album tetap bersih tanpa teks yang mengganggu rendering mosaik.
+2. Unbroken 10-Photo Telegram Collage: Mengeliminasi pemisahan foto ke-10 (`20241229_112056`) pada Telegram Web, memastikan pengunggahan 16 berkas menghasilkan kolase grid yang rapi dan menyatu sempurna: 1 Kolase 10 Foto (3-4-3) + 1 Kolase 6 Foto (3-3).
 
 Previous:
+v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture:
 v3.9.12 Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid:
 v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture — dukungan penuh album grid visual untuk seluruh format gambar:
 v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture — perbaikan pemisahan cerdas berkas album MTProto:

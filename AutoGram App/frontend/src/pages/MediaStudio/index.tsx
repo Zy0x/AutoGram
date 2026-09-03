@@ -5619,18 +5619,21 @@ function MediaDriveDesktop({
         const filesPayload = task.paths!.map((path, pathIdx) => {
           const isUrl = path.startsWith('http://') || path.startsWith('https://');
           const customName = task.names && task.names[pathIdx] ? task.names[pathIdx] : '';
-          const albumSummary = !!task.options.group_as_album && !!task.options.global_caption;
+          const isAlbum = !!task.options.group_as_album;
+          const albumSummary = isAlbum && !!task.options.global_caption;
           let cleanCaption = '';
           if (!albumSummary) {
             if (task.options.global_caption) {
               cleanCaption = task.options.global_caption;
-            } else if (!isUrl) {
-              const base = path.split(/[/\\]/).pop() || path;
-              const stem = base.includes('.') ? base.replace(/\.[^.]+$/, '') : base;
-              cleanCaption = stem || base;
-            } else if (customName && !customName.startsWith('http') && !customName.startsWith('?')) {
-              const stem = customName.includes('.') ? customName.replace(/\.[^.]+$/, '') : customName;
-              cleanCaption = stem;
+            } else if (!isAlbum) {
+              if (!isUrl) {
+                const base = path.split(/[/\\]/).pop() || path;
+                const stem = base.includes('.') ? base.replace(/\.[^.]+$/, '') : base;
+                cleanCaption = stem || base;
+              } else if (customName && !customName.startsWith('http') && !customName.startsWith('?')) {
+                const stem = customName.includes('.') ? customName.replace(/\.[^.]+$/, '') : customName;
+                cleanCaption = stem;
+              }
             }
           }
           return {

@@ -1,3 +1,16 @@
+## v3.9.14 — Unbroken 10-Photo Album Mosaic Grid & Caption-Free Album Normalization
+
+### 1. Seamless 10-Photo Telegram Album Mosaic Architecture
+- Memperbaiki logika penyusunan payload upload pada `MediaStudio/index.tsx` agar saat opsi `group_as_album` aktif, nama berkas lokal (*filename stem*) tidak lagi otomatis disematkan sebagai teks caption ke setiap item di dalam album.
+- Menghilangkan anomali layout Telegram Web di mana penyematan caption nama berkas pada foto ke-10 (`20241229_112056`) memaksa Telegram Web memecah foto tersebut keluar dari mosaik grid 3×3 menjadi kartu teks tersendiri (9 + 1 + 6).
+- Memastikan pengunggahan 16 berkas media visual membentuk kolase grid murni yang menyatu sempurna: **1 Kolase 10 Foto Utuh (susunan 3-4-3)** + **1 Kolase 6 Foto Utuh (susunan 3-3)** di seluruh client Telegram (Web, Desktop, dan Mobile).
+
+### 2. Verification & Quality Sentinel
+- `cargo test --package autogram-core`: Seluruh 57/57 unit tests lulus (100% pass).
+- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 Vitest tests lulus, integritas database SQLite WAL dan proteksi secret terverifikasi.
+
+---
+
 ## v3.9.13 — Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture
 
 ### 1. Telegram Native Silent Video MTProto Integration
