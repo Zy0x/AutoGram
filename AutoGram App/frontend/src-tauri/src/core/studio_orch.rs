@@ -917,11 +917,17 @@ fn run_intelligent_album(
         })
         .transpose()?;
     let mut normalized_item_captions = HashMap::new();
+    let is_album_grouping = option_bool(&rec.options, "group_as_album", "groupAsAlbum", true);
     if album_summary.is_none() {
         for item in &rec.items {
+            let item_caption_str = if is_album_grouping {
+                String::new()
+            } else {
+                normalize_caption(&item.caption, caption_limit, caption_policy)?.value
+            };
             normalized_item_captions.insert(
                 item.index,
-                normalize_caption(&item.caption, caption_limit, caption_policy)?.value,
+                item_caption_str,
             );
         }
     }

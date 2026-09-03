@@ -1,38 +1,21 @@
-## v3.9.15 — Atomic Direct MTProto SendMultiMedia & Native 10-Item Collage Architecture
+## v3.9.14 — Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination
 
-### 1. Direct Atomic MTProto SendMultiMedia Injection
-- Menghilangkan pemanggilan RPC sekunder `messages.UploadMedia` sebelum `messages.SendMultiMedia` pada `media_transfer.rs`.
-- Mengalirkan struktur `tl::enums::InputMedia::UploadedPhoto` dan `tl::enums::InputMedia::UploadedDocument` secara langsung ke dalam payload `SendMultiMedia`, memastikan Telegram DC menerima berkas sebagai transaksi unggahan baru murni.
-- Mengeliminasi perlakuan *pre-registered photo entity* pada server Telegram yang sebelumnya menyebabkan item ke-10 terpisah dari mosaik album visual (9+1).
+### 1. Telegram Visual Album MTProto Caption Architecture
+- **Elimination of Spurious Filename Captions**: Mengeliminasi penyematan nama berkas otomatis (*filename stem*) ke setiap foto individual di `MediaStudio/index.tsx`, `studio_orch.rs`, dan `autogram-core/caption.rs` saat mode album aktif, menyelaraskan perilaku dengan Telegram Desktop/Web resmi di mana foto dalam album dikirim tanpa caption individual liar.
+- **Strict Telegram MTProto Caption Invariant**: Memperbarui `upload_prepared_album_blocking_with_app` di `media_transfer.rs` untuk menjamin secara mutlak bahwa pada album visual (`!as_document`), hanya elemen ke-0 (`position == 0`) yang membawa caption album (jika ada), sedangkan elemen berikutnya (`position > 0`) diisi string kosong (`""`), mencegah layout engine Telegram Web memecah foto ke-10 ke baris baru.
+- **Visual Album Clean Collage Guarantee**: Menjamin pengunggahan 16 berkas media visual (seperti berkas di `D:\temp`) tampil di Telegram Web sebagai kolase utuh **10 foto (3-4-3)** dan **6 foto (3-3)** tanpa pemisahan 9 + 1 + 6.
 
-### 2. High-Performance Zero-Latency RPC Execution
-- Menghapus 10 round-trip RPC sequential sebelum setiap pengiriman batch album, mempercepat inisiasi pengiriman album hingga 3× lebih cepat.
-- Menjamin kolase 10 foto pada batch pertama di-render secara penuh sebagai susunan 3 baris (**3 + 4 + 3 = 10 foto**) pada seluruh antarmuka Telegram (Web, Desktop, Android, iOS).
-
-### 3. Verification & Autonomous Quality Sentinel
-- `cargo check` (`src-tauri`): Lulus bersih.
-- `cargo test --package autogram-core`: 57/57 unit tests passed (100% pass).
-- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 Vitest tests passed, database schema verified.
-
----
-
-## v3.9.14 — Telegram Album Native Captioning & Unbroken 10-Item Collage Architecture
-
-### 1. Elimination of Unintended Filename Caption Injection in Albums
-- Menghilangkan penyisipan otomatis nama berkas (`stem`) sebagai caption individual pada berkas saat diunggah dalam mode album (`group_as_album: true`) di `MediaStudio/index.tsx`.
-- Menyinkronkan perilaku AutoGram dengan spesifikasi resmi dialog "Send 16 Photos" Telegram Desktop: seluruh foto di dalam album visual dikirim dengan `caption = ""` (bersih polos) kecuali pengguna secara eksplisit mengaktifkan dan mengisi Caption Global.
-- Mengeliminasi benturan teks caption per item yang sebelumnya memicu pemecahan foto ke-10 (`20241229_112056`) keluar dari grid 3×3 Telegram Web menjadi kartu dokumen terpisah di baris bawah.
-
-### 2. Unbroken 10-Item Collage Layout (3-4-3) & 16-Item Exact Grid Parity
-- Menjamin pengunggahan 16 media visual (seperti 16 foto di direktori `D:\temp`) dirender oleh Telegram Web dan Telegram Desktop sebagai kolase yang menyatu sempurna:
-  - **Album #1**: Kolase 10 Foto Utuh dalam susunan 3 baris (**3 + 4 + 3 = 10 foto**).
-  - **Album #2**: Kolase 6 Foto Utuh dalam susunan 2 baris (**3 + 3 = 6 foto**).
-- Tidak ada lagi foto yang terlempar sendirian menjadi single message dengan label nama berkas (`9 + 1 + 6`).
+### 2. Live Verification & Database Audit
+- Pengujian live upload berhasil mengeksekusi 16 berkas dari `D:\temp` ke target `U8542241823/D-1003214112048/T43891` melalui akun `Lavender` (`session_1785668521`).
+- Log audit `album_commits` memverifikasi dua transaksi berstatus `COMMITTED`:
+  - Batch 1: Pesan ID 44584–44593 (10 foto dalam 1 grup album visual).
+  - Batch 2: Pesan ID 44594–44599 (6 foto dalam 1 grup album visual).
+- Unit test `native_visual_clears_spurious_captions_for_telegram_collage` ditambahkan dan terverifikasi di `autogram-core`.
 
 ### 3. Verification & Autonomous Quality Sentinel
-- `cargo check` (`src-tauri`): Selesai sukses tanpa error.
-- `cargo test --package autogram-core`: Seluruh 57/57 unit tests lulus (100% pass).
-- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 unit test suites Vitest lulus, integritas database SQLite WAL terverifikasi.
+- `cargo test` (`autogram-core`): 58/58 unit tests lulus (100% pass).
+- `cargo check` (`src-tauri`): Lulus bersih (0 compiler errors).
+- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 Vitest tests lulus, SQLite WAL dan proteksi rahasia terverifikasi.
 
 ---
 

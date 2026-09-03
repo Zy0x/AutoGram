@@ -191,13 +191,17 @@ pub fn apply_album_caption_policy(
     let summary = summary.map(str::trim).filter(|value| !value.is_empty());
     if let Some(summary) = summary {
         let normalized = normalize_caption(summary, runtime_limit, policy)?;
-        for item in items.iter_mut().skip(1) {
-            let detail = normalize_caption(&item.caption, runtime_limit, policy)?;
-            item.caption = detail.value;
-        }
         let item_index = items.first().map(|item| item.index);
         if let Some(first) = items.first_mut() {
             first.caption = normalized.value;
+        }
+        for item in items.iter_mut().skip(1) {
+            if item.key.payload_class == super::PayloadClass::NativeVisual {
+                item.caption.clear();
+            } else {
+                let detail = normalize_caption(&item.caption, runtime_limit, policy)?;
+                item.caption = detail.value;
+            }
         }
         return Ok(AlbumCaptionAssignment {
             item_index,
@@ -211,11 +215,15 @@ pub fn apply_album_caption_policy(
     let mut original_utf16_len = 0usize;
     let mut final_utf16_len = 0usize;
     for item in items.iter_mut() {
-        let normalized = normalize_caption(&item.caption, runtime_limit, policy)?;
-        any_truncated |= normalized.truncated;
-        original_utf16_len = original_utf16_len.max(normalized.original_utf16_len);
-        final_utf16_len = final_utf16_len.max(normalized.final_utf16_len);
-        item.caption = normalized.value;
+        if item.key.payload_class == super::PayloadClass::NativeVisual {
+            item.caption.clear();
+        } else {
+            let normalized = normalize_caption(&item.caption, runtime_limit, policy)?;
+            any_truncated |= normalized.truncated;
+            original_utf16_len = original_utf16_len.max(normalized.original_utf16_len);
+            final_utf16_len = final_utf16_len.max(normalized.final_utf16_len);
+            item.caption = normalized.value;
+        }
     }
     Ok(AlbumCaptionAssignment {
         item_index: None,
@@ -298,6 +306,27 @@ mod tests {
         assert_eq!(assignment.item_index, None);
         assert_eq!(items[0].caption, "first");
         assert_eq!(items[1].caption, "second");
+    }
+
+    #[test]
+    fn native_visual_clears_spurious_captions_for_telegram_collage() {
+        let mut visual_item1 = item(0, "20241228_045020");
+        visual_item1.key.payload_class = PayloadClass::NativeVisual;
+        let mut visual_item2 = item(1, "20241229_112056");
+        visual_item2.key.payload_class = PayloadClass::NativeVisual;
+        let mut items = vec![visual_item1, visual_item2];
+
+        let _ = apply_album_caption_policy(&mut items, None, 1_024, CaptionOverflowPolicy::Fail).unwrap();
+        assert_eq!(items[0].caption, "");
+        assert_eq!(items[1].caption, "");
+
+        let mut items2 = vec![item(0, "old0"), item(1, "old1")];
+        items2[0].key.payload_class = PayloadClass::NativeVisual;
+        items2[1].key.payload_class = PayloadClass::NativeVisual;
+        let assignment = apply_album_caption_policy(&mut items2, Some("Global Album"), 1_024, CaptionOverflowPolicy::Fail).unwrap();
+        assert_eq!(assignment.item_index, Some(0));
+        assert_eq!(items2[0].caption, "Global Album");
+        assert_eq!(items2[1].caption, "");
     }
 
     #[test]

@@ -1,13 +1,14 @@
-AutoGram Version: v3.9.15
+AutoGram Version: v3.9.14
 
 Current State:
-v3.9.15 Atomic Direct MTProto SendMultiMedia & Native 10-Item Collage Architecture — pengiriman langsung handle InputMediaUploadedPhoto murni tanpa pra-registrasi UploadMedia untuk memastikan Telegram DC merender kolase 10 foto (3-4-3) secara utuh:
-1. Direct Atomic MTProto Album Injection: Mengalirkan `InputMediaUploadedPhoto` dan `InputMediaUploadedDocument` secara langsung ke dalam `messages.SendMultiMedia` di `media_transfer.rs` tanpa memanggil RPC `messages.UploadMedia` sebelumnya, mengeliminasi degradasi album dari item pra-registrasi.
-2. Single-Transaction 10-Item Mosaic Construction: Telegram DC kini menerima ke-10 berkas sebagai satu kesatuan transaksi unggahan multipart baru, menghasilkan grouped ID dan kalkulasi mosaik 10 foto murni (3-4-3) tanpa overflow item.
-3. Zero-Latency RPC Optimization: Menghemat 10 round-trip RPC sequential sebelum setiap commit album dieksekusi.
+v3.9.14 Telegram Visual Album Native Collage Integrity & Spurious Caption Elimination — penyelarasan penuh caption album visual dan eliminasi pemecahan grid:
+1. Elimination of Spurious Filename Captions: Mengeliminasi penyematan nama berkas otomatis (*filename stem*) ke setiap foto individual di `MediaStudio/index.tsx`, `studio_orch.rs`, dan `autogram-core/caption.rs` saat mode album aktif.
+2. Strict Telegram MTProto Caption Invariant: Memperbarui `upload_prepared_album_blocking_with_app` di `media_transfer.rs` untuk menjamin bahwa pada album visual (`!as_document`), hanya elemen ke-0 yang membawa caption, sedangkan elemen 1..N selalu berupa string kosong `""`.
+3. Visual Album Clean Collage Guarantee: Menjamin pengunggahan 16 berkas media visual (seperti berkas di `D:\temp`) tampil di Telegram Web sebagai kolase utuh 10 foto (3-4-3) dan 6 foto (3-3) tanpa pemisahan 9 + 1 + 6.
 
 Previous:
-v3.9.14 Telegram Album Native Captioning & Unbroken 10-Item Collage Architecture:
+v3.9.13 Telegram Native Silent Video Album Support & Unbroken 10+6 / 8+8 Grid Architecture:
+v3.9.12 Authoritative MTProto Grouped ID Envelope & Zero-Degradation 10+6 Grid:
 v3.8.44 Universal Multi-Format Photo Grid Album & Transparent Non-Image Fallback Architecture — dukungan penuh album grid visual untuk seluruh format gambar:
 v3.8.43 Telegram Album Grouping & Independent Incompatible Media Delivery Architecture — perbaikan pemisahan cerdas berkas album MTProto:
 v3.8.42 Android Native Compact 3-Column Grid & Precision Floating Dock Architecture — perombakan tata letak presisi sesuai acuan desain:

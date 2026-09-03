@@ -1008,11 +1008,21 @@ pub fn upload_prepared_album_blocking_with_app(
                         other => other,
                     };
 
+                    let item_caption = if !as_document {
+                        if position == 0 {
+                            items[position].caption.clone()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        items[position].caption.clone()
+                    };
+
                     multi_media.push(tl::enums::InputSingleMedia::Media(
                         tl::types::InputSingleMedia {
                             media: server_input_media,
                             random_id,
-                            message: items[position].caption.clone(),
+                            message: item_caption,
                             entities: None,
                         },
                     ));
