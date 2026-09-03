@@ -1248,51 +1248,10 @@ fn run_intelligent_album(
                 );
             }
         }
-        // Silent MP4 files are valid H.264 video, but Telegram's album RPC can
-        // reject a no-audio native-video part with MEDIA_EMPTY and classify a
-        // successful standalone send as an animation/GIF. In High Quality
-        // delivery, preserve the original bytes and send it as a single
-        // document with an extracted thumbnail instead. This is fail-closed:
-        // no transcode is required and the user's bytes remain lossless.
-        let force_single = if classification.category == MediaCategory::Mp4Video {
-            let analysis = super::autogram_core::transfer::analyze_media(std::path::Path::new(
-                &artifact.prepared_path,
-            ));
-            if !analysis.probe_available {
-                // A missing probe must never silently route an ambiguous MP4
-                // through Telegram's animation path. Fail closed to a
-                // document send; the bytes remain lossless and Telegram will
-                // not reinterpret the item as a GIF.
-                persist_transfer_log(
-                    tid,
-                    "warn",
-                    "album_media_probe_unavailable",
-                    format!(
-                        "index={} file={} action=document_single reason=ffprobe_unavailable",
-                        item.index, item.path
-                    ),
-                );
-                true
-            } else {
-                analysis.audio_codecs().is_empty()
-            }
-        } else {
-            false
-        };
-        if force_single {
-            classification.payload_class = PayloadClass::DocumentGroup;
-            classification.as_document = true;
-            classification.reason_code = "silent_video_document_fallback".into();
-            persist_transfer_log(
-                tid,
-                "warn",
-                "album_item_forced_document",
-                format!(
-                    "index={} reason=video_without_audio delivery=document_single thumbnail=ffmpeg",
-                    item.index
-                ),
-            );
-        }
+        // Silent MP4 files are supported natively in Telegram albums via MTProto
+        // `nosound_video` flag on `InputMediaUploadedDocument`. They remain in
+        // `PayloadClass::NativeVisual` so visual media groups stay contiguous.
+        let force_single = false;
         // Persist the final delivery decision, including the silent-video
         // document override, so preflight/runtime/ledger all share one truth.
         persist_prepared_decision(

@@ -869,8 +869,12 @@ pub fn upload_prepared_album_blocking_with_app(
                             }
                             let _ = std::fs::remove_file(tp);
                         }
+                        let is_nosound = {
+                            let analysis = crate::core::autogram_core::transfer::analyze_media(Path::new(path_str));
+                            analysis.probe_available && analysis.audio_codecs().is_empty()
+                        };
                         tl::enums::InputMedia::UploadedDocument(tl::types::InputMediaUploadedDocument {
-                            nosound_video: false,
+                            nosound_video: is_nosound,
                             force_file: false,
                             spoiler: item.spoiler,
                             file: uploaded.raw,
@@ -974,14 +978,39 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                 }
 
-                // Build multi_media directly with InputMediaUploadedPhoto / InputMediaUploadedDocument
-                // for atomic dispatch into the forum topic via SendMultiMedia
+                // Pre-register each media item via messages.UploadMedia so that
+                // SendMultiMedia receives valid server-side InputPhoto / InputDocument
                 let mut multi_media = Vec::with_capacity(items.len());
                 for (position, raw_media) in raw_medias.into_iter().enumerate() {
                     let random_id = random_ids[position];
+                    let server_input_media = match raw_media {
+                        tl::enums::InputMedia::UploadedPhoto(_)
+                        | tl::enums::InputMedia::PhotoExternal(_)
+                        | tl::enums::InputMedia::UploadedDocument(_)
+                        | tl::enums::InputMedia::DocumentExternal(_) => {
+                            let uploaded = client
+                                .invoke(&tl::functions::messages::UploadMedia {
+                                    business_connection_id: None,
+                                    peer: peer.into(),
+                                    media: raw_media,
+                                })
+                                .await
+                                .map_err(|e| map_invocation(&e))?;
+                            Media::from_raw(uploaded)
+                                .and_then(|m| m.to_raw_input_media())
+                                .ok_or_else(|| {
+                                    TgError::new(
+                                        TgErrorCode::Internal,
+                                        "failed to convert uploaded media to InputMedia",
+                                    )
+                                })?
+                        }
+                        other => other,
+                    };
+
                     multi_media.push(tl::enums::InputSingleMedia::Media(
                         tl::types::InputSingleMedia {
-                            media: raw_media,
+                            media: server_input_media,
                             random_id,
                             message: items[position].caption.clone(),
                             entities: None,
