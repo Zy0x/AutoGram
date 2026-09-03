@@ -1,13 +1,20 @@
-## v3.9.14 — Unbroken 10-Photo Album Mosaic Grid & Caption-Free Album Normalization
+## v3.9.14 — Telegram Album Native Captioning & Unbroken 10-Item Collage Architecture
 
-### 1. Seamless 10-Photo Telegram Album Mosaic Architecture
-- Memperbaiki logika penyusunan payload upload pada `MediaStudio/index.tsx` agar saat opsi `group_as_album` aktif, nama berkas lokal (*filename stem*) tidak lagi otomatis disematkan sebagai teks caption ke setiap item di dalam album.
-- Menghilangkan anomali layout Telegram Web di mana penyematan caption nama berkas pada foto ke-10 (`20241229_112056`) memaksa Telegram Web memecah foto tersebut keluar dari mosaik grid 3×3 menjadi kartu teks tersendiri (9 + 1 + 6).
-- Memastikan pengunggahan 16 berkas media visual membentuk kolase grid murni yang menyatu sempurna: **1 Kolase 10 Foto Utuh (susunan 3-4-3)** + **1 Kolase 6 Foto Utuh (susunan 3-3)** di seluruh client Telegram (Web, Desktop, dan Mobile).
+### 1. Elimination of Unintended Filename Caption Injection in Albums
+- Menghilangkan penyisipan otomatis nama berkas (`stem`) sebagai caption individual pada berkas saat diunggah dalam mode album (`group_as_album: true`) di `MediaStudio/index.tsx`.
+- Menyinkronkan perilaku AutoGram dengan spesifikasi resmi dialog "Send 16 Photos" Telegram Desktop: seluruh foto di dalam album visual dikirim dengan `caption = ""` (bersih polos) kecuali pengguna secara eksplisit mengaktifkan dan mengisi Caption Global.
+- Mengeliminasi benturan teks caption per item yang sebelumnya memicu pemecahan foto ke-10 (`20241229_112056`) keluar dari grid 3×3 Telegram Web menjadi kartu dokumen terpisah di baris bawah.
 
-### 2. Verification & Quality Sentinel
+### 2. Unbroken 10-Item Collage Layout (3-4-3) & 16-Item Exact Grid Parity
+- Menjamin pengunggahan 16 media visual (seperti 16 foto di direktori `D:\temp`) dirender oleh Telegram Web dan Telegram Desktop sebagai kolase yang menyatu sempurna:
+  - **Album #1**: Kolase 10 Foto Utuh dalam susunan 3 baris (**3 + 4 + 3 = 10 foto**).
+  - **Album #2**: Kolase 6 Foto Utuh dalam susunan 2 baris (**3 + 3 = 6 foto**).
+- Tidak ada lagi foto yang terlempar sendirian menjadi single message dengan label nama berkas (`9 + 1 + 6`).
+
+### 3. Verification & Autonomous Quality Sentinel
+- `cargo check` (`src-tauri`): Selesai sukses tanpa error.
 - `cargo test --package autogram-core`: Seluruh 57/57 unit tests lulus (100% pass).
-- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 Vitest tests lulus, integritas database SQLite WAL dan proteksi secret terverifikasi.
+- Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`): 100% i18n parity (6.183 keys), 0 TypeScript errors, 46 unit test suites Vitest lulus, integritas database SQLite WAL terverifikasi.
 
 ---
 
