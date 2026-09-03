@@ -218,7 +218,7 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
                 // keeping the 10-item group lightweight (< 35MB) to avoid Telegram DC worker timeout (>60s),
                 // while the remaining heavier videos are isolated into the smaller, fast-committing tail group.
                 grouped.sort_by_key(|item| item.size);
-                partition_sizes(grouped.len(), 10, options.avoid_single_remainder)
+                partition_sizes(grouped.len(), 10, true)
             }
         } else {
             partition_sizes(grouped.len(), target, options.avoid_single_remainder)
@@ -602,6 +602,45 @@ mod tests {
         assert!(plan.singles.is_empty());
         assert_eq!(plan.groups[0].items.len(), 10);
         assert_eq!(plan.groups[1].items.len(), 7);
+    }
+
+    #[test]
+    fn test_all_counts_from_two_to_fifty_form_valid_unbroken_collages() {
+        for n in 2..=50 {
+            let mut vid_items = items(n, PayloadClass::NativeVisual);
+            for item in &mut vid_items {
+                item.path = format!("{}.mp4", item.index);
+                item.size = (item.index as u64 + 1) * 1024 * 1024;
+            }
+            let plan = build_album_plan(vid_items, &options());
+            // Invariant 1: Zero singles (no file is ever detached or left behind)
+            assert!(
+                plan.singles.is_empty(),
+                "Count {} produced singles! Singles: {:?}",
+                n,
+                plan.singles.len()
+            );
+            // Invariant 2: Total items across all groups equals n (zero lost items)
+            let total_grouped: usize = plan.groups.iter().map(|g| g.items.len()).sum();
+            assert_eq!(
+                total_grouped, n,
+                "Count {} total items mismatch: expected {}, got {}",
+                n, n, total_grouped
+            );
+            // Invariant 3: Every group is between 2 and 10 items (valid Telegram collage)
+            for (idx, group) in plan.groups.iter().enumerate() {
+                assert!(
+                    group.items.len() >= 2,
+                    "Count {} group {} has < 2 items ({})!",
+                    n, idx, group.items.len()
+                );
+                assert!(
+                    group.items.len() <= 10,
+                    "Count {} group {} exceeds 10 items ({})!",
+                    n, idx, group.items.len()
+                );
+            }
+        }
     }
 
     #[test]

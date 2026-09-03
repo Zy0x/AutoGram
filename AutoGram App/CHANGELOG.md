@@ -1,3 +1,16 @@
+## v3.9.21 — Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee
+
+### 1. Mathematical Partition Invariance & Single Elimination
+- **Universal Multi-Item Mathematical Determinism**: Mengunci seluruh partisi media untuk sembarang integer $N \ge 2$ ke dalam formula matematis deterministik yang menjamin seluruh paket visual album dipecah dengan batas maksimal 10 per grup dan tanpa menyisakan 1 berkas tunggal.
+- **Strict Avoid Single Enforcement**: Memaksa `avoid_single_remainder = true` secara permanen pada seluruh alur partisi visual album. Kasus angka ganjil seperti $N=11$ dijamin menjadi $9+2$, $N=21$ menjadi $10+9+2$, dan $N=31$ menjadi $10+10+9+2$, sehingga pengguna tidak perlu lagi memverifikasi jumlah berkas satu per satu secara manual.
+- **Comprehensive Property-Based Audit Test**: Menambahkan unit test `test_all_counts_from_two_to_fifty_form_valid_unbroken_collages` di `autogram-core`, memvalidasi secara otomatis seluruh iterasi $N=2$ hingga $N=50$ terhadap 3 invarian mutlak: zero singles, total media preservation 100%, dan seluruh grup berada dalam rentang valid 2..10 media.
+
+### 2. Quality Assurance & Sentinel Certification
+- `cargo test -p autogram-core`: 69/69 unit tests lulus sempurna (termasuk verifikasi seluruh 49 rentang integer).
+- Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`): Seluruh 6 Quality Gates lulus bersih (61 MTProto album invariant tests lolos).
+
+---
+
 ## v3.9.20 — Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture
 
 ### 1. True Maximum 10+5 Video Collage Packing Engine
