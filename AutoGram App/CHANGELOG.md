@@ -1,3 +1,12 @@
+## v3.9.22 — Strict Maximum-First Chunk Ordering Architecture
+
+### 1. Maximum-First Chunk Order Preservation
+- **10-First Invariant Enforcement**: Mengunci urutan grup album pada kebijakan `AlbumPackingPolicy::Maximum` agar susunan grup mempertahankan urutan partisi asli (grup 10 penuh selalu dikirim terlebih dahulu sebelum grup sisa), mencegah pengurutan indeks yang tidak disengaja memposisikan grup kecil di depan.
+- **Empirical 13-Media Verification**: Menguji pengiriman 13 berkas video nyata langsung ke Telegram Web, menghasilkan tepat dua kolase utuh: Kolase 1 (10 video) dan Kolase 2 (3 video) dengan `GroupedID` yang terisolasi sempurna dan 0 berkas tercecer.
+- **Unit Test Coverage**: Menambahkan unit test `test_video_album_thirteen_items_maximum_ten_plus_three` di `autogram-core`.
+
+---
+
 ## v3.9.21 — Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee
 
 ### 1. Mathematical Partition Invariance & Single Elimination

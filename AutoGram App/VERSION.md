@@ -1,13 +1,13 @@
-AutoGram Version: v3.9.21
+AutoGram Version: v3.9.22
 
 Current State:
-v3.9.21 Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee:
-1. Mathematical Determinism: Mengunci seluruh partisi media ($N = 2$ hingga $N = 50+$) ke dalam aturan deterministik matematis sehingga pengguna tidak perlu lagi menguji coba jumlah berkas satu per satu.
-2. Invariant Proof Gate: Menambahkan unit test audit properti komprehensif (`test_all_counts_from_two_to_fifty_form_valid_unbroken_collages`) yang membuktikan secara otomatis bahwa setiap angka $N$ dari 2 hingga 50 menghasilkan 0 singles, total item cocok 100%, dan seluruh grup berada pada rentang 2..10 item.
-3. Strict Single Elimination: Memaksa parameter `avoid_single_remainder = true` pada paket visual album untuk mencegah angka ganjil seperti $N=11, 21, 31$ menyisakan 1 berkas tunggal (otomatis menjadi $9+2$, $10+9+2$).
-4. Quality Sentinel: 100% lulus seluruh 6 Quality Gates (61 MTProto album invariant tests lolos).
+v3.9.22 Strict Maximum-First Chunk Ordering Architecture:
+1. Maximum-First Partition Order: Mengunci urutan grup album saat mode Maximum aktif sehingga grup 10 penuh selalu dikirim dan tampil lebih dulu di depan sebelum grup sisa (seperti 10+3, 10+5, 10+7), mencegah grup sisa kecil mendahului grup utama.
+2. Verified 13-Media Live Test: Teruji secara empiris via AutoGram dan Telegram Web, menghasilkan Kolase 1 (10 video) diikuti Kolase 2 (3 video) dengan 0 berkas tercecer.
+3. Quality Sentinel: 100% lulus seluruh 6 Quality Gates (70 MTProto tests passing).
 
 Previous:
+v3.9.21 Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee:
 v3.9.20 Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture:
 v3.9.19 Smart Adaptive Video Album Balancing & Unbroken Multi-Media Collage Architecture:
 v3.9.18 Option B Smart Server Reconciliation & Comprehensive Diagnostic Transfer Log Overhaul:

@@ -265,8 +265,10 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
         current_bucket.push(item);
     }
     flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
-    plan.groups
-        .sort_by_key(|g| g.items.first().map(|i| i.index).unwrap_or(usize::MAX));
+    if options.packing != AlbumPackingPolicy::Maximum {
+        plan.groups
+            .sort_by_key(|g| g.items.first().map(|i| i.index).unwrap_or(usize::MAX));
+    }
     plan.singles.sort_by_key(|i| i.index);
     plan
 }
@@ -602,6 +604,23 @@ mod tests {
         assert!(plan.singles.is_empty());
         assert_eq!(plan.groups[0].items.len(), 10);
         assert_eq!(plan.groups[1].items.len(), 7);
+    }
+
+    #[test]
+    fn test_video_album_thirteen_items_maximum_ten_plus_three() {
+        let mut vid_items = items(13, PayloadClass::NativeVisual);
+        for item in &mut vid_items {
+            item.path = format!("{}.mp4", item.index);
+            item.size = (item.index as u64 + 1) * 1024 * 1024;
+        }
+        let plan = build_album_plan(vid_items, &options());
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![10, 3]
+        );
+        assert!(plan.singles.is_empty());
+        assert_eq!(plan.groups[0].items.len(), 10);
+        assert_eq!(plan.groups[1].items.len(), 3);
     }
 
     #[test]

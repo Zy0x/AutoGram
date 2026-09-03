@@ -1588,7 +1588,7 @@ fn run_intelligent_album(
             plan.singles.len()
         ),
     );
-    // Calculate human-readable partition summary (e.g. 10+7 or 10+5) - certified v3.9.21 property audit
+    // Calculate human-readable partition summary (e.g. 10+7, 10+5, or 10+3) - certified v3.9.22
     let group_partition_summary = plan
         .groups
         .iter()
