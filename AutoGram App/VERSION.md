@@ -1,14 +1,14 @@
-AutoGram Version: v3.9.33
+AutoGram Version: v3.9.34
 
 Current State:
-v3.9.33 Elimination of Redundant Shortcut Button & Streamlined Warning Bar:
-1. Redundancy Elimination in Custom Grid Warning Bar: Menghapus tombol pintasan sekunder "[Smart Mode (Auto-Adaptive) →]" dari bilah peringatan risiko timeout. Pengguna sudah memiliki kartu mode pilihan yang jelas dan interaktif langsung di atas slider, sehingga tombol tersebut redundan dan mempersempit tata letak.
-2. Clean Single-Line Alert Banner: Mengubah bilah peringatan menjadi strip peringatan satu baris yang ramping dan elegan: ikon peringatan segitiga, judul risiko, deskripsi ringkas, dan tombol informasi "(i)".
-3. Streamlined Modal Overlay Footer: Menyederhanakan footer dialog modal penjelasan risiko timeout agar seragam dengan modal mode Smart dan Custom lainnya (hanya menampilkan tombol "Tutup" / "Close" yang bersih tanpa tombol aksi ganda).
-4. Zero Unused Imports: Membersihkan dependensi impor ikon `ArrowRight` yang tidak lagi digunakan pada `AlbumStrategyControl.tsx`.
-5. Full Autonomous Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 100% dengan 6.307 kunci identik di ID dan EN, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual secara langsung melalui CDP port 9230.
+v3.9.34 Elimination of Redundant Badges & Duplicate Status Lines from Album Cards:
+1. Complete Redundancy Elimination in Strategy Cards: Menghapus badge sudut kanan atas (`[100% Anti-Split]` dan `[Slider (10)]`) serta baris status bawah (`✓ 100% Anti-Split` dan `⚠️ Potential Telegram Server Timeout`) yang menduplikasi informasi di dalam kartu mode dan bilah peringatan di bawahnya.
+2. Clean, Symmetrical Card Design: Kedua kartu mode (Smart dan Custom) kini tampil ramping, seimbang, dan minimalis: hanya menampilkan ikon penanda, judul mode, tombol informasi `(i)` untuk modal overlay, dan deskripsi fungsi 1 baris yang padat dan jelas.
+3. Single Source of Truth for Warnings: Peringatan risiko batas waktu pemrosesan server Telegram 60 detik kini disajikan secara terpusat pada bilah peringatan di bawah slider Custom Grid, tidak lagi diulang berkali-kali di dalam kartu.
+4. Full Autonomous Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 100% dengan 6.307 kunci identik di ID dan EN, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual secara langsung melalui CDP port 9230.
 
 Previous:
+v3.9.33 Elimination of Redundant Shortcut Button & Streamlined Warning Bar:
 v3.9.32 Real Binary Signature Proof (Magic Bytes) & Mismatch Dialog Stacking Fix:
 v3.9.31 Mathematically Verified Timeout Warning & Accurate Partition Examples:
 v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
