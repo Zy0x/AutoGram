@@ -461,6 +461,7 @@ fn parse_central_directory_fast(
 
 /// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
 pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
+    crate::core::stream_server::record_stream_activity();
     let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
     if opts.force_refresh.unwrap_or(false) {
         invalidate_cached_catalog(&cache_key);
@@ -1310,6 +1311,7 @@ pub async fn preview_zip_entry_sparse(
     entry_name: String,
     password: Option<String>,
 ) -> Result<ZipEntryPreview, TgError> {
+    crate::core::stream_server::record_stream_activity();
     let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
     let catalog = match get_cached_catalog(&cache_key) {
         Some(cat) => cat,

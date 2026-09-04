@@ -2250,6 +2250,13 @@ impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
                 let this = &mut *self;
                 this.current_bytes += newly_read as u64;
 
+                // Streaming Priority Sentinel: If user is actively streaming video or previewing ZIP,
+                // yield cooperative pacing (8ms) so outbound upload traffic does not cause bufferbloat
+                // or delay TCP ACK confirmations for incoming HTTP Range streaming packets.
+                if crate::core::stream_server::is_streaming_recently_active(5) {
+                    std::thread::sleep(Duration::from_millis(8));
+                }
+
                 let elapsed_ms = this.last_emit_time.elapsed().as_millis();
                 if elapsed_ms >= 500 || this.current_bytes == this.total_bytes {
                     if let Some(tid) = &this.transfer_id {
@@ -3357,6 +3364,12 @@ pub fn download_file_blocking_with_policy(
                         }
                         if offset >= size {
                             break;
+                        }
+
+                        // Streaming Priority Sentinel: If user is watching a video or previewing ZIP,
+                        // yield cooperative pacing to guarantee 0-stutter playback on media range sockets.
+                        if crate::core::stream_server::is_streaming_recently_active(5) {
+                            tokio::time::sleep(Duration::from_millis(15)).await;
                         }
                     }
                     if !refresh_reference {

@@ -12,7 +12,7 @@ use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -21,6 +21,28 @@ use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 static PORT: AtomicU16 = AtomicU16::new(0);
 static REGISTRY_DIR: OnceLock<PathBuf> = OnceLock::new();
 static LIVE: OnceLock<Arc<RwLock<HashMap<String, StreamEntry>>>> = OnceLock::new();
+static LAST_STREAM_ACTIVITY_MS: AtomicU64 = AtomicU64::new(0);
+
+pub fn record_stream_activity() {
+    let now = now_ms() as u64;
+    LAST_STREAM_ACTIVITY_MS.store(now, Ordering::Relaxed);
+}
+
+pub fn has_active_streams() -> bool {
+    let map = live_map().read();
+    map.values().any(|e| !e.done && !e.cancelled && !e.paused)
+}
+
+pub fn is_streaming_recently_active(within_secs: u64) -> bool {
+    let last = LAST_STREAM_ACTIVITY_MS.load(Ordering::Relaxed);
+    if last > 0 {
+        let now = now_ms() as u64;
+        if now.saturating_sub(last) < within_secs * 1000 {
+            return true;
+        }
+    }
+    has_active_streams()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -617,6 +639,7 @@ fn bounded_response_end(start: u64, requested_end: Option<u64>, solid_end: u64) 
 }
 
 fn handle_register(mut request: Request) {
+    record_stream_activity();
     let mut body = String::new();
     let _ = request.as_reader().read_to_string(&mut body);
     match serde_json::from_str::<StreamEntry>(&body) {
@@ -651,6 +674,7 @@ fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
 }
 
 fn handle_stream(request: Request, sid: &str) {
+    record_stream_activity();
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
         Some(_e) if _e.cancelled => {

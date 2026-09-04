@@ -49,6 +49,7 @@ fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
 }
 
 pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
+    stream_server::record_stream_activity();
     if let Some(mut e) = stream_server::get_entry(stream_id) {
         if e.done {
             return false;
