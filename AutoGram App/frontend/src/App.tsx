@@ -234,11 +234,7 @@ function App() {
           localStorage.setItem('autogram_app_mode', 'launcher');
           return true;
         }
-        if (appMode === 'drives') {
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-          return true;
-        }
+        // In drives mode, back gesture must remain inside Drives and never kick user to launcher
         return false;
       },
     },

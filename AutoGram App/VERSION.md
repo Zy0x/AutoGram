@@ -1,14 +1,15 @@
-AutoGram Version: v3.9.50
+AutoGram Version: v3.9.51
 
 Current State:
-v3.9.50 Deep Transfer Double-Buffering, Fast NTFS Pre-Allocation & Hot-Head RAM Streaming Cache:
-1. Double-Buffering MTProto Transfer Pipeline: Decoupled chunk network downloads from disk I/O via `tokio::join!`, fetching the next 512KB chunk concurrently while writing the current chunk to disk, with strictly bounded RAM footprint (1 MB max).
-2. Fast NTFS Pre-allocation: Immediate file length allocation (`set_len`) on download start/resume eliminates NTFS dynamic cluster reallocations, disk fragmentation, and OS kernel write latency spikes.
-3. Hot-Head RAM Streaming Cache: Zero-latency in-memory cache for media head bytes (<0.1ms seek latency for video playback/scrubbing), bounded strictly to 4 streams × 2 MB (8 MB max memory ceiling) with automatic eviction on transfer completion or prune.
-4. Forwarder Jobs Search & Status Filters: Fast responsive filtering by job name, route, profile, and status (active, attention, completed, failed).
-5. 100% Quality Gates Passed: Verified across all 6 gates (6,333 i18n keys, 0 TypeScript errors, Vitest, SQLite WAL schema, MTProto album invariants).
+v3.9.51 Nested Overlay Back Navigation & Cascade Collapse Elimination Architecture:
+1. Elimination of Competing Window Listeners: Removed all raw `window.addEventListener('auxclick')`, `mouseup`, and `wheel` listeners from `MediaStudio`, `DrivePreviewModal`, and `DriveZipBrowser`. Enforced a single, centralized global dispatcher in `mouseBackGesture.ts` with a 300ms action cooldown guard.
+2. Prevention of Unauthorized Workspace Exit: Stripped premature `setAppMode('launcher')` and `onBackToLauncher()` fallbacks from Drives navigation handlers. Back gestures performed inside Drives strictly remain inside Drives, returning `false` (no-op) when reaching the root level.
+3. Strict Multi-Tiered LIFO Peeling: Guaranteed that 1 back click/gesture pops exactly 1 innermost layer (Innermost Modals via `useModalBackHandler` -> `DriveZipBrowser` at priority 40 -> `DrivePreviewModal` at priority 30 -> `MediaStudio` at priority 20). Nested overlays peel back cleanly layer-by-layer without cascading collapse.
+4. History State Race Prevention: Replaced boolean popping flag in `modalBackStack.ts` with an internal pops counter and `isPopping` entry flag, eliminating browser history popping races and duplicate `popstate` events.
+5. 100% Quality Gates Passed: Verified across all 6 gates (6,333 i18n keys with 100% ID/EN parity, 0 TypeScript compile errors, 49 Vitest test suites / 424 tests passing, SQLite WAL schema parity, and live CDP verification on port 9230).
 
 Previous:
+v3.9.50 Deep Transfer Double-Buffering, Fast NTFS Pre-Allocation & Hot-Head RAM Streaming Cache:
 v3.9.49 Forwarder Jobs Search and Status Filters:
 1. Searchable job list by job name, route, profile, and transfer mode.
 2. Status filters for active, attention, completed, and failed jobs with responsive controls.

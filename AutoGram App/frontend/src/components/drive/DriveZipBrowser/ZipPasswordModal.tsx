@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, LockKeyhole, X } from 'lucide-react';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 type Props = {
   open: boolean;
@@ -14,6 +15,7 @@ type Props = {
 
 export function ZipPasswordModal({ open, archiveLabel, error, busy, suggestions = [], onClose, onSubmit }: Props) {
   const { t } = useTranslation();
+  useModalBackHandler(open && !busy, onClose, 'zip-password-modal');
   const [password, setPassword] = useState('');
   if (!open) return null;
 

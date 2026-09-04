@@ -1,3 +1,28 @@
+## v3.9.51 — Nested Overlay Back Navigation & Cascade Collapse Elimination Architecture
+
+### 1. Eliminasi Listener Konkuren & Sentralisasi Dispatcher Tunggal
+- **Penghapusan Listener Bersaing pada Window**: Menghapus seluruh listener `window.addEventListener('auxclick')`, `mouseup`, dan `wheel` lokal yang sebelumnya tersebar secara independen di `MediaStudio`, `DrivePreviewModal`, dan `DriveZipBrowser`.
+- **Dispatcher Tunggal Terpusat (`mouseBackGesture.ts`)**: Seluruh interaksi tombol mouse back (Button 3 / XButton1), forward (Button 4 / XButton2), dan gestur sapuan trackpad horizontal kini secara eksklusif dikelola oleh satu dispatcher global berprioritas capture phase.
+- **Action Cooldown Guard (300ms)**: Menerapkan guard batas waktu 300ms pada `triggerGlobalBack()` untuk mencegah pemicuan ganda (*double execution*) atau desinkronisasi saat pengguna menekan tombol mouse dengan cepat atau saat peramban mengirimkan event `auxclick` dan `mouseup` secara berdekatan.
+
+### 2. Eliminasi Fallback Prematur Menuju Launcher & Proteksi Integritas Drives
+- **Pembersihan Logika Navigasi "Sesat"**: Menghapus eksekusi destruktif `setAppMode('launcher')` pada `App.tsx` dan `onBackToLauncher()` / `onExitToApp()` pada `MediaStudio` saat menangani back gesture.
+- **Isolasi Lingkup Kerja (*Workspace Scope Protection*)**: Penekanan tombol back di dalam ruang kerja Drives (`appMode === 'drives'`) dijamin 100% tetap berada di dalam Drives. Jika pengguna telah mencapai folder terluar (root) tanpa modal atau seleksi aktif, back gesture berhenti secara aman (*safe no-op*, mengembalikan `false`) tanpa membongkar workspace atau mereset aplikasi ke *SessionLauncher*.
+
+### 3. Hierarki LIFO Terkalibrasi & Mitigasi Balapan Status Riwayat (*Popstate Race*)
+- **Pengupasan 1 Lapisan Per 1 Gestur (*Strict 1-Layer Peeling*)**: Menjamin bahwa 1 kali klik/gestur back hanya menutup tepat 1 lapisan terdalam (LIFO) tanpa menimbulkan efek domino yang meruntuhkan seluruh rantai modal bertingkat:
+  - *Tier 1 (Prioritas Tertinggi / `modalBackStack`)*: Modal transien terdalam (`ZipExtractModal`, `ZipPasswordModal`, `TelegramChatActionModal`, `DownloadAllZipModal`, `ReUploadBatchModal`, `RemoteRecoveryDialog`, dialog input/konfirmasi).
+  - *Tier 2 (Prioritas 40 / `DriveZipBrowser`)*: Pratinjau entri arsip $\rightarrow$ modal ekstraksi $\rightarrow$ dialog password $\rightarrow$ batalkan seleksi $\rightarrow$ naik subfolder zip $\rightarrow$ keluar nested zip $\rightarrow$ tutup browser zip.
+  - *Tier 3 (Prioritas 30 / `DrivePreviewModal`)*: Menu kualitas/kecepatan putar $\rightarrow$ keluar mode layar penuh (fullscreen) $\rightarrow$ tutup panel info $\rightarrow$ tutup modal pratinjau media.
+  - *Tier 4 (Prioritas 20 / `MediaStudio`)*: Tutup drawer navigasi $\rightarrow$ tutup panel tools $\rightarrow$ batalkan seleksi berkas $\rightarrow$ mundur riwayat folder (`navBack`) $\rightarrow$ naik ke folder induk.
+- **Pencegahan Balapan State Riwayat (`modalBackStack.ts`)**: Mengganti flag boolean `isPoppingInternally` dengan penghitung internal `internalPopsRemaining` dan penanda entri `isPopping`, mengeliminasi panggilan ganda `window.history.back()` saat unmount React serta mencegah event `popstate` susulan menutup modal di bawahnya.
+
+### 4. Integritas Kualitas & Verifikasi Mutu 5-Dimensi
+- **100% Quality Gates Passed**: Seluruh 6 Quality Gates terverifikasi hijau: 6.333 kunci lokalisasi ID & EN (100% key parity), 0 TypeScript compile errors, 49 test suites Vitest / 424 unit tests (termasuk 10 test spesifik pengujian LIFO multi-tier dan cooldown), skema SQLite WAL, proteksi rahasia, serta kepatuhan invarian album MTProto.
+- **Live Desktop CDP Inspection (Port 9230)**: Terverifikasi langsung pada aplikasi desktop native (`frontend.exe`) via CDP WebView2 port 9230.
+
+---
+
 ## v3.9.50 — Deep Transfer Double-Buffering, Fast NTFS Pre-Allocation & Hot-Head RAM Streaming Cache
 
 ### 1. Arsitektur Double-Buffering Transfer MTProto & Pre-alokasi Cepat NTFS

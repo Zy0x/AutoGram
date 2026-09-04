@@ -46,6 +46,18 @@ const MOUSE_BUTTON_DEDUPE_MS = 250;
 let lastWheelGestureTime = 0;
 const WHEEL_GESTURE_COOLDOWN_MS = 450;
 
+let lastBackActionTime = 0;
+const BACK_ACTION_COOLDOWN_MS = 300;
+
+/**
+ * Resets back gesture timestamps for testing environments.
+ */
+export function resetBackCooldownForTesting(): void {
+  lastBackActionTime = 0;
+  lastMouseButtonTime = 0;
+  lastWheelGestureTime = 0;
+}
+
 /**
  * Registers a component or page-level back/forward navigation handler.
  * Handlers with higher priority execute first. For equal priority,
@@ -98,10 +110,18 @@ function getSortedHandlers(): RegisteredNavHandler[] {
  * Returns true if the back event was handled, false otherwise.
  */
 export function triggerGlobalBack(): boolean {
+  const now = Date.now();
+  if (now - lastBackActionTime < BACK_ACTION_COOLDOWN_MS) {
+    return true; // Cooldown in progress, suppress rapid double clicks / simultaneous events
+  }
+
   // 1. Top-most modal in modalBackStack
   if (hasOpenModals()) {
     const closed = popTopModal();
-    if (closed) return true;
+    if (closed) {
+      lastBackActionTime = Date.now();
+      return true;
+    }
   }
 
   // 2. Component / Page level handlers
@@ -112,10 +132,12 @@ export function triggerGlobalBack(): boolean {
         const result = handler.onBack();
         // If handler explicitly returned false, fall through to next handler
         if (result !== false) {
+          lastBackActionTime = Date.now();
           return true;
         }
       } catch (err) {
         console.warn(`[MouseBackGesture] Error in handler ${handler.id}:`, err);
+        lastBackActionTime = Date.now();
         return true;
       }
     }

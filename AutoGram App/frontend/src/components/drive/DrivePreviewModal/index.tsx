@@ -56,6 +56,8 @@ import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../lib/tauri/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../../lib/telegram';
+import { useMouseBackNavigation } from '../../../lib/platform/mouseBackGesture';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 function middleTruncateFilename(filename: string, maxLength: number = 32): string {
   if (!filename || filename.length <= maxLength) return filename;
@@ -2914,43 +2916,27 @@ export function DrivePreviewModal({
     return true;
   }, [onClose, qualityOpen, rateOpen, showInfo]);
 
+  // Android / Tauri / PWA Modal Back Handler
+  useModalBackHandler(!isZip, () => { void handleCloseOrDismiss(); }, 'drive-preview-modal');
+
   // Mouse Back / Forward button navigation (Button 3 = Back, Button 4 = Forward)
-  useEffect(() => {
-    if (isZip) return; // Yield to DriveZipBrowser
-
-    let lastBtnTime = 0;
-    const handleMouseBackForward = (e: MouseEvent) => {
-      if (e.button === 3 || e.button === 4) {
-        const now = Date.now();
-        if (now - lastBtnTime < 250) {
-          e.preventDefault();
-          e.stopPropagation();
-          return;
+  useMouseBackNavigation(
+    {
+      priority: 30,
+      enabled: !isZip,
+      onBack: () => {
+        return handleCloseOrDismiss();
+      },
+      onForward: () => {
+        if (hasNext && onNext) {
+          onNext();
+          return true;
         }
-        lastBtnTime = now;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (e.button === 3) {
-          // Back Button: dismiss menu/info/fullscreen or close preview modal
-          handleCloseOrDismiss();
-        } else if (e.button === 4) {
-          // Forward Button: next media in sequence
-          if (hasNext && onNext) {
-            onNext();
-          }
-        }
-      }
-    };
-
-    window.addEventListener('auxclick', handleMouseBackForward, true);
-    window.addEventListener('mouseup', handleMouseBackForward, true);
-    return () => {
-      window.removeEventListener('auxclick', handleMouseBackForward, true);
-      window.removeEventListener('mouseup', handleMouseBackForward, true);
-    };
-  }, [handleCloseOrDismiss, hasNext, isZip, onNext]);
+        return false;
+      },
+    },
+    [handleCloseOrDismiss, hasNext, isZip, onNext]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {

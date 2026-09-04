@@ -4,8 +4,9 @@ import {
   registerBackNavigation,
   triggerGlobalBack,
   triggerGlobalForward,
+  resetBackCooldownForTesting,
 } from './mouseBackGesture';
-import { registerModalBackHandler } from './modalBackStack';
+import { registerModalBackHandler, clearBackStackForTesting } from './modalBackStack';
 
 describe('mouseBackGesture Engine', () => {
   let unregisterGlobal: (() => void) | null = null;
@@ -14,6 +15,8 @@ describe('mouseBackGesture Engine', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetBackCooldownForTesting();
+    clearBackStackForTesting();
 
     // Ensure mock window exists in Node test runner
     (globalThis as any).window = {
@@ -35,6 +38,8 @@ describe('mouseBackGesture Engine', () => {
   });
 
   afterEach(() => {
+    resetBackCooldownForTesting();
+    clearBackStackForTesting();
     if (unregisterGlobal) {
       unregisterGlobal();
       unregisterGlobal = null;
@@ -186,5 +191,88 @@ describe('mouseBackGesture Engine', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
 
     unregister();
+  });
+
+  it('enforces multi-tier nested overlay peeling (1 back gesture = 1 innermost layer only)', () => {
+    // Simulate: MediaStudio (priority 20) -> DrivePreviewModal (priority 30) -> DriveZipBrowser (priority 40) -> ZipExtractModal (modalBackStack)
+    const mediaStudioAction = vi.fn(() => true);
+    const previewModalAction = vi.fn(() => true);
+    const zipBrowserAction = vi.fn(() => true);
+    const extractModalClose = vi.fn();
+
+    const unregPage = registerBackNavigation({ onBack: mediaStudioAction, priority: 20 });
+    const unregPreview = registerBackNavigation({ onBack: previewModalAction, priority: 30 });
+    const unregZip = registerBackNavigation({ onBack: zipBrowserAction, priority: 40 });
+    const unregExtract = registerModalBackHandler('zip-extract-modal', extractModalClose);
+
+    // 1st back: MUST close ONLY the innermost extract modal
+    expect(triggerGlobalBack()).toBe(true);
+    expect(extractModalClose).toHaveBeenCalledTimes(1);
+    expect(zipBrowserAction).not.toHaveBeenCalled();
+    expect(previewModalAction).not.toHaveBeenCalled();
+    expect(mediaStudioAction).not.toHaveBeenCalled();
+
+    // Simulate extract modal unmounted
+    unregExtract();
+    resetBackCooldownForTesting();
+
+    // 2nd back: MUST trigger ONLY the zip browser action
+    expect(triggerGlobalBack()).toBe(true);
+    expect(zipBrowserAction).toHaveBeenCalledTimes(1);
+    expect(previewModalAction).not.toHaveBeenCalled();
+    expect(mediaStudioAction).not.toHaveBeenCalled();
+
+    // Simulate zip browser closed / unmounted
+    unregZip();
+    resetBackCooldownForTesting();
+
+    // 3rd back: MUST trigger ONLY the preview modal action
+    expect(triggerGlobalBack()).toBe(true);
+    expect(previewModalAction).toHaveBeenCalledTimes(1);
+    expect(mediaStudioAction).not.toHaveBeenCalled();
+
+    // Simulate preview modal closed / unmounted
+    unregPreview();
+    resetBackCooldownForTesting();
+
+    // 4th back: MUST trigger MediaStudio workspace navigation
+    expect(triggerGlobalBack()).toBe(true);
+    expect(mediaStudioAction).toHaveBeenCalledTimes(1);
+
+    unregPage();
+  });
+
+  it('prevents double triggering within the 300ms action cooldown window', () => {
+    const onBack = vi.fn(() => true);
+    const unregister = registerBackNavigation({ onBack });
+
+    // First call executes
+    expect(triggerGlobalBack()).toBe(true);
+    expect(onBack).toHaveBeenCalledTimes(1);
+
+    // Immediate second call should be absorbed by the cooldown guard
+    expect(triggerGlobalBack()).toBe(true);
+    expect(onBack).toHaveBeenCalledTimes(1);
+
+    unregister();
+  });
+
+  it('returns false when at root of drives and no handlers handle the back action (stays in drives, no-op)', () => {
+    // Drives handler at root returns false (meaning: no modals, no selection, no folder parent)
+    const drivesRootHandler = vi.fn(() => false);
+    const unregisterDrives = registerBackNavigation({ onBack: drivesRootHandler, priority: 20 });
+
+    // Fallback handler in App.tsx (priority -100) also returns false for drives mode
+    const appFallbackHandler = vi.fn(() => false);
+    const unregisterApp = registerBackNavigation({ onBack: appFallbackHandler, priority: -100 });
+
+    // triggerGlobalBack should return false (no-op, staying strictly in drives)
+    const handled = triggerGlobalBack();
+    expect(handled).toBe(false);
+    expect(drivesRootHandler).toHaveBeenCalledTimes(1);
+    expect(appFallbackHandler).toHaveBeenCalledTimes(1);
+
+    unregisterDrives();
+    unregisterApp();
   });
 });

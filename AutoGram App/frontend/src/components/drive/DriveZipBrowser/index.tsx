@@ -40,6 +40,7 @@ import { fetchZipEntryThumbnail, isMediaThumbnailSupported } from './ZipThumbnai
 import { driveZipExtractEntry, driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 import { zipExtractEntry, zipListLocal, zipPreviewEntry } from '../../../lib/tauri/rustBackend';
 import { tgDebugGetMessage, tgSearchPasswordCandidates } from '../../../lib/telegram/core/telegramBackend';
+import { useMouseBackNavigation } from '../../../lib/platform/mouseBackGesture';
 import './DriveZipBrowser.css';
 
 export { clearZipBrowserCache } from './zipUtils';
@@ -794,40 +795,25 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
     return false;
   }, [contextMenu, passwordAction, pathParts, previewEntry, selectedEntries.size, showExtractModal, sources.length]);
 
-  // Mouse Back button listener (Button 3 / XButton1)
-  useEffect(() => {
-    let lastBtnTime = 0;
-    const handleMouseBtn = (e: MouseEvent) => {
-      if (e.button === 3 || e.button === 4) {
-        const now = Date.now();
-        if (now - lastBtnTime < 250) {
-          e.preventDefault();
-          e.stopPropagation();
-          return;
+  // Mouse Back button & Trackpad navigation (Priority 40: inside ZIP Archive)
+  useMouseBackNavigation(
+    {
+      priority: 40,
+      onBack: () => {
+        const handled = handleNavigateBack();
+        if (handled) return true;
+        if (onClose) {
+          onClose();
+          return true;
         }
-        lastBtnTime = now;
+        return false;
+      },
+    },
+    [handleNavigateBack, onClose]
+  );
 
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.button === 3) {
-          const handled = handleNavigateBack();
-          if (!handled && onClose) {
-            onClose();
-          }
-        }
-      }
-    };
-    window.addEventListener('auxclick', handleMouseBtn, true);
-    window.addEventListener('mouseup', handleMouseBtn, true);
-    return () => {
-      window.removeEventListener('auxclick', handleMouseBtn, true);
-      window.removeEventListener('mouseup', handleMouseBtn, true);
-    };
-  }, [handleNavigateBack, onClose]);
-
-  // Touch & Trackpad Back Swipe Gesture
+  // Touch Screen Back Swipe Gesture on content surface
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const lastWheelNavRef = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
@@ -854,30 +840,6 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
       }
     }
   };
-
-  const handleWheelGesture = useCallback(
-    (e: WheelEvent) => {
-      // Two-finger horizontal back swipe on trackpad (swipe right: negative deltaX)
-      if (Math.abs(e.deltaX) > 40 && Math.abs(e.deltaY) < 25) {
-        const now = Date.now();
-        if (e.deltaX < -40 && now - lastWheelNavRef.current > 450) {
-          lastWheelNavRef.current = now;
-          const handled = handleNavigateBack();
-          if (!handled && onClose) {
-            onClose();
-          }
-        }
-      }
-    },
-    [handleNavigateBack, onClose]
-  );
-
-  useEffect(() => {
-    const el = contentSurfaceRef.current;
-    if (!el) return;
-    el.addEventListener('wheel', handleWheelGesture, { passive: true });
-    return () => el.removeEventListener('wheel', handleWheelGesture);
-  }, [handleWheelGesture]);
 
   // Keyboard Controller
   useEffect(() => {

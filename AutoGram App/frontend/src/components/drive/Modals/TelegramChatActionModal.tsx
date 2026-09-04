@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { tgChatAction, type TgChatAction } from '../../../lib/telegram/core/telegramBackend';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 type Props = {
   open: boolean;
@@ -31,6 +32,7 @@ export function TelegramChatActionModal({
   const [target, setTarget] = useState(initialTarget);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  useModalBackHandler(open && !busy, onClose, 'telegram-chat-action-modal');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 

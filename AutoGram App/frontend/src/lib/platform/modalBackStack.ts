@@ -10,11 +10,20 @@ import { listen } from '@tauri-apps/api/event';
 type ModalEntry = {
   id: string;
   onClose: () => void;
+  isPopping?: boolean;
 };
 
 const backStack: ModalEntry[] = [];
 let isInitialized = false;
-let isPoppingInternally = false;
+let internalPopsRemaining = 0;
+
+/**
+ * Resets modal back stack state for testing environments.
+ */
+export function clearBackStackForTesting(): void {
+  backStack.length = 0;
+  internalPopsRemaining = 0;
+}
 
 function initBackStackListeners() {
   if (typeof window === 'undefined' || isInitialized) return;
@@ -22,13 +31,14 @@ function initBackStackListeners() {
 
   // 1. Web / PWA / Android WebView popstate
   window.addEventListener('popstate', () => {
-    if (isPoppingInternally) {
-      isPoppingInternally = false;
+    if (internalPopsRemaining > 0) {
+      internalPopsRemaining--;
       return;
     }
     if (backStack.length > 0) {
       const top = backStack.pop();
       if (top) {
+        top.isPopping = true;
         try {
           top.onClose();
         } catch (err) {
@@ -45,6 +55,7 @@ function initBackStackListeners() {
         if (backStack.length > 0) {
           const top = backStack.pop();
           if (top) {
+            top.isPopping = true;
             try {
               top.onClose();
             } catch (err) {
@@ -81,9 +92,10 @@ export function popTopModal(): boolean {
   if (backStack.length > 0) {
     const top = backStack.pop();
     if (top) {
+      top.isPopping = true;
       try {
         if (typeof window !== 'undefined' && window.history?.state?.autogramModal === top.id) {
-          isPoppingInternally = true;
+          internalPopsRemaining++;
           window.history.back();
         }
         top.onClose();
@@ -111,21 +123,23 @@ export function registerModalBackHandler(id: string, onClose: () => void): () =>
     /* ignore */
   }
 
-  const entry: ModalEntry = { id, onClose };
+  const entry: ModalEntry = { id, onClose, isPopping: false };
   backStack.push(entry);
 
   return () => {
     const idx = backStack.findIndex((m) => m.id === id);
     if (idx !== -1) {
-      backStack.splice(idx, 1);
-      // Clean up the dummy history entry if this was closed by UI button rather than back gesture
-      try {
-        if (window.history.state?.autogramModal === id) {
-          isPoppingInternally = true;
-          window.history.back();
+      const entry = backStack.splice(idx, 1)[0];
+      // Only clean up the dummy history entry if this modal was closed by UI button rather than back gesture / popstate
+      if (!entry.isPopping) {
+        try {
+          if (window.history.state?.autogramModal === id) {
+            internalPopsRemaining++;
+            window.history.back();
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
       }
     }
   };

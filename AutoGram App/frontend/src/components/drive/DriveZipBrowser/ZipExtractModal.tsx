@@ -5,6 +5,7 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUt
 import type { DriveChat, DriveFolder } from '../../../lib/telegram/driveTypes';
 import type { TargetDestination } from './zipUtils';
 import { PeerAvatar } from '../Navigation/sidebarUtils';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 type ZipExtractModalProps = {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function ZipExtractModal({
   onConfirmExtract,
 }: ZipExtractModalProps) {
   const { t } = useTranslation();
+  useModalBackHandler(isOpen && !busy, onClose, 'zip-extract-modal');
   const [tab, setTab] = useState<DestinationTab>('saved');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);

@@ -19,6 +19,7 @@ import {
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { matchesMediaFilter } from '../../../lib/telegram/driveTypes';
 import { countPerspectiveMedia } from '../utils/mediaStatistics';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 export type ZipCategory = 'all' | 'images' | 'videos' | 'audio' | 'documents' | 'archives';
 export type ZipSpecificCategory = 'images' | 'videos' | 'audio' | 'documents' | 'archives';
@@ -64,6 +65,7 @@ export function DownloadAllZipModal({
   onClose,
 }: Props) {
   const { t } = useTranslation();
+  useModalBackHandler(open && !indexing, onClose, 'download-all-zip-modal');
   // Multi-select categories state. Default is 'all'.
   const [selectedCategories, setSelectedCategories] = useState<Set<ZipCategory>>(new Set(['all']));
   const counts = useMemo(() => countPerspectiveMedia(indexedFiles, 'drive'), [indexedFiles]);

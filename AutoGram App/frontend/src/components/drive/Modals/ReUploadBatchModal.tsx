@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RotateCcw, AlertTriangle, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 export type GuardrailItem = {
   index: number;
@@ -67,6 +68,7 @@ export function ReUploadBatchModal({
   onClose,
 }: Props) {
   const { t } = useTranslation();
+  useModalBackHandler(open, onClose, 're-upload-batch-modal');
   const titleId = useId();
   const [selected, setSelected] = useState<Set<number>>(() => new Set(items.map((i: any) => i.index)));
   const [expanded, setExpanded] = useState(false);

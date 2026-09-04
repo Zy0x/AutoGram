@@ -14,6 +14,7 @@ import {
   remoteTransferCleanup,
 } from '../../../lib/telegram/remoteTransferApi';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 interface RemoteRecoveryDialogProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function RemoteRecoveryDialog({
   onRefresh,
 }: RemoteRecoveryDialogProps) {
   const { t } = useTranslation();
+  useModalBackHandler(Boolean(isOpen && items.length), onClose, 'remote-recovery-dialog');
 
   if (!isOpen || !items.length) return null;
 
