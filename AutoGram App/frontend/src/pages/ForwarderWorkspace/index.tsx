@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import './ForwarderWorkspace.css';
 import {
   ArrowRightLeft,
   LayoutDashboard,
@@ -56,7 +57,7 @@ export function ForwarderWorkspace({
 
           <span className="ag-forwarder-product">
             <ArrowRightLeft size={18} aria-hidden="true" />
-            <span>{t('ui.generated.forwarder_suite_35718a2')}</span>
+            <span>{t('nav.open_forwarder')}</span>
           </span>
         </div>
 

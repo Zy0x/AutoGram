@@ -41888,55 +41888,100 @@ select.td-modern-select {
 
 /* 2. Security Mismatch Banner & Threat Guard */
 .td-mismatch-banner {
-  margin: 8px 16px 0 16px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  margin: 6px 16px 0 16px;
+  padding: 6px 12px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 0.8rem;
-  animation: tdFadeIn 220ms ease-out;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  gap: 10px;
+  font-size: 0.78rem;
+  animation: tdFadeIn 180ms ease-out;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 10;
+  transition: all 180ms ease;
 }
 
 .td-mismatch-banner.is-info {
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(14, 165, 233, 0.35);
+  background: rgba(14, 165, 233, 0.10);
+  border: 1px solid rgba(14, 165, 233, 0.30);
   color: #e0f2fe;
 }
 
 .td-mismatch-banner.is-warning {
-  background: rgba(245, 158, 11, 0.14);
-  border: 1px solid rgba(245, 158, 11, 0.40);
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.30);
   color: #fef3c7;
 }
 
 .td-mismatch-banner.is-danger {
-  background: rgba(239, 68, 68, 0.18);
-  border: 1px solid rgba(239, 68, 68, 0.50);
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
   color: #fee2e2;
 }
 
 .td-mismatch-banner-main {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.td-mismatch-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.td-mismatch-text {
+  min-width: 0;
 }
 
 .td-mismatch-title {
-  font-weight: 700;
-  font-size: 0.82rem;
-  line-height: 1.25;
+  font-weight: 600;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .td-mismatch-desc {
-  font-size: 0.76rem;
-  opacity: 0.88;
-  margin-top: 2px;
-  line-height: 1.35;
+  font-size: 0.73rem;
+  opacity: 0.85;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.td-mismatch-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.td-mismatch-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-mismatch-info-btn:hover {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 .td-mismatch-fix-btn {
@@ -41944,13 +41989,382 @@ select.td-modern-select {
   background: #0284c7;
   color: #ffffff;
   border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  font-size: 0.73rem;
   font-weight: 600;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: none;
 }
 
 .td-mismatch-fix-btn:hover {
   background: #0369a1;
+}
+
+.td-mismatch-dismiss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-mismatch-dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Extension Mismatch Educational Explanation Modal */
+.td-mismatch-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: tdFadeIn 180ms ease-out;
+}
+
+.td-mismatch-modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: tdModalPop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.td-mismatch-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.td-mismatch-modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.td-mismatch-modal-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(6, 182, 212, 0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.td-mismatch-modal-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.25;
+}
+
+.td-mismatch-modal-subtitle {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.td-mismatch-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-mismatch-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+
+.td-mismatch-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.td-mismatch-compare-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.td-mismatch-compare-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.td-mismatch-compare-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.td-mismatch-compare-value.td-file-name-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-mismatch-compare-grid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.td-mismatch-chip-box {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.td-mismatch-chip-box.is-current {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: #fef3c7;
+}
+
+.td-mismatch-chip-box.is-detected {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  color: #a7f3d0;
+}
+
+.td-mismatch-chip-label {
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+
+.td-mismatch-chip-value {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.td-mismatch-compare-arrow {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.td-mismatch-magic-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.73rem;
+  color: #94a3b8;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.td-mismatch-reasons-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.td-mismatch-reasons-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.td-mismatch-reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.td-mismatch-reason-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.td-mismatch-reason-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.td-mismatch-reason-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.td-mismatch-reason-heading {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.td-mismatch-reason-text {
+  font-size: 0.73rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.td-mismatch-safety-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.td-mismatch-safety-box.is-safe {
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #d1fae5;
+}
+
+.td-mismatch-safety-box.is-danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fee2e2;
+}
+
+.td-mismatch-safety-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.td-mismatch-safety-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.td-mismatch-safety-desc {
+  font-size: 0.74rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.td-mismatch-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.td-mismatch-modal-fix-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-mismatch-modal-fix-btn:hover {
+  background: #0369a1;
+}
+
+.td-mismatch-modal-close-action {
+  font-size: 0.78rem;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-mismatch-modal-close-action:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+@keyframes tdModalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* 3. Sensitive Data & Secrets Alert */

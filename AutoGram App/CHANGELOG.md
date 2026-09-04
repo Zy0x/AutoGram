@@ -1,3 +1,49 @@
+## v3.9.29 — Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer
+
+### 1. Ultra-Compact Custom Warning Banner
+- **Vertical Footprint Minimization**: Merampingkan kotak peringatan risiko server timeout pada mode Custom Grid (`AlbumStrategyControl.tsx`) dari blok statis masif setinggi ~220px menjadi satu baris (*single-line strip*) ramping setinggi ~38px.
+- **Immediate Visual Hierarchy**: Menampilkan ikon peringatan amber `AlertTriangle`, judul ringkas, serta ringkasan pendek ("Batas ≥9 pada video rentan memicu timeout 60s & merusak kolase").
+- **Integrated Smart Mode Shortcut**: Menyematkan tombol aksi langsung `[Smart Mode (Auto-Adaptive) →]` pada baris peringatan tersebut, memudahkan pengguna beralih ke mode aman dalam 1 klik.
+
+### 2. Interactive "(i)" Information Button & Expandable Failure Details Drawer
+- **Dedicated Warning "(i)" Trigger**: Menyematkan tombol ikon lingkaran interaktif `(i)` (`.td-preflight-info-btn`) tepat di samping teks ringkasan peringatan.
+- **Glassmorphic Failure Scenario Drawer**: Saat ikon `(i)` diklik, panel pengungkapan detail dengan latar *glassmorphism* gelap muncul secara halus tepat di bawah baris peringatan, menyajikan:
+  - Penjelasan mekanisme batas waktu gateway 60 detik datacenter Telegram (`WORKER_BUSY_TOO_LONG_RETRY`).
+  - Kotak contoh nyata layout kolase terbelah:
+    - *10 video*: Pemrosesan server Telegram terpotong pada item ke-9, menyebabkan item ke-10 terlepas menjadi pesan tunggal (9 + 1).
+    - *13 video*: Memaksa batch 10+3 dapat berakhir menjadi kolase terbelah 9 + 1 + 3 atau 7 + 1 + 2.
+  - Catatan proteksi kuota data internet dengan ikon `ShieldCheck`.
+  - Tombol tutup `✕` untuk melipat kembali drawer dengan cepat.
+
+### 3. Internationalization Parity & Quality Certification
+- **100% Zero Hardcoded Strings**: Kunci i18n baru (`album_strategy_custom_warning_short`, `album_strategy_custom_badge`) diekstrak ke `id/drive.json` dan `en/drive.json`. Audit `tools/locale-audit.mjs` memvalidasi paritas 100% sempurna dengan 6.297 kunci identik di kedua bahasa dan 0 fallback calls.
+- **Autonomous 6-Dimension Quality Sentinel**: Lolos bersih seluruh 6 Quality Gates (`npm run test:quality`), 0 error TypeScript, dan seluruh 48 test suites Vitest lulus 100%.
+- **Live Desktop Visual CDP Verification**: Terverifikasi secara visual pada jendela desktop aktif via Chrome DevTools Protocol port 9230.
+
+---
+
+## v3.9.28 — Non-Intrusive File Mismatch UI, Dismiss Action & Educational Format Inspector
+
+### 1. Non-Intrusive & Compact Mismatch Presentation
+- **Slim Glassmorphic Strip**: Merampingkan banner ketidaksesuaian ekstensi berkas (`SecurityMismatchBanner.tsx`) dari banner amber tebal 60px yang menutupi kanvas menjadi strip ramping setinggi ~34px dengan efek *glassmorphism* modern (`backdrop-filter: blur(12px)`).
+- **Subtle Visual Hierarchy**: Membedakan notifikasi format aman (gambar/audio/video/dokumen) dengan format berbahaya (`isDanger`). Untuk berkas media aman, notifikasi tampil ringkas dan tenang tanpa mendorong atau mengaburkan rasio kanvas pratinjau media.
+
+### 2. Immediate Dismiss (✕) & Touch-First Control
+- **Quick Dismiss Button**: Menyematkan tombol tutup `✕` (`.td-mismatch-dismiss-btn`) dengan area sentuh nyaman ($\ge 44 \times 44\text{px}$) sehingga pengguna dapat langsung menyembunyikan notifikasi kapan saja hanya dengan sekali sentuh/klik.
+- **Session State Persistence**: Mengintegrasikan state `dismissedMismatchIds` di `DrivePreviewModal/index.tsx` sehingga preferensi penutupan notifikasi oleh pengguna tetap dihormati dan tidak muncul kembali saat bernavigasi pada berkas yang sama.
+
+### 3. Interactive Information "(i)" & Binary Educational Modal
+- **Dedicated "(i)" Info Trigger**: Menambahkan tombol informasi interaktif `(i)` (`.td-mismatch-info-btn`) yang membuka modal dialog edukasi transparan `ExtensionMismatchExplanationModal`.
+- **Transparent Format Intelligence**: Menerangkan secara transparan kepada pengguna mengapa AutoGram mendeteksi perbedaan (analisis signature biner *magic bytes* `FF D8 FF` vs `.heic`), menguraikan 3 penyebab umum (konversi otomatis server Telegram pada foto seluler, bot/scraper web yang mengubah kompresi tanpa ekstensi, dan penamaan ulang manual).
+- **Safety Assurance & Fast Action**: Menegaskan status keamanan bahwa berkas aman dibuka dan ditampilkan secara otomatis, serta menyediakan tombol aksi *Perbaiki Ekstensi* dan tombol *Tutup*.
+
+### 4. Internationalization Parity & Quality Sentinel Certification
+- **100% Zero Hardcoded Strings**: Kunci i18n baru diekstrak secara sinkron ke `id/drive.json` dan `en/drive.json` (6.297 kunci identik di kedua bahasa dengan 0 missing key).
+- **Automated Unit Testing**: Menambahkan `SecurityMismatchBanner.test.ts` (4 unit tests baru, total 48 test suites Vitest dengan 407 tests lulus 100%).
+- **Autonomous 6-Dimension Quality Sentinel**: Lolos bersih seluruh 6 Quality Gates (`npm run test:quality`), 0 error TypeScript, dan verifikasi skema database WAL.
+
+---
+
 ## v3.9.27 — Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer
 
 ### 1. Ultra-Compact Mode Cards & Clean Subtitles

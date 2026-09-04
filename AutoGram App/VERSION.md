@@ -1,13 +1,15 @@
-AutoGram Version: v3.9.27
+AutoGram Version: v3.9.29
 
 Current State:
-v3.9.27 Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer:
-1. Ultra-Compact Mode Cards: Merampingkan ukuran kartu mode Smart dan Custom Grid menjadi sangat ringkas (~75px) dengan deskripsi 1-baris yang padat dan lugas.
-2. Interactive "(i)" Information Drawer: Menyematkan tombol ikon lingkaran "(i)" interaktif pada masing-masing kartu mode yang membuka panel pengungkapan (disclosure drawer) berlatar glassmorphism dan tombol tutup (✕) saat diklik untuk membaca penjelasan detail tanpa membebani tinggi kartu.
-3. 100% Zero Hardcoded & Key Parity: Menambahkan kunci i18n untuk ringkasan pendek di ID dan EN dengan audit 6,276 kunci identik.
-4. Quality Sentinel Gate Certification: Lolos sempurna seluruh 6 Quality Gates (i18n parity, 0 type errors, 47 Vitest tests, SQLite schema WAL, zero credential exposure, 65 MTProto album invariant tests) serta lolos verifikasi visual langsung via CDP port 9230.
+v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
+1. Ultra-Compact Warning Banner: Mengubah kotak peringatan risiko timeout Custom Grid yang sebelumnya masif (~220px) menjadi satu baris peringatan ringkas (~38px) terintegrasi dengan tombol pintas instan `[Smart Mode (Auto-Adaptive) →]`.
+2. Dedicated Warning "(i)" Disclosure Drawer: Menyematkan tombol ikon lingkaran "(i)" interaktif pada baris peringatan yang menampilkan penjelasan detail, skenario timeout Telegram DC 60s, dan contoh nyata kolase pecah (10 $\rightarrow$ 9+1, 13 $\rightarrow$ 9+1+3 atau 7+1+2) di dalam laci pengungkapan glassmorphism elegan dengan tombol tutup (✕).
+3. 100% Zero Hardcoded & Key Parity: Menambahkan kunci i18n `album_strategy_custom_warning_short` dan `album_strategy_custom_badge` di ID dan EN (audit paritas 6.297 kunci identik, 0 fallback calls, 0 hardcoded text).
+4. Full Quality Sentinel Certification: Lolos seluruh 6 Quality Gates secara sempurna dan lolos uji visual langsung via CDP port 9230.
 
 Previous:
+v3.9.28 Non-Intrusive File Mismatch UI, Dismiss Action & Educational Format Inspector:
+v3.9.27 Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer:
 v3.9.26 Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator:
 v3.9.25 Two-Mode Smart & Custom Album Architecture with Server Timeout Safeguards:
 v3.9.23 Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul:

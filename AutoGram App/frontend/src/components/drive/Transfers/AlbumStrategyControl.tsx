@@ -94,6 +94,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
 }) => {
   const { t } = useTranslation();
   const [activeInfo, setActiveInfo] = useState<'smart' | 'custom' | null>(null);
+  const [showWarningDetails, setShowWarningDetails] = useState(false);
 
   const rawStrategy = draft.albumPacking || 'smart_adaptive';
   const isSmart = rawStrategy === 'smart_adaptive' || (rawStrategy as string) === 'smart' || rawStrategy === 'balanced';
@@ -232,7 +233,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   whiteSpace: 'nowrap',
                 }}
               >
-                Slider ({customGridSize})
+                {t('drive.album_strategy_custom_badge', { size: customGridSize })}
               </span>
             </div>
 
@@ -285,7 +286,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                aria-label={t('common.close', 'Close')}
+                aria-label={t('common.close')}
               >
                 <X size={14} />
               </button>
@@ -355,91 +356,140 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             </p>
           </div>
 
-          {/* PROMINENT TIMEOUT WARNING BOX WITH REAL BROKEN LAYOUT EXAMPLES */}
+          {/* COMPACT TIMEOUT WARNING BAR WITH INTERACTIVE "(i)" INFO ICON */}
           <div
             style={{
               background: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
               borderRadius: '10px',
-              padding: '12px',
+              padding: '8px 12px',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              <strong style={{ color: '#fbbf24', fontSize: '0.84rem' }}>
-                {t('drive.album_strategy_custom_warning_title')}
-              </strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '220px' }}>
+              <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <strong style={{ color: '#fbbf24', fontSize: '0.78rem' }}>
+                  {t('drive.album_strategy_custom_warning_title')}
+                </strong>
+                <span style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
+                  — {t('drive.album_strategy_custom_warning_short')}
+                </span>
+                <button
+                  type="button"
+                  className="td-preflight-info-btn"
+                  onClick={() => setShowWarningDetails((prev) => !prev)}
+                  title={t('drive.album_strategy_custom_warning_examples_title')}
+                  aria-label={t('drive.album_strategy_custom_warning_title')}
+                  style={{ width: '18px', height: '18px' }}
+                >
+                  <Info size={11} />
+                </button>
+              </div>
             </div>
 
-            <p style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
-              {t('drive.album_strategy_custom_warning_desc')}
-            </p>
+            <button
+              type="button"
+              onClick={() => patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 })}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                color: '#38bdf8',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>{t('drive.album_strategy_smart')}</span>
+              <ArrowRight size={12} />
+            </button>
+          </div>
 
-            {/* CONCRETE REAL EXAMPLES (10 -> 9+1, 13 -> 9+1+3 / 7+1+2) */}
+          {/* INTERACTIVE FAILURE EXAMPLES & TIMEOUT DISCLOSURE DRAWER */}
+          {showWarningDetails && (
             <div
               style={{
-                background: 'rgba(0, 0, 0, 0.25)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
+                background: 'rgba(15, 23, 42, 0.95)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: '10px',
+                padding: '12px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '5px',
-              }}
-            >
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fcd34d' }}>
-                {t('drive.album_strategy_custom_warning_examples_title')}
-              </span>
-              <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
-                {t('drive.album_strategy_custom_warning_example_10')}
-              </div>
-              <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
-                {t('drive.album_strategy_custom_warning_example_13')}
-              </div>
-            </div>
-
-            {/* QUOTA SAVING GUIDANCE & SWITCH TO SMART BUTTON */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
                 gap: '8px',
-                paddingTop: '2px',
+                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4)',
+                backdropFilter: 'blur(8px)',
               }}
             >
-              <span style={{ fontSize: '0.73rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
-                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
-                {t('drive.album_strategy_custom_warning_quota_notice')}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <AlertTriangle size={15} style={{ color: '#f59e0b' }} />
+                  <strong style={{ fontSize: '0.82rem', color: '#fcd34d' }}>
+                    {t('drive.album_strategy_custom_warning_title')}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWarningDetails(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  aria-label={t('common.close')}
+                >
+                  <X size={14} />
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 })}
+              <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
+                {t('drive.album_strategy_custom_warning_desc')}
+              </p>
+
+              {/* Concrete Real Examples (10 -> 9+1, 13 -> 9+1+3 / 7+1+2) */}
+              <div
                 style={{
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  borderRadius: '8px',
+                  padding: '8px 10px',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: 'column',
                   gap: '5px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  background: 'rgba(56, 189, 248, 0.2)',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  color: '#38bdf8',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
                 }}
               >
-                <span>{t('drive.album_strategy_smart')}</span>
-                <ArrowRight size={12} />
-              </button>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fcd34d' }}>
+                  {t('drive.album_strategy_custom_warning_examples_title')}
+                </span>
+                <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
+                  {t('drive.album_strategy_custom_warning_example_10')}
+                </div>
+                <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
+                  {t('drive.album_strategy_custom_warning_example_13')}
+                </div>
+              </div>
+
+              {/* Quota Saving Guidance */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', color: '#34d399', fontWeight: 600 }}>
+                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+                <span>{t('drive.album_strategy_custom_warning_quota_notice')}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
