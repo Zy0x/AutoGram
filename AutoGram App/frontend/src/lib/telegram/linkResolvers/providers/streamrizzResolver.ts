@@ -172,6 +172,11 @@ export const streamrizzResolver: LinkResolverProvider = {
     const cleanUrl = url.trim();
     assertSafeRemoteUrl(cleanUrl);
 
+    // The native crawler validates each public payload and carries a cursor
+    // across nested folders. Keep this browser resolver as a web fallback;
+    // desktop must not bypass validation with a title/extension-only card.
+    if (detectTauriRuntime()) return null;
+
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(cleanUrl);

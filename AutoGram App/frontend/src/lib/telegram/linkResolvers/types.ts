@@ -85,6 +85,32 @@ export interface StreamQualityFormat {
   isDownloadable?: boolean;
   isStreamable?: boolean;
   downloadOnly?: boolean;
+  /** Provenance and transport validation supplied by the native public crawler. */
+  verification?: MediaVerification;
+}
+
+export type MediaVerificationStatus = 'verified' | 'wrapper' | 'blocked' | 'session-bound' | 'unverified';
+
+export interface MediaVerification {
+  status: MediaVerificationStatus;
+  sourceUrl?: string;
+  parentUrl?: string;
+  redirectChain?: string[];
+  mimeType?: string;
+  contentLength?: number;
+  validation?: string;
+  reason?: string;
+  rangeSupported?: boolean;
+}
+
+/** Opaque, safe-to-round-trip crawler state. It never includes cookies or credentials. */
+export interface RemoteDiscoveryState {
+  cursor?: unknown;
+  complete: boolean;
+  pendingCount: number;
+  inspectedPages: number;
+  warnings?: string[];
+  blockerReason?: string;
 }
 
 export interface ResolvedMediaItem {
@@ -99,6 +125,8 @@ export interface ResolvedMediaItem {
 
 export interface ResolveOptions {
   passcode?: string;
+  /** Continue a bounded public discovery session from a previous result. */
+  discoveryCursor?: unknown;
 }
 
 export type ResolutionStage = 'analyze' | 'resolve' | 'discover' | 'validate' | 'ready';
@@ -139,6 +167,7 @@ export interface ResolvedMediaInfo {
   requiresPassword?: boolean;
   passwordError?: boolean;
   totalItems?: number;
+  discovery?: RemoteDiscoveryState;
   resolutionTrace?: ResolutionTrace;
   resolvedAt: number;
 }

@@ -1,4 +1,5 @@
 import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat } from '../types';
+import i18n from 'i18next';
 import { assertSafeRemoteUrl } from '../urlSafety';
 
 /**
@@ -71,14 +72,32 @@ export const directFileResolver: LinkResolverProvider = {
       /* network or timeout error on HEAD, use URL-based fallback */
     }
 
-    const isVideo = mime.startsWith('video/') || ['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv'].includes(ext);
-    const isImage = mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
-    const isAudio = mime.startsWith('audio/') || ['mp3', 'm4a', 'flac', 'wav', 'ogg', 'aac'].includes(ext);
+    // Never promote a path suffix to a selectable media stream. The native
+    // crawler performs range/magic validation on desktop; this browser-safe
+    // fallback accepts only an explicit media response header.
+    const isVideo = mime.startsWith('video/');
+    const isImage = mime.startsWith('image/');
+    const isAudio = mime.startsWith('audio/');
     const isHtmlPage = /(?:text\/html|application\/xhtml\+xml)/i.test(mime);
+    const isConfirmedMedia = isVideo || isImage || isAudio || /(?:application\/(?:pdf|zip)|text\/vtt)/i.test(mime);
+
+    if (!isConfirmedMedia) {
+      return {
+        url: cleanUrl,
+        platform: 'direct',
+        platformName: 'Remote Link',
+        title,
+        formats: [],
+        selectedFormatId: '',
+        isDirectFile: false,
+        description: isHtmlPage ? String(i18n.t('drive.remote_web_page_handoff')) : undefined,
+        resolvedAt: Date.now(),
+      };
+    }
 
     const defaultFormat: StreamQualityFormat = {
       id: 'direct_stream',
-      label: isHtmlPage ? 'remote_web_page_handoff' : 'Direct Stream (Source)',
+      label: 'Direct Stream (Source)',
       qualityTier: 'original',
       ext,
       filesizeBytes: bytes,
@@ -86,7 +105,16 @@ export const directFileResolver: LinkResolverProvider = {
       isVideo,
       isImage,
       isAudio,
-      badge: isHtmlPage ? 'remote_web_page' : isVideo ? 'DIRECT VIDEO' : isImage ? 'DIRECT IMAGE' : isAudio ? 'DIRECT AUDIO' : 'DIRECT FILE',
+      isDownloadable: true,
+      isStreamable: isVideo || isAudio,
+      downloadOnly: !(isVideo || isAudio),
+      verification: {
+        status: 'unverified',
+        mimeType: mime,
+        contentLength: bytes,
+        validation: 'declared-mime',
+      },
+      badge: isVideo ? 'DIRECT VIDEO' : isImage ? 'DIRECT IMAGE' : isAudio ? 'DIRECT AUDIO' : 'DIRECT FILE',
     };
 
     return {
@@ -96,7 +124,7 @@ export const directFileResolver: LinkResolverProvider = {
       title,
       formats: [defaultFormat],
       selectedFormatId: 'direct_stream',
-      isDirectFile: !isHtmlPage,
+      isDirectFile: true,
       resolvedAt: Date.now(),
     };
   },

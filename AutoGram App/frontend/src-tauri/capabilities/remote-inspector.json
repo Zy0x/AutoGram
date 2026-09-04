@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "remote-inspector",
+  "description": "Least-privilege capability for the temporary user-assisted remote inspector.",
+  "windows": ["remote-inspector-*"],
+  "remote": {
+    "urls": ["https://*/*", "http://*/*"]
+  },
+  "permissions": ["allow-remote-inspector-report"]
+}

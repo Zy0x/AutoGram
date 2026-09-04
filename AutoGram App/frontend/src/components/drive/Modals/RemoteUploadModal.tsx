@@ -120,6 +120,36 @@ interface UrlInspection {
   error?: string | null;
 }
 
+function mergeRemoteDiscoveryResults(
+  previous: ResolvedMediaInfo,
+  next: ResolvedMediaInfo
+): ResolvedMediaInfo {
+  const formatKeys = new Set<string>();
+  const formats = [...previous.formats, ...next.formats].filter((format) => {
+    const key = format.directUrl || format.id;
+    if (formatKeys.has(key)) return false;
+    formatKeys.add(key);
+    return true;
+  });
+  const itemKeys = new Set<string>();
+  const mediaItems = [...(previous.mediaItems || []), ...(next.mediaItems || [])].filter((item) => {
+    const key = item.formats[0]?.directUrl || item.id;
+    if (itemKeys.has(key)) return false;
+    itemKeys.add(key);
+    return true;
+  });
+  return {
+    ...previous,
+    ...next,
+    title: previous.title || next.title,
+    formats,
+    mediaItems: mediaItems.length > 0 ? mediaItems : undefined,
+    selectedFormatId: previous.selectedFormatId || next.selectedFormatId,
+    totalItems: formats.length,
+    discovery: next.discovery || previous.discovery,
+  };
+}
+
 function inferKindFromExt(ext: string): UrlKind {
   const e = ext.toLowerCase().replace(/^\./, '');
   if (['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv', 'm4v', '3gp', 'ts'].includes(e)) return 'video';
@@ -824,6 +854,8 @@ export function RemoteUploadModal({
 
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMediaInfo | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [assistedSessionId, setAssistedSessionId] = useState<string | null>(null);
   type StreamContainerFilter = 'all' | 'general' | 'video' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'advance' | 'matrix';
   const [streamContainerFilter, setStreamContainerFilter] = useState<StreamContainerFilter>('all');
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
@@ -901,6 +933,8 @@ export function RemoteUploadModal({
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
+      setDiscoveryLoading(false);
+      setAssistedSessionId(null);
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
       setSubtitleSearchQuery('');
@@ -1155,6 +1189,61 @@ export function RemoteUploadModal({
       });
     }
   }, [passcode, t]);
+
+  const handleLoadMoreDiscovery = useCallback(async () => {
+    const current = resolvedMedia;
+    const cursor = current?.discovery?.cursor;
+    if (!current || !cursor || current.discovery?.complete || discoveryLoading) return;
+    setDiscoveryLoading(true);
+    try {
+      const next = await resolveRemoteMediaUrl(current.url || url, undefined, {
+        passcode,
+        discoveryCursor: cursor,
+      });
+      setResolvedMedia((previous) => {
+        if (!previous) return next;
+        return mergeRemoteDiscoveryResults(previous, next);
+      });
+    } finally {
+      setDiscoveryLoading(false);
+    }
+  }, [discoveryLoading, passcode, resolvedMedia, url]);
+
+  const handleOpenAssistedInspector = useCallback(async () => {
+    const target = (resolvedMedia?.url || url).trim();
+    if (!target || !detectTauriRuntime()) return;
+    try {
+      const launch = await invoke<{ sessionId: string }>('open_remote_assisted_inspector', { url: target });
+      setAssistedSessionId(launch.sessionId);
+    } catch {
+      setErrorMsg(t('drive.remote_discovery_blocked'));
+    }
+  }, [resolvedMedia?.url, t, url]);
+
+  useEffect(() => {
+    if (!assistedSessionId || !detectTauriRuntime()) return;
+    let active = true;
+    const poll = async () => {
+      try {
+        const urls = await invoke<string[]>('take_remote_assisted_candidates', { sessionId: assistedSessionId });
+        for (const candidateUrl of urls) {
+          if (!active) return;
+          const result = await resolveRemoteMediaUrl(candidateUrl);
+          if (!active || result.formats.length === 0) continue;
+          setResolvedMedia((previous) => previous ? mergeRemoteDiscoveryResults(previous, result) : result);
+        }
+      } catch {
+        // The temporary inspector may have expired or been closed; no session
+        // data is retained in the React state beyond its opaque identifier.
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 2200);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [assistedSessionId]);
 
   useEffect(() => {
     const handoff = String(initialUrl || '').trim();
@@ -1788,18 +1877,18 @@ export function RemoteUploadModal({
     setIsPlayingStream(true);
     if (fmt.directUrl) {
       setActivePlayableUrl(fmt.directUrl);
-      // YouTube signed URLs are range streams and commonly reject a WebView
-      // media request without the YouTube referer. Route preview traffic
-      // through the native CORS/range proxy while keeping the original signed
-      // URL for the actual transfer.
-      if (
-        detectTauriRuntime() &&
-        (fmt.directUrl.includes('googlevideo.com') || /\.m3u8(?:\?|$)/i.test(fmt.directUrl))
-      ) {
+      // Preview always uses the selected verified URL. The local range proxy
+      // preserves provider Referer requirements while upload retains the
+      // original URL and never falls back to a provider container player.
+      if (detectTauriRuntime()) {
         try {
+          const referer = fmt.headers?.Referer ||
+            (fmt.directUrl.includes('youtube') || fmt.directUrl.includes('googlevideo.com')
+              ? 'https://www.youtube.com/'
+              : undefined);
           const proxyUrl = await invoke<string>('get_remote_stream_proxy_url', {
             url: fmt.directUrl,
-            referer: 'https://www.youtube.com/',
+            referer,
           });
           if (proxyUrl && requestId === playRequestRef.current) setActivePlayableUrl(proxyUrl);
         } catch {
@@ -2421,6 +2510,14 @@ export function RemoteUploadModal({
       }
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
         setErrorMsg(t('drive.remote_err_invalid_protocol'));
+        return;
+      }
+      // A URL is never an implicit upload fallback. Every single-item
+      // transfer must originate from a resolver candidate that passed its
+      // public validation, otherwise an advertising/wrapper page could be
+      // handed to the transfer engine as if it were a media file.
+      if (!resolvedMedia || resolvedMedia.formats.length === 0) {
+        setErrorMsg(t('drive.remote_native_interaction_required'));
         return;
       }
 
@@ -3309,19 +3406,9 @@ export function RemoteUploadModal({
 
                         const isDirectStream = Boolean(
                           activePlayableUrl &&
+                          activeFormatForCanvas?.isStreamable !== false &&
                           !activePlayableUrl.includes('youtube.com/watch') &&
-                          !activePlayableUrl.includes('youtu.be/') &&
-                          (
-                            activePlayableUrl.startsWith('blob:') ||
-                            activePlayableUrl.startsWith('http://localhost') ||
-                            activePlayableUrl.startsWith('http://127.0.0.1') ||
-                            /\.(mp4|webm|m4v|mov|mkv|ogg|mp3|m4a|aac)(\?.*)?$/i.test(activePlayableUrl) ||
-                            activePlayableUrl.includes('googlevideo.com') ||
-                            activePlayableUrl.includes('fbcdn.net') ||
-                            activePlayableUrl.includes('cdninstagram.com') ||
-                            activePlayableUrl.includes('tiktokcdn.com') ||
-                            activePlayableUrl.includes('twimg.com')
-                          )
+                          !activePlayableUrl.includes('youtu.be/')
                         );
 
                         return (
@@ -4269,6 +4356,20 @@ export function RemoteUploadModal({
                           const hasVideos = mp4VideoFmts.length > 0 || webmVideoFmts.length > 0;
                           const hasAudio = audioFmts.length > 0;
                           const hasRawMatrix = rawStreamsList.length > 0;
+                          // Provider extractors expose an itag matrix, while
+                          // public crawler results are ordinary verified
+                          // formats. Both must get a complete Advanced tab.
+                          const advancedFormatGroups = [
+                            { key: 'mp4', label: t('drive.remote_matrix_group_mp4'), formats: resolvedMedia.formats.filter((f) => f.ext === 'mp4') },
+                            { key: 'webm', label: t('drive.remote_matrix_group_webm'), formats: resolvedMedia.formats.filter((f) => f.ext === 'webm') },
+                            { key: 'video', label: t('drive.remote_matrix_group_other_video'), formats: resolvedMedia.formats.filter((f) => f.isVideo && !['mp4', 'webm'].includes(f.ext)) },
+                            { key: 'audio', label: t('drive.remote_matrix_group_audio'), formats: resolvedMedia.formats.filter((f) => f.isAudio || f.qualityTier === 'audio') },
+                            { key: 'image', label: t('drive.remote_advanced_group_images'), formats: resolvedMedia.formats.filter((f) => f.isImage) },
+                            { key: 'subtitle', label: t('drive.remote_advanced_group_subtitles'), formats: resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle') },
+                            { key: 'playlist', label: t('drive.remote_advanced_group_playlist'), formats: resolvedMedia.formats.filter((f) => f.isAlbumPack || f.ext === 'm3u8' || f.ext === 'mpd') },
+                            { key: 'document', label: t('drive.remote_advanced_group_documents'), formats: resolvedMedia.formats.filter((f) => !f.isVideo && !f.isAudio && !f.isImage && !f.isSubtitle && !f.isAlbumPack && !['mp4', 'webm', 'm3u8', 'mpd'].includes(f.ext)) },
+                          ].filter((group) => group.formats.length > 0);
+                          const hasAdvancedFormats = advancedFormatGroups.length > 0;
                           const hasMultipleFilters = true;
 
                           const isGeneralTab = streamContainerFilter === 'general' || streamContainerFilter === 'all';
@@ -4461,21 +4562,21 @@ export function RemoteUploadModal({
                                     <span>{t('drive.remote_format_filter_subtitle')}</span>
                                     <span>({subtitleFmts.length})</span>
                                   </button>
-                                  {hasRawMatrix && (
+                                  {hasAdvancedFormats && (
                                     <button
                                       type="button"
                                       className={`td-remote-format-filter-chip matrix-toggle ${isAdvanceTab ? 'active' : ''}`}
                                       onClick={() => setStreamContainerFilter('advance')}
                                     >
                                       <span>{t('drive.remote_format_filter_advance')}</span>
-                                      <span>({rawStreamsList.length})</span>
+                                      <span>({hasRawMatrix ? rawStreamsList.length : resolvedMedia.formats.length})</span>
                                     </button>
                                   )}
                                 </div>
                               )}
 
-                              {isAdvanceTab && hasRawMatrix ? (
-                                (() => {
+                              {isAdvanceTab ? (
+                                hasRawMatrix ? (() => {
                                   const rawMp4Videos = filteredRawStreams
                                     .filter((s) => s.type !== 'audio' && (s.mimeType.includes('mp4') || s.codec.includes('AVC') || s.codec.includes('H.264') || s.codec.includes('AV1')))
                                     .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
@@ -4756,7 +4857,26 @@ export function RemoteUploadModal({
                                       </div>
                                     </div>
                                   );
-                                })()
+                                })() : (
+                                  <div className="td-remote-advanced-format-groups">
+                                    {advancedFormatGroups.map((group) => (
+                                      <div key={group.key} className="td-remote-formats-section">
+                                        <div className="td-remote-formats-section-header is-general">
+                                          <span className="td-remote-formats-section-title">
+                                            <div className="td-remote-section-icon-box">
+                                              {group.key === 'audio' ? <Music size={12} /> : group.key === 'subtitle' || group.key === 'document' ? <FileText size={12} /> : <Film size={12} />}
+                                            </div>
+                                            <span>{group.label}</span>
+                                          </span>
+                                          <span className="td-remote-formats-section-count">{group.formats.length}</span>
+                                        </div>
+                                        <div className="td-remote-quality-grid">
+                                          {group.formats.map(renderFormatChip)}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
                               ) : isGeneralTab ? (
                                 <>
                                   {curatedGeneralVideos.length > 0 && (
@@ -4964,6 +5084,29 @@ export function RemoteUploadModal({
                                 )
                               ) : null}
 
+                              {resolvedMedia.discovery && (
+                                <div className="td-remote-sub-info-banner" style={{ marginTop: 12 }}>
+                                  <Info size={13} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                                  <span>
+                                    {resolvedMedia.discovery.complete
+                                      ? t('drive.remote_discovery_complete')
+                                      : t('drive.remote_discovery_pending', { count: resolvedMedia.discovery.pendingCount })}
+                                  </span>
+                                  {!resolvedMedia.discovery.complete && Boolean(resolvedMedia.discovery.cursor) && (
+                                    <button
+                                      type="button"
+                                      className="td-btn-secondary"
+                                      disabled={discoveryLoading}
+                                      onClick={() => void handleLoadMoreDiscovery()}
+                                      style={{ marginLeft: 'auto', minHeight: 32 }}
+                                    >
+                                      {discoveryLoading ? <Loader2 size={13} className="td-remote-inspecting-spinner" /> : <RefreshCw size={13} />}
+                                      <span>{discoveryLoading ? t('drive.remote_discovery_loading_more') : t('drive.remote_discovery_load_more')}</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
                               {activeFmt && (
                                 <div className="td-remote-selected-spec-card">
                                   <div className="td-remote-selected-spec-left">
@@ -5025,7 +5168,7 @@ export function RemoteUploadModal({
                                     <div className="td-remote-stream-status-pill">
                                       <span className="td-remote-status-glow-dot" />
                                       <Zap size={11} className="td-remote-status-icon" />
-                                      <span>{t('drive.remote_spec_direct_ready')}</span>
+                                      <span>{activeFmt.isStreamable ? t('drive.remote_spec_direct_ready') : t('drive_tools.remote_format_download_only')}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -5033,7 +5176,45 @@ export function RemoteUploadModal({
                             </div>
                           );
                         })()
-                      ) : null}
+                      ) : (
+                        <div className="td-remote-empty-sub-card">
+                          <FileText size={28} style={{ color: '#64748b', opacity: 0.7, marginBottom: 8 }} />
+                          <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600 }}>
+                            {t('drive.remote_discovery_blocked')}
+                          </h5>
+                          <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '420px', textAlign: 'center' }}>
+                            {resolvedMedia.description || t('drive.remote_native_interaction_required')}
+                          </p>
+                          {Boolean(resolvedMedia.discovery?.cursor) && !(resolvedMedia.discovery?.complete ?? true) && (
+                            <button
+                              type="button"
+                              className="td-btn-secondary"
+                              disabled={discoveryLoading}
+                              onClick={() => void handleLoadMoreDiscovery()}
+                              style={{ marginTop: 12, minHeight: 36 }}
+                            >
+                              {discoveryLoading ? <Loader2 size={13} className="td-remote-inspecting-spinner" /> : <RefreshCw size={13} />}
+                              <span>{discoveryLoading ? t('drive.remote_discovery_loading_more') : t('drive.remote_discovery_load_more')}</span>
+                            </button>
+                          )}
+                          {detectTauriRuntime() && (
+                            <>
+                              <button
+                                type="button"
+                                className="td-btn-secondary"
+                                onClick={() => void handleOpenAssistedInspector()}
+                                style={{ marginTop: 10, minHeight: 36 }}
+                              >
+                                <ExternalLink size={13} />
+                                <span>{t('drive.remote_assisted_open')}</span>
+                              </button>
+                              <p style={{ margin: '8px 0 0', fontSize: '0.7rem', color: '#64748b', maxWidth: '420px', textAlign: 'center' }}>
+                                {t('drive.remote_assisted_hint')}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -5721,7 +5902,7 @@ export function RemoteUploadModal({
                 submitting ||
                 batchInspecting ||
                 (tab === 'single'
-                  ? !url.trim() || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
+                  ? !url.trim() || !resolvedMedia || resolvedMedia.formats.length === 0 || (effectiveMediaItems.length > 1 && selectedMediaItemIds.size === 0)
                   : batchGroups.length > 0 && !isEditingBatchText
                   ? selectedBatchItems.length === 0
                   : batchUrls.length === 0)

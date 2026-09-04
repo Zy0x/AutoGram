@@ -1,6 +1,6 @@
 [package]
 name = "frontend"
-version = "0.1.0"
+version = "3.9.52"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -59,4 +59,3 @@ url = "2"
 default = ["grammers"]
 # Compile-time enable of Grammers backend (runtime still dual-path via AUTOGRAM_TELEGRAM_BACKEND)
 grammers = []
-

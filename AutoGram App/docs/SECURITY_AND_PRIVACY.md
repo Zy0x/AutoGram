@@ -43,7 +43,16 @@ When integrating cloud sync via Supabase:
 
 ---
 
-## 📋 5. Summary of Security Guarantees
+## 🔎 5. Remote Link Discovery & Assisted Inspection
+
+- **Public-network validation**: Remote URL checks every redirect and discovered candidate before fetching. Private addresses, embedded credentials, and local-network targets are rejected.
+- **No extension trust**: A filename ending in `.mp4` is not treated as media until its response bytes and transport metadata validate it.
+- **Isolated assisted window**: A user-assisted page opens in a temporary incognito webview. It can report only potential media URLs to a dedicated, least-privilege command.
+- **No credential export**: Cookies, local storage, passwords, CAPTCHA values, and Telegram credentials are never copied from the assisted window. A session-bound resource that cannot be fetched independently is not queued for transfer.
+
+---
+
+## 📋 6. Summary of Security Guarantees
 
 | Security Aspect | Implementation |
 | :--- | :--- |

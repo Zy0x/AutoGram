@@ -16,6 +16,8 @@ allow = [
     "fetch_remote_text_content",
     "fetch_remote_head_meta",
     "resolve_remote_link_deep",
+    "open_remote_assisted_inspector",
+    "take_remote_assisted_candidates",
     "desktop_read_clipboard",
     "desktop_write_clipboard",
     "app_toggle_devtools",
@@ -202,3 +204,10 @@ allow = [
     "run_worker_once",
     "write_worker_stdin"
 ]
+
+[[permission]]
+identifier = "allow-remote-inspector-report"
+description = "Lets an isolated assisted-inspection webview report candidate media URLs only."
+
+[permission.commands]
+allow = ["report_assisted_media_candidate"]

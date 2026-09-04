@@ -260,7 +260,7 @@ class LinkResolverRegistry {
 
     // 0. Cache hit — return immediately without any network or subprocess cost.
     //    Only skip cache when signal is already aborted (fresh resolve requested).
-    if (!signal?.aborted) {
+    if (!signal?.aborted && !options?.discoveryCursor) {
       const cached = getCachedResult(cleanUrl);
       if (cached) {
         return { ...cached, resolvedAt: Date.now() };
@@ -275,7 +275,7 @@ class LinkResolverRegistry {
           if (result && result.formats && result.formats.length > 0) {
             const traced = this.withTrace(result, cleanUrl, provider.name, 'provider');
             const enriched = await enrichWithDurations(traced);
-            setCachedResult(cleanUrl, enriched);
+            if (!options?.discoveryCursor) setCachedResult(cleanUrl, enriched);
             return enriched;
           }
         } catch (err) {
@@ -289,7 +289,7 @@ class LinkResolverRegistry {
     if (nativeDeepResolver.canHandle(cleanUrl)) {
       try {
         const nativeResult = await nativeDeepResolver.resolve(cleanUrl, signal, options);
-        if (nativeResult && nativeResult.formats && nativeResult.formats.length > 0) {
+        if (nativeResult) {
           const traced = this.withTrace(nativeResult, cleanUrl, nativeDeepResolver.name, 'validated');
           return enrichWithDurations(traced);
         }
@@ -301,7 +301,7 @@ class LinkResolverRegistry {
     // 3. Fallback to universal direct file inspector
     try {
       const fallbackResult = await directFileResolver.resolve(cleanUrl, signal);
-      if (fallbackResult) {
+      if (fallbackResult && fallbackResult.formats.length > 0) {
         const traced = this.withTrace(fallbackResult, cleanUrl, directFileResolver.name, 'fallback');
         return enrichWithDurations(traced);
       }
@@ -309,26 +309,24 @@ class LinkResolverRegistry {
       /* ignore */
     }
 
-    // 4. Ultimate safe fallback
+    // 4. Do not manufacture a direct stream from a URL suffix. This is the
+    // final honest state for a page that exposed no verifiable public media.
     const u = cleanUrl.split('?')[0];
     const rawName = u.split('/').filter(Boolean).pop() || 'remote_file';
     const ultimate = this.withTrace({
       url: cleanUrl,
       platform: 'direct',
-      platformName: 'Direct Download Link',
+      platformName: 'Remote Link',
       title: decodeURIComponent(rawName),
-      formats: [
-        {
-          id: 'direct_raw',
-          label: 'Direct Stream (Source)',
-          qualityTier: 'original',
-          ext: rawName.includes('.') ? rawName.split('.').pop()?.toLowerCase() || 'bin' : 'bin',
-          directUrl: cleanUrl,
-          badge: 'DIRECT STREAM',
-        },
-      ],
-      selectedFormatId: 'direct_raw',
-      isDirectFile: true,
+      formats: [],
+      selectedFormatId: '',
+      isDirectFile: false,
+      discovery: {
+        complete: true,
+        pendingCount: 0,
+        inspectedPages: 0,
+        blockerReason: 'no_verified_public_media',
+      },
       resolvedAt: Date.now(),
     }, cleanUrl, 'RawUrlFallback', 'fallback');
     return enrichWithDurations(ultimate);

@@ -2864,8 +2864,149 @@ fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> 
 #[tauri::command]
 fn resolve_remote_link_deep(
     url: String,
+    cursor: Option<core::remote_link_resolver::RemoteLinkDiscoveryCursor>,
 ) -> Result<core::remote_link_resolver::RemoteLinkResolution, String> {
-    core::remote_link_resolver::resolve_remote_link_deep(url)
+    core::remote_link_resolver::resolve_remote_link_deep(url, cursor)
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AssistedInspectorLaunch {
+    session_id: String,
+}
+
+struct AssistedInspectorSession {
+    token: String,
+    window_label: String,
+    created_at_ms: u128,
+    candidates: std::collections::HashSet<String>,
+}
+
+fn assisted_inspector_sessions() -> &'static Mutex<HashMap<String, AssistedInspectorSession>> {
+    static SESSIONS: OnceLock<Mutex<HashMap<String, AssistedInspectorSession>>> = OnceLock::new();
+    SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn assisted_inspector_script(session_id: &str, token: &str) -> String {
+    let session = serde_json::to_string(session_id).unwrap_or_else(|_| "\"\"".into());
+    let token = serde_json::to_string(token).unwrap_or_else(|_| "\"\"".into());
+    format!(r#"(() => {{
+  const sessionId = {session};
+  const sessionToken = {token};
+  const seen = new Set();
+  const isLikelyMedia = (url) => /\.(?:mp4|m4v|mov|webm|mkv|mp3|m4a|aac|ogg|opus|wav|flac|m3u8|mpd|vtt|srt|jpg|jpeg|png|webp|gif|avif)(?:$|[?#])/i.test(url.pathname) || /(?:cdn|overfetch|googlevideo|slicedrive|aceimg|viidooy)/i.test(url.hostname);
+  const report = (value) => {{
+    try {{
+      const url = new URL(String(value), location.href);
+      if (!/^https?:$/.test(url.protocol) || !isLikelyMedia(url) || seen.has(url.href)) return;
+      seen.add(url.href);
+      window.__TAURI_INTERNALS__?.invoke?.('report_assisted_media_candidate', {{ sessionId, token: sessionToken, url: url.href }}).catch(() => undefined);
+    }} catch (_) {{}}
+  }};
+  const originalFetch = window.fetch;
+  window.fetch = function(input, init) {{
+    report(typeof input === 'string' ? input : input?.url);
+    return originalFetch.call(this, input, init);
+  }};
+  const originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, value, ...rest) {{
+    report(value);
+    return originalOpen.call(this, method, value, ...rest);
+  }};
+  try {{
+    new PerformanceObserver((list) => list.getEntries().forEach((entry) => report(entry.name))).observe({{ type: 'resource', buffered: true }});
+  }} catch (_) {{}}
+  setInterval(() => {{
+    try {{ performance.getEntriesByType('resource').forEach((entry) => report(entry.name)); }} catch (_) {{}}
+  }}, 1500);
+}})();"#)
+}
+
+#[tauri::command]
+fn open_remote_assisted_inspector(
+    app: AppHandle,
+    url: String,
+) -> Result<AssistedInspectorLaunch, String> {
+    let target = url::Url::parse(url.trim()).map_err(|_| "remote_link_invalid_url".to_string())?;
+    core::remote_link_resolver::ensure_public_remote_url(target.as_str())?;
+    let session_id = format!("{:032x}", rand::random::<u128>());
+    let token = format!("{:032x}", rand::random::<u128>());
+    let label = format!("remote-inspector-{}", &session_id[..12]);
+    let script = assisted_inspector_script(&session_id, &token);
+
+    // Register before navigating the external page: the injected observer may
+    // see a resource during the first navigation. The opaque token is scoped
+    // to this incognito window and is removed again if construction fails.
+    {
+        let mut sessions = assisted_inspector_sessions()
+            .lock()
+            .map_err(|_| "remote_assisted_session_lock".to_string())?;
+        sessions.retain(|_, value| now_epoch_ms().saturating_sub(value.created_at_ms) < 30 * 60 * 1000);
+        sessions.insert(session_id.clone(), AssistedInspectorSession {
+            token: token.clone(),
+            window_label: label.clone(),
+            created_at_ms: now_epoch_ms(),
+            candidates: std::collections::HashSet::new(),
+        });
+    }
+
+    let built = tauri::WebviewWindowBuilder::new(&app, label.clone(), tauri::WebviewUrl::External(target))
+        .title("AutoGram — Assisted Remote Inspection")
+        .inner_size(1080.0, 760.0)
+        .min_inner_size(720.0, 540.0)
+        .incognito(true)
+        .initialization_script(&script)
+        .build();
+    if let Err(error) = built {
+        if let Ok(mut sessions) = assisted_inspector_sessions().lock() {
+            sessions.remove(&session_id);
+        }
+        return Err(format!("remote_assisted_window_failed:{error}"));
+    }
+    Ok(AssistedInspectorLaunch { session_id })
+}
+
+#[tauri::command]
+fn report_assisted_media_candidate(
+    window: tauri::WebviewWindow,
+    session_id: String,
+    token: String,
+    url: String,
+) -> Result<(), String> {
+    core::remote_link_resolver::ensure_public_remote_url(&url)?;
+    let mut sessions = assisted_inspector_sessions()
+        .lock()
+        .map_err(|_| "remote_assisted_session_lock".to_string())?;
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "remote_assisted_session_missing".to_string())?;
+    if session.token != token || session.window_label != window.label() {
+        return Err("remote_assisted_session_forbidden".into());
+    }
+    if now_epoch_ms().saturating_sub(session.created_at_ms) > 30 * 60 * 1000 {
+        return Err("remote_assisted_session_expired".into());
+    }
+    if session.candidates.len() < 128 {
+        session.candidates.insert(url);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn take_remote_assisted_candidates(session_id: String) -> Result<Vec<String>, String> {
+    let mut sessions = assisted_inspector_sessions()
+        .lock()
+        .map_err(|_| "remote_assisted_session_lock".to_string())?;
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "remote_assisted_session_missing".to_string())?;
+    if now_epoch_ms().saturating_sub(session.created_at_ms) > 30 * 60 * 1000 {
+        sessions.remove(&session_id);
+        return Err("remote_assisted_session_expired".into());
+    }
+    let mut candidates: Vec<String> = session.candidates.drain().collect();
+    candidates.sort();
+    Ok(candidates)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -2894,6 +3035,9 @@ pub fn run() {
             fetch_remote_text_content,
             fetch_remote_head_meta,
             resolve_remote_link_deep,
+            open_remote_assisted_inspector,
+            report_assisted_media_candidate,
+            take_remote_assisted_candidates,
             desktop_read_clipboard,
             desktop_write_clipboard,
             app_toggle_devtools,

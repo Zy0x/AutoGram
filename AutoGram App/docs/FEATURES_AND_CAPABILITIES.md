@@ -53,6 +53,9 @@ To avoid wasting user bandwidth and Telegram storage quota, every file transfer 
 
 ## 🎬 3. Universal Remote Media & Subtitle Pipeline
 
-- **Stream Range Proxy**: Bypasses WebView2 CORS and Referer restrictions by proxying signed streaming URLs locally through Rust.
+- **Verified Public Media Discovery**: Follows public redirects, wrapper pages, folders, galleries, and manifests, then validates MIME, byte-range, and payload signatures before enabling transfer.
+- **Progressive Folder Scan**: Large public folders are discovered in resumable batches with deduplication and source provenance rather than silently truncating results.
+- **Selected-Format Stream Range Proxy**: Proxies the exact selected stream locally with its required Referer, preventing preview from falling back to a provider container.
+- **User-Assisted Inspection**: Opens an isolated temporary WebView for user-completed login or challenge flows and accepts only subsequently public, independently validated media URLs; no cookie or credential export occurs.
 - **Subtitle Transformer**: Converts embedded captions into standardized `.SRT` and `.VTT` subtitle tracks.
 - **Multi-Language Auto-Translation**: Translates video captions into user-specified languages (Indonesian, English, Japanese, etc.) on the fly.

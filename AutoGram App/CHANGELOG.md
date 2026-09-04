@@ -1,3 +1,26 @@
+## v3.9.52 — Verified Deep Remote Discovery & Assisted Public Inspection
+
+### 1. Verifikasi Media Nyata, Bukan Ekstensi atau Judul Gimmick
+- **Pipeline crawler publik (`remote_link_resolver.rs`)**: Remote Link kini memeriksa redirect, MIME, byte-range, magic-byte, ukuran, serta manifest sebelum menerbitkan kandidat. URL berakhiran `.mp4` yang ternyata HTML/iklan tidak lagi dapat menjadi kartu unduh atau preview.
+- **Provenance aman per kandidat**: URL sumber/final, halaman induk, rantai redirect, validasi transport, dan referer publik yang diperlukan dibawa bersama kandidat format tanpa membawa cookie, password, atau token sesi pengguna.
+- **Dampak pengguna**: Resolusi/format hanya tampil apabila media benar-benar dapat diverifikasi; metadata yang belum nyata ditampilkan sebagai `Original`, bukan label 4K/8K dari nama halaman.
+
+### 2. Discovery Folder, Wrapper, dan Format Lengkap
+- **Traversal bertahap dan cycle-safe**: Resolver membatasi crawl per batch, mempertahankan cursor tanpa kredensial, serta menyediakan aksi *Muat hasil berikutnya* untuk folder/subfolder dan pagination tanpa mengulang kandidat sebelumnya.
+- **Adapter kompatibel public-host**: Wrapper CDN, token media publik StreamRizz, HLS/DASH, SRT/VTT, audio, gambar, dokumen, serta manifest diurai lalu divalidasi melalui jalur yang sama. YouTube tetap memakai plugin yt-dlp yang dapat diperbarui dari Transfer Settings.
+- **Dampak pengguna**: Tab Advance menampilkan semua kandidat tervalidasi dalam kelompok MP4, WebM, video, audio, gambar, subtitel, manifest, dan dokumen; General dan Audio tetap meringkas satu kualitas nyata terbaik untuk tiap tier.
+
+### 3. Preview Terpilih dan Inspeksi yang Memerlukan Pengguna
+- **Preview kandidat tepat**: Klik-ganda selalu merutekan URL final format yang dipilih melalui proxy range lokal dan referer kandidat; format download-only tidak diiklankan sebagai preview.
+- **Jendela inspeksi sementara terisolasi**: Halaman JavaScript/login/challenge dapat dibuka untuk diselesaikan pengguna sendiri. Observer hanya mengamati resource publik yang diminta halaman; cookie, local storage, password, token challenge, dan kredensial tidak diekspor atau disimpan.
+- **Dampak pengguna**: Media yang tetap session-bound ditolak secara jujur sebagai tidak aman untuk transfer, tanpa otomatisasi atau bypass CAPTCHA, Cloudflare, paywall, atau DRM.
+
+### 4. Integritas Kualitas dan Lokalisasi
+- **Regression coverage**: Menambahkan test resolver native untuk kandidat verified/unverified dan test Rust untuk fingerprint HTML palsu, SRT, HLS, DASH, redirect/provenance, cursor bebas sesi, serta pembatasan SSRF.
+- **Quality gate**: TypeScript, Vitest, locale parity ID/EN, audit schema/security, dan invarian album MTProto dijalankan melalui `npm run test:quality` dengan hasil lulus.
+
+---
+
 ## v3.9.51 — Nested Overlay Back Navigation & Cascade Collapse Elimination Architecture
 
 ### 1. Eliminasi Listener Konkuren & Sentralisasi Dispatcher Tunggal

@@ -50,13 +50,19 @@ Transfer online videos and social media content directly into your Telegram Clou
 1. Click **Remote URL** in the top navigation bar.
 2. Paste the target media URL. AutoGram will automatically resolve available formats, resolutions, audio tracks, and subtitles.
 3. **Format & Resolution Selector**:
-   - Filter by **Video**, **Audio**, or **Subtitle** tabs.
-   - Click any format chip to inspect resolution, codec, framerate, and estimated file size.
+   - **General** shows one verified best candidate for each real resolution; **Advance** retains every verified container and track.
+   - Filter by **Video**, **Audio**, or **Subtitle** tabs. A filename such as `video-8k.mp4` is never treated as proof of 8K.
+   - Click any format chip to inspect verified resolution, codec, framerate, and estimated file size.
 4. **Live Synchronized Preview**:
-   - Click **Play Stream** or double-click any format chip to preview the exact stream quality directly in the embedded player canvas.
-5. **Subtitle Language Selection**:
+   - Click **Play Stream** or double-click any format chip to preview that exact selected stream through the local range proxy.
+   - A format marked download-only is not presented as a playable preview.
+5. **Folders, galleries, and wrapper pages**:
+   - Remote URL verifies payload bytes before offering a download. HTML pages disguised as `.mp4`, advertising redirects, and unavailable links are not selectable media.
+   - For large public folders, use **Load next results** to continue the safe recursive scan without duplicating already found media.
+   - If a page requires JavaScript, login, or a challenge, use **Open user-assisted inspection**. Complete the page action yourself; AutoGram only validates public media URLs that the page subsequently requests. Cookies, passwords, and challenge credentials are never exported.
+6. **Subtitle Language Selection**:
    - Under the **Subtitel** tab, select embedded or auto-translated captions (.SRT / .VTT).
-6. Click **Transfer to Drive** to queue the download-and-upload directly into your active Telegram destination.
+7. Click **Transfer to Drive** to queue the verified download-and-upload directly into your active Telegram destination.
 
 ---
 
