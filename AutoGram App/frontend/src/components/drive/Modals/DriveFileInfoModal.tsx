@@ -7,6 +7,7 @@ import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName, formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { buildTelegramMessageUrl } from '../../../lib/telegram/utils/telegramMessageUrl';
 import { nativeWriteClipboardText } from '../../../lib/tauri/desktopClipboard';
+import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 
 type Props = {
   file: DriveFile | null;
@@ -49,6 +50,8 @@ export function DriveFileInfoModal({ file, locationName, pathId, onClose }: Prop
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState('');
+
+  useModalBackHandler(Boolean(file), onClose, 'drive-file-info-modal');
 
   useEffect(() => {
     if (!file) return;

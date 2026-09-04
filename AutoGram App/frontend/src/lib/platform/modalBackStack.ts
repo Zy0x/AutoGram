@@ -60,6 +60,44 @@ function initBackStackListeners() {
 }
 
 /**
+ * Checks whether any modal or overlay is currently registered in the back stack.
+ */
+export function hasOpenModals(): boolean {
+  return backStack.length > 0;
+}
+
+/**
+ * Returns the current count of open modals in the back stack.
+ */
+export function getOpenModalCount(): number {
+  return backStack.length;
+}
+
+/**
+ * Pops and executes the top-most modal's onClose handler (LIFO).
+ * Returns true if a modal was closed, or false if the stack was empty.
+ */
+export function popTopModal(): boolean {
+  if (backStack.length > 0) {
+    const top = backStack.pop();
+    if (top) {
+      try {
+        if (typeof window !== 'undefined' && window.history?.state?.autogramModal === top.id) {
+          isPoppingInternally = true;
+          window.history.back();
+        }
+        top.onClose();
+        return true;
+      } catch (err) {
+        console.warn('[ModalBackStack] Error closing modal on popTopModal:', err);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Register a modal onto the back-stack when it opens.
  * Returns a cleanup function to call when the modal closes normally.
  */

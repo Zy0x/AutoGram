@@ -13,6 +13,7 @@ import { invalidateSessionListCache } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
+import { useMouseBackNavigation } from '../../lib/platform/mouseBackGesture';
 
 export interface AccountsProps {
   isModal?: boolean;
@@ -468,6 +469,32 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       onClose?.();
     }
   };
+
+  // Mouse Back Button (Button 3) & Trackpad Swipe Navigation for Accounts
+  useMouseBackNavigation(
+    {
+      onBack: () => {
+        if (isForgotPasswordOpen) {
+          setIsForgotPasswordOpen(false);
+          return true;
+        }
+        if (isWizardOpen) {
+          if (step > 1) {
+            setStep(step === 3 ? 2 : 1);
+            return true;
+          }
+          void closeWizard();
+          return true;
+        }
+        if (isModal && onClose) {
+          onClose();
+          return true;
+        }
+        return false;
+      },
+    },
+    [isForgotPasswordOpen, isWizardOpen, step, isModal, onClose]
+  );
 
   const openWizard = () => {
     const nowSec = Math.floor(Date.now() / 1000);

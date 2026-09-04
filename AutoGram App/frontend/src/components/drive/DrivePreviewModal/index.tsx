@@ -2918,8 +2918,17 @@ export function DrivePreviewModal({
   useEffect(() => {
     if (isZip) return; // Yield to DriveZipBrowser
 
+    let lastBtnTime = 0;
     const handleMouseBackForward = (e: MouseEvent) => {
       if (e.button === 3 || e.button === 4) {
+        const now = Date.now();
+        if (now - lastBtnTime < 250) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        lastBtnTime = now;
+
         e.preventDefault();
         e.stopPropagation();
 

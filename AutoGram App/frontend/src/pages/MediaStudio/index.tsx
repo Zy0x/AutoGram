@@ -8427,8 +8427,89 @@ function MediaDriveDesktop({
     handleRename,
   ]);
 
-  // Mouse Back / Forward button navigation (Button 3 = Back, Button 4 = Forward)
+  // Mouse Back / Forward button navigation & Trackpad horizontal swipe (Button 3 = Back, Button 4 = Forward)
   useEffect(() => {
+    let lastWheelTime = 0;
+
+    const executeBack = (): boolean => {
+      // 1. Close open menus/drawers/dialogs first
+      if (contextMenu) {
+        setContextMenu(null);
+        return true;
+      }
+      if (confirmDlg) {
+        setConfirmDlg(null);
+        return true;
+      }
+      if (inputDlg) {
+        setInputDlg(null);
+        return true;
+      }
+      if (destPicker) {
+        setDestPicker(null);
+        return true;
+      }
+      if (drawerOpen) {
+        closeDrawer();
+        return true;
+      }
+      if (toolsOpen) {
+        setToolsOpen(false);
+        return true;
+      }
+      // 2. Clear item selection if any selected
+      if (selectedIds.length > 0) {
+        clearSelection();
+        return true;
+      }
+      // 3. Location / Folder History Back
+      const h = navBack(navHist);
+      if (h) {
+        navSkipRef.current = true;
+        setNavHist(h);
+        const loc = navCurrent(h);
+        setLocationKind(loc.kind);
+        setActivePeerId(loc.id);
+        setTopicFilter(null);
+        topicFilterRef.current = null;
+        return true;
+      }
+      // 4. Nested drive folder parent navigation
+      if (locationKind === 'drive' && activePeerId != null) {
+        const folder = folders.find((f) => f.id === activePeerId);
+        if (folder?.parent_id != null) {
+          setLocationKind('drive');
+          setActivePeerId(folder.parent_id);
+          return true;
+        }
+      }
+      // 5. Exit back to launcher if at top-level root
+      if (onBackToLauncher) {
+        onBackToLauncher();
+        return true;
+      }
+      if (onExitToApp) {
+        onExitToApp();
+        return true;
+      }
+      return false;
+    };
+
+    const executeForward = (): boolean => {
+      const h = navForward(navHist);
+      if (h) {
+        navSkipRef.current = true;
+        setNavHist(h);
+        const loc = navCurrent(h);
+        setLocationKind(loc.kind);
+        setActivePeerId(loc.id);
+        setTopicFilter(null);
+        topicFilterRef.current = null;
+        return true;
+      }
+      return false;
+    };
+
     const handleMouseBackForward = (e: MouseEvent) => {
       // If a preview modal or internal drag is active, yield to that component
       if (previewFile || isInternalMediaDragActive()) return;
@@ -8438,68 +8519,37 @@ function MediaDriveDesktop({
         e.stopPropagation();
 
         if (e.button === 3) {
-          // 1. Close open menus/drawers/dialogs first
-          if (contextMenu) {
-            setContextMenu(null);
-            return;
-          }
-          if (confirmDlg) {
-            setConfirmDlg(null);
-            return;
-          }
-          if (inputDlg) {
-            setInputDlg(null);
-            return;
-          }
-          if (destPicker) {
-            setDestPicker(null);
-            return;
-          }
-          if (drawerOpen) {
-            closeDrawer();
-            return;
-          }
-          if (toolsOpen) {
-            setToolsOpen(false);
-            return;
-          }
-          // 2. Clear item selection if any selected
-          if (selectedIds.length > 0) {
-            clearSelection();
-            return;
-          }
-          // 3. Location / Folder History Back
-          const h = navBack(navHist);
-          if (h) {
-            navSkipRef.current = true;
-            setNavHist(h);
-            const loc = navCurrent(h);
-            setLocationKind(loc.kind);
-            setActivePeerId(loc.id);
-            setTopicFilter(null);
-            topicFilterRef.current = null;
-            return;
-          }
-          // 4. Nested drive folder parent navigation
-          if (locationKind === 'drive' && activePeerId != null) {
-            const folder = folders.find((f) => f.id === activePeerId);
-            if (folder?.parent_id != null) {
-              setLocationKind('drive');
-              setActivePeerId(folder.parent_id);
-              return;
-            }
-          }
+          executeBack();
         } else if (e.button === 4) {
-          // Location / Folder History Forward
-          const h = navForward(navHist);
-          if (h) {
-            navSkipRef.current = true;
-            setNavHist(h);
-            const loc = navCurrent(h);
-            setLocationKind(loc.kind);
-            setActivePeerId(loc.id);
-            setTopicFilter(null);
-            topicFilterRef.current = null;
+          executeForward();
+        }
+      }
+    };
+
+    const handleWheelBackForward = (e: WheelEvent) => {
+      if (previewFile || isInternalMediaDragActive()) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+
+      if (Math.abs(e.deltaX) > 40 && Math.abs(e.deltaY) < 25) {
+        const now = Date.now();
+        if (now - lastWheelTime < 450) return;
+
+        if (e.deltaX < -40) {
+          // If cursor is over a horizontal scroll container that can scroll left, let it scroll
+          const target = e.target as HTMLElement | null;
+          const container = target?.closest('.td-filter-chips-strip, .segmented-control, [data-horizontal-scroll]') as HTMLElement | null;
+          if (container && container.scrollLeft > 2) return;
+
+          lastWheelTime = now;
+          const handled = executeBack();
+          if (handled && e.cancelable) {
+            e.preventDefault();
+          }
+        } else if (e.deltaX > 40) {
+          lastWheelTime = now;
+          const handled = executeForward();
+          if (handled && e.cancelable) {
+            e.preventDefault();
           }
         }
       }
@@ -8507,9 +8557,11 @@ function MediaDriveDesktop({
 
     window.addEventListener('auxclick', handleMouseBackForward, true);
     window.addEventListener('mouseup', handleMouseBackForward, true);
+    window.addEventListener('wheel', handleWheelBackForward, { passive: false });
     return () => {
       window.removeEventListener('auxclick', handleMouseBackForward, true);
       window.removeEventListener('mouseup', handleMouseBackForward, true);
+      window.removeEventListener('wheel', handleWheelBackForward);
     };
   }, [
     activePeerId,
@@ -8523,6 +8575,8 @@ function MediaDriveDesktop({
     inputDlg,
     locationKind,
     navHist,
+    onBackToLauncher,
+    onExitToApp,
     previewFile,
     selectedIds.length,
     toolsOpen,

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AlertTriangle, Trash2, Info, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useModalBackHandler } from '../../lib/platform/modalBackStack';
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -26,6 +27,8 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const { t } = useTranslation();
+
+  useModalBackHandler(Boolean(isOpen && !isLoading), onCancel, 'common-confirm-modal');
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && !isLoading) {

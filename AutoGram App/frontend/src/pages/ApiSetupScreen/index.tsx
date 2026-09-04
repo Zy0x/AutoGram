@@ -21,6 +21,7 @@ import {
   verifyTelegramApiCredentials,
   notifyApiError,
 } from '../../lib/tauri/secureCredentials';
+import { useModalBackHandler } from '../../lib/platform/modalBackStack';
 
 interface ApiSetupScreenProps {
   onComplete: () => void;
@@ -41,6 +42,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Bind to cross-platform modal back stack
+  useModalBackHandler(Boolean(isModal && onClose && !saving), () => onClose?.(), 'api-setup-screen-modal');
 
   useEffect(() => {
     bootstrapSecureCredentials()

@@ -13,6 +13,8 @@ import { isMediaStudioAvailable } from './lib/tauri/capabilities';
 import { bootstrapSecureCredentials, notifyApiCredentialsChanged, notifyApiError } from './lib/tauri/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
 import { initGlobalHorizontalWheelScroll } from './lib/utils/horizontalWheelScroll';
+import { initGlobalMouseBackGesture, useMouseBackNavigation } from './lib/platform/mouseBackGesture';
+import { useModalBackHandler } from './lib/platform/modalBackStack';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -65,6 +67,11 @@ function App() {
   // Universal horizontal mouse wheel scroll listener for all horizontal scrollable strips
   useEffect(() => {
     return initGlobalHorizontalWheelScroll();
+  }, []);
+
+  // Universal mouse back button & trackpad gesture navigation listener
+  useEffect(() => {
+    return initGlobalMouseBackGesture();
   }, []);
 
   // Check Telegram API Credentials & Startup Behavior on boot
@@ -171,6 +178,39 @@ function App() {
 
   const [apiModalOpen, setApiModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
+
+  // Bind top-level modals to modal back stack
+  useModalBackHandler(apiModalOpen, () => setApiModalOpen(false), 'global-api-modal');
+  useModalBackHandler(accountModalOpen, () => setAccountModalOpen(false), 'global-account-modal');
+
+  // Root fallback navigation: if no modal or inner component intercepted Back, return to launcher
+  useMouseBackNavigation(
+    {
+      priority: -100,
+      onBack: () => {
+        if (apiModalOpen) {
+          setApiModalOpen(false);
+          return true;
+        }
+        if (accountModalOpen) {
+          setAccountModalOpen(false);
+          return true;
+        }
+        if (appMode === 'settings' || appMode === 'forwarder') {
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
+          return true;
+        }
+        if (appMode === 'drives') {
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
+          return true;
+        }
+        return false;
+      },
+    },
+    [accountModalOpen, apiModalOpen, appMode]
+  );
 
   const renderAppContent = () => {
     // 1. ANIMATED SPLASH SCREEN (Shown once on boot)

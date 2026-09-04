@@ -29,6 +29,7 @@ import { clearMediaStudioCache, deleteMediaRecordsBySession } from '../../lib/db
 import { clearClientCacheStorage } from '../../lib/db/clientCacheStorage';
 import { tgListSessions } from '../../lib/telegram/core/telegramBackend';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
+import { useModalBackHandler } from '../../lib/platform/modalBackStack';
 
 interface SpecificCacheModalProps {
   isOpen: boolean;
@@ -50,6 +51,8 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const [activeTab, setActiveTab] = useState<'system' | 'session'>('system');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
+
+  useModalBackHandler(isOpen, onClose, 'specific-cache-modal');
 
   // System Cache state
   const [clearingItem, setClearingItem] = useState<string | null>(null);

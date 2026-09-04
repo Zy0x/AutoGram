@@ -796,8 +796,17 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
 
   // Mouse Back button listener (Button 3 / XButton1)
   useEffect(() => {
-    const onAuxClick = (e: MouseEvent) => {
+    let lastBtnTime = 0;
+    const handleMouseBtn = (e: MouseEvent) => {
       if (e.button === 3 || e.button === 4) {
+        const now = Date.now();
+        if (now - lastBtnTime < 250) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        lastBtnTime = now;
+
         e.preventDefault();
         e.stopPropagation();
         if (e.button === 3) {
@@ -808,23 +817,11 @@ export function DriveZipBrowser(props: ZipBrowserProps) {
         }
       }
     };
-    const onMouseUp = (e: MouseEvent) => {
-      if (e.button === 3 || e.button === 4) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.button === 3) {
-          const handled = handleNavigateBack();
-          if (!handled && onClose) {
-            onClose();
-          }
-        }
-      }
-    };
-    window.addEventListener('auxclick', onAuxClick, true);
-    window.addEventListener('mouseup', onMouseUp, true);
+    window.addEventListener('auxclick', handleMouseBtn, true);
+    window.addEventListener('mouseup', handleMouseBtn, true);
     return () => {
-      window.removeEventListener('auxclick', onAuxClick, true);
-      window.removeEventListener('mouseup', onMouseUp, true);
+      window.removeEventListener('auxclick', handleMouseBtn, true);
+      window.removeEventListener('mouseup', handleMouseBtn, true);
     };
   }, [handleNavigateBack, onClose]);
 

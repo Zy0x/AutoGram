@@ -198,6 +198,7 @@ import './Settings.css';
 
 import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 import { useGitHubUpdater, CURRENT_APP_VERSION } from '../../lib/tauri/githubUpdater';
+import { useMouseBackNavigation } from '../../lib/platform/mouseBackGesture';
 
 interface SettingsProps {
   onBackToLauncher?: () => void;
@@ -257,6 +258,32 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [pendingNewPath, setPendingNewPath] = useState<string | null>(null);
+
+  // Mouse Back Button (Button 3) & Trackpad Swipe Navigation
+  useMouseBackNavigation(
+    {
+      onBack: () => {
+        if (isSpecificModalOpen) {
+          setIsSpecificModalOpen(false);
+          return true;
+        }
+        if (isMigrateModalOpen) {
+          setIsMigrateModalOpen(false);
+          return true;
+        }
+        if (isResetModalOpen) {
+          setIsResetModalOpen(false);
+          return true;
+        }
+        if (onBackToLauncher) {
+          onBackToLauncher();
+          return true;
+        }
+        return false;
+      },
+    },
+    [isSpecificModalOpen, isMigrateModalOpen, isResetModalOpen, onBackToLauncher]
+  );
   const [isMigrating, setIsMigrating] = useState(false);
   const [activeMigrationAction, setActiveMigrationAction] = useState<'move' | 'wipe' | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { X, Phone, ShieldCheck, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { useModalBackHandler } from '../../lib/platform/modalBackStack';
 
 export interface AccountLoginModalProps {
   open: boolean;
@@ -39,6 +40,9 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+
+  useModalBackHandler(open, onClose, 'account-login-modal');
+
   if (!open) return null;
 
   return (
