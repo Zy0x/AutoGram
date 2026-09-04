@@ -3,15 +3,10 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   ArrowRightLeft,
-  ClipboardCheck,
-  Inbox,
-  ListChecks,
   Plus,
   RefreshCw,
-  ShieldCheck,
 } from 'lucide-react';
-import { jobsDecisionInbox, jobsList } from '../../lib/db/jobsApi';
-import { getForwarderFeatureFlags, type ForwarderFeatureFlags } from '../../lib/forwarder';
+import { jobsList } from '../../lib/db/jobsApi';
 
 type ForwarderOverviewProps = {
   onCreateJob: () => void;
@@ -21,8 +16,6 @@ type ForwarderOverviewProps = {
 
 type OverviewData = {
   jobs: any[];
-  decisionCount: number;
-  flags: ForwarderFeatureFlags;
 };
 
 const ACTIVE_STATES = new Set([
@@ -66,7 +59,7 @@ function jobRoute(job: any, fallback: string) {
 export function ForwarderOverview({
   onCreateJob,
   onOpenJobs,
-  onOpenDecisions,
+  onOpenDecisions: _onOpenDecisions,
 }: ForwarderOverviewProps) {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState<OverviewData | null>(null);
@@ -77,14 +70,11 @@ export function ForwarderOverview({
     setIsLoading(true);
     setHasError(false);
     try {
-      const [jobs, decisions, flags] = await Promise.all([
-        jobsList(),
-        jobsDecisionInbox(),
-        getForwarderFeatureFlags(),
-      ]);
-      setData({ jobs, decisionCount: decisions.length, flags });
+      const jobs = await jobsList();
+      setData({ jobs });
     } catch (error) {
       console.warn('Unable to load Forwarder overview', error);
+      setData({ jobs: [] });
       setHasError(true);
     } finally {
       setIsLoading(false);
@@ -108,22 +98,12 @@ export function ForwarderOverview({
     [i18n.language]
   );
 
-  const attentionCount = Math.max(data?.decisionCount || 0, summary.waiting.length);
-  const nextAction = attentionCount
-    ? { label: t('jobs.forwarder_overview_open_decisions'), action: onOpenDecisions, icon: Inbox }
-    : summary.jobs.length
-      ? { label: t('jobs.forwarder_overview_open_jobs'), action: onOpenJobs, icon: ListChecks }
-      : { label: t('jobs.forwarder_overview_create_job'), action: onCreateJob, icon: Plus };
-  const NextActionIcon = nextAction.icon;
+  const attentionCount = summary.waiting.length;
 
   return (
     <section className="ag-forwarder-overview" aria-live="polite">
       <header className="ag-forwarder-overview-hero">
         <div className="ag-forwarder-overview-copy">
-          <span className="ag-forwarder-kicker">
-            <ArrowRightLeft size={15} aria-hidden="true" />
-            {t('jobs.forwarder_overview_kicker')}
-          </span>
           <h1>{t('jobs.forwarder_overview_title')}</h1>
           <p>{t('jobs.forwarder_overview_description')}</p>
         </div>
@@ -146,72 +126,34 @@ export function ForwarderOverview({
       </header>
 
       {hasError && (
-        <div className="ag-forwarder-inline-error" role="alert">
+        <div className="ag-forwarder-inline-notice" role="status">
           <span>{t('jobs.forwarder_overview_load_error')}</span>
           <button type="button" onClick={() => void load()}>{t('jobs.forwarder_overview_try_again')}</button>
         </div>
       )}
 
-      <div className="ag-forwarder-summary-grid" aria-busy={isLoading}>
-        <article className="ag-forwarder-summary-card">
-          <span>{t('jobs.forwarder_overview_stat_active')}</span>
-          <strong className={isLoading ? 'is-loading' : undefined}>
-            {isLoading ? <span aria-hidden="true" /> : summary.active.length}
-          </strong>
-          <small>{t('jobs.forwarder_overview_stat_active_help')}</small>
-        </article>
-        <article className="ag-forwarder-summary-card">
-          <span>{t('jobs.forwarder_overview_stat_attention')}</span>
-          <strong className={isLoading ? 'is-loading' : undefined}>
-            {isLoading ? <span aria-hidden="true" /> : attentionCount}
-          </strong>
-          <small>{t('jobs.forwarder_overview_stat_attention_help')}</small>
-        </article>
-        <article className="ag-forwarder-summary-card">
-          <span>{t('jobs.forwarder_overview_stat_completed')}</span>
-          <strong className={isLoading ? 'is-loading' : undefined}>
-            {isLoading ? <span aria-hidden="true" /> : summary.completed}
-          </strong>
-          <small>{t('jobs.forwarder_overview_stat_completed_help')}</small>
-        </article>
-      </div>
-
-      <div className="ag-forwarder-overview-layout">
-        <section className="ag-forwarder-overview-panel ag-forwarder-next-panel">
-          <div className="ag-forwarder-panel-heading">
-            <div className="ag-forwarder-panel-icon"><ClipboardCheck size={18} aria-hidden="true" /></div>
-            <div>
-              <h2>{t('jobs.forwarder_overview_next_title')}</h2>
-              <p>{t('jobs.forwarder_overview_next_description')}</p>
-            </div>
-          </div>
-          <button type="button" className="ag-forwarder-next-action" onClick={nextAction.action}>
-            <span><NextActionIcon size={17} aria-hidden="true" />{nextAction.label}</span>
-            <ArrowRight size={17} aria-hidden="true" />
+      {!isLoading && summary.jobs.length === 0 ? (
+        <section className="ag-forwarder-empty-overview">
+          <ArrowRightLeft size={28} aria-hidden="true" />
+          <h2>{t('jobs.forwarder_overview_empty_title')}</h2>
+          <p>{t('jobs.forwarder_overview_empty_description')}</p>
+          <button type="button" onClick={onCreateJob}>
+            <Plus size={17} aria-hidden="true" />
+            {t('jobs.forwarder_overview_empty_action')}
           </button>
         </section>
-
-        <section className="ag-forwarder-overview-panel ag-forwarder-guardrail-panel">
-          <div className="ag-forwarder-panel-heading">
-            <div className="ag-forwarder-panel-icon"><ShieldCheck size={18} aria-hidden="true" /></div>
-            <div>
-              <h2>{t('jobs.forwarder_overview_guardrail_title')}</h2>
-              <p>{t('jobs.forwarder_overview_guardrail_description')}</p>
-            </div>
-          </div>
-          <span className={`ag-forwarder-feature-state${data?.flags.forwarder_v2 ? ' is-ready' : ''}`}>
-            {data?.flags.forwarder_v2
-              ? t('jobs.forwarder_overview_guardrail_ready')
-              : t('jobs.forwarder_overview_guardrail_unavailable')}
-          </span>
-        </section>
-      </div>
-
+      ) : (
       <section className="ag-forwarder-overview-panel ag-forwarder-recent-panel">
         <div className="ag-forwarder-recent-heading">
           <div>
             <h2>{t('jobs.forwarder_overview_recent_title')}</h2>
-            <p>{t('jobs.forwarder_overview_recent_description')}</p>
+            {!isLoading && (
+              <div className="ag-forwarder-stat-strip" aria-label={t('jobs.forwarder_overview_recent_description')}>
+                <span>{summary.active.length} {t('jobs.forwarder_overview_stat_active')}</span>
+                {attentionCount > 0 && <span className="is-attention">{attentionCount} {t('jobs.forwarder_overview_stat_attention')}</span>}
+                <span>{summary.completed} {t('jobs.forwarder_overview_stat_completed')}</span>
+              </div>
+            )}
           </div>
           {summary.jobs.length > 0 && (
             <button type="button" className="ag-forwarder-text-action" onClick={onOpenJobs}>
@@ -224,13 +166,6 @@ export function ForwarderOverview({
         {isLoading ? (
           <div className="ag-forwarder-recent-skeleton" aria-label={t('jobs.forwarder_overview_loading')}>
             <span /><span /><span />
-          </div>
-        ) : summary.jobs.length === 0 ? (
-          <div className="ag-forwarder-empty-overview">
-            <ArrowRightLeft size={26} aria-hidden="true" />
-            <h3>{t('jobs.forwarder_overview_empty_title')}</h3>
-            <p>{t('jobs.forwarder_overview_empty_description')}</p>
-            <button type="button" onClick={onCreateJob}>{t('jobs.forwarder_overview_empty_action')}</button>
           </div>
         ) : (
           <div className="ag-forwarder-recent-list">
@@ -258,6 +193,7 @@ export function ForwarderOverview({
           </div>
         )}
       </section>
+      )}
     </section>
   );
 }

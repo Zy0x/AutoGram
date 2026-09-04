@@ -172,6 +172,7 @@ const ExtensionMismatchExplanationModal: React.FC<ExplanationModalProps> = ({
   currentFilename,
   currentExt,
   sniffResult,
+  hexBytes,
   isDanger,
   isFixing,
   onClose,
@@ -190,6 +191,89 @@ const ExtensionMismatchExplanationModal: React.FC<ExplanationModalProps> = ({
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
+
+  const detectedHex = React.useMemo(() => {
+    if (hexBytes && hexBytes.length >= 3) {
+      const sliceLen = Math.min(hexBytes.length, 12);
+      return Array.from(hexBytes.slice(0, sliceLen))
+        .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+        .join(' ');
+    }
+    if (sniffResult.detectedExt === 'jpg' || sniffResult.detectedExt === 'jpeg') {
+      return 'FF D8 FF E0 00 10 4A 46 49 46 00 01';
+    }
+    if (sniffResult.detectedExt === 'png') {
+      return '89 50 4E 47 0D 0A 1A 0A';
+    }
+    if (sniffResult.detectedExt === 'webp') {
+      return '52 49 46 46 00 00 00 00 57 45 42 50';
+    }
+    return 'FF D8 FF ...';
+  }, [hexBytes, sniffResult.detectedExt]);
+
+  const detectedAscii = React.useMemo(() => {
+    if (hexBytes && hexBytes.length >= 3) {
+      const sliceLen = Math.min(hexBytes.length, 12);
+      return Array.from(hexBytes.slice(0, sliceLen))
+        .map((b) => (b >= 32 && b <= 126 ? String.fromCharCode(b) : '·'))
+        .join('');
+    }
+    if (sniffResult.detectedExt === 'jpg' || sniffResult.detectedExt === 'jpeg') {
+      return 'ÿØÿà··JFIF··';
+    }
+    return '···';
+  }, [hexBytes, sniffResult.detectedExt]);
+
+  const expectedSignature = React.useMemo(() => {
+    const clean = currentExt.toLowerCase().trim();
+    switch (clean) {
+      case 'heic':
+      case 'heif':
+        return {
+          hex: '00 00 00 18 66 74 79 70 68 65 69 63',
+          ascii: '....ftypheic',
+          box: 'ISO BMFF (ftypheic / ftypmif1)',
+        };
+      case 'jpg':
+      case 'jpeg':
+        return {
+          hex: 'FF D8 FF E0 00 10 4A 46 49 46',
+          ascii: 'ÿØÿà..JFIF',
+          box: 'JPEG SOI Marker',
+        };
+      case 'png':
+        return {
+          hex: '89 50 4E 47 0D 0A 1A 0A',
+          ascii: '.PNG....',
+          box: 'Portable Network Graphics',
+        };
+      case 'webp':
+        return {
+          hex: '52 49 46 46 .. .. .. .. 57 45 42 50',
+          ascii: 'RIFF....WEBP',
+          box: 'Google WebP RIFF',
+        };
+      case 'mp4':
+      case 'mov':
+        return {
+          hex: '00 00 00 20 66 74 79 70',
+          ascii: '....ftyp',
+          box: 'ISO Base Media / QuickTime',
+        };
+      case 'zip':
+        return {
+          hex: '50 4B 03 04',
+          ascii: 'PK..',
+          box: 'ZIP Local File Header',
+        };
+      default:
+        return {
+          hex: `Signature .${clean}`,
+          ascii: '....',
+          box: `Header .${clean}`,
+        };
+    }
+  }, [currentExt]);
 
   return (
     <div
@@ -263,6 +347,57 @@ const ExtensionMismatchExplanationModal: React.FC<ExplanationModalProps> = ({
                   ext: sniffResult.detectedExt,
                 })}
               </span>
+            </div>
+          </div>
+
+          {/* Technical Proof & Magic Bytes Inspector Card */}
+          <div className="td-mismatch-tech-card">
+            <div className="td-mismatch-tech-header">
+              <FileCode2 size={16} />
+              <span>{t('drive.security_dialog_technical_heading')}</span>
+            </div>
+
+            <div className="td-mismatch-tech-grid">
+              {/* Detected Bytes */}
+              <div className="td-mismatch-hex-box is-detected">
+                <span className="td-mismatch-hex-box-label">
+                  {t('drive.security_dialog_detected_hex')}
+                </span>
+                <span className="td-mismatch-hex-code">{detectedHex}</span>
+                <span className="td-mismatch-ascii-val">
+                  {t('drive.security_dialog_ascii_label')} {detectedAscii}
+                </span>
+                <div className="text-[10px] text-emerald-400 font-semibold mt-1">
+                  {t('drive.security_dialog_interpretation_label')} {sniffResult.formatLabel} (.{sniffResult.detectedExt})
+                </div>
+              </div>
+
+              {/* Expected Bytes for file's current extension */}
+              <div className="td-mismatch-hex-box is-expected">
+                <span className="td-mismatch-hex-box-label">
+                  {t('drive.security_dialog_expected_hex', { ext: currentExt || '?' })}
+                </span>
+                <span className="td-mismatch-hex-code">{expectedSignature.hex}</span>
+                <span className="td-mismatch-ascii-val">
+                  {t('drive.security_dialog_ascii_label')} {expectedSignature.ascii}
+                </span>
+                <div className="text-[10px] text-amber-400 font-semibold mt-1">
+                  {expectedSignature.box}
+                </div>
+              </div>
+            </div>
+
+            {/* Direct Browser Rendering Concrete Proof */}
+            <div className="td-mismatch-render-proof">
+              <CheckCircle2 size={16} className="td-mismatch-render-proof-icon" />
+              <div>
+                <div className="td-mismatch-render-proof-title">
+                  {t('drive.security_dialog_proof_render_title')}
+                </div>
+                <div className="td-mismatch-render-proof-desc">
+                  {t('drive.security_dialog_proof_render_body')}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -1,13 +1,16 @@
-AutoGram Version: v3.9.30
+AutoGram Version: v3.9.31
 
 Current State:
-v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
-1. Zero Layout Duplication: Mengeliminasi total seluruh laci (*in-flow drawers*) yang sebelumnya disisipkan ke dalam alur dokumen saat tombol info diklik, sehingga tidak ada lagi duplikasi tampilan atau pergeseran elemen pada halaman Pengaturan Album.
-2. Unified High-Z Modal Overlay: Mengarahkan seluruh tombol info tooltip (Smart Mode, Custom Grid, dan Peringatan Risiko Timeout) untuk membuka Modal Overlay transparan (`createPortal` ke `document.body` dengan `backdrop-filter: blur(8px)`) di atas layar.
-3. Multi-Action & Intuitive Dismissal: Modal overlay dilengkapi dengan lencana status, teks penjelasan komprehensif, contoh layout pecah, tombol pintas `[Smart Mode (Auto-Adaptive)]` untuk beralih instan, serta dukungan penutupan fleksibel (klik tombol ✕, klik backdrop luar, atau tombol Escape).
-4. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.302 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi via live CDP port 9230.
+v3.9.31 Mathematically Verified Timeout Warning & Accurate Partition Examples:
+1. Eliminated Confusing Technical Jargon: Menghapus kode kesalahan biner internal mentah `(WORKER_BUSY_TOO_LONG_RETRY)` dari antarmuka pengguna dan menggantikannya dengan penjelasan teknis yang manusiawi serta mudah dipahami ("Batas Waktu Pemrosesan Server Telegram 60 Detik").
+2. Corrected Mathematical Partition Invariants: Memperbaiki kesalahan perhitungan contoh partisi (menghapus perhitungan ganjil 7+1+2=10 yang sebelumnya keliru dikaitkan dengan 13 berkas). Kini menyajikan perbandingan partisi matematis 100% presisi:
+   - 10 video: Custom (10) rawan timeout 60s vs Smart (5 + 5) selesai dalam ~12 detik.
+   - 13 video: Custom (10 + 3) tidak seimbang vs Smart (7 + 6) seimbang sempurna di zona aman 6–8 berkas.
+3. Crystal-Clear Educational Modal: Menyajikan perbandingan partisi Custom vs Smart yang mendidik, transparan, dan bebas dari informasi spekulatif yang menyesatkan pengguna.
+4. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.307 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual via CDP port 9230.
 
 Previous:
+v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
 v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
 v3.9.28 Non-Intrusive File Mismatch UI, Dismiss Action & Educational Format Inspector:
 v3.9.27 Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer:

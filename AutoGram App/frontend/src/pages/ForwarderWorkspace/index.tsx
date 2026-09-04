@@ -88,73 +88,68 @@ export function ForwarderWorkspace({
         </div>
       </header>
 
-      {/* SUB-NAV TABS FOR FORWARDER WORKSPACE */}
-      <div className="ag-forwarder-tabs" role="tablist">
-        <button
-          type="button"
-          onClick={() => setActiveTab('overview')}
-          className={`ag-forwarder-tab${activeTab === 'overview' ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={activeTab === 'overview'}
-        >
-          <LayoutDashboard size={14} />
-          <span>{t('jobs.forwarder_tab_overview')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('jobs')}
-          className={`ag-forwarder-tab${activeTab === 'jobs' ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={activeTab === 'jobs'}
-        >
-          <ListChecks size={14} />
-          <span>{t('jobs.forwarder_tab_jobs')}</span>
-        </button>
+      <div className="ag-forwarder-layout">
+        <aside className="ag-forwarder-sidebar">
+          <nav className="ag-forwarder-side-nav" aria-label={t('nav.open_forwarder')}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className={`ag-forwarder-side-link${activeTab === 'overview' ? ' is-active' : ''}`}
+              aria-current={activeTab === 'overview' ? 'page' : undefined}
+            >
+              <LayoutDashboard size={17} aria-hidden="true" />
+              <span>{t('jobs.forwarder_tab_overview')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('jobs')}
+              className={`ag-forwarder-side-link${activeTab === 'jobs' ? ' is-active' : ''}`}
+              aria-current={activeTab === 'jobs' ? 'page' : undefined}
+            >
+              <ListChecks size={17} aria-hidden="true" />
+              <span>{t('jobs.forwarder_tab_jobs')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('decisions')}
+              className={`ag-forwarder-side-link${activeTab === 'decisions' ? ' is-active' : ''}`}
+              aria-current={activeTab === 'decisions' ? 'page' : undefined}
+            >
+              <Inbox size={17} aria-hidden="true" />
+              <span>{t('jobs.decision_inbox_tab')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={`ag-forwarder-side-link${activeTab === 'history' ? ' is-active' : ''}`}
+              aria-current={activeTab === 'history' ? 'page' : undefined}
+            >
+              <History size={17} aria-hidden="true" />
+              <span>{t('nav.tab_history')}</span>
+            </button>
+            <div className="ag-forwarder-side-separator" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => setActiveTab('new_job')}
+              className={`ag-forwarder-side-link ag-forwarder-side-create${activeTab === 'new_job' ? ' is-active' : ''}`}
+              aria-current={activeTab === 'new_job' ? 'page' : undefined}
+            >
+              <Plus size={18} aria-hidden="true" />
+              <span>{t('nav.tab_new_job')}</span>
+            </button>
+          </nav>
+        </aside>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('decisions')}
-          className={`ag-forwarder-tab${activeTab === 'decisions' ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={activeTab === 'decisions'}
-        >
-          <Inbox size={14} />
-          <span>{t('jobs.decision_inbox_tab')}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('new_job')}
-          className={`ag-forwarder-tab${activeTab === 'new_job' ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={activeTab === 'new_job'}
-        >
-          <Plus size={14} />
-          <span>{t('nav.tab_new_job')}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('history')}
-          className={`ag-forwarder-tab${activeTab === 'history' ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={activeTab === 'history'}
-        >
-          <History size={14} />
-          <span>{t('nav.tab_history')}</span>
-        </button>
+        <main className="ag-forwarder-main">
+          {activeTab === 'overview' ? (
+            <ForwarderOverview
+              onCreateJob={() => setActiveTab('new_job')}
+              onOpenJobs={() => setActiveTab('jobs')}
+              onOpenDecisions={() => setActiveTab('decisions')}
+            />
+          ) : activeTab === 'decisions' ? <DecisionInbox /> : <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />}
+        </main>
       </div>
-
-      {/* MAIN VIEWPORT */}
-      <main className="ag-forwarder-main">
-        {activeTab === 'overview' ? (
-          <ForwarderOverview
-            onCreateJob={() => setActiveTab('new_job')}
-            onOpenJobs={() => setActiveTab('jobs')}
-            onOpenDecisions={() => setActiveTab('decisions')}
-          />
-        ) : activeTab === 'decisions' ? <DecisionInbox /> : <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />}
-      </main>
     </div>
   );
 }

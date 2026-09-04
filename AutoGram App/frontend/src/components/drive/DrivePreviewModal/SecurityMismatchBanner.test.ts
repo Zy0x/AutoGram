@@ -48,4 +48,17 @@ describe('SecurityMismatchBanner logic and data contracts', () => {
     expect(result.isExtensionMatch).toBe(true);
     expect(result.severity).toBe('safe');
   });
+
+  it('verifies hex bytes conversion for technical binary proof card', () => {
+    const rawHeader = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+    const hexString = Array.from(rawHeader)
+      .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+    expect(hexString).toBe('FF D8 FF E0 00 10 4A 46 49 46');
+
+    const asciiString = Array.from(rawHeader)
+      .map((b) => (b >= 32 && b <= 126 ? String.fromCharCode(b) : '·'))
+      .join('');
+    expect(asciiString).toContain('JFIF');
+  });
 });
