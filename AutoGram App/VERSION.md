@@ -1,6 +1,12 @@
-AutoGram Version: v3.9.37
+AutoGram Version: v3.9.38
 
 Current State:
+v3.9.38 Forwarder Sidebar Geometry Matched to Drives:
+1. Pixel-Aligned Header: Tinggi header sidebar dikunci pada 80px agar tombol kembali, ikon, dan teks Media Forwarder sejajar dengan Cloud Drives.
+2. Account Card Alignment: Margin kartu AKUN dikurangi sehingga dimulai tepat setelah header, tanpa ruang vertikal berlebih.
+3. Verification: Smoke test desktop memastikan header 80px, tanpa overflow horizontal.
+
+Previous:
 v3.9.37 Universal Mouse Back Gesture & Button Navigation Architecture:
 1. Universal Mouse Back/Forward Engine: Dedicated engine (`mouseBackGesture.ts`) listening to mouse buttons 3/4 with 250ms deduplication, two-finger trackpad horizontal swipe with 450ms cooldown and scroll boundary protection, and touch edge swipe.
 2. LIFO Modal & Component Hierarchy: Integrated with `modalBackStack.ts` so top-most modals (ApiSetup, Accounts, DriveFileInfo, SpecificCache, ConfirmModal) dismiss first, followed by in-page transient state and workspace fallback to Session Launcher.

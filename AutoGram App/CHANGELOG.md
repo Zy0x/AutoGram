@@ -1,3 +1,14 @@
+## v3.9.38 — Forwarder Sidebar Geometry Matched to Drives
+
+### 1. Pixel-Aligned Sidebar Header
+- Menyetel tinggi header sidebar Media Forwarder menjadi 80 px, sama dengan header Cloud Drives, sehingga tombol kembali, ikon workspace, dan judul berada pada baseline yang sama.
+- Menghapus jarak vertikal berlebih sebelum kartu AKUN; kartu sesi kini dimulai tepat setelah header seperti pada Cloud Drives.
+
+### 2. Verification
+- Smoke test desktop mengonfirmasi header 80 px, kartu akun langsung mengikuti header, dan tidak ada overflow horizontal.
+
+---
+
 ## v3.9.37 — Universal Mouse Back Gesture & Button Navigation Architecture
 
 ### 1. Universal Mouse Back & Forward Navigation Engine

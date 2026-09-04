@@ -17,8 +17,8 @@
 
 .ag-forwarder-back-button {
   display: inline-grid;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.9rem;
+  height: 2.9rem;
   place-items: center;
   border: 1px solid var(--fw-border);
   border-radius: 0.55rem;
@@ -47,22 +47,22 @@
   min-height: 0;
   padding: 0;
   border-right: 1px solid var(--fw-border);
-  background: var(--fw-surface);
+  background: #0d1527;
 }
 
 .ag-forwarder-sidebar-brand {
   display: flex;
   align-items: center;
   gap: 0.72rem;
-  min-height: 7.3rem;
-  padding: 0.9rem 1rem;
+  min-height: 5rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--fw-border);
 }
 
 .ag-forwarder-brand-icon {
   display: grid;
-  width: 3rem;
-  height: 3rem;
+  width: 3.1rem;
+  height: 3.1rem;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 0.8rem;
@@ -97,7 +97,7 @@
 }
 
 .ag-forwarder-session-card {
-  margin: 0.75rem 0.75rem 0;
+  margin: 0.3rem 0.75rem 0;
   padding: 0.72rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.72rem;
@@ -476,7 +476,7 @@
   }
 
   .ag-forwarder-sidebar-brand {
-    min-height: 4.65rem;
+    min-height: 4.15rem;
     padding: 0.65rem 0.7rem;
   }
 
