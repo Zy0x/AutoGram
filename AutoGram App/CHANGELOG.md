@@ -1,3 +1,19 @@
+## v3.9.35 — Forwarder Header Aligned with Cloud Drives
+
+### 1. Navigation and Session Hierarchy
+- **Dedicated Back Control**: Memisahkan tombol kembali dari pemilih sesi pada Media Forwarder. Tombol icon-only di header kini mengembalikan pengguna ke Session Hub dengan pola visual yang sama ringkasnya dengan Cloud Drives.
+- **Drive-Style Session Selector**: Memindahkan sesi aktif ke bagian atas sidebar sebagai kontrol mandiri dengan nama sesi terpotong aman dan affordance dropdown. Karena Forwarder belum menerima daftar sesi langsung, kontrol ini membuka Session Hub yang menjadi satu-satunya jalur ganti sesi yang aman.
+
+### 2. Settings Boundary
+- **Removed Global Controls**: Menghapus tombol API Credentials dan Settings umum dari header Forwarder. Konfigurasi umum tetap berada di halaman awal/Settings aplikasi agar ruang kerja Forwarder fokus pada pekerjaan media.
+- **No Misleading Shortcut**: Tidak menambahkan tautan pengaturan Forwarder yang belum memiliki halaman khusus, sehingga pengguna tidak diarahkan diam-diam ke Settings umum.
+
+### 3. Verification
+- TypeScript dan audit locale ID/EN lulus tanpa key hilang.
+- Inspeksi CDP memastikan aplikasi desktop tetap tersambung tanpa interupsi; smoke test workspace memverifikasi tombol kembali, pemilih sesi, tidak adanya kontrol global, dan tidak ada overflow horizontal.
+
+---
+
 ## v3.9.34 — Elimination of Redundant Badges & Duplicate Status Lines from Album Cards
 
 ### 1. Strategy Card Cleanliness & Elimination of Redundant Badges

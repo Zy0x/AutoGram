@@ -7,89 +7,62 @@ import {
   ListChecks,
   Plus,
   History,
-  Zap,
-  Key,
-  SlidersHorizontal,
   Inbox,
+  ArrowLeft,
+  ChevronDown,
+  Zap,
 } from 'lucide-react';
 import { Jobs } from '../Jobs';
 import { DecisionInbox } from '../../components/Forwarder/DecisionInbox';
 import { ForwarderOverview } from '../../components/Forwarder/ForwarderOverview';
-import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 
 interface ForwarderWorkspaceProps {
   activeSession: string;
   onSwitchMode?: (mode: 'drives' | 'forwarder') => void;
   onBackToLauncher: () => void;
-  onOpenSettings: () => void;
-  onOpenApiSetup?: () => void;
 }
 
 export function ForwarderWorkspace({
   activeSession,
   onSwitchMode: _onSwitchMode,
   onBackToLauncher,
-  onOpenSettings,
-  onOpenApiSetup,
 }: ForwarderWorkspaceProps) {
   const { t } = useTranslation();
-  const { hasError: hasApiError } = useApiCredentialsStatus();
   const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'new_job' | 'history' | 'decisions'>('overview');
 
   return (
     <div className="ag-forwarder-shell">
-      {/* HEADER TOPBAR WITH DUAL-BAR QUICK SWITCHER & SESSION BADGE */}
       <header className="ag-forwarder-header">
-        {/* LEFT: SESSION BADGE BUTTON (RETURN TO LAUNCHER) */}
         <div className="ag-forwarder-identity">
           <button
             type="button"
             onClick={onBackToLauncher}
-            className="ag-forwarder-session"
-            title={t('nav.switch_session')}
+            className="ag-forwarder-back-button"
+            title={t('nav.back_to_launcher')}
+            aria-label={t('nav.back_to_launcher')}
           >
-            <Zap size={16} />
-            <span className="ag-forwarder-session-name">{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
-            <span className="ag-forwarder-chevron" aria-hidden="true">▾</span>
+            <ArrowLeft size={19} aria-hidden="true" />
           </button>
-
-          <span className="ag-forwarder-divider" aria-hidden="true">|</span>
-
           <span className="ag-forwarder-product">
             <ArrowRightLeft size={18} aria-hidden="true" />
             <span>{t('nav.open_forwarder')}</span>
           </span>
         </div>
-
-
-        {/* RIGHT: API & SETTINGS */}
-        <div className="ag-forwarder-actions">
-          {onOpenApiSetup && (
-            <button
-              type="button"
-              onClick={onOpenApiSetup}
-              className={`ag-forwarder-action ag-forwarder-api${hasApiError ? ' api-credentials-btn-error' : ''}`}
-              title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
-              aria-label={t('settings.api_config')}
-            >
-              <Key size={15} />
-              <span>{t('nav.api_credentials_btn')}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="ag-forwarder-action"
-            title={t('nav.tab_forwarder_settings')}
-          >
-            <SlidersHorizontal size={15} />
-            <span>{t('nav.settings')}</span>
-          </button>
-        </div>
       </header>
 
       <div className="ag-forwarder-layout">
         <aside className="ag-forwarder-sidebar">
+          <button
+            type="button"
+            onClick={onBackToLauncher}
+            className="ag-forwarder-session"
+            title={t('nav.switch_session')}
+            aria-label={t('nav.switch_session')}
+          >
+            <Zap size={16} aria-hidden="true" />
+            <span className="ag-forwarder-session-name">{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </button>
           <nav className="ag-forwarder-side-nav" aria-label={t('nav.open_forwarder')}>
             <button
               type="button"

@@ -1,6 +1,12 @@
-AutoGram Version: v3.9.34
+AutoGram Version: v3.9.35
 
 Current State:
+v3.9.35 Forwarder Header Aligned with Cloud Drives:
+1. Dedicated Back & Session Controls: Memisahkan aksi kembali dan pemilih sesi pada Media Forwarder. Tombol kembali icon-only berada di header, sementara sesi aktif berada di bagian atas sidebar dengan gaya Cloud Drives dan membuka Session Hub untuk perpindahan sesi yang aman.
+2. Clear Settings Boundary: Menghapus API Credentials dan Settings umum dari ruang kerja Forwarder; keduanya tetap tersedia dari halaman awal aplikasi. Tidak ada pintasan settings palsu sebelum halaman Pengaturan Forwarder khusus tersedia.
+3. Verification: TypeScript 0 error, locale ID/EN 100% parity, dan smoke test CDP memastikan tidak ada overflow horizontal maupun error halaman.
+
+Previous:
 v3.9.34 Elimination of Redundant Badges & Duplicate Status Lines from Album Cards:
 1. Complete Redundancy Elimination in Strategy Cards: Menghapus badge sudut kanan atas (`[100% Anti-Split]` dan `[Slider (10)]`) serta baris status bawah (`✓ 100% Anti-Split` dan `⚠️ Potential Telegram Server Timeout`) yang menduplikasi informasi di dalam kartu mode dan bilah peringatan di bawahnya.
 2. Clean, Symmetrical Card Design: Kedua kartu mode (Smart dan Custom) kini tampil ramping, seimbang, dan minimalis: hanya menampilkan ikon penanda, judul mode, tombol informasi `(i)` untuk modal overlay, dan deskripsi fungsi 1 baris yang padat dan jelas.

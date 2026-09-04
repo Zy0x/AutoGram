@@ -276,13 +276,6 @@ function App() {
             setAppMode('launcher');
             localStorage.setItem('autogram_app_mode', 'launcher');
           }}
-          onOpenSettings={() => {
-            setAppMode('settings');
-            localStorage.setItem('autogram_app_mode', 'settings');
-          }}
-          onOpenApiSetup={() => {
-            setApiModalOpen(true);
-          }}
         />
       );
     }
