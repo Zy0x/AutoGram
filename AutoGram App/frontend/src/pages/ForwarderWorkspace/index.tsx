@@ -61,6 +61,29 @@ export function ForwarderWorkspace({
       : [{ value: '', label: t('jobs.forwarder_session_unavailable'), disabled: true }];
   }, [activeSession, sessionOptions, t]);
 
+  const activeSessionOption = useMemo(
+    () => sessionOptions.find((session) => session.name === activeSession),
+    [activeSession, sessionOptions]
+  );
+
+  const sessionHealth = String(activeSessionOption?.status || 'checking').toLowerCase();
+  const sessionHealthLabel = sessionHealth === 'connected'
+    ? `${activeSessionOption?.latencyMs != null ? `${activeSessionOption.latencyMs} ms · ` : ''}${t('drive.ping_excellent')}`
+    : sessionHealth === 'connected_stale'
+      ? t('drive.ping_drive_connected')
+      : sessionHealth === 'offline' || sessionHealth === 'expired' || sessionHealth === 'revoked'
+        ? t('drive.ping_offline')
+        : t('drive.ping_checking');
+  const activeTabLabel = activeTab === 'overview'
+    ? t('jobs.forwarder_tab_overview')
+    : activeTab === 'jobs'
+      ? t('jobs.forwarder_tab_jobs')
+      : activeTab === 'decisions'
+        ? t('jobs.decision_inbox_tab')
+        : activeTab === 'history'
+          ? t('nav.tab_history')
+          : t('nav.tab_new_job');
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 841px)');
     const closeDesktopDrawer = () => {
@@ -155,17 +178,23 @@ export function ForwarderWorkspace({
 
           <section className="ag-forwarder-session-card" aria-label={t('nav.switch_session')}>
             <div className="ag-forwarder-session-heading">
-              <span className="ag-forwarder-session-label">{t('jobs.forwarder_session_section')}</span>
-              <button
-                type="button"
-                className="ag-forwarder-session-refresh"
-                onClick={onRefreshSessions}
-                disabled={sessionsLoading}
-                title={t('jobs.forwarder_refresh_accounts')}
-                aria-label={t('jobs.forwarder_refresh_accounts')}
-              >
-                <RefreshCw size={14} className={sessionsLoading ? 'spin' : ''} aria-hidden="true" />
-              </button>
+              <div className="ag-forwarder-session-heading-left">
+                <span className="ag-forwarder-session-label">{t('jobs.forwarder_session_section')}</span>
+                <button
+                  type="button"
+                  className="ag-forwarder-session-refresh"
+                  onClick={onRefreshSessions}
+                  disabled={sessionsLoading}
+                  title={t('jobs.forwarder_refresh_accounts')}
+                  aria-label={t('jobs.forwarder_refresh_accounts')}
+                >
+                  <RefreshCw size={13} className={sessionsLoading ? 'spin' : ''} aria-hidden="true" />
+                </button>
+              </div>
+              <span className={`ag-forwarder-session-health status-${sessionHealth}`} title={sessionHealthLabel}>
+                <span className="ag-forwarder-session-health-dot" aria-hidden="true" />
+                <span>{sessionHealthLabel}</span>
+              </span>
             </div>
             <MediaSelect
               value={activeSession}
@@ -230,6 +259,14 @@ export function ForwarderWorkspace({
         </aside>
 
         <main className="ag-forwarder-main">
+          <header className="ag-forwarder-topbar">
+            <div className="ag-forwarder-topbar-crumbs">
+              <span className="ag-forwarder-topbar-title">{t('nav.open_forwarder')}</span>
+              <span className="ag-forwarder-topbar-separator" aria-hidden="true">/</span>
+              <span className="ag-forwarder-topbar-current">{activeTabLabel}</span>
+            </div>
+            <span className="ag-forwarder-topbar-account">{getSessionDisplayName(activeSession)}</span>
+          </header>
           <header className="ag-forwarder-mobile-bar">
             <button
               type="button"

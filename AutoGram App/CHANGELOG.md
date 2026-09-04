@@ -1,3 +1,19 @@
+## v3.9.42 — Forwarder Shell Aligned with Cloud Drives
+
+### 1. Cloud Drives Chrome Parity
+- **Compact Sidebar Geometry**: Menyamakan rail Media Forwarder dengan Cloud Drives menggunakan lebar 240 px, collapse rail 56 px, header 63 px, dan kartu akun 76 px agar kedua workspace memiliki ritme visual yang konsisten.
+- **Connection Context**: Menambahkan indikator koneksi akun yang ringkas di samping label ACCOUNT dengan status terlokalisasi, tanpa menampilkan identifier sesi internal atau kredensial.
+
+### 2. Navigation & Responsive Layout
+- **Forwarder Topbar**: Menambahkan breadcrumb konteks halaman yang ringan pada desktop, sementara mobile tetap memakai bar drawer yang sama dan tidak memunculkan Settings atau API Credentials umum.
+- **Stable Drawer Breakpoint**: Menyesuaikan drawer tablet/mobile ke lebar rail Cloud Drives dan mempertahankan scroll utama tanpa overflow horizontal.
+
+### 3. Localization & Verification
+- **Locale Parity**: Menambahkan status koneksi akun dalam bahasa Indonesia dan Inggris dengan parity penuh.
+- **Quality Gate**: `npm run build`, `npm run test:quality`, `npm test`, TypeScript, Vitest, schema/security, dan album invariant gate lulus.
+
+---
+
 ## v3.9.41 — Forwarder Full-Viewport Layout Repair
 
 ### 1. Workspace Height Integrity
