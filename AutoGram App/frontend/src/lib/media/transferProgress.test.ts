@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { TransferItem, TransferSession } from '../telegram/driveTypes';
 import { EMPTY_TRANSFER_SESSION } from '../telegram/driveTypes';
-import { recomputeOverall, transferItemOverallPercent } from './transferProgress';
+import {
+  appendDebugLog,
+  applyTransferEvent,
+  recomputeOverall,
+  transferItemOverallPercent,
+} from './transferProgress';
 
 function item(patch: Partial<TransferItem>): TransferItem {
   return {
@@ -70,3 +75,78 @@ describe('transfer progress aggregation', () => {
     expect(result.transferred).toBe(500);
   });
 });
+
+describe('debug log deduplication and stream stability', () => {
+  it('deduplicates consecutive identical logs', () => {
+    let s = session([]);
+    s = { ...s, debugLogs: appendDebugLog(s, 'Mulai transfer upload (16 item)') };
+    s = { ...s, debugLogs: appendDebugLog(s, 'Mulai transfer upload (16 item)') };
+    s = { ...s, debugLogs: appendDebugLog(s, 'Mulai transfer upload (16 item)') };
+    expect(s.debugLogs).toHaveLength(1);
+    expect(s.debugLogs![0]).toContain('Mulai transfer upload (16 item)');
+  });
+
+  it('deduplicates multiple start transfer events even if called multiple times', () => {
+    let s = session([]);
+    s = applyTransferEvent(s, { type: 'StudioStarted', items: 16, mode: 'upload' } as any);
+    s = applyTransferEvent(s, { type: 'StudioStarted', items: 16, mode: 'upload' } as any);
+    s = applyTransferEvent(s, { type: 'StudioStarted', items: 16, mode: 'upload' } as any);
+    const startLogs = (s.debugLogs || []).filter((l) => l.includes('Mulai transfer upload (16 item)'));
+    expect(startLogs).toHaveLength(1);
+  });
+
+  it('deduplicates identical item terminal events', () => {
+    let s = session([item({ index: 5, name: 'File 6' })]);
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 5,
+      status: 'done',
+      message_id: 45009,
+      path: 'File 6',
+    } as any);
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 5,
+      status: 'done',
+      message_id: 45009,
+      path: 'File 6',
+    } as any);
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 5,
+      status: 'done',
+      message_id: 45009,
+      path: 'File 6',
+    } as any);
+
+    const itemLogs = (s.debugLogs || []).filter((l) => l.includes('Item 6'));
+    expect(itemLogs).toHaveLength(1);
+    expect(itemLogs[0]).toContain('SELESAI [msg_id: 45009]');
+  });
+
+  it('upgrades placeholder (File N) to actual filename in-place without duplicate log lines', () => {
+    let s = session([item({ index: 5, name: 'File 6' })]);
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 5,
+      status: 'done',
+      message_id: 45009,
+      path: 'File 6',
+    } as any);
+    expect(s.debugLogs).toHaveLength(1);
+    expect(s.debugLogs![0]).toContain('Item 6 (File 6): SELESAI [msg_id: 45009]');
+
+    // Later event arrives with real filename
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 5,
+      status: 'done',
+      message_id: 45009,
+      path: '_kayu.tt-21-05-2023-0001.mp4',
+    } as any);
+
+    expect(s.debugLogs).toHaveLength(1);
+    expect(s.debugLogs![0]).toContain('Item 6 (_kayu.tt-21-05-2023-0001.mp4): SELESAI [msg_id: 45009]');
+  });
+});
+

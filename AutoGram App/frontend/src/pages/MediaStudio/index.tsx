@@ -5385,25 +5385,34 @@ function MediaDriveDesktop({
     }
   }, [creds, peerId, thumbLocationOptions, uploadSoftRefresh]);
 
+  const flushTransferDoneRef = useRef(flushTransferDone);
+  flushTransferDoneRef.current = flushTransferDone;
+
   useEffect(() => {
     if (!detectTauriRuntime()) return;
     let unlisten: (() => void) | undefined;
+    let isCancelled = false;
+
     import('@tauri-apps/api/event').then(({ listen }) => {
+      if (isCancelled) return;
       listen<any>('transfer-event', (e) => {
+        if (isCancelled) return;
         if (e.payload) {
           setTransfer((t) => applyTransferEvent(t, e.payload));
 
           if (e.payload.type === 'StudioItemDone') {
-            // Accumulate completed message IDs for batch processing
+            // Accumulate completed message IDs for batch processing (deduplicated)
             const mid = Number(e.payload.message_id || 0);
-            if (mid > 0) transferDoneIdsRef.current.push(mid);
+            if (mid > 0 && !transferDoneIdsRef.current.includes(mid)) {
+              transferDoneIdsRef.current.push(mid);
+            }
 
             // Debounce: wait 600ms of silence before flushing
             // (coalesces rapid-fire events from batch uploads)
             if (transferDoneTimerRef.current) clearTimeout(transferDoneTimerRef.current);
             transferDoneTimerRef.current = setTimeout(() => {
               transferDoneTimerRef.current = null;
-              flushTransferDone();
+              flushTransferDoneRef.current?.();
             }, 600);
           } else if (e.payload.type === 'StudioFinished') {
             // Session finished: flush immediately (no more events coming)
@@ -5411,20 +5420,25 @@ function MediaDriveDesktop({
               clearTimeout(transferDoneTimerRef.current);
               transferDoneTimerRef.current = null;
             }
-            flushTransferDone();
+            flushTransferDoneRef.current?.();
           }
         }
       }).then((u) => {
-        unlisten = u;
+        if (isCancelled) {
+          u();
+        } else {
+          unlisten = u;
+        }
       });
     });
     return () => {
+      isCancelled = true;
       if (unlisten) unlisten();
       if (transferDoneTimerRef.current) clearTimeout(transferDoneTimerRef.current);
       for (const t of thumbRetryTimerRef.current) clearTimeout(t);
       thumbRetryTimerRef.current = [];
     };
-  }, [flushTransferDone]);
+  }, []);
 
   /**
    * Lightweight sidebar refresh triggered after upload finishes.

@@ -1,3 +1,20 @@
+## v3.9.47 — Real-Time Transfer Event Listener Stabilization & Smart Log Deduplication
+
+### 1. Eliminasi Kebocoran Event Listener Transfer (`MediaStudio/index.tsx`)
+- **Penghapusan Multi-Listener Tauri (`transfer-event`)**: Menghilangkan akumulasi pendaftaran listener ganda pada `MediaStudio/index.tsx`. Sebelumnya, perubahan referensi fungsi `flushTransferDone` pada dependency array `useEffect` memicu pendaftaran listener asinkron berulang tanpa pembersihan listener lama yang masih dalam antrean promise, menyebabkan hingga 6 listener aktif secara bersamaan.
+- **Pola Ref Singleton & Cancellation Guard**: Memperkenalkan `flushTransferDoneRef` yang diperbarui secara sinkron dan membatasi `useEffect` pendaftaran listener agar hanya dieksekusi satu kali saat komponen di-mount (`[]`). Menambahkan flag `isCancelled` untuk memutus registrasi asinkron jika komponen di-unmount sebelum promise `import('@tauri-apps/api/event')` atau `listen()` selesai.
+- **Deduplikasi ID Batch (`transferDoneIdsRef`)**: Memastikan array akumulator pesan selesai (`transferDoneIdsRef.current`) hanya menyimpan ID unik (`!includes(mid)`), mencegah akumulasi ID redundan dan memicu notifikasi batch yang berlebihan ke komponen Drive.
+
+### 2. Deduplikasi Log Aktivitas & Pembaruan In-Place Nama Berkas (`transferProgress.ts`)
+- **Pembersihan Log Berulang (`appendDebugLog`)**: Memperbarui fungsi `appendDebugLog` dengan filter cerdas yang secara otomatis mengabaikan log identik beruntun serta mencegah duplikasi baris awal transfer (`Mulai transfer...`) dalam satu sesi transfer yang sama.
+- **Pembaruan In-Place Nama Berkas dari Placeholder**: Ketika event `StudioItemDone` awal tiba dengan nama placeholder sementara seperti `(File 6)` dan event berikutnya tiba dengan nama berkas asli seperti `(_kayu.tt-21-05-2023-0001.mp4)`, sistem kini memperbarui baris log yang sudah ada secara *in-place* alih-alih menambahkan baris baru, menjaga riwayat log tetap rapi dan ringkas.
+- **Pencegahan Duplikasi Log Selesai**: Mengabaikan penambahan log redundan untuk item yang indeks dan `msg_id`-nya sudah tercatat selesai (`SELESAI`, `DILEWATI`, atau `GAGAL`).
+
+### 3. Integritas Kualitas & Verifikasi Mutu 5-Dimensi
+- **100% Quality Gates Passed**: Seluruh 6 Quality Gates lulus dengan 0 kesalahan: 6.323 kunci lokalisasi ID & EN (100% key parity), 0 TypeScript compile errors, 49 unit test Vitest (termasuk 4 pengujian baru untuk deduplikasi log), integritas skema SQLite WAL, verifikasi keamanan rahasia/token, dan kepatuhan invarian album MTProto.
+
+---
+
 ## v3.9.46 — Telegram Visual Collage Restoration & Strict Pillar 1 Lossless Document Architecture
 
 ### 1. Album Grid Reconstruction & MTProto Visual Collage Invariants

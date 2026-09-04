@@ -294,10 +294,68 @@ export function setSessionPaused(session: TransferSession, paused: boolean): Tra
   };
 }
 
-function appendDebugLog(session: TransferSession, logLine: string): string[] {
+export function appendDebugLog(session: TransferSession, logLine: string): string[] {
   const prev = session.debugLogs || [];
+  const trimmed = logLine.trim();
+  if (!trimmed) return prev;
+
+  // 1. Prevent consecutive duplicate log lines
+  const lastEntry = prev[prev.length - 1];
+  if (lastEntry) {
+    const lastText = lastEntry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+    if (lastText === trimmed) {
+      return prev;
+    }
+  }
+
+  // 2. Prevent duplicate batch start logs in the same session
+  if (trimmed.startsWith('Mulai transfer')) {
+    const alreadyStarted = prev.some((entry) => {
+      const text = entry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+      return text === trimmed;
+    });
+    if (alreadyStarted) {
+      return prev;
+    }
+  }
+
+  // 3. Prevent duplicate or placeholder item completion logs (SELESAI, DILEWATI, GAGAL)
+  if (
+    trimmed.startsWith('Item ') &&
+    (trimmed.includes(': SELESAI') || trimmed.includes(': DILEWATI') || trimmed.includes(': GAGAL'))
+  ) {
+    const itemMatch = trimmed.match(/^Item\s+(\d+)\b/);
+    if (itemMatch) {
+      const itemNum = itemMatch[1];
+      const existingIdx = prev.findIndex((entry) => {
+        const text = entry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+        if (text === trimmed) return true;
+        if (
+          text.startsWith(`Item ${itemNum} `) &&
+          trimmed.includes('[msg_id:') &&
+          text.includes(trimmed.slice(trimmed.indexOf('[msg_id:')))
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (existingIdx !== -1) {
+        // If the existing entry was a generic "File X" placeholder and the new one has the real filename, update it in-place
+        const existingText = prev[existingIdx].replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+        if (existingText.includes(`(File ${itemNum})`) && !trimmed.includes(`(File ${itemNum})`)) {
+          const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+          const updated = [...prev];
+          updated[existingIdx] = `[${timeStr}] ${trimmed}`;
+          return updated;
+        }
+        return prev;
+      }
+    }
+  }
+
   const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
-  const entry = `[${timeStr}] ${logLine}`;
+  const entry = `[${timeStr}] ${trimmed}`;
   const next = [...prev, entry];
   return next.length > 200 ? next.slice(next.length - 200) : next;
 }
