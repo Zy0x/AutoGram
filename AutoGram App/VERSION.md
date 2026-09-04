@@ -1,16 +1,15 @@
-AutoGram Version: v3.9.32
+AutoGram Version: v3.9.33
 
 Current State:
-v3.9.32 Real Binary Signature Proof (Magic Bytes) & Mismatch Dialog Stacking Fix:
-1. Resolved Info Modal Stacking & Event Interception: Memperbaiki masalah tombol "(i)" yang sebelumnya tidak dapat ditekan karena modal penjelasan dirender di belakang kanvas pratinjau (`z-index: 9999` vs `.drive-preview-overlay` `z-index: 20000`). Kini modal menggunakan `z-index: 50000 !important` dengan `e.stopPropagation()` dan `e.preventDefault()` sehingga terbuka dengan seketika dan responsif.
-2. Real Binary Signature Proof (Magic Bytes Inspector): Menyajikan bukti nyata dan ilmiah mengapa berkas dideteksi berbeda, bukan sekadar asumsi:
-   - Menampilkan byte header biner terbaca secara transparan (contoh: `FF D8 FF E0 00 10 4A 46 49 46` / ASCII `ÿØÿà··JFIF··` yang membuktikan signature asli JPEG).
-   - Menampilkan byte yang seharusnya jika berkas benar-benar HEIC (`00 00 00 18 66 74 79 70 68 65 69 63` / box `ftypheic`).
-3. Direct Browser Rendering Proof: Menyajikan penjelasan konkret bahwa Chromium/WebView2 di Windows tidak memiliki decoder HEIC bawaan. Fakta bahwa gambar dapat tampil langsung dan sempurna di kanvas AutoGram adalah bukti ilmiah 100% bahwa berkas tersebut adalah JPEG asli yang dinamai dengan ekstensi keliru.
-4. Telegram Auto-Transcoding Root Cause: Menjelaskan latar belakang pengunggahan Telegram yang otomatis mengubah foto seluler menjadi JPEG untuk kompatibilitas lintas perangkat sembari tetap mempertahankan penamaan asli.
-5. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.307 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual via CDP port 9230.
+v3.9.33 Elimination of Redundant Shortcut Button & Streamlined Warning Bar:
+1. Redundancy Elimination in Custom Grid Warning Bar: Menghapus tombol pintasan sekunder "[Smart Mode (Auto-Adaptive) →]" dari bilah peringatan risiko timeout. Pengguna sudah memiliki kartu mode pilihan yang jelas dan interaktif langsung di atas slider, sehingga tombol tersebut redundan dan mempersempit tata letak.
+2. Clean Single-Line Alert Banner: Mengubah bilah peringatan menjadi strip peringatan satu baris yang ramping dan elegan: ikon peringatan segitiga, judul risiko, deskripsi ringkas, dan tombol informasi "(i)".
+3. Streamlined Modal Overlay Footer: Menyederhanakan footer dialog modal penjelasan risiko timeout agar seragam dengan modal mode Smart dan Custom lainnya (hanya menampilkan tombol "Tutup" / "Close" yang bersih tanpa tombol aksi ganda).
+4. Zero Unused Imports: Membersihkan dependensi impor ikon `ArrowRight` yang tidak lagi digunakan pada `AlbumStrategyControl.tsx`.
+5. Full Autonomous Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 100% dengan 6.307 kunci identik di ID dan EN, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual secara langsung melalui CDP port 9230.
 
 Previous:
+v3.9.32 Real Binary Signature Proof (Magic Bytes) & Mismatch Dialog Stacking Fix:
 v3.9.31 Mathematically Verified Timeout Warning & Accurate Partition Examples:
 v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
 v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
