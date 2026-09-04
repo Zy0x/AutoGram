@@ -93,6 +93,7 @@
   "decision_keep_both": "Keep both",
   "forwarder_tab_overview": "Overview",
   "forwarder_tab_jobs": "Jobs",
+  "forwarder_session_section": "ACCOUNT",
   "forwarder_overview_kicker": "Media Forwarder",
   "forwarder_overview_title": "Forward media",
   "forwarder_overview_description": "Choose a source and destination, then run when you are ready.",

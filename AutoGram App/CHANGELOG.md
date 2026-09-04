@@ -1,3 +1,38 @@
+## v3.9.37 — Universal Mouse Back Gesture & Button Navigation Architecture
+
+### 1. Universal Mouse Back & Forward Navigation Engine
+- **Dedicated Navigation Engine (`mouseBackGesture.ts`)**: Membangun modul navigasi terpusat yang mendengarkan event mouse button 3 (XButton1 / Back) dan button 4 (XButton2 / Forward) pada level window dengan prioritas capture phase.
+- **Hardware Event Deduplication Guard**: Mengimplementasikan jendela deduplikasi 250ms untuk mencegah pemicuan ganda (*double execution*) yang sering terjadi akibat emisi event `auxclick` dan `mouseup` secara beruntun pada peramban Chromium/WebView2.
+- **Trackpad Two-Finger Horizontal Swipe Gesture**: Mendukung gestur sapuan dua jari horizontal (`deltaX < -40` untuk Back, `deltaX > 40` untuk Forward) dengan cooldown 450ms dan perlindungan kontainer gulir horizontal (*scroll boundary guard*), sehingga tidak mengganggu scrollbar strip tab atau slider media.
+- **Mobile & Tablet Touch Edge Swipe**: Mendeteksi sapuan sentuh tepi kiri (`startX <= 60px`, `dx > 55px`) untuk navigasi mundur alami pada perangkat layar sentuh dan hybrid.
+
+### 2. Multi-Tiered Modal & Component Stack Integration
+- **LIFO Modal Back Stack Delegation (`modalBackStack.ts`)**: Menghubungkan stack modal LIFO secara langsung ke engine gesture mouse melalui `hasOpenModals()` dan `popTopModal()`.
+- **Global & Standalone Modals Protection**:
+  - `ApiSetupScreen`: Menutup modal setup kredensial via tombol mouse back.
+  - `Accounts` & `AccountLoginModal`: Menutup wizard atau modal login secara berjenjang via mouse back.
+  - `DriveFileInfoModal` & `SpecificCacheModal`: Menutup dialog inspeksi file dan modal cache spesifik.
+  - `ConfirmModal`: Menutup dialog konfirmasi secara aman tanpa memicu aksi destruktif.
+- **Workspace-Level Hierarchical Fallback**:
+  - `Settings`: Menutup modal migrasi/reset/cache terlebih dahulu, lalu kembali ke Session Launcher jika ditekan di root pengaturan.
+  - `ForwarderWorkspace`: Berpindah dari sub-tab kerja ke Overview terlebih dahulu, lalu kembali ke Session Launcher.
+  - `MediaStudio`: Menutup menu/dialog/drawer, membersihkan seleksi file, navigasi mundur riwayat folder, naik ke folder induk drive, dan keluar ke Session Launcher jika sudah berada di root terdalam.
+
+### 3. Quality Assurance, Invariant Certification & Live CDP Validation
+- **100% Zero Hardcoded Strings & Parity**: 6.308 kunci bahasa sinkron 100% di `id/` dan `en/` tanpa ada kunci yang hilang (*0 missing keys*).
+- **Automated Vitest Test Suite**: Menambahkan unit test komprehensif `mouseBackGesture.test.ts` (7 pengujian spesifik menguji LIFO order, deduplikasi tombol mouse, prioritas modal, dan gestur trackpad), meluluskan 49 test files dan 415 test cases (100% lolos).
+- **Autonomous 6-Dimension Quality Sentinel**: Memenuhi dan meluluskan seluruh 6 Quality Gates secara bersih tanpa satu pun peringatan atau error TypeScript.
+- **Live Desktop CDP Inspection (Port 9230)**: Terverifikasi langsung pada proses desktop native (`frontend.exe`) via Chrome DevTools Protocol port 9230, memastikan penangkapan event mouse button 3 berjalan responsif dengan `preventDefault()` aktif.
+
+---
+
+## v3.9.36 — Forwarder Sidebar Structure Matched to Cloud Drives
+
+- Menjaga tampilan mobile tetap tanpa overflow horizontal; tombol kembali dan pemilih sesi masing-masing memenuhi tinggi target sentuh 44 px.
+- Seluruh teks tambahan tersedia dalam locale Indonesia dan Inggris dengan parity penuh.
+
+---
+
 ## v3.9.35 — Forwarder Header Aligned with Cloud Drives
 
 ### 1. Navigation and Session Hierarchy

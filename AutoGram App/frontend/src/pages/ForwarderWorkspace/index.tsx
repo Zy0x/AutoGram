@@ -15,6 +15,7 @@ import {
 import { Jobs } from '../Jobs';
 import { DecisionInbox } from '../../components/Forwarder/DecisionInbox';
 import { ForwarderOverview } from '../../components/Forwarder/ForwarderOverview';
+import { useMouseBackNavigation } from '../../lib/platform/mouseBackGesture';
 
 interface ForwarderWorkspaceProps {
   activeSession: string;
@@ -30,39 +31,59 @@ export function ForwarderWorkspace({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'new_job' | 'history' | 'decisions'>('overview');
 
+  // Mouse Back Button (Button 3) & Trackpad Swipe Navigation
+  useMouseBackNavigation(
+    {
+      onBack: () => {
+        if (activeTab !== 'overview') {
+          setActiveTab('overview');
+          return true;
+        }
+        onBackToLauncher();
+        return true;
+      },
+    },
+    [activeTab, onBackToLauncher]
+  );
+
   return (
     <div className="ag-forwarder-shell">
-      <header className="ag-forwarder-header">
-        <div className="ag-forwarder-identity">
-          <button
-            type="button"
-            onClick={onBackToLauncher}
-            className="ag-forwarder-back-button"
-            title={t('nav.back_to_launcher')}
-            aria-label={t('nav.back_to_launcher')}
-          >
-            <ArrowLeft size={19} aria-hidden="true" />
-          </button>
-          <span className="ag-forwarder-product">
-            <ArrowRightLeft size={18} aria-hidden="true" />
-            <span>{t('nav.open_forwarder')}</span>
-          </span>
-        </div>
-      </header>
-
       <div className="ag-forwarder-layout">
         <aside className="ag-forwarder-sidebar">
-          <button
-            type="button"
-            onClick={onBackToLauncher}
-            className="ag-forwarder-session"
-            title={t('nav.switch_session')}
-            aria-label={t('nav.switch_session')}
-          >
-            <Zap size={16} aria-hidden="true" />
-            <span className="ag-forwarder-session-name">{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
-            <ChevronDown size={15} aria-hidden="true" />
-          </button>
+          <div className="ag-forwarder-sidebar-brand">
+            <button
+              type="button"
+              onClick={onBackToLauncher}
+              className="ag-forwarder-back-button"
+              title={t('nav.back_to_launcher')}
+              aria-label={t('nav.back_to_launcher')}
+            >
+              <ArrowLeft size={19} aria-hidden="true" />
+            </button>
+            <div className="ag-forwarder-brand-icon" aria-hidden="true">
+              <ArrowRightLeft size={20} />
+            </div>
+            <div className="ag-forwarder-brand-copy">
+              <strong>{t('nav.open_forwarder')}</strong>
+              <span>{t('nav.forwarder_workspace_desc')}</span>
+            </div>
+          </div>
+
+          <section className="ag-forwarder-session-card" aria-label={t('nav.switch_session')}>
+            <span className="ag-forwarder-session-label">{t('jobs.forwarder_session_section')}</span>
+            <button
+              type="button"
+              onClick={onBackToLauncher}
+              className="ag-forwarder-session"
+              title={t('nav.switch_session')}
+              aria-label={t('nav.switch_session')}
+            >
+              <Zap size={16} aria-hidden="true" />
+              <span className="ag-forwarder-session-name">{activeSession || t('ui.generated.session_utama_6c6254e')}</span>
+              <ChevronDown size={15} aria-hidden="true" />
+            </button>
+          </section>
+
           <nav className="ag-forwarder-side-nav" aria-label={t('nav.open_forwarder')}>
             <button
               type="button"

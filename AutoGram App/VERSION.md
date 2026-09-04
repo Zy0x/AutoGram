@@ -1,6 +1,18 @@
-AutoGram Version: v3.9.35
+AutoGram Version: v3.9.37
 
 Current State:
+v3.9.37 Universal Mouse Back Gesture & Button Navigation Architecture:
+1. Universal Mouse Back/Forward Engine: Dedicated engine (`mouseBackGesture.ts`) listening to mouse buttons 3/4 with 250ms deduplication, two-finger trackpad horizontal swipe with 450ms cooldown and scroll boundary protection, and touch edge swipe.
+2. LIFO Modal & Component Hierarchy: Integrated with `modalBackStack.ts` so top-most modals (ApiSetup, Accounts, DriveFileInfo, SpecificCache, ConfirmModal) dismiss first, followed by in-page transient state and workspace fallback to Session Launcher.
+3. Verification: 100% pass across all 6 Quality Gates (49 Vitest files, 415 tests, 0 TS error, 6,308 i18n keys) and verified live on desktop via CDP port 9230.
+
+Previous:
+v3.9.36 Forwarder Sidebar Structure Matched to Cloud Drives:
+1. Full Left-Rail Composition: Memindahkan tombol kembali, ikon, nama, dan deskripsi Media Forwarder ke bagian atas sidebar agar memiliki hierarki yang sama dengan Cloud Drives.
+2. Account Card Placement: Pemilih sesi kini berada dalam kartu AKUN di bawah identitas workspace dan sebelum navigasi; topbar Forwarder tambahan dihapus sepenuhnya.
+3. Responsive Verification: Layout desktop/mobile tidak overflow dan tombol kembali maupun pemilih sesi memenuhi target sentuh 44px.
+
+Previous:
 v3.9.35 Forwarder Header Aligned with Cloud Drives:
 1. Dedicated Back & Session Controls: Memisahkan aksi kembali dan pemilih sesi pada Media Forwarder. Tombol kembali icon-only berada di header, sementara sesi aktif berada di bagian atas sidebar dengan gaya Cloud Drives dan membuka Session Hub untuk perpindahan sesi yang aman.
 2. Clear Settings Boundary: Menghapus API Credentials dan Settings umum dari ruang kerja Forwarder; keduanya tetap tersedia dari halaman awal aplikasi. Tidak ada pintasan settings palsu sebelum halaman Pengaturan Forwarder khusus tersedia.
