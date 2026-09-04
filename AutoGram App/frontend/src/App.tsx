@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import './App.css';
@@ -18,7 +18,7 @@ import { useModalBackHandler } from './lib/platform/modalBackStack';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
-import { loadSelectableSessions } from './lib/telegram';
+import { loadSelectableSessions, type SessionOption } from './lib/telegram';
 
 function lazyWithRetry<T extends React.ComponentType<any>>(
   componentImport: () => Promise<{ default: T }>
@@ -63,6 +63,33 @@ function App() {
       'Lavender'
     );
   });
+  const [forwarderSessions, setForwarderSessions] = useState<SessionOption[]>([]);
+  const [forwarderSessionsLoading, setForwarderSessionsLoading] = useState(false);
+
+  const persistActiveSession = useCallback((sessionName: string) => {
+    const nextSession = String(sessionName || '').trim();
+    if (!nextSession) return;
+    setCurrentSession(nextSession);
+    localStorage.setItem('autogram_drive_session', nextSession);
+  }, []);
+
+  const refreshForwarderSessions = useCallback(async () => {
+    setForwarderSessionsLoading(true);
+    try {
+      const sessions = await loadSelectableSessions({ verify: false });
+      setForwarderSessions(sessions);
+      setCurrentSession((current) => {
+        if (current && sessions.some((session) => session.name === current)) return current;
+        const next = sessions[0]?.name || current;
+        if (next) localStorage.setItem('autogram_drive_session', next);
+        return next;
+      });
+    } catch (error) {
+      console.warn('Unable to load Forwarder session inventory', error);
+    } finally {
+      setForwarderSessionsLoading(false);
+    }
+  }, []);
 
   // Universal horizontal mouse wheel scroll listener for all horizontal scrollable strips
   useEffect(() => {
@@ -73,6 +100,13 @@ function App() {
   useEffect(() => {
     return initGlobalMouseBackGesture();
   }, []);
+
+  useEffect(() => {
+    if (appMode !== 'forwarder') return;
+    void refreshForwarderSessions();
+    window.addEventListener('autogram_session_metadata_updated', refreshForwarderSessions);
+    return () => window.removeEventListener('autogram_session_metadata_updated', refreshForwarderSessions);
+  }, [appMode, refreshForwarderSessions]);
 
   // Check Telegram API Credentials & Startup Behavior on boot
   useEffect(() => {
@@ -165,8 +199,7 @@ function App() {
 
   const handleSelectMode = (sessionName: string, mode: 'drives' | 'forwarder') => {
     setFallbackNotice(false);
-    setCurrentSession(sessionName);
-    localStorage.setItem('autogram_drive_session', sessionName);
+    persistActiveSession(sessionName);
     setAppMode(mode);
     localStorage.setItem('autogram_app_mode', mode);
   };
@@ -311,7 +344,10 @@ function App() {
       return (
         <ForwarderWorkspace
           activeSession={currentSession}
-          onSwitchMode={handleSwitchMode}
+          sessionOptions={forwarderSessions}
+          sessionsLoading={forwarderSessionsLoading}
+          onRefreshSessions={refreshForwarderSessions}
+          onRequestSessionChange={persistActiveSession}
           onBackToLauncher={() => {
             setAppMode('launcher');
             localStorage.setItem('autogram_app_mode', 'launcher');

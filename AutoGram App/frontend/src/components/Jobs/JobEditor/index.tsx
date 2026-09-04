@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, FolderGit2, Play, RefreshCcw, X, Hash, Users, Radio, User, Bot, Plus, Save, Trash2, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -6,16 +6,33 @@ import { Select } from '../../common/Select';
 import { InfoTooltip } from '../../common/InfoTooltip';
 import { CaptionModal } from '../Modals/CaptionModal';
 import { PeerAvatar } from '../../drive/Navigation/sidebarUtils';
+import { getSessionDisplayName } from '../../../lib/telegram';
 
-export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => void, onStart: (config: any) => void, initialJob?: any }) {
+export function JobEditor({
+  onCancel,
+  onStart,
+  initialJob,
+  onDirtyChange,
+}: {
+  onCancel: () => void;
+  onStart: (config: any) => void;
+  initialJob?: any;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const { t } = useTranslation();
+  const markDraftDirty = useCallback(() => onDirtyChange?.(true), [onDirtyChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(false);
+    return () => onDirtyChange?.(false);
+  }, [initialJob, onDirtyChange]);
           
   // Auto-Discovery States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTarget, setModalTarget] = useState<'source'|'dest'>('source');
   const [dialogs, setDialogs] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<{name: string, status: string}[]>([]);
+  const [sessions, setSessions] = useState<{name: string, status: string, label?: string}[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>("");
   const [isLoadingDialogs, setIsLoadingDialogs] = useState(false);
   const [selectedDialogId, setSelectedDialogId] = useState<string | null>(null);
@@ -49,6 +66,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   }, []);
 
   const handleSaveJobProfile = () => {
+    markDraftDirty();
     if (!newJobProfileName.trim()) return;
     const configToSave = {
       jobName, selectedSession, sourceValue, sourceName, destValue, destName,
@@ -64,6 +82,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const handleLoadJobProfile = (profileName: string) => {
+    markDraftDirty();
     // Empty option = "Load Profile..." — hide delete icon, no config apply
     if (!profileName) {
       setSelectedJobProfile('');
@@ -102,6 +121,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const handleDeleteJobProfile = () => {
+    markDraftDirty();
     if (!selectedJobProfile) return;
     const newProfiles = jobProfiles.filter(p => p.name !== selectedJobProfile);
     setJobProfiles(newProfiles);
@@ -401,6 +421,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const selectDialog = (id: string, name: string, isForum: boolean, isRestricted: boolean = false) => {
+    markDraftDirty();
     if(isForum) {
       setIsForumGroup(true);
       fetchTopics(id);
@@ -423,6 +444,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const selectTopic = (chatId: string, topicId: string, topicName: string) => {
+    markDraftDirty();
     if (modalTarget === 'source') {
       setSourceValue(topicId ? `${chatId}_${topicId}` : chatId);
       const parentDialog = dialogs.find(d => d.id === chatId);
@@ -594,7 +616,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   return (
-    <div className="job-editor-container">
+    <div className="job-editor-container" onChangeCapture={markDraftDirty}>
       <header className="job-editor-header">
         <div className="job-editor-header-top">
           <div style={{ minWidth: 0, flex: '1 1 12rem' }}>
@@ -698,12 +720,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <label className="input-label">{t('ui.generated.select_session_033e135')} <span style={{color: 'var(--danger)'}}>*</span></label>
                 <Select 
                   options={[
-                    {value: '', label: '-- Select Active Session --'},
-                    ...sessions.map(s => ({value: s.name, label: `${(s as any).label || s.name} (${s.status})`}))
+                    {value: '', label: t('jobs.forwarder_session_select_placeholder')},
+                    ...sessions.map((session) => ({
+                      value: session.name,
+                      label: session.label || getSessionDisplayName(session.name),
+                    }))
                   ]}
-                  value={selectedSession}
-                  onChange={(val: any) => {
-                    setSelectedSession(val);
+                    value={selectedSession}
+                    onChange={(val: any) => {
+                      markDraftDirty();
+                      setSelectedSession(val);
                     setChatFolders([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
                     setErrors({...errors, selectedSession: ''});
                   }}

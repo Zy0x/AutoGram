@@ -64,8 +64,8 @@ export function DecisionInbox() {
         <article key={item.id} className="ag-forwarder-decision-item">
           <div className="ag-forwarder-decision-icon"><ShieldAlert size={19} aria-hidden="true" /></div>
           <div className="ag-forwarder-decision-copy">
-            <strong>{item.reasonCode}</strong>
-            <span>{t('jobs.decision_inbox_item_type', { type: item.decisionType })}</span>
+            <strong>{t('jobs.decision_inbox_attention_required')}</strong>
+            <span>{t('jobs.decision_inbox_item_hint')}</span>
           </div>
           <div className="ag-forwarder-decision-actions">
             <button type="button" onClick={() => void resolve(item.id, 'skip')}>{t('jobs.decision_skip')}</button>

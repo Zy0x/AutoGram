@@ -94,6 +94,16 @@
   "forwarder_tab_overview": "Ringkasan",
   "forwarder_tab_jobs": "Pekerjaan",
   "forwarder_session_section": "AKUN",
+  "forwarder_session_select_placeholder": "Pilih akun aktif",
+  "forwarder_session_unavailable": "Belum ada akun aktif",
+  "forwarder_refresh_accounts": "Muat ulang akun",
+  "forwarder_open_navigation": "Buka navigasi Forwarder",
+  "forwarder_close_navigation": "Tutup navigasi Forwarder",
+  "forwarder_expand_navigation": "Perluas sidebar",
+  "forwarder_collapse_navigation": "Ringkas sidebar",
+  "forwarder_session_switch_draft_title": "Ganti akun?",
+  "forwarder_session_switch_draft_description": "Perubahan pekerjaan yang belum disimpan akan dibuang sebelum beralih ke {{session}}.",
+  "forwarder_session_switch_confirm": "Buang perubahan dan ganti",
   "forwarder_overview_kicker": "Media Forwarder",
   "forwarder_overview_title": "Teruskan media",
   "forwarder_overview_description": "Pilih sumber dan tujuan, lalu jalankan saat Anda siap.",
@@ -149,5 +159,7 @@
   "decision_inbox_refresh": "Muat ulang keputusan",
   "decision_inbox_error": "Keputusan belum dapat dimuat atau disimpan. Coba lagi.",
   "decision_inbox_empty_description": "Saat ada konflik duplikat atau pembatasan yang memerlukan pilihan Anda, itemnya akan muncul di sini.",
-  "decision_inbox_item_type": "Jenis keputusan: {{type}}"
+  "decision_inbox_item_type": "Jenis keputusan: {{type}}",
+  "decision_inbox_attention_required": "Pilihan Anda diperlukan",
+  "decision_inbox_item_hint": "Tinjau pilihan ini untuk melanjutkan pekerjaan."
 }

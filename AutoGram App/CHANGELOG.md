@@ -1,3 +1,21 @@
+## v3.9.40 — Media Forwarder Navigation Parity & Safe Account Switching
+
+### 1. Cloud Drives Navigation Model for Media Forwarder
+- **True Account Selector**: Mengganti tombol sesi Forwarder yang sebelumnya kembali ke launcher dengan `MediaSelect` yang sama seperti Cloud Drives. Selector kini mendukung klik, keyboard, Escape, klik luar, daftar akun aktif, dan refresh inventaris sesi tanpa menampilkan nama file sesi internal.
+- **Unified Account Ownership**: `App.tsx` kini menjadi sumber state akun aktif bagi Forwarder. Alias akun, nama/username Telegram, dan fallback `Sesi #…` dipakai sebagai label; identifier `session_*` tidak lagi menjadi teks UI utama.
+- **Rail & Drawer Responsive**: Sidebar memperoleh collapse rail desktop, drawer dengan backdrop untuk tablet/mobile, dan tombol navigasi mobile. Layout tidak lagi berubah menjadi strip tab horizontal yang mendorong atau meluapkan konten utama.
+
+### 2. Safer Workspace Context & Cleaner Shell
+- **Draft-Aware Session Switching**: Perpindahan akun langsung dilakukan saat aman, tetapi menampilkan konfirmasi bila editor job memiliki perubahan belum disimpan. Pekerjaan persisten dan engine transfer tidak diubah atau dihapus.
+- **Forwarder-Only Surface**: Kredensial API dan Settings umum tidak dirender di root Forwarder. Menu Pengaturan Forwarder juga tidak ditampilkan sebelum memiliki halaman lokal yang benar-benar berfungsi.
+- **Less Backend-Heavy Presentation**: Kotak keputusan menampilkan tindakan yang perlu dilakukan pengguna, sementara reason code teknis tetap berada di detail/log, bukan menjadi judul antarmuka utama.
+
+### 3. Localization & Verification
+- **Locale Parity**: Menambahkan label selector akun, rail/drawer, dan dialog draft dalam bahasa Indonesia dan Inggris dengan parity 100%.
+- **Validation**: `npm run build`, `npm test` (49 file / 415 test), audit locale, TypeScript, dan CDP native desktop port 9230 lulus. CDP memverifikasi listbox akun, rail collapse, drawer 390 px, tanpa overflow horizontal, serta tidak adanya Credentials/Settings umum di Forwarder.
+
+---
+
 ## v3.9.39 — Three-Tier Telegram Server Timeout Elimination (FastStart MOOV, Resilient UploadMedia & MTProto Idempotent Retry Engine)
 
 ### 1. FastStart MOOV Atom Pre-Relocation Engine (Zero Telegram Remote Seek)

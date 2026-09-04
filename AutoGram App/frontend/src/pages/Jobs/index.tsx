@@ -28,7 +28,13 @@ export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
 type JobsEntryView = 'jobs' | 'new' | 'history' | 'settings';
 
-export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
+export function Jobs({
+  entryView = 'jobs',
+  onDraftDirtyChange,
+}: {
+  entryView?: JobsEntryView;
+  onDraftDirtyChange?: (dirty: boolean) => void;
+}) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<WorkspaceMode>('list');
   const [jobs, setJobs] = useState<any[]>([]);
@@ -115,6 +121,10 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
       setMode('list');
     }
   }, [entryView]);
+
+  useEffect(() => {
+    if (mode !== 'editor') onDraftDirtyChange?.(false);
+  }, [mode, onDraftDirtyChange]);
 
   // Prevent uncaught errors in this page from tearing down the webview hard
   useEffect(() => {
@@ -632,11 +642,16 @@ export function Jobs({ entryView = 'jobs' }: { entryView?: JobsEntryView }) {
         <div className="workspace-pane">
           <JobEditor
             initialJob={editingJob}
+            onDirtyChange={onDraftDirtyChange}
             onCancel={() => {
+              onDraftDirtyChange?.(false);
               setEditingJob(null);
               setMode('list');
             }}
-            onStart={handleCreateJob}
+            onStart={(config) => {
+              onDraftDirtyChange?.(false);
+              handleCreateJob(config);
+            }}
           />
         </div>
       )}
