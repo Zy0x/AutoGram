@@ -73,6 +73,11 @@ export interface QualityPreflightRequest {
   destinationId: string;
   topicId?: number | null;
   preventStickerConversion?: boolean;
+  albumIncompatImageMode?: string;
+  albumIncompatAnimMode?: string;
+  videoTranscodeScope?: string;
+  imageTranscodeScope?: string;
+  albumPacking?: string;
 }
 
 export type TransferDuplicateChoice = 'skip' | 'upload';

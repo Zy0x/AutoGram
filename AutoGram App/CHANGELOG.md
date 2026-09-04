@@ -1,3 +1,22 @@
+## v3.9.43 — Elimination of Album Grid Interleaving, Strict Pillar 1 Raw Document Compliance & Preflight Banner Reconciliation
+
+### 1. Album Grid Interleaving & Compatibility Clustering Engine
+- **Compatibility Cluster Bucketing**: Merefaktor algoritma `build_album_plan` pada `autogram-core::transfer::album` untuk mengelompokkan berkas berdasarkan cluster `AlbumCompatibilityKey` terlebih dahulu sebelum melakukan pemisahan grid (*packing*), alih-alih mengiterasi linier sesuai urutan alfabetis folder lokal.
+- **Eliminasi Fragmentasi Kolase Visual**: Berkas non-kompatibel atau dokumen yang berada di antara berkas visual (misal arsip `.zip`, dokumen mentah `.webp`, `.heic`, `.png`) langsung dialihkan secara bersih ke `plan.singles` tanpa memicu pengosongan antrean (*bucket flush*) atau memecah kolase foto/video yang kompatibel. Folder campuran berisi 6 berkas visual (3 JPG, 3 MP4) dan 10 dokumen kini menghasilkan 1 kolase visual utuh berukuran 6 dan 10 berkas dokumen tunggal terpisah.
+- **Integritas Caption Summary Kolase**: Memperbarui `apply_album_caption_policy` pada `autogram-core::transfer::caption` agar caption summary selalu disematkan pada item `PayloadClass::NativeVisual` pertama yang valid dalam batch, dan memastikan seluruh item visual berikutnya tetap memiliki caption kosong (`""`) demi menjaga integritas rendering kolase Telegram Web/Desktop (mencegah layout terpecah 9+1).
+
+### 2. Kepatuhan Ketat Pillar 1 Raw Document (Bebas Kompresi & Konversi)
+- **Registri Berkas Gambar Non-Standar**: Memperbarui `is_nonstandard_image_source` dan `is_incompat_image` pada `studio_orch.rs` untuk menyertakan format `.png` dan menghapus pemeriksaan awal yang salah pada magic bytes PNG. Format PNG kini dilindungi penuh di bawah Pillar 1 sebagai dokumen mentah tanpa kompresi lossy JPEG dari Telegram.
+- **Integrasi Pilihan Pillar ke Preflight Engine**: Menambahkan parameter `album_incompat_image_mode`, `album_incompat_anim_mode`, `video_transcode_scope`, `image_transcode_scope`, dan `album_packing` ke dalam `QualityPreflightRequest`.
+- **Penghapusan Notifikasi Konversi Palsu (WebP $\rightarrow$ PNG)**: Menghapus aturan warisan `prevent_sticker` tanpa syarat pada `preflight.rs`. Saat Pillar 1 disetel ke Dokumen Mentah (*Raw Document*), berkas WebP, HEIC, dan PNG tetap dipertahankan bit-for-bit dengan `TransformAction::PassThrough`, `as_document: true`, dan `PayloadClass::DocumentGroup` tanpa menampilkan banner peringatan konversi yang salah.
+
+### 3. Rekonsiliasi Banner Preflight & Pelabelan Komposisi Visual Dinamis
+- **Pelabelan Komposisi Visual Dinamis**: Memperbarui banner rangkuman partisi kolase pada `TransferPreflightDialog.tsx` agar menghitung partisi murni berdasarkan jumlah berkas visual yang valid (`albumEligible`), menghilangkan label keliru seperti *"16 Video"* ketika hanya ada 3 video di dalam folder. Format campuran kini dilabeli secara cerdas (misal: `"6 Media Visual (3 Foto, 3 Video)"`).
+- **Rekonsiliasi Sinkronisasi Banner**: Menyelaraskan partisi banner oranye dengan `report.plannedAlbumSizes` dari Rust backend sehingga kedua indikator menampilkan angka partisi yang 100% konsisten tanpa kontradiksi.
+- **Lokalisasi Multi-Bahasa**: Menambahkan kunci terjemahan `album_type_media_visual` dan `album_type_composition` ke dalam `id/drive.json` dan `en/drive.json` dengan paritas 100%.
+
+---
+
 ## v3.9.42 — Forwarder Shell Aligned with Cloud Drives
 
 ### 1. Cloud Drives Chrome Parity

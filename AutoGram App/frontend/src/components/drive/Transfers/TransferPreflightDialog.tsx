@@ -939,13 +939,17 @@ export function TransferPreflightDialog({
         )}
 
         {/* Real-time Album Partition Summary Banner */}
-        {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) && report.items.length > 1 && (() => {
-          const hasVideo = report.items.some((it) => it.category === 'video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName));
-          const mediaType = hasVideo ? 'video' : 'photo';
+        {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) && (() => {
+          const eligibleItems = report.items.filter((it) => it.albumEligible);
+          if (eligibleItems.length <= 1) return null;
+
+          const videoCount = eligibleItems.filter((it) => it.category === 'video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName)).length;
+          const photoCount = eligibleItems.length - videoCount;
+          const mediaType = videoCount > 0 && photoCount === 0 ? 'video' : photoCount > 0 && videoCount === 0 ? 'photo' : 'mixed';
           const strategy = transferSettings?.albumPacking || DEFAULT_TRANSFER_SETTINGS.albumPacking;
           const customSize = transferSettings?.albumGroupSize || DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
           const avoidSingle = transferSettings?.albumAvoidSingle ?? DEFAULT_TRANSFER_SETTINGS.albumAvoidSingle;
-          const partition = calculateAlbumPartition(report.items.length, strategy, mediaType, customSize, avoidSingle);
+          const partition = calculateAlbumPartition(eligibleItems.length, strategy, mediaType === 'mixed' ? 'video' : mediaType, customSize, avoidSingle);
           const fullCollages = partition.sizes.filter((s) => s > 1).length;
           const stratName = strategy === 'smart_adaptive'
             ? t('drive.album_strategy_smart_adaptive')
@@ -954,6 +958,12 @@ export function TransferPreflightDialog({
             : strategy === 'maximum'
             ? t('drive.album_strategy_maximum')
             : t('drive.album_strategy_custom');
+
+          const typeLabel = mediaType === 'mixed'
+            ? `${t('drive.album_type_media_visual')} ${t('drive.album_type_composition', { photos: photoCount, videos: videoCount })}`
+            : mediaType === 'video'
+            ? t('drive.album_simulator_type_video')
+            : t('drive.album_simulator_type_photo');
 
           return (
             <div
@@ -976,8 +986,8 @@ export function TransferPreflightDialog({
                 <Sparkles size={14} style={{ color: partition.isSafe ? '#38bdf8' : '#f59e0b', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
                   {t('drive.album_preflight_plan_summary', {
-                    count: report.items.length,
-                    type: hasVideo ? 'Video' : 'Foto',
+                    count: eligibleItems.length,
+                    type: typeLabel,
                     groups: fullCollages,
                     partition: partition.sizes.join(' + '),
                     strategy: stratName,

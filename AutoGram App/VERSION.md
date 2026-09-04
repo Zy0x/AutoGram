@@ -1,14 +1,17 @@
-AutoGram Version: v3.9.39
+AutoGram Version: v3.9.43
 
 Current State:
-v3.9.39 Three-Tier Telegram Server Timeout Elimination Engine:
-1. FastStart MOOV Atom Pre-Relocation Engine: Pure Rust ISO BMFF atom scanner (`is_mp4_faststart`) and lossless remuxer (`ensure_faststart_video`) to place the `moov` atom at byte 0 before MTProto upload. Completely eliminates Telegram Datacenter's multi-gigabyte remote seek operations on non-faststart MP4/MOV videos that trigger 60-second processing timeouts (`WORKER_BUSY_TOO_LONG_RETRY`).
-2. Resilient Two-Phase `messages.UploadMedia` Pre-Registration: Media items in a multi-media visual album are individually pre-committed into mature `InputMediaDocument` / `InputMediaPhoto` cloud references with a 3-attempt resilient retry loop, handling `FloodWaitError` with dynamic wait backoff.
-3. MTProto SendMultiMedia Idempotent Retry Engine: Dispatches `messages.sendMultiMedia` using persistent `random_ids` up to 3 attempts on `Timeout`, `Network`, or `Io` errors. Integrates `try_recover_album_from_history` prior to retries to detect if the Telegram server completed processing asynchronously, guaranteeing 100% idempotent dispatch.
-4. Quality Sentinel & Verification: 100% passed all 6 Autonomous Quality Gates (6,308 i18n keys with 100% ID/EN parity, 0 TypeScript errors, 49 Vitest suites with 415 tests passed, SQLite WAL master schema synchronized, MTProto album invariants verified, and live desktop CDP inspection confirmed via port 9230).
+v3.9.43 Album Grid Interleaving Elimination & Strict Pillar 1 Raw Document Compliance:
+1. Compatibility Cluster Bucketing: Pure Rust album partitioner (`build_album_plan`) clusters items by `AlbumCompatibilityKey` before packing, preventing interleaved non-groupable items (documents, archives, raw formats) from fracturing compatible visual albums. A mixed folder with 6 visual items and 10 documents forms 1 unbroken visual collage of 6 and 10 separate documents.
+2. Strict Pillar 1 Lossless Raw Document Compliance: Extended `QualityPreflightRequest` and updated `is_nonstandard_image_source` to include `.png`. When Pillar 1 is set to Raw Document, WebP, HEIC, and PNG files remain 100% bit-exact pass-through documents without false WebP -> PNG conversion notices.
+3. Preflight Banner Reconciliation & Dynamic Visual Composition: Real-time album summary banner in `TransferPreflightDialog.tsx` strictly counts visual eligible items and dynamically labels mixed compositions (e.g. "6 Media Visual (3 Foto, 3 Video)"), matching `plannedAlbumSizes` with zero contradictions.
+4. Quality Sentinel Verification: 100% pass across all 6 Quality Gates (6,323 i18n keys with 100% ID/EN parity, 0 TypeScript errors, 49 Vitest test suites passed, 68 MTProto album tests passed including forensic folder simulation, and live desktop CDP inspection confirmed via port 9230).
 
 Previous:
-v3.9.38 Forwarder Sidebar Geometry Matched to Drives:
+v3.9.42 — Forwarder Shell Aligned with Cloud Drives:
+v3.9.41 — Forwarder Full-Viewport Layout Repair:
+v3.9.40 — Media Forwarder Navigation Parity & Safe Account Switching:
+v3.9.39 Three-Tier Telegram Server Timeout Elimination Engine:
 v3.9.37 Universal Mouse Back Gesture & Button Navigation Architecture:
 1. Universal Mouse Back/Forward Engine: Dedicated engine (`mouseBackGesture.ts`) listening to mouse buttons 3/4 with 250ms deduplication, two-finger trackpad horizontal swipe with 450ms cooldown and scroll boundary protection, and touch edge swipe.
 2. LIFO Modal & Component Hierarchy: Integrated with `modalBackStack.ts` so top-most modals (ApiSetup, Accounts, DriveFileInfo, SpecificCache, ConfirmModal) dismiss first, followed by in-page transient state and workspace fallback to Session Launcher.

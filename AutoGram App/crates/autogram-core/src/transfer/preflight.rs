@@ -28,6 +28,16 @@ pub struct QualityPreflightRequest {
     pub caption_overflow_policy: Option<String>,
     pub destination_id: Option<String>,
     pub topic_id: Option<i64>,
+    #[serde(alias = "album_incompat_image_mode")]
+    pub album_incompat_image_mode: Option<String>,
+    #[serde(alias = "album_incompat_anim_mode")]
+    pub album_incompat_anim_mode: Option<String>,
+    #[serde(alias = "video_transcode_scope")]
+    pub video_transcode_scope: Option<String>,
+    #[serde(alias = "image_transcode_scope")]
+    pub image_transcode_scope: Option<String>,
+    #[serde(alias = "album_packing")]
+    pub album_packing: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -208,62 +218,21 @@ pub fn build_quality_preflight(
             .to_ascii_lowercase();
         let is_webp_sticker =
             category == MediaCategory::WebpImage || ext_lower == "webp" || ext_lower == "tgs";
+        let incompat_image_mode = request
+            .album_incompat_image_mode
+            .as_deref()
+            .unwrap_or("document");
+        let incompat_anim_mode = request
+            .album_incompat_anim_mode
+            .as_deref()
+            .unwrap_or("document");
         let prevent_sticker = request.prevent_sticker_conversion.unwrap_or(false)
-            || request.group_as_album
             || request
                 .quality_mode
                 .as_deref()
                 .unwrap_or("")
                 .to_ascii_uppercase()
-                .contains("PREVENT_STICKER")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("PHOTO")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("VISUAL")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("SEIMBANG")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("HEMAT")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("JELAS")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("HIGH")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("LOW")
-            || request
-                .quality_mode
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_uppercase()
-                .contains("AUTO");
+                .contains("PREVENT_STICKER");
 
         let (transform, payload_class, as_document, reason_code) =
             if force_document || mode == QualityMode::Document {
@@ -345,7 +314,36 @@ pub fn build_quality_preflight(
                         "remote_video_stream".to_string(),
                     )
                 }
-            } else if is_webp_sticker && prevent_sticker {
+            } else if incompat_image_mode == "document"
+                && matches!(
+                    category,
+                    MediaCategory::WebpImage | MediaCategory::OtherImage | MediaCategory::PngImage
+                )
+                && !force_native_media
+            {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::DocumentGroup,
+                    true,
+                    "album_incompat_image_as_document".to_string(),
+                )
+            } else if incompat_anim_mode == "document"
+                && matches!(
+                    category,
+                    MediaCategory::GifImage | MediaCategory::OtherVideo
+                )
+                && !force_native_media
+            {
+                (
+                    TransformAction::PassThrough,
+                    PayloadClass::DocumentGroup,
+                    true,
+                    "album_incompat_anim_as_document".to_string(),
+                )
+            } else if is_webp_sticker
+                && (incompat_image_mode == "transcode"
+                    || (prevent_sticker && incompat_image_mode != "document"))
+            {
                 (
                     TransformAction::ConvertWebpPng,
                     // The lossless PNG result must not be sent through
@@ -541,11 +539,37 @@ pub fn build_quality_preflight(
     let album_grid_size = request.album_group_size.unwrap_or(10).clamp(2, 10);
     let planned_album_sizes = if request.group_as_album {
         let eligible_count = items.iter().filter(|item| item.album_eligible).count();
-        album_partition_sizes(
-            eligible_count,
-            album_grid_size,
-            request.album_avoid_single.unwrap_or(true),
-        )
+        if eligible_count < 2 {
+            Vec::new()
+        } else {
+            let has_video = items.iter().any(|item| {
+                item.album_eligible
+                    && (item.category == MediaCategory::Mp4Video
+                        || item.category == MediaCategory::OtherVideo)
+            });
+            let packing_str = request
+                .album_packing
+                .as_deref()
+                .unwrap_or("custom")
+                .to_ascii_lowercase();
+            match packing_str.as_str() {
+                "smart_adaptive" => {
+                    if has_video {
+                        super::album::video_balanced_partition_sizes(eligible_count, 8)
+                    } else {
+                        album_partition_sizes(eligible_count, 10, true)
+                    }
+                }
+                "balanced" => super::album::video_balanced_partition_sizes(eligible_count, 8),
+                "maximum" => album_partition_sizes(eligible_count, 10, true),
+                "never" => Vec::new(),
+                _ => album_partition_sizes(
+                    eligible_count,
+                    album_grid_size,
+                    request.album_avoid_single.unwrap_or(true),
+                ),
+            }
+        }
     } else {
         Vec::new()
     };
@@ -595,6 +619,11 @@ mod tests {
             caption_overflow_policy: Some("truncate_with_warning".into()),
             destination_id: None,
             topic_id: None,
+            album_incompat_image_mode: None,
+            album_incompat_anim_mode: None,
+            video_transcode_scope: None,
+            image_transcode_scope: None,
+            album_packing: None,
         }
     }
 
@@ -771,5 +800,140 @@ mod tests {
         assert_eq!(report.engine_mode, "safe_rollback");
         assert!(report.items[0].as_document);
         assert_eq!(report.items[0].transform, TransformAction::PassThrough);
+    }
+
+    #[test]
+    fn pillar1_raw_document_leaves_webp_and_heic_and_png_unconverted() {
+        let path_webp = std::env::temp_dir().join("test_incompat.webp");
+        fs::write(&path_webp, b"RIFF\x10\x00\x00\x00WEBPVP8 ").unwrap();
+        let mut req = request(&path_webp, "SMART");
+        req.album_incompat_image_mode = Some("document".into());
+        req.group_as_album = true;
+        let report = build_quality_preflight(
+            &req,
+            "live",
+            u64::MAX,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+        let item = &report.items[0];
+        assert_eq!(item.transform, TransformAction::PassThrough);
+        assert!(item.as_document);
+        assert_eq!(item.payload_class, PayloadClass::DocumentGroup);
+        assert_eq!(item.reason_code, "album_incompat_image_as_document");
+        assert!(!item.album_eligible);
+        assert_eq!(report.transform_convert_count, 0);
+    }
+
+    #[test]
+    fn forensic_user_test_folder_scenario_simulation() {
+        let filenames = [
+            "13tsukasa711-08-06-2023-0001.mp4",
+            "20241229_015344.jpg",
+            "20241229_015351.jpg",
+            "20241229_015355.jpg",
+            "dyantocialong-13-08-2023-0003.webp",
+            "dyantocialong-13-08-2023-0004.webp",
+            "dyantocialong-13-08-2023-0005.webp",
+            "genshinimpact.hd-10-08-2023-0006.heic",
+            "genshinimpact.hd-13-08-2023-0001.heic",
+            "genshinimpact.hd-13-08-2023-0002.heic",
+            "illust_112679277_20250222_000527.png",
+            "illust_112679277_20250222_000529.png",
+            "illust_112679277_20250222_000531.png",
+            "portfolio-nextjs.zip",
+            "_kayu.tt-21-05-2023-0001.mp4",
+            "_kayu.tt-21-05-2023-0002.mp4",
+        ];
+
+        let mut paths = Vec::new();
+        for name in &filenames {
+            let p = std::env::temp_dir().join(name);
+            let ext = std::path::Path::new(name).extension().unwrap().to_str().unwrap();
+            match ext {
+                "jpg" => fs::write(&p, [0xff, 0xd8, 0xff, 0xdb]).unwrap(),
+                "png" => fs::write(&p, b"\x89PNG\r\n\x1a\n").unwrap(),
+                "webp" => fs::write(&p, b"RIFF\x10\x00\x00\x00WEBPVP8 ").unwrap(),
+                _ => fs::write(&p, b"dummy_content").unwrap(),
+            }
+            paths.push(p.display().to_string());
+        }
+
+        let mut req = request(Path::new("dummy"), "SMART");
+        req.paths = paths;
+        req.group_as_album = true;
+        req.album_group_size = Some(10);
+        req.album_packing = Some("custom".into());
+        req.album_incompat_image_mode = Some("document".into());
+        req.album_incompat_anim_mode = Some("document".into());
+
+        let report = build_quality_preflight(
+            &req,
+            "live",
+            u64::MAX,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+
+        // 1. Zero WebP to PNG conversion
+        assert_eq!(report.transform_convert_count, 0);
+
+        // 2. Exactly 6 visual media items eligible for album (3 JPG + 3 MP4)
+        let eligible: Vec<_> = report.items.iter().filter(|i| i.album_eligible).collect();
+        assert_eq!(eligible.len(), 6);
+        assert_eq!(eligible.iter().map(|i| i.index).collect::<Vec<_>>(), vec![0, 1, 2, 3, 14, 15]);
+
+        // 3. Exactly 10 raw documents (3 WebP + 3 HEIC + 3 PNG + 1 ZIP)
+        let documents: Vec<_> = report.items.iter().filter(|i| i.as_document).collect();
+        assert_eq!(documents.len(), 10);
+        assert_eq!(documents.iter().map(|i| i.index).collect::<Vec<_>>(), vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+
+        // 4. Preflight planned album size is [6], matching visual media count
+        assert_eq!(report.planned_album_sizes, vec![6]);
+
+        // 5. Test album planner with these items
+        let prepared: Vec<_> = report.items.iter().map(|item| {
+            super::super::album::PreparedAlbumItem {
+                index: item.index,
+                path: item.source_path.clone(),
+                caption: String::new(),
+                spoiler: false,
+                size: item.source_size,
+                key: super::super::album::AlbumCompatibilityKey {
+                    account_id: "test".into(),
+                    peer_id: "test".into(),
+                    topic_id: None,
+                    reply_to: None,
+                    send_as: None,
+                    schedule_at: None,
+                    silent: false,
+                    payload_class: item.payload_class,
+                },
+                force_single: false,
+            }
+        }).collect();
+
+        let plan_opts = super::super::album::AlbumPlanOptions {
+            enabled: true,
+            packing: super::super::album::AlbumPackingPolicy::Custom,
+            custom_size: 10,
+            avoid_single_remainder: true,
+            group_documents: true,
+            group_audio: true,
+            group_original_documents: true,
+        };
+
+        let plan = super::super::album::build_album_plan(prepared, &plan_opts);
+        // Visual items form 1 intact collage of 6, NOT fractured into small fragments
+        assert_eq!(plan.groups.len(), 1);
+        assert_eq!(plan.groups[0].items.len(), 6);
+        assert_eq!(plan.groups[0].items.iter().map(|i| i.index).collect::<Vec<_>>(), vec![0, 1, 2, 3, 14, 15]);
+        super::super::album::validate_album_group_invariants(&plan.groups[0]).unwrap();
+
+        // Documents are cleanly routed as singles
+        assert_eq!(plan.singles.len(), 10);
+        assert_eq!(plan.singles.iter().map(|i| i.index).collect::<Vec<_>>(), vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     }
 }

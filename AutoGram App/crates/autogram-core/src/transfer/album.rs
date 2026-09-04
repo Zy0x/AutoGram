@@ -168,7 +168,7 @@ fn is_video_path(path: &str) -> bool {
     )
 }
 
-fn video_balanced_partition_sizes(total: usize, max_safe: usize) -> Vec<usize> {
+pub fn video_balanced_partition_sizes(total: usize, max_safe: usize) -> Vec<usize> {
     if total <= max_safe {
         return vec![total];
     }
@@ -188,14 +188,40 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
         return plan;
     }
     let target = target_size(options.packing, options.custom_size);
-    let mut current_key: Option<AlbumCompatibilityKey> = None;
-    let mut current_bucket: Vec<PreparedAlbumItem> = Vec::new();
-    let flush_bucket = |plan: &mut AlbumPlan,
-                            key: &mut Option<AlbumCompatibilityKey>,
-                            bucket: &mut Vec<PreparedAlbumItem>| {
-        let Some(bucket_key) = key.take() else { return; };
-        if bucket.is_empty() { return; }
-        let mut grouped = std::mem::take(bucket);
+
+    let mut ordered_items = items;
+    ordered_items.sort_by_key(|item| item.index);
+
+    // Cluster groupable items by their AlbumCompatibilityKey, preserving discovery order
+    // across distinct keys and item.index order within each cluster.
+    // Interleaved non-groupable items (e.g. documents, archives, raw nonstandard formats)
+    // are routed directly to singles without fracturing compatible visual collages.
+    let mut clusters: Vec<(AlbumCompatibilityKey, Vec<PreparedAlbumItem>)> = Vec::new();
+
+    for item in ordered_items {
+        if item.force_single {
+            let index = item.index;
+            plan.singles.push(item);
+            plan.explanations.push(format!("item_forced_single:{index}"));
+            continue;
+        }
+        if !groupable(item.key.payload_class, options) {
+            let index = item.index;
+            let class = item.key.payload_class;
+            plan.singles.push(item);
+            plan.explanations
+                .push(format!("payload_not_groupable:{class:?}:{index}"));
+            continue;
+        }
+        if let Some(cluster) = clusters.iter_mut().find(|(k, _)| k == &item.key) {
+            cluster.1.push(item);
+        } else {
+            let key = item.key.clone();
+            clusters.push((key, vec![item]));
+        }
+    }
+
+    for (bucket_key, mut grouped) in clusters {
         let has_video = grouped.iter().any(|item| is_video_path(&item.path));
         let sizes = match options.packing {
             AlbumPackingPolicy::Custom => {
@@ -240,33 +266,8 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
                 });
             }
         }
-    };
-    let mut ordered_items = items;
-    ordered_items.sort_by_key(|item| item.index);
-    for item in ordered_items {
-        if item.force_single {
-            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
-            let index = item.index;
-            plan.singles.push(item);
-            plan.explanations.push(format!("item_forced_single:{index}"));
-            continue;
-        }
-        if !groupable(item.key.payload_class, options) {
-            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
-            let index = item.index;
-            let class = item.key.payload_class;
-            plan.singles.push(item);
-            plan.explanations
-                .push(format!("payload_not_groupable:{class:?}:{index}"));
-            continue;
-        }
-        if current_key.as_ref() != Some(&item.key) {
-            flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
-            current_key = Some(item.key.clone());
-        }
-        current_bucket.push(item);
     }
-    flush_bucket(&mut plan, &mut current_key, &mut current_bucket);
+
     if options.packing != AlbumPackingPolicy::Maximum {
         plan.groups
             .sort_by_key(|g| g.items.first().map(|i| i.index).unwrap_or(usize::MAX));
@@ -412,22 +413,64 @@ mod tests {
                 .iter()
                 .map(|group| group.items.len())
                 .collect::<Vec<_>>(),
-            vec![9, 5]
+            vec![10, 4]
         );
         assert_eq!(p.singles.iter().map(|item| item.index).collect::<Vec<_>>(), vec![9]);
     }
 
     #[test]
-    fn unsupported_items_are_hard_boundaries_between_native_albums() {
+    fn unsupported_items_do_not_fracture_compatible_visual_albums() {
         let mut input = items(14, PayloadClass::NativeVisual);
         input[3].key.payload_class = PayloadClass::DocumentGroup;
         input[6].key.payload_class = PayloadClass::DocumentGroup;
         let p = build_album_plan(input, &options());
+        // 12 compatible NativeVisual items cluster together into [10, 2] under Maximum packing
         assert_eq!(
             p.groups.iter().map(|group| group.items.iter().map(|i| i.index).collect::<Vec<_>>()).collect::<Vec<_>>(),
-            vec![vec![0, 1, 2], vec![4, 5], vec![7, 8, 9, 10, 11, 12, 13]]
+            vec![
+                vec![0, 1, 2, 4, 5, 7, 8, 9, 10, 11],
+                vec![12, 13]
+            ]
         );
         assert_eq!(p.singles.iter().map(|item| item.index).collect::<Vec<_>>(), vec![3, 6]);
+    }
+
+    #[test]
+    fn interleaved_mixed_folder_preserves_visual_collage_and_routes_documents() {
+        // User scenario: 16 mixed files (3 JPG, 3 MP4, 3 WebP, 3 HEIC, 3 PNG, 1 ZIP)
+        // Indices 0..2: JPG (NativeVisual)
+        // Indices 3..5: WebP (DocumentGroup)
+        // Indices 6..8: HEIC (DocumentGroup)
+        // Indices 9..11: PNG (DocumentGroup under Pillar 1 Raw Document)
+        // Index 12: ZIP (DocumentGroup)
+        // Indices 13..15: MP4 (NativeVisual)
+        let mut input = items(16, PayloadClass::NativeVisual);
+        for i in 3..=12 {
+            input[i].key.payload_class = PayloadClass::DocumentGroup;
+        }
+        let opts = AlbumPlanOptions {
+            enabled: true,
+            packing: AlbumPackingPolicy::Custom,
+            custom_size: 10,
+            avoid_single_remainder: true,
+            group_documents: true,
+            group_audio: true,
+            group_original_documents: true,
+        };
+        let p = build_album_plan(input, &opts);
+        // The 6 visual items form 1 intact collage
+        assert_eq!(p.groups.len(), 1);
+        assert_eq!(p.groups[0].items.len(), 6);
+        assert_eq!(
+            p.groups[0].items.iter().map(|i| i.index).collect::<Vec<_>>(),
+            vec![0, 1, 2, 13, 14, 15]
+        );
+        // The 10 documents are cleanly routed as singles
+        assert_eq!(p.singles.len(), 10);
+        assert_eq!(
+            p.singles.iter().map(|i| i.index).collect::<Vec<_>>(),
+            (3..=12).collect::<Vec<_>>()
+        );
     }
 
     #[test]

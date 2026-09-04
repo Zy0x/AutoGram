@@ -41,19 +41,9 @@ fn is_nonstandard_image_source(path: &str) -> bool {
         use std::io::Read;
         let mut header = [0u8; 8];
         let n = f.read(&mut header).unwrap_or(0);
+        // Only standard JPEG (0xFF, 0xD8, 0xFF) is Telegram's native standard photo format.
+        // PNG, WebP, HEIC, etc. are nonstandard image formats on Telegram (Pillar 1).
         if n >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF {
-            return false;
-        }
-        if n >= 8
-            && header[0] == 0x89
-            && header[1] == 0x50
-            && header[2] == 0x4E
-            && header[3] == 0x47
-            && header[4] == 0x0D
-            && header[5] == 0x0A
-            && header[6] == 0x1A
-            && header[7] == 0x0A
-        {
             return false;
         }
     }
@@ -62,7 +52,8 @@ fn is_nonstandard_image_source(path: &str) -> bool {
         .map(|value| {
             matches!(
                 value.to_ascii_lowercase().as_str(),
-                "webp"
+                "png"
+                    | "webp"
                     | "heic"
                     | "heif"
                     | "hif"
@@ -1252,7 +1243,7 @@ fn run_intelligent_album(
                 );
             let is_incompat_image = matches!(
                 classification.category,
-                MediaCategory::WebpImage | MediaCategory::OtherImage
+                MediaCategory::WebpImage | MediaCategory::OtherImage | MediaCategory::PngImage
             ) && !artifact.transformed;
             // Animation/sticker: GIF, and OtherVideo (TGS/WebM sticker) when untranscoded
             let is_incompat_anim = matches!(

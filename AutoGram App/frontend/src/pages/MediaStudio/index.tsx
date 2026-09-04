@@ -1022,6 +1022,11 @@ function MediaDriveDesktop({
         destinationId: req.destinationId,
         topicId: req.topicId,
         preventStickerConversion: nextSettings.preventStickerConversion,
+        albumIncompatImageMode: nextSettings.albumIncompatImageMode,
+        albumIncompatAnimMode: nextSettings.albumIncompatAnimMode,
+        videoTranscodeScope: nextSettings.videoTranscodeScope,
+        imageTranscodeScope: nextSettings.imageTranscodeScope,
+        albumPacking: nextSettings.albumPacking,
       });
       const enriched: QualityPreflightReport = {
         ...updated,
@@ -6991,6 +6996,11 @@ function MediaDriveDesktop({
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
         preventStickerConversion: transferSettings.preventStickerConversion,
+        albumIncompatImageMode: transferSettings.albumIncompatImageMode,
+        albumIncompatAnimMode: transferSettings.albumIncompatAnimMode,
+        videoTranscodeScope: transferSettings.videoTranscodeScope,
+        imageTranscodeScope: transferSettings.imageTranscodeScope,
+        albumPacking: transferSettings.albumPacking,
       });
       const enrichedReport: QualityPreflightReport = {
         ...report,

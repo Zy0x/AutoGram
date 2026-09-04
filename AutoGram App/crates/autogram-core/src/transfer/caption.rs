@@ -191,11 +191,18 @@ pub fn apply_album_caption_policy(
     let summary = summary.map(str::trim).filter(|value| !value.is_empty());
     if let Some(summary) = summary {
         let normalized = normalize_caption(summary, runtime_limit, policy)?;
-        let item_index = items.first().map(|item| item.index);
-        if let Some(first) = items.first_mut() {
-            first.caption = normalized.value;
+        let target_pos = items
+            .iter()
+            .position(|item| item.key.payload_class == super::PayloadClass::NativeVisual)
+            .unwrap_or(0);
+        let item_index = items.get(target_pos).map(|item| item.index);
+        if let Some(target) = items.get_mut(target_pos) {
+            target.caption = normalized.value;
         }
-        for item in items.iter_mut().skip(1) {
+        for (idx, item) in items.iter_mut().enumerate() {
+            if idx == target_pos {
+                continue;
+            }
             if item.key.payload_class == super::PayloadClass::NativeVisual {
                 item.caption.clear();
             } else {
