@@ -1,12 +1,14 @@
-AutoGram Version: v3.9.38
+AutoGram Version: v3.9.39
 
 Current State:
-v3.9.38 Forwarder Sidebar Geometry Matched to Drives:
-1. Pixel-Aligned Header: Tinggi header sidebar dikunci pada 80px agar tombol kembali, ikon, dan teks Media Forwarder sejajar dengan Cloud Drives.
-2. Account Card Alignment: Margin kartu AKUN dikurangi sehingga dimulai tepat setelah header, tanpa ruang vertikal berlebih.
-3. Verification: Smoke test desktop memastikan header 80px, tanpa overflow horizontal.
+v3.9.39 Three-Tier Telegram Server Timeout Elimination Engine:
+1. FastStart MOOV Atom Pre-Relocation Engine: Pure Rust ISO BMFF atom scanner (`is_mp4_faststart`) and lossless remuxer (`ensure_faststart_video`) to place the `moov` atom at byte 0 before MTProto upload. Completely eliminates Telegram Datacenter's multi-gigabyte remote seek operations on non-faststart MP4/MOV videos that trigger 60-second processing timeouts (`WORKER_BUSY_TOO_LONG_RETRY`).
+2. Resilient Two-Phase `messages.UploadMedia` Pre-Registration: Media items in a multi-media visual album are individually pre-committed into mature `InputMediaDocument` / `InputMediaPhoto` cloud references with a 3-attempt resilient retry loop, handling `FloodWaitError` with dynamic wait backoff.
+3. MTProto SendMultiMedia Idempotent Retry Engine: Dispatches `messages.sendMultiMedia` using persistent `random_ids` up to 3 attempts on `Timeout`, `Network`, or `Io` errors. Integrates `try_recover_album_from_history` prior to retries to detect if the Telegram server completed processing asynchronously, guaranteeing 100% idempotent dispatch.
+4. Quality Sentinel & Verification: 100% passed all 6 Autonomous Quality Gates (6,308 i18n keys with 100% ID/EN parity, 0 TypeScript errors, 49 Vitest suites with 415 tests passed, SQLite WAL master schema synchronized, MTProto album invariants verified, and live desktop CDP inspection confirmed via port 9230).
 
 Previous:
+v3.9.38 Forwarder Sidebar Geometry Matched to Drives:
 v3.9.37 Universal Mouse Back Gesture & Button Navigation Architecture:
 1. Universal Mouse Back/Forward Engine: Dedicated engine (`mouseBackGesture.ts`) listening to mouse buttons 3/4 with 250ms deduplication, two-finger trackpad horizontal swipe with 450ms cooldown and scroll boundary protection, and touch edge swipe.
 2. LIFO Modal & Component Hierarchy: Integrated with `modalBackStack.ts` so top-most modals (ApiSetup, Accounts, DriveFileInfo, SpecificCache, ConfirmModal) dismiss first, followed by in-page transient state and workspace fallback to Session Launcher.

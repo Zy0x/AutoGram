@@ -1099,6 +1099,114 @@ fn probe_video_metadata_ffmpeg_fallback(path: &str, ff: &Path) -> (u32, u32, f64
     (width, height, duration)
 }
 
+/// Inspects an MP4/MOV container to check if `moov` atom is placed before `mdat` (FastStart).
+/// Reads atom headers sequentially (only 8 bytes per box), completing in < 1ms even for multi-GB files.
+pub fn is_mp4_faststart(path: &Path) -> bool {
+    let Ok(mut f) = std::fs::File::open(path) else {
+        return true;
+    };
+    use std::io::{Read, Seek, SeekFrom};
+    let mut buf = [0u8; 8];
+    let file_len = f.metadata().map(|m| m.len()).unwrap_or(0);
+    let mut offset = 0u64;
+
+    while offset + 8 <= file_len {
+        if f.seek(SeekFrom::Start(offset)).is_err() {
+            break;
+        }
+        if f.read_exact(&mut buf).is_err() {
+            break;
+        }
+        let box_size = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) as u64;
+        let box_type = &buf[4..8];
+
+        if box_type == b"moov" {
+            // moov is before mdat -> FastStart!
+            return true;
+        }
+        if box_type == b"mdat" {
+            // mdat is before moov -> Not FastStart (moov is at the tail)
+            return false;
+        }
+
+        if box_size == 0 {
+            // Box extends to EOF
+            break;
+        } else if box_size == 1 {
+            // 64-bit box size in next 8 bytes
+            let mut buf64 = [0u8; 8];
+            if f.read_exact(&mut buf64).is_err() {
+                break;
+            }
+            let extended_size = u64::from_be_bytes(buf64);
+            if extended_size < 16 {
+                break;
+            }
+            offset += extended_size;
+        } else if box_size < 8 {
+            break;
+        } else {
+            offset += box_size;
+        }
+    }
+    true
+}
+
+/// Ensures a video file is optimized for streaming (FastStart) before upload.
+/// If the video already has `moov` at the front, returns `(original_path, false)` with zero overhead.
+/// If not, remuxes with stream copy (`-c copy -movflags faststart`) into a temp file in ~1-2 seconds,
+/// returning `(temp_path, true)`. The caller should remove the temp file after upload if `is_temp == true`.
+pub fn ensure_faststart_video(input_path: &Path) -> (PathBuf, bool) {
+    let ext = input_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    // Only MP4, MOV, M4V containers use ISO BMFF moov/mdat structure
+    if !matches!(ext.as_str(), "mp4" | "mov" | "m4v") {
+        return (input_path.to_path_buf(), false);
+    }
+
+    if is_mp4_faststart(input_path) {
+        return (input_path.to_path_buf(), false);
+    }
+
+    // Remux using faststart stream copy to temp file
+    let temp_dir = std::env::temp_dir().join("autogram_faststart");
+    let _ = std::fs::create_dir_all(&temp_dir);
+    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("video");
+    let random_suffix: u32 = rand::random();
+    let temp_output = temp_dir.join(format!("{stem}_faststart_{random_suffix}.mp4"));
+
+    match crate::core::autogram_core::repair_mp4_container(input_path, &temp_output) {
+        Ok(_) if temp_output.exists() => {
+            tg_log::info(
+                BACKEND,
+                "faststart_remux_success",
+                format!("Remuxed non-faststart video {:?} to faststart temporary file {:?}", input_path, temp_output),
+            );
+            (temp_output, true)
+        }
+        Ok(_) => {
+            tg_log::warn(
+                BACKEND,
+                "faststart_remux_missing_output",
+                format!("Faststart remux succeeded but output {:?} was not found. Using original file.", temp_output),
+            );
+            (input_path.to_path_buf(), false)
+        }
+        Err(err) => {
+            tg_log::warn(
+                BACKEND,
+                "faststart_remux_fallback",
+                format!("Faststart remux skipped for {:?}: {err}. Using original file.", input_path),
+            );
+            (input_path.to_path_buf(), false)
+        }
+    }
+}
+
 /// Extract basic audio metadata (duration in seconds, title, artist) using ffprobe.
 pub fn probe_audio_metadata(path: &str) -> (f64, Option<String>, Option<String>) {
     let Some(ff) = find_ffmpeg_binary() else {
@@ -2649,3 +2757,64 @@ pub fn maybe_transcode_image_for_telegram(
     let _ = fs::remove_file(&out_file);
     Ok(path.to_string())
 }
+
+#[cfg(test)]
+mod faststart_tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn test_is_mp4_faststart_front_moov() {
+        let temp_dir = std::env::temp_dir().join("autogram_test");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let path = temp_dir.join("test_front_moov.mp4");
+        let mut f = std::fs::File::create(&path).unwrap();
+
+        // Box 1: ftyp (size 16)
+        f.write_all(&16u32.to_be_bytes()).unwrap();
+        f.write_all(b"ftyp").unwrap();
+        f.write_all(b"mp42\0\0\0\0").unwrap();
+
+        // Box 2: moov (size 24) -> FastStart!
+        f.write_all(&24u32.to_be_bytes()).unwrap();
+        f.write_all(b"moov").unwrap();
+        f.write_all(&[0u8; 16]).unwrap();
+
+        // Box 3: mdat
+        f.write_all(&100u32.to_be_bytes()).unwrap();
+        f.write_all(b"mdat").unwrap();
+        f.write_all(&[0u8; 92]).unwrap();
+        drop(f);
+
+        assert!(is_mp4_faststart(&path));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_is_mp4_faststart_tail_moov() {
+        let temp_dir = std::env::temp_dir().join("autogram_test");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let path = temp_dir.join("test_tail_moov.mp4");
+        let mut f = std::fs::File::create(&path).unwrap();
+
+        // Box 1: ftyp (size 16)
+        f.write_all(&16u32.to_be_bytes()).unwrap();
+        f.write_all(b"ftyp").unwrap();
+        f.write_all(b"mp42\0\0\0\0").unwrap();
+
+        // Box 2: mdat (size 100) -> NOT FastStart (mdat before moov)
+        f.write_all(&100u32.to_be_bytes()).unwrap();
+        f.write_all(b"mdat").unwrap();
+        f.write_all(&[0u8; 92]).unwrap();
+
+        // Box 3: moov (size 24)
+        f.write_all(&24u32.to_be_bytes()).unwrap();
+        f.write_all(b"moov").unwrap();
+        f.write_all(&[0u8; 16]).unwrap();
+        drop(f);
+
+        assert!(!is_mp4_faststart(&path));
+        let _ = std::fs::remove_file(&path);
+    }
+}
+

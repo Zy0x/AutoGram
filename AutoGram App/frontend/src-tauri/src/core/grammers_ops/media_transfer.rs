@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::media_prep::{
-    extract_video_thumbnail, probe_audio_metadata, probe_video_metadata,
+    ensure_faststart_video, extract_video_thumbnail, probe_audio_metadata, probe_video_metadata,
 };
 use crate::core::path_policy;
 use crate::core::session_guard;
@@ -769,11 +769,33 @@ pub fn upload_prepared_album_blocking_with_app(
                         );
                     }
 
-                    let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
+                    let ext = path
+                        .extension()
+                        .and_then(|value| value.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    let is_video = matches!(
+                        ext.as_str(),
+                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
+                    );
+
+                    // Ensure video MP4/MOV has MOOV atom at the front (FastStart) to eliminate Telegram DC 60s indexing timeouts
+                    let (effective_upload_path, is_temp_faststart) = if !as_document && is_video {
+                        ensure_faststart_video(&path)
+                    } else {
+                        (path.clone(), false)
+                    };
+
+                    let upload_size = tokio::fs::metadata(&effective_upload_path)
+                        .await
+                        .map(|m| m.len())
+                        .unwrap_or(size);
+
+                    let uploaded = if let Ok(file) = tokio::fs::File::open(&effective_upload_path).await {
                         let mut reader = ProgressAsyncReader {
                             inner: file,
                             stage: "upload".into(),
-                            total_bytes: size,
+                            total_bytes: upload_size,
                             current_bytes: 0,
                             last_emit_time: Instant::now(),
                             last_emit_bytes: 0,
@@ -782,7 +804,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             transfer_id: transfer_id.clone(),
                         };
                         client
-                            .upload_stream(&mut reader, size as usize, filename.clone())
+                            .upload_stream(&mut reader, upload_size as usize, filename.clone())
                             .await
                             .map_err(|error| {
                                 if transfer_id
@@ -801,20 +823,15 @@ pub fn upload_prepared_album_blocking_with_app(
                                 }
                             })?
                     } else {
-                        client.upload_file(&path).await.map_err(|error| {
+                        client.upload_file(&effective_upload_path).await.map_err(|error| {
                             TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
                         })?
                     };
 
-                    let ext = path
-                        .extension()
-                        .and_then(|value| value.to_str())
-                        .unwrap_or("")
-                        .to_ascii_lowercase();
-                    let is_video = matches!(
-                        ext.as_str(),
-                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
-                    );
+                    if is_temp_faststart {
+                        let _ = std::fs::remove_file(&effective_upload_path);
+                    }
+
                     let is_audio = matches!(
                         ext.as_str(),
                         "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
@@ -988,22 +1005,70 @@ pub fn upload_prepared_album_blocking_with_app(
                         | tl::enums::InputMedia::PhotoExternal(_)
                         | tl::enums::InputMedia::UploadedDocument(_)
                         | tl::enums::InputMedia::DocumentExternal(_) => {
-                            let uploaded = client
-                                .invoke(&tl::functions::messages::UploadMedia {
-                                    business_connection_id: None,
-                                    peer: peer.into(),
-                                    media: raw_media,
-                                })
-                                .await
-                                .map_err(|e| map_invocation(&e))?;
-                            Media::from_raw(uploaded)
-                                .and_then(|m| m.to_raw_input_media())
-                                .ok_or_else(|| {
+                            let mut upload_media_attempts = 0;
+                            let mut last_err = None;
+                            let mut converted_media = None;
+
+                            while upload_media_attempts < 3 {
+                                upload_media_attempts += 1;
+                                match client
+                                    .invoke(&tl::functions::messages::UploadMedia {
+                                        business_connection_id: None,
+                                        peer: peer.into(),
+                                        media: raw_media.clone(),
+                                    })
+                                    .await
+                                {
+                                    Ok(uploaded) => {
+                                        if let Some(m) = Media::from_raw(uploaded).and_then(|m| m.to_raw_input_media()) {
+                                            converted_media = Some(m);
+                                            break;
+                                        } else {
+                                            last_err = Some(TgError::new(
+                                                TgErrorCode::Internal,
+                                                "failed to convert uploaded media to InputMedia",
+                                            ));
+                                            break;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        let mapped = map_invocation(&e);
+                                        match mapped.code() {
+                                            TgErrorCode::FloodWait => {
+                                                let wait = mapped.flood_wait_secs().unwrap_or(5);
+                                                tg_log::warn(
+                                                    BACKEND,
+                                                    "upload_media_flood_wait",
+                                                    format!("UploadMedia rate limited, waiting {wait}s..."),
+                                                );
+                                                tokio::time::sleep(Duration::from_secs(wait.min(60) as u64)).await;
+                                            }
+                                            TgErrorCode::Timeout => {
+                                                tg_log::warn(
+                                                    BACKEND,
+                                                    "upload_media_timeout_retry",
+                                                    format!("UploadMedia server timeout on attempt {upload_media_attempts}, retrying in 3s..."),
+                                                );
+                                                tokio::time::sleep(Duration::from_secs(3)).await;
+                                            }
+                                            _ => {
+                                                last_err = Some(mapped);
+                                                break;
+                                            }
+                                        }
+                                        last_err = Some(mapped);
+                                    }
+                                }
+                            }
+
+                            converted_media.ok_or_else(|| {
+                                last_err.unwrap_or_else(|| {
                                     TgError::new(
                                         TgErrorCode::Internal,
-                                        "failed to convert uploaded media to InputMedia",
+                                        "failed to register media on Telegram server",
                                     )
-                                })?
+                                })
+                            })?
                         }
                         other => other,
                     };
@@ -1067,7 +1132,67 @@ pub fn upload_prepared_album_blocking_with_app(
                     allow_paid_stars: None,
                 };
 
-                let updates_res = client.invoke(&album_req).await;
+                let mut updates_res = client.invoke(&album_req).await;
+                let mut album_send_attempts = 1;
+
+                while album_send_attempts < 4 && updates_res.is_err() {
+                    let is_retryable = if let Err(ref e) = updates_res {
+                        let mapped = map_invocation(e);
+                        matches!(
+                            mapped.code(),
+                            TgErrorCode::Timeout | TgErrorCode::Network | TgErrorCode::Io
+                        )
+                    } else {
+                        false
+                    };
+
+                    if !is_retryable {
+                        break;
+                    }
+
+                    let backoff_secs = match album_send_attempts {
+                        1 => 3,
+                        2 => 6,
+                        _ => 10,
+                    };
+
+                    tg_log::warn(
+                        BACKEND,
+                        "album_send_timeout_retry",
+                        format!(
+                            "SendMultiMedia hit timeout/network on attempt {album_send_attempts}. Checking history & retrying with same random_ids in {backoff_secs}s..."
+                        ),
+                    );
+                    tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
+
+                    // Check if Telegram completed the album in the background during server load
+                    if let Some(recovered) = try_recover_album_from_history(
+                        client,
+                        peer,
+                        &chat,
+                        topic_id,
+                        &expected_indices,
+                        batch_start_ts,
+                    )
+                    .await
+                    {
+                        if recovered.len() == expected_indices.len()
+                            && recovered.iter().all(|item| item.message_id.is_some())
+                        {
+                            tg_log::info(
+                                BACKEND,
+                                "album_send_background_recovered",
+                                format!("Album successfully recovered from Telegram history during backoff on attempt {album_send_attempts}"),
+                            );
+                            return Ok(recovered);
+                        }
+                    }
+
+                    album_send_attempts += 1;
+                    // Idempotent retry with exact same persisted random_ids in album_req
+                    updates_res = client.invoke(&album_req).await;
+                }
+
                 let updates = match updates_res {
                     Ok(u) => u,
                     Err(e) => {
