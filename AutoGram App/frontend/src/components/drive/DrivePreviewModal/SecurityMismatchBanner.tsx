@@ -19,6 +19,7 @@ import { MagicSniffResult } from '../../../lib/media/magicBytesSniffer';
 interface Props {
   sniffResult: MagicSniffResult;
   currentFilename: string;
+  hexBytes?: Uint8Array | null;
   onFixExtension: (suggestedFilename: string) => void;
   isFixing?: boolean;
   onDismiss?: () => void;
@@ -27,6 +28,7 @@ interface Props {
 export const SecurityMismatchBanner: React.FC<Props> = ({
   sniffResult,
   currentFilename,
+  hexBytes,
   onFixExtension,
   isFixing = false,
   onDismiss,
@@ -85,7 +87,11 @@ export const SecurityMismatchBanner: React.FC<Props> = ({
           <button
             type="button"
             className="td-mismatch-info-btn"
-            onClick={() => setShowExplanationModal(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setShowExplanationModal(true);
+            }}
             title={t('drive.security_mismatch_info_tooltip')}
             aria-label={t('drive.security_mismatch_info_tooltip')}
           >
@@ -136,6 +142,7 @@ export const SecurityMismatchBanner: React.FC<Props> = ({
             currentFilename={currentFilename}
             currentExt={currentExt}
             sniffResult={sniffResult}
+            hexBytes={hexBytes}
             isDanger={isDanger}
             isFixing={isFixing}
             onClose={() => setShowExplanationModal(false)}
@@ -154,6 +161,7 @@ interface ExplanationModalProps {
   currentFilename: string;
   currentExt: string;
   sniffResult: MagicSniffResult;
+  hexBytes?: Uint8Array | null;
   isDanger: boolean;
   isFixing: boolean;
   onClose: () => void;
