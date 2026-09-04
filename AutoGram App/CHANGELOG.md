@@ -7027,19 +7027,3 @@ Added:
   tanpa audio) sebagai pemicu `MEDIA_EMPTY`; 9 item kompatibel lainnya berhasil
   dalam satu grouped album. Perilaku forced-single mencegah satu file tersebut
   menggagalkan album lain dan menulis alasan ke Transfer Manager.
-
----
-## v3.9.49 — Forwarder Jobs Search and Status Filters
-
-### 1. Jobs Workspace Navigation
-- **Searchable job list**: Menambahkan pencarian berdasarkan nama pekerjaan, route source/destination, profil, dan mode transfer agar pekerjaan besar mudah ditemukan.
-- **Status filters**: Menambahkan filter Semua, Aktif, Butuh perhatian, Selesai, dan Gagal tanpa mengubah aksi Run, Pause, Resume, Retry, atau Delete yang sudah ada.
-
-### 2. Responsive and Accessible UI
-- **Compact filter row**: Filter mengikuti bahasa visual Cloud Drives, memiliki focus state yang jelas, dan berubah menjadi susunan vertikal pada layar sempit.
-- **Clear no-match state**: Pencarian yang tidak menemukan hasil menampilkan state khusus yang tidak tercampur dengan empty state ketika belum ada pekerjaan sama sekali.
-
-### 3. Verification
-- **Quality gate**: Build, TypeScript, locale audit, Vitest, schema/security, dan album invariant suite tetap lulus.
-
----
