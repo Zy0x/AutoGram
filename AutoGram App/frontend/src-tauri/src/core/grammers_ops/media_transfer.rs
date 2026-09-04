@@ -457,6 +457,13 @@ async fn try_recover_single_file_from_history(
 }
 
 fn is_real_photo(path: &Path, ext: &str) -> bool {
+    let ext_lower = ext.to_ascii_lowercase();
+    // Telegram native photo endpoint (InputMediaUploadedPhoto) only supports genuine JPEG.
+    // Non-standard formats (.webp, .heic, .png, .avif, etc.) must never be sent as UploadedPhoto
+    // to prevent server-side MTProto photo dimension/format rejections.
+    if !matches!(ext_lower.as_str(), "jpg" | "jpeg" | "jpe" | "jfif") {
+        return false;
+    }
     let mut file = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return false,
@@ -467,19 +474,7 @@ fn is_real_photo(path: &Path, ext: &str) -> bool {
     if n >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF {
         return true;
     }
-    if n >= 8
-        && header[0] == 0x89
-        && header[1] == 0x50
-        && header[2] == 0x4E
-        && header[3] == 0x47
-        && header[4] == 0x0D
-        && header[5] == 0x0A
-        && header[6] == 0x1A
-        && header[7] == 0x0A
-    {
-        return true;
-    }
-    matches!(ext, "jpg" | "jpeg" | "jfif" | "png")
+    false
 }
 
 fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {

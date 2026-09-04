@@ -332,8 +332,15 @@ pub fn classify_prepared_delivery(
             },
         };
     }
+    let is_jpg_extension = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "jfif" | "jpe"))
+        .unwrap_or(false);
+
     let payload_class = match category {
-        MediaCategory::JpegImage => PayloadClass::NativeVisual,
+        MediaCategory::JpegImage if is_jpg_extension => PayloadClass::NativeVisual,
+        MediaCategory::JpegImage => PayloadClass::DocumentGroup,
         // Preserve PNG bytes and extension. Telegram converts uploaded photos
         // to JPEG, so PNG must be sent as a document unless explicitly forced
         // to native media by the user.

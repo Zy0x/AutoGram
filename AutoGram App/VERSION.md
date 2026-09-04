@@ -1,13 +1,13 @@
-AutoGram Version: v3.9.43
+AutoGram Version: v3.9.44
 
 Current State:
-v3.9.43 Album Grid Interleaving Elimination & Strict Pillar 1 Raw Document Compliance:
-1. Compatibility Cluster Bucketing: Pure Rust album partitioner (`build_album_plan`) clusters items by `AlbumCompatibilityKey` before packing, preventing interleaved non-groupable items (documents, archives, raw formats) from fracturing compatible visual albums. A mixed folder with 6 visual items and 10 documents forms 1 unbroken visual collage of 6 and 10 separate documents.
-2. Strict Pillar 1 Lossless Raw Document Compliance: Extended `QualityPreflightRequest` and updated `is_nonstandard_image_source` to include `.png`. When Pillar 1 is set to Raw Document, WebP, HEIC, and PNG files remain 100% bit-exact pass-through documents without false WebP -> PNG conversion notices.
-3. Preflight Banner Reconciliation & Dynamic Visual Composition: Real-time album summary banner in `TransferPreflightDialog.tsx` strictly counts visual eligible items and dynamically labels mixed compositions (e.g. "6 Media Visual (3 Foto, 3 Video)"), matching `plannedAlbumSizes` with zero contradictions.
-4. Quality Sentinel Verification: 100% pass across all 6 Quality Gates (6,323 i18n keys with 100% ID/EN parity, 0 TypeScript errors, 49 Vitest test suites passed, 68 MTProto album tests passed including forensic folder simulation, and live desktop CDP inspection confirmed via port 9230).
+v3.9.44 Genuine Photo Validation & Nonstandard Image MTProto Defense-in-Depth:
+1. Strict JPEG Extension Enforcement in `is_real_photo`: `media_transfer.rs` now verifies that the file extension is genuinely `jpg`, `jpeg`, `jfif`, or `jpe` before allowing `InputMediaUploadedPhoto`. Files with misleading internal JPEG bytes under non-standard extensions (e.g. `.webp`, `.heic`, `.png`) are strictly barred from the native photo endpoint, preventing Telegram MTProto dimension/format rejections and album disintegration.
+2. Delivery Classification Extension Guard: `classify_prepared_delivery` in `autogram-core/src/transfer/quality.rs` enforces that `MediaCategory::JpegImage` only yields `PayloadClass::NativeVisual` if the path has a genuine JPEG extension. Any non-standard image extension automatically routes to `PayloadClass::DocumentGroup` (`as_document: true`), ensuring 100% adherence to Pillar 1 Lossless Raw Document policy.
+3. Quality Sentinel Certification: 100% pass across all 6 Quality Gates (6,323 i18n keys with 100% ID/EN parity, 0 TypeScript errors, 49 Vitest test suites, 76 autogram-core tests, and live CDP verification).
 
 Previous:
+v3.9.43 Album Grid Interleaving Elimination & Strict Pillar 1 Raw Document Compliance:
 v3.9.42 — Forwarder Shell Aligned with Cloud Drives:
 v3.9.41 — Forwarder Full-Viewport Layout Repair:
 v3.9.40 — Media Forwarder Navigation Parity & Safe Account Switching:

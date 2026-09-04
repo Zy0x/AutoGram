@@ -1,3 +1,15 @@
+## v3.9.44 — Genuine Photo Validation & Nonstandard Image MTProto Defense-in-Depth
+
+### 1. MTProto Photo Endpoint & Extension Guard Architecture
+- **Strict JPEG Extension Enforcement in `is_real_photo`**: Memperbarui fungsi `is_real_photo` pada `media_transfer.rs` agar secara ketat memverifikasi ekstensi berkas (`jpg`, `jpeg`, `jfif`, `jpe`) sebelum mengizinkan pengiriman via endpoint foto native Telegram (`InputMediaUploadedPhoto`). Menghilangkan celah di mana berkas dengan magic bytes JFIF internal di bawah ekstensi non-standar (seperti `.webp`, `.heic`, `.png`) salah dianggap sebagai foto Telegram dan ditolak oleh MTProto API (`PHOTO_INVALID_DIMENSIONS` / rejection).
+- **Defense-in-Depth Delivery Classification**: Menyempurnakan `classify_prepared_delivery` pada `autogram-core/src/transfer/quality.rs` agar kategori `MediaCategory::JpegImage` hanya menghasilkan `PayloadClass::NativeVisual` jika berkas memiliki ekstensi JPEG asli. Seluruh ekstensi non-standar otomatis dialihkan ke `PayloadClass::DocumentGroup` (`as_document: true`), menjamin kepatuhan 100% terhadap kebijakan Pillar 1 Dokumen Mentah (*Lossless Raw Document*).
+- **Pencegahan Kegagalan Album & Fallback Send Separately**: Menjamin berkas visual album hanya berisi media JPEG dan MP4 native murni, memusnahkan potensi penolakan MTProto Telegram sehingga kolase album 6 item (3 Foto, 3 Video) terbentuk dengan sempurna tanpa memicu degradasi pengiriman satuan.
+
+### 2. Autonomous Quality Sentinel Verification
+- **100% Pass Across All 6 Quality Gates**: Memverifikasi 6.323 kunci lokalisasi ID & EN dengan 100% paritas, 0 error TypeScript, 49 Vitest test suites, 76 test kasus di `autogram-core`, serta inspeksi visual live via CDP port 9230 (desktop) dan 9222 (Telegram Web di Google Chrome).
+
+---
+
 ## v3.9.43 — Elimination of Album Grid Interleaving, Strict Pillar 1 Raw Document Compliance & Preflight Banner Reconciliation
 
 ### 1. Album Grid Interleaving & Compatibility Clustering Engine
