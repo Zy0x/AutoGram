@@ -226,11 +226,11 @@ describe('album and Telegram grid settings', () => {
   it('normalizes legacy packing to the selected grid size', () => {
     const seven = normalizeTransferSettings({ albumGroupSize: 7, albumPacking: 'balanced' });
     expect(seven.albumGroupSize).toBe(7);
-    expect(seven.albumPacking).toBe('custom');
+    expect(seven.albumPacking).toBe('balanced');
 
-    const ten = normalizeTransferSettings({ albumGroupSize: 10, albumPacking: 'follow_selection' });
-    expect(ten.albumGroupSize).toBe(10);
-    expect(ten.albumPacking).toBe('maximum');
+    const adaptive = normalizeTransferSettings({ albumGroupSize: 10, albumPacking: 'smart_adaptive' });
+    expect(adaptive.albumGroupSize).toBe(10);
+    expect(adaptive.albumPacking).toBe('smart_adaptive');
   });
 
   it('clamps custom album grids to Telegram limits', () => {
@@ -246,7 +246,7 @@ describe('Transfer Manager settings matrix', () => {
     downloadConcurrency: [1, 4, 8, 99],
     groupAsAlbum: [false, true],
     albumGroupSize: [2, 3, 7, 9, 10],
-    albumPacking: ['maximum', 'balanced', 'custom', 'follow_selection', 'never'],
+    albumPacking: ['smart_adaptive', 'maximum', 'balanced', 'custom', 'follow_selection', 'never'],
     albumAvoidSingle: [false, true],
     albumFailurePolicy: ['atomic_strict', 'retry_prepare', 'replan_group', 'send_remaining', 'send_failed_separately', 'cancel_group', 'best_effort_advanced'],
     duplicatePolicy: ['SKIP', 'FORCE_UPLOAD'],
@@ -271,7 +271,13 @@ describe('Transfer Manager settings matrix', () => {
         const normalized = normalizeTransferSettings({ [field]: value } as Partial<DriveTransferSettings>);
         expect(normalized.albumGroupSize).toBeGreaterThanOrEqual(2);
         expect(normalized.albumGroupSize).toBeLessThanOrEqual(10);
-        expect(normalized.albumPacking).toBe(normalized.albumGroupSize === 10 ? 'maximum' : 'custom');
+        if (field === 'albumPacking') {
+          expect(['smart_adaptive', 'maximum', 'balanced', 'custom', 'follow_selection', 'never']).toContain(normalized.albumPacking);
+        } else if (field === 'albumGroupSize') {
+          expect(normalized.albumPacking).toBe(normalized.albumGroupSize === 10 ? 'smart_adaptive' : 'custom');
+        } else {
+          expect(normalized.albumPacking).toBe('smart_adaptive');
+        }
         expect(normalized.uploadConcurrency).toBeGreaterThanOrEqual(1);
         expect(normalized.downloadConcurrency).toBeGreaterThanOrEqual(1);
       });
@@ -300,12 +306,13 @@ describe('Transfer Manager settings matrix', () => {
                   duplicatePolicy,
                   groupAsAlbum: true,
                   albumGroupSize,
+                  albumPacking: albumGroupSize === 10 ? 'smart_adaptive' : 'custom',
                   encoderStrategy,
                   oversizeAction,
                 });
                 const result = validateTransferSettings(settings, null);
                 expect(result.normalized.albumGroupSize).toBe(albumGroupSize);
-                expect(result.normalized.albumPacking).toBe(albumGroupSize === 10 ? 'maximum' : 'custom');
+                expect(result.normalized.albumPacking).toBe(albumGroupSize === 10 ? 'smart_adaptive' : 'custom');
                 expect(result.errors.every((issue) => issue.level === 'error')).toBe(true);
                 checked += 1;
               }

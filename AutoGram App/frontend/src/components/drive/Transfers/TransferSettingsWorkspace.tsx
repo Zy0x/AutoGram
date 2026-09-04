@@ -52,6 +52,7 @@ import type {
 } from '../../../lib/telegram/driveTypes';
 import { PerfSection } from '../../../pages/Settings/PerfSection';
 import { NetworkSection } from '../../../pages/Settings/NetworkSection';
+import { AlbumStrategyControl } from './AlbumStrategyControl';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   loadTransferSettingsProfiles,
@@ -2810,150 +2811,42 @@ export function TransferSettingsWorkspace({
 
               {/* ALBUM OPTIONS (CONDITIONALLY SHOWS WHEN GROUP AS ALBUM IS TRUE) */}
               {draft.groupAsAlbum && (
-                <div className="td-conditional-box">
-                  <div className="td-field-group">
-                    <label className="td-field-label">{t('drive.album_grid_size')}</label>
-                    <div className="td-slider-row-box">
-                      <input
-                        type="range"
-                        min={2}
-                        max={10}
-                        value={draft.albumGroupSize || 10}
-                        disabled={!!transferActive}
-                        onChange={(e) => {
-                          const size = Number(e.target.value);
-                          patch({
-                            albumGroupSize: size,
-                            // Auto-switch packing mode: custom when < 10, maximum when at 10
-                            albumPacking: size < 10 ? 'custom' : 'maximum',
-                          });
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <AlbumStrategyControl
+                    draft={draft}
+                    patch={patch}
+                    transferActive={!!transferActive}
+                  />
+
+                  {/* ALBUM INCOMPATIBLE MEDIA HANDLING SYNC BANNER */}
+                  <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.85rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Film size={16} />
+                          {t('drive.album_media_hub_sync_title')}
+                        </strong>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.79rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                          {t('drive.album_media_hub_sync_desc')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('encoding')}
+                        style={{
+                          flexShrink: 0,
+                          padding: '6px 12px',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          borderRadius: '8px',
+                          color: '#7dd3fc',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
                         }}
-                      />
-                      <div className="td-slider-value-bar">
-                        <span className="td-slider-val">{t('drive.album_grid_size_value', { size: draft.albumGroupSize || 10 })}</span>
-                        <span className={`td-concurrency-badge tier-${(draft.albumGroupSize || 10) === 10 ? 'high-speed' : (draft.albumGroupSize || 10) >= 5 ? 'balanced' : 'stable'}`}>
-                          {(draft.albumGroupSize || 10) === 10 && (
-                            <>
-                              <Sparkles size={11} strokeWidth={2.2} />
-                              <span>{t('drive.album_grid_size_max')}</span>
-                            </>
-                          )}
-                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && (
-                            <>
-                              <Gauge size={11} strokeWidth={2.2} />
-                              <span>{t('drive.album_grid_size_medium')}</span>
-                            </>
-                          )}
-                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && (
-                            <>
-                              <ShieldCheck size={11} strokeWidth={2.2} />
-                              <span>{t('drive.album_grid_size_compact')}</span>
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="td-xfer-hint">
-                    {t('drive.album_grid_size_desc', { size: draft.albumGroupSize || 10 })}
-                  </p>
-
-                  <div className="td-switches-list" style={{ marginTop: '16px' }}>
-                    <label className="td-switch-row">
-                      <div>
-                        <strong>{t('ui.generated.pisahkan_dokumen_dari_album_1bd3539')}</strong>
-                        <p>{t('ui.generated.kirim_berkas_dokumen_secara_terpisah_di_luar_gru_92cbf17')}</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.groupDocuments ?? true}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ groupDocuments: e.target.checked })}
-                      />
-                    </label>
-
-                    <label className="td-switch-row">
-                      <div>
-                        <strong>{t('ui.generated.kelompokkan_berkas_audio_musik_audio_playlist_8adcc13')}</strong>
-                        <p>{t('ui.generated.gabungkan_beberapa_berkas_mp3_flac_menjadi_satu__a219840')}</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.groupAudio ?? true}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ groupAudio: e.target.checked })}
-                      />
-                    </label>
-
-                    <label className="td-switch-row">
-                      <div>
-                        <strong>{t('ui.generated.kelompokkan_berkas_dokumen_mentah_document_album_0c09d9d')}</strong>
-                        <p>{t('ui.generated.gabungkan_berkas_dokumen_mentah_non_media_zip_pd_5cf68c3')}</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.groupOriginalDocuments ?? true}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ groupOriginalDocuments: e.target.checked })}
-                      />
-                    </label>
-
-                    <label className="td-switch-row">
-                      <div>
-                        <strong>{t('ui.generated.hindari_album_satu_item_1d27987')}</strong>
-                        <p>{t('ui.generated.jika_tersisa_1_item_kirim_sebagai_pesan_tunggal__1ed9e2d')}</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={draft.albumAvoidSingle ?? true}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ albumAvoidSingle: e.target.checked })}
-                      />
-                    </label>
-
-                    <div className="td-field-group" style={{ marginTop: '16px' }}>
-                      <label className="td-field-label">{t('ui.generated.strategi_penanganan_gagal_item_album_c19fb1f')}</label>
-                      <select
-                        value={draft.albumFailurePolicy || 'send_failed_separately'}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ albumFailurePolicy: e.target.value as any })}
                       >
-                        <option value="send_failed_separately">{t('ui.generated.best_effort_kirim_item_berhasil_sebagai_album_ul_c6a176a')}</option>
-                        <option value="atomic_strict">{t('ui.generated.strict_atomik_batal_kirim_album_ulangi_paket_1beec2e')}</option>
-                        <option value="send_remaining">{t('ui.generated.fallback_individual_konversi_item_tersisa_menjad_e4ccb1a')}</option>
-                      </select>
-                    </div>
-
-                    {/* ALBUM INCOMPATIBLE MEDIA HANDLING SYNC BANNER */}
-                    <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-                        <div>
-                          <strong style={{ fontSize: '0.85rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Film size={16} />
-                            {t('drive.album_media_hub_sync_title')}
-                          </strong>
-                          <p style={{ margin: '6px 0 0', fontSize: '0.79rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                            {t('drive.album_media_hub_sync_desc')}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('encoding')}
-                          style={{
-                            flexShrink: 0,
-                            padding: '6px 12px',
-                            background: 'rgba(56, 189, 248, 0.15)',
-                            border: '1px solid rgba(56, 189, 248, 0.4)',
-                            borderRadius: '8px',
-                            color: '#7dd3fc',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('drive.album_media_hub_sync_btn')}
-                        </button>
-                      </div>
+                        {t('drive.album_media_hub_sync_btn')}
+                      </button>
                     </div>
                   </div>
                 </div>

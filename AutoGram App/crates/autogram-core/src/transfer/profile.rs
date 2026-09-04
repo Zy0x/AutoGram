@@ -42,7 +42,7 @@ impl Default for FrozenTransferProfile {
             upload_concurrency: 2,
             download_concurrency: 3,
             group_as_album: true,
-            album_packing: AlbumPackingPolicy::Maximum,
+            album_packing: AlbumPackingPolicy::SmartAdaptive,
             album_group_size: 10,
             album_avoid_single: true,
             album_failure_policy: AlbumFailurePolicy::AtomicStrict,

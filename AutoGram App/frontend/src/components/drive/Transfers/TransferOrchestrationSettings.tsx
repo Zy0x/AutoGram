@@ -68,7 +68,7 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
         disabled={disabled}
         onClick={() => onChange({
           presentationOverride: 'automatic',
-          albumPacking: 'maximum',
+          albumPacking: 'smart_adaptive',
           albumGroupSize: 10,
           albumAvoidSingle: true,
           albumFailurePolicy: 'atomic_strict',
@@ -185,7 +185,7 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
                 const albumGroupSize = Number(event.target.value);
                 onChange({
                   albumGroupSize,
-                  albumPacking: albumGroupSize === 10 ? 'maximum' : 'custom',
+                  albumPacking: albumGroupSize === 10 ? 'smart_adaptive' : 'custom',
                 });
               }}
             />

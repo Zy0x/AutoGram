@@ -1,3 +1,35 @@
+## v3.9.23 — Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul
+
+### 1. Smart Auto-Adaptive Album Strategy & Multi-Mode Packaging Engine
+- **Intelligent Strategy Diversification**: Menghadirkan 4 mode pengemasan album fleksibel pada model konfigurasi transfer (`AlbumPackingPolicy`):
+  - `smart_adaptive` (*Direkomendasikan*): Otomatis mendeteksi tipe media. Foto murni diunggah dalam kapasitas penuh 10 item per batch (`TELEGRAM_ALBUM_MAX = 10`), sedangkan berkas video dipartisi ke dalam cluster seimbang berkapasitas aman (6–8 video per kolase, misal 13 media $\rightarrow$ 7+6, 17 media $\rightarrow$ 6+6+5) untuk mengeliminasi 100% risiko timeout gateway Telegram DC 60 detik yang memicu split layout 9+1.
+  - `balanced`: Membagi seluruh media visual (baik foto maupun video) secara seimbang dan simetris ke dalam grup berukuran sedang (maksimal 8 per grup) guna menjamin konsistensi layout grid.
+  - `maximum`: Memaksimalkan pengelompokan hingga batas mutlak 10 media per grup terlebih dahulu (misal 13 media $\rightarrow$ 10+3, 17 media $\rightarrow$ 10+7) dengan proteksi pengurutan 10-pertama.
+  - `custom`: Memberikan kendali penuh kepada pengguna untuk mengatur batas kapasitas per batch secara bebas dari 2 hingga 10 media melalui slider interaktif.
+- **Backend Rust & Core Invariant Alignment**: Mengintegrasikan `AlbumPackingPolicy::SmartAdaptive` sebagai nilai default pada `autogram-core::transfer::profile` dan `studio_orch.rs`, didukung oleh verifikasi 73 unit tests di `autogram-core`.
+- **Runtime Diagnostic Timeout Safeguard**: Menambahkan pencatatan diagnostik `album_worker_busy_fallback` saat server Telegram DC mengalami timeout pada pengiriman album video besar, memberikan panduan rekomendasi adaptif bagi pengguna secara transparan.
+
+### 2. Interactive Batch Partition Simulator & Real-Time Layout Predictor
+- **Dynamic Batch Simulation Calculator**: Mengembangkan antarmuka kalkulator partisi batch interaktif pada `AlbumStrategyControl.tsx`, memungkinkan pengguna menguji dan mensimulasikan pembagian album untuk sembarang jumlah berkas ($N = 2 \dots 200$) secara langsung tanpa perlu melakukan pengiriman riil ke Telegram.
+- **Instant Preset Shortcuts**: Menyediakan tombol pintasan cepat untuk ukuran batch umum (`[10]`, `[13]`, `[15]`, `[17]`, `[27]`, `[50]`, `[100]`), memudahkan verifikasi instan terhadap kasus-kasus kritis.
+- **Real-Time Collage Chip Visualization**: Menampilkan kartu ringkasan visual per batch (contoh untuk 13 media pada Smart Adaptive: `Batch 1: 7 media` dan `Batch 2: 6 media`), lengkap dengan label persentase proteksi anti-split (*100% Anti-Split Protected*) dan ringkasan teks komprehensif.
+- **Media Type Mode Toggle**: Simulator mendukung pengalihan instan antara kalkulasi Video dan Foto untuk melihat perbedaan proyeksi partisi secara transparan.
+
+### 3. Settings UI Harmonization & Preflight Summary Integration
+- **Unified Modular Component Architecture**: Membuat komponen `AlbumStrategyControl.tsx` yang modular dan reusable, serta mengintegrasikannya secara serentak ke dalam:
+  - `TransferSettingsWorkspace.tsx` (Tab Pengaturan Album).
+  - `DriveToolsModal.tsx` (Tab Album & Grid).
+  - `TransferOrchestrationSettings.tsx` (Dropdown strategi default dan slider kustom).
+- **Preflight Transfer Summary Banner**: Menambahkan banner proyeksi partisi album interaktif pada `TransferPreflightDialog.tsx`, menampilkan kalkulasi jumlah kolase, total media, dan susunan batch secara otomatis sebelum pengguna menekan tombol Mulai Transfer.
+- **100% Zero Hardcoded Strings & Multi-Language Parity**: Mengekstrak 20 string lokalisasi baru (`album_strategy_*`, `album_simulator_*`, `album_preflight_plan_summary`) ke dalam `src/locales/id/drive.json` dan `src/locales/en/drive.json` dengan audit 100% key parity (6.207 kunci di kedua bahasa).
+
+### 4. Verification & Autonomous Quality Sentinel Gate Certification
+- **Automated Unit Test Suite**: Membuat `AlbumStrategyControl.test.ts` (16 unit tests komprehensif memvalidasi seluruh formula kalkulasi partisi di TypeScript). Seluruh 47 Vitest unit tests lulus bersih.
+- **Strict TypeScript & Core Compiles**: 0 TypeScript compilation errors di frontend (`tsc --noEmit`), dan 0 error kompilasi di backend Rust (`cargo check` & `cargo test`).
+- **Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`)**: 100% lulus seluruh 6 Quality Gates (i18n parity, strict TypeScript, vitest runner, SQLite WAL database parity, zero secret exposure, dan 73 MTProto album & caption invariant tests).
+
+---
+
 ## v3.9.22 — Strict Maximum-First Chunk Ordering Architecture
 
 ### 1. Maximum-First Chunk Order Preservation

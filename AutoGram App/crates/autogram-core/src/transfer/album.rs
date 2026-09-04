@@ -6,6 +6,7 @@ pub const TELEGRAM_ALBUM_MAX: usize = 10;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AlbumPackingPolicy {
+    SmartAdaptive,
     Maximum,
     Balanced,
     Custom,
@@ -106,6 +107,7 @@ pub struct AlbumPlan {
 
 fn target_size(policy: AlbumPackingPolicy, custom: usize) -> usize {
     match policy {
+        AlbumPackingPolicy::SmartAdaptive => TELEGRAM_ALBUM_MAX,
         AlbumPackingPolicy::Maximum => TELEGRAM_ALBUM_MAX,
         AlbumPackingPolicy::Balanced => 6,
         AlbumPackingPolicy::Custom => custom.clamp(2, TELEGRAM_ALBUM_MAX),
@@ -195,33 +197,33 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
         if bucket.is_empty() { return; }
         let mut grouped = std::mem::take(bucket);
         let has_video = grouped.iter().any(|item| is_video_path(&item.path));
-        let sizes = if options.packing == AlbumPackingPolicy::Custom {
-            partition_sizes(grouped.len(), target, options.avoid_single_remainder)
-        } else if has_video {
-            let total_bytes: u64 = grouped.iter().map(|item| item.size).sum();
-            let has_heavy_video = grouped.iter().any(|item| item.size >= 35 * 1024 * 1024);
-            let total_mb = total_bytes / (1024 * 1024);
-
-            if grouped.len() <= 10 {
-                if !has_heavy_video && total_mb < 35 {
-                    vec![grouped.len()]
-                } else if grouped.len() == 9 && total_mb < 50 && !has_heavy_video {
-                    // 9 videos forms a clean 3x3 square mosaic
-                    vec![9]
-                } else {
-                    // Heavy 10-video batch will time out on Telegram DC; balance to 5+5
-                    video_balanced_partition_sizes(grouped.len(), 5)
-                }
-            } else {
-                // When more than 10 videos exist, prioritize Maximum 10 packing (e.g. 15 -> 10 + 5).
-                // Sort videos by size ascending so that the 10 lightest videos cluster into the first group,
-                // keeping the 10-item group lightweight (< 35MB) to avoid Telegram DC worker timeout (>60s),
-                // while the remaining heavier videos are isolated into the smaller, fast-committing tail group.
-                grouped.sort_by_key(|item| item.size);
-                partition_sizes(grouped.len(), 10, true)
+        let sizes = match options.packing {
+            AlbumPackingPolicy::Custom => {
+                partition_sizes(grouped.len(), target, true)
             }
-        } else {
-            partition_sizes(grouped.len(), target, options.avoid_single_remainder)
+            AlbumPackingPolicy::SmartAdaptive => {
+                if has_video {
+                    // Smart Adaptive for video: always use Safe Balanced (6-8) cluster to guarantee 0% 9+1 timeout split!
+                    video_balanced_partition_sizes(grouped.len(), 8)
+                } else {
+                    // Smart Adaptive for photos: always use full 10 because Telegram DC processes photos in ms
+                    partition_sizes(grouped.len(), TELEGRAM_ALBUM_MAX, true)
+                }
+            }
+            AlbumPackingPolicy::Balanced => {
+                // Balanced mode for all visual media: 6-8 per group
+                video_balanced_partition_sizes(grouped.len(), 8)
+            }
+            AlbumPackingPolicy::Maximum => {
+                if has_video {
+                    // Aggressive Maximum mode: sort video by size ascending so lightest are first
+                    grouped.sort_by_key(|item| item.size);
+                }
+                partition_sizes(grouped.len(), TELEGRAM_ALBUM_MAX, true)
+            }
+            AlbumPackingPolicy::FollowSelection | AlbumPackingPolicy::Never => {
+                partition_sizes(grouped.len(), target, true)
+            }
         };
         let mut cursor = 0usize;
         for size in sizes {
@@ -347,6 +349,17 @@ mod tests {
         AlbumPlanOptions {
             enabled: true,
             packing: AlbumPackingPolicy::Maximum,
+            custom_size: 10,
+            avoid_single_remainder: true,
+            group_documents: true,
+            group_audio: true,
+            group_original_documents: true,
+        }
+    }
+    fn smart_adaptive_options() -> AlbumPlanOptions {
+        AlbumPlanOptions {
+            enabled: true,
+            packing: AlbumPackingPolicy::SmartAdaptive,
             custom_size: 10,
             avoid_single_remainder: true,
             group_documents: true,
@@ -624,6 +637,72 @@ mod tests {
     }
 
     #[test]
+    fn test_smart_adaptive_photos_maximized_ten() {
+        // Pure photos always maximize to 10
+        let p10 = build_album_plan(items(10, PayloadClass::NativeVisual), &smart_adaptive_options());
+        assert_eq!(p10.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10]);
+
+        let p13 = build_album_plan(items(13, PayloadClass::NativeVisual), &smart_adaptive_options());
+        assert_eq!(p13.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10, 3]);
+
+        let p15 = build_album_plan(items(15, PayloadClass::NativeVisual), &smart_adaptive_options());
+        assert_eq!(p15.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10, 5]);
+
+        let p17 = build_album_plan(items(17, PayloadClass::NativeVisual), &smart_adaptive_options());
+        assert_eq!(p17.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10, 7]);
+
+        let p27 = build_album_plan(items(27, PayloadClass::NativeVisual), &smart_adaptive_options());
+        assert_eq!(p27.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10, 10, 7]);
+    }
+
+    #[test]
+    fn test_smart_adaptive_videos_safe_balanced_anti_split() {
+        // Videos in Smart Adaptive use Safe Balanced (6-8) to guarantee 0% 9+1 split
+        let make_vids = |n: usize| {
+            let mut vids = items(n, PayloadClass::NativeVisual);
+            for v in &mut vids {
+                v.path = format!("{}.mp4", v.index);
+                v.size = 2 * 1024 * 1024;
+            }
+            vids
+        };
+
+        let v10 = build_album_plan(make_vids(10), &smart_adaptive_options());
+        assert_eq!(v10.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![5, 5]);
+
+        let v13 = build_album_plan(make_vids(13), &smart_adaptive_options());
+        assert_eq!(v13.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![7, 6]);
+
+        let v15 = build_album_plan(make_vids(15), &smart_adaptive_options());
+        assert_eq!(v15.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![8, 7]);
+
+        let v17 = build_album_plan(make_vids(17), &smart_adaptive_options());
+        assert_eq!(v17.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![6, 6, 5]);
+
+        let v27 = build_album_plan(make_vids(27), &smart_adaptive_options());
+        assert_eq!(v27.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![7, 7, 7, 6]);
+    }
+
+    #[test]
+    fn test_smart_adaptive_all_video_counts_two_to_fifty_unbroken() {
+        for n in 2..=50 {
+            let mut vids = items(n, PayloadClass::NativeVisual);
+            for v in &mut vids {
+                v.path = format!("{}.mp4", v.index);
+                v.size = 2 * 1024 * 1024;
+            }
+            let plan = build_album_plan(vids, &smart_adaptive_options());
+            assert!(plan.singles.is_empty(), "Count {} produced singles in SmartAdaptive!", n);
+            let total_grouped: usize = plan.groups.iter().map(|g| g.items.len()).sum();
+            assert_eq!(total_grouped, n);
+            for group in &plan.groups {
+                assert!(group.items.len() >= 2);
+                assert!(group.items.len() <= 8, "SmartAdaptive video group exceeded safe limit of 8!");
+            }
+        }
+    }
+
+    #[test]
     fn test_all_counts_from_two_to_fifty_form_valid_unbroken_collages() {
         for n in 2..=50 {
             let mut vid_items = items(n, PayloadClass::NativeVisual);
@@ -669,7 +748,7 @@ mod tests {
             item.path = format!("{}.mp4", item.index);
             item.size = 10 * 1024 * 1024; // 10MB each
         }
-        let plan = build_album_plan(vid_items, &options());
+        let plan = build_album_plan(vid_items, &smart_adaptive_options());
         assert_eq!(
             plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
             vec![5, 5]

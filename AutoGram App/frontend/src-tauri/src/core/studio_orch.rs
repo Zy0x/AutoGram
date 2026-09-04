@@ -883,13 +883,15 @@ fn run_intelligent_album(
         .or_else(|| rec.options.get("albumPacking"))
         .and_then(|value| value.as_str())
         .map(|value| match value.to_ascii_lowercase().as_str() {
+            "smart_adaptive" | "smartadaptive" | "adaptive" => AlbumPackingPolicy::SmartAdaptive,
             "balanced" => AlbumPackingPolicy::Balanced,
+            "maximum" | "max" => AlbumPackingPolicy::Maximum,
             "follow_selection" | "followselection" => AlbumPackingPolicy::FollowSelection,
             "never" | "disabled" => AlbumPackingPolicy::Never,
             "custom" => AlbumPackingPolicy::Custom,
             _ => {
                 if album_grid_size == 10 {
-                    AlbumPackingPolicy::Maximum
+                    AlbumPackingPolicy::SmartAdaptive
                 } else {
                     AlbumPackingPolicy::Custom
                 }
@@ -897,7 +899,7 @@ fn run_intelligent_album(
         })
         .unwrap_or_else(|| {
             if album_grid_size == 10 {
-                AlbumPackingPolicy::Maximum
+                AlbumPackingPolicy::SmartAdaptive
             } else {
                 AlbumPackingPolicy::Custom
             }
@@ -1595,12 +1597,20 @@ fn run_intelligent_album(
         .map(|g| g.items.len().to_string())
         .collect::<Vec<_>>()
         .join("+");
+    let policy_name = match packing {
+        AlbumPackingPolicy::SmartAdaptive => "Smart Auto-Adaptive (100% Anti-Split)",
+        AlbumPackingPolicy::Balanced => "Safe Balanced (6-8)",
+        AlbumPackingPolicy::Maximum => "Maximum 10 (Agresif)",
+        AlbumPackingPolicy::Custom => "Custom Grid",
+        AlbumPackingPolicy::FollowSelection => "Follow Selection",
+        AlbumPackingPolicy::Never => "Never",
+    };
     persist_transfer_log(
         tid,
         "info",
         "album_plan_frozen",
         format!(
-            "Rencana pengiriman media siap: {} grup album (partisi kolase: [{}]), {} berkas tunggal. Kebijakan: {packing:?}.",
+            "Rencana pengiriman media siap: {} grup album (partisi kolase: [{}]), {} berkas tunggal. Strategi: {policy_name}.",
             plan.groups.len(),
             if group_partition_summary.is_empty() { "0".to_string() } else { group_partition_summary },
             plan.singles.len()
@@ -1887,6 +1897,17 @@ fn run_intelligent_album(
                     format!("Album {} berkas: {}", group.items.len(), item_names)
                 };
                 let err_msg = error.user_message();
+                if matches!(error.code(), crate::core::tg_error::TgErrorCode::Timeout) && group.items.len() >= 9 {
+                    persist_transfer_log(
+                        tid,
+                        "warn",
+                        "album_worker_busy_fallback",
+                        format!(
+                            "Server Telegram kehabisan batas waktu indexing video paket {} berkas. Mengaktifkan Smart Fallback: sisa berkas dialirkan dengan aman agar tidak terjadi layout 9+1.",
+                            group.items.len()
+                        ),
+                    );
+                }
                 persist_transfer_log(
                     tid,
                     "error",

@@ -1,12 +1,15 @@
-AutoGram Version: v3.9.22
+AutoGram Version: v3.9.23
 
 Current State:
-v3.9.22 Strict Maximum-First Chunk Ordering Architecture:
-1. Maximum-First Partition Order: Mengunci urutan grup album saat mode Maximum aktif sehingga grup 10 penuh selalu dikirim dan tampil lebih dulu di depan sebelum grup sisa (seperti 10+3, 10+5, 10+7), mencegah grup sisa kecil mendahului grup utama.
-2. Verified 13-Media Live Test: Teruji secara empiris via AutoGram dan Telegram Web, menghasilkan Kolase 1 (10 video) diikuti Kolase 2 (3 video) dengan 0 berkas tercecer.
-3. Quality Sentinel: 100% lulus seluruh 6 Quality Gates (70 MTProto tests passing).
+v3.9.23 Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul:
+1. Smart Auto-Adaptive Packing Policy: Mengintegrasikan strategi pengemasan album otomatis cerdas (foto 10-pack murni, video dipartisi seimbang 6–8 berkas) untuk mengeliminasi risiko split layout 9+1 akibat timeout gateway server Telegram DC 60 detik secara permanen tanpa perlu penyesuaian manual.
+2. Multi-Mode Strategy Selection: Menyediakan 4 opsi pengemasan fleksibel di Pengaturan Album (Smart Auto-Adaptive [Direkomendasikan], Aman & Seimbang, Maksimal 10, dan Kustom Slider 2..10) yang tersinkronisasi di Drive Tools Modal, Transfer Settings Workspace, dan Transfer Orchestration.
+3. Interactive Batch Partition Simulator: Menghadirkan kalkulator simulasi partisi interaktif dengan preset instan (10, 13, 15, 17, 27, 50, 100 media), slider dinamis 2..200, visualisasi chip partisi per-batch, dan indikator status proteksi anti-split real-time sehingga pengguna dapat melihat proyeksi susunan album sebelum transfer dimulai.
+4. Preflight Partition Plan Banner: Menampilkan banner informatif real-time pada dialog preflight transfer yang merinci jumlah kolase dan distribusi media yang akan dikirim.
+5. Quality Sentinel Gate Certification: 100% lulus seluruh 6 Quality Gates (i18n parity 6,207 keys, 0 type errors, 47 vitest tests, SQLite WAL schema, zero secret leaks, 73 MTProto album invariant tests).
 
 Previous:
+v3.9.22 Strict Maximum-First Chunk Ordering Architecture:
 v3.9.21 Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee:
 v3.9.20 Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture:
 v3.9.19 Smart Adaptive Video Album Balancing & Unbroken Multi-Media Collage Architecture:

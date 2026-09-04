@@ -816,7 +816,7 @@ export type ReencodeHardware =
   | `device:${'nvenc' | 'amf' | 'qsv'}:${number}:${string}`;
 export type ReencodePreset = 'speed' | 'balanced' | 'quality';
 export type PresentationOverride = 'automatic' | 'force_document' | 'force_native_media';
-export type AlbumPacking = 'maximum' | 'balanced' | 'custom' | 'follow_selection' | 'never';
+export type AlbumPacking = 'smart_adaptive' | 'maximum' | 'balanced' | 'custom' | 'follow_selection' | 'never';
 export type AlbumFailurePolicy = 'atomic_strict' | 'retry_prepare' | 'replan_group' | 'send_remaining' | 'send_failed_separately' | 'cancel_group' | 'best_effort_advanced';
 export type OversizeAction = 'auto_adaptive' | 'fit_to_limit' | 'split' | 'alternate_account' | 'skip';
 export type AlbumAlternateStrategy = 'separate_item' | 'move_whole_group' | 'cancel_group';
@@ -1056,7 +1056,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   reencodeHardware: 'auto',
   reencodePreset: 'balanced',
   presentationOverride: 'automatic',
-  albumPacking: 'maximum',
+  albumPacking: 'smart_adaptive',
   albumGroupSize: 10,
   albumAvoidSingle: true,
   albumFailurePolicy: 'send_failed_separately',
@@ -1073,11 +1073,9 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   videoTranscodeFormats: [
     'mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'
   ],
-  imageTranscodeScope: 'all_incompatible',
+  imageTranscodeScope: 'none',
   imageTranscodeTarget: 'jpeg',
-  imageTranscodeFormats: [
-    'png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'
-  ],
+  imageTranscodeFormats: [],
   encoderStrategy: 'auto_adaptive',
   encoderResourceProfile: 'balanced',
   encoderMaxParallel: 1,
@@ -1190,7 +1188,7 @@ export function loadTransferSettings(): DriveTransferSettings {
         : p.forceDocumentDefault
           ? 'force_document'
           : DEFAULT_TRANSFER_SETTINGS.presentationOverride,
-      albumPacking: ['maximum', 'balanced', 'custom', 'follow_selection', 'never'].includes(String(p.albumPacking)) ? p.albumPacking! : DEFAULT_TRANSFER_SETTINGS.albumPacking,
+      albumPacking: ['smart_adaptive', 'maximum', 'balanced', 'custom', 'follow_selection', 'never'].includes(String(p.albumPacking)) ? p.albumPacking! : DEFAULT_TRANSFER_SETTINGS.albumPacking,
       albumGroupSize: Math.max(2, Math.min(10, Number(p.albumGroupSize) || DEFAULT_TRANSFER_SETTINGS.albumGroupSize)),
       albumAvoidSingle: p.albumAvoidSingle !== false,
       albumFailurePolicy: ['atomic_strict', 'retry_prepare', 'replan_group', 'send_remaining', 'send_failed_separately', 'cancel_group', 'best_effort_advanced'].includes(String(p.albumFailurePolicy))

@@ -49,6 +49,7 @@ import {
   type RemoteEngineMode,
 } from '../../../lib/telegram/driveTypes';
 import type { SubMenuCategory } from './transferSettingsSearchRegistry';
+import { calculateAlbumPartition } from './AlbumStrategyControl';
 import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
@@ -509,7 +510,13 @@ function PreflightTransferInfoBento({
   const albumSize = transferSettings?.albumGroupSize ?? DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
   const packingStyle = transferSettings?.albumPacking ?? DEFAULT_TRANSFER_SETTINGS.albumPacking;
   const packagingLabel = isAlbum
-    ? `Grid ${albumSize} (${packingStyle})`
+    ? packingStyle === 'smart_adaptive'
+      ? 'Smart Adaptive'
+      : packingStyle === 'balanced'
+      ? 'Safe Balanced'
+      : packingStyle === 'maximum'
+      ? 'Max 10'
+      : `Grid ${albumSize}`
     : t('drive.preflight_delivery_single');
 
   // Real-time Transcode & Re-encode Strategy
@@ -930,6 +937,69 @@ export function TransferPreflightDialog({
             </button>
           </div>
         )}
+
+        {/* Real-time Album Partition Summary Banner */}
+        {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) && report.items.length > 1 && (() => {
+          const hasVideo = report.items.some((it) => it.category === 'video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName));
+          const mediaType = hasVideo ? 'video' : 'photo';
+          const strategy = transferSettings?.albumPacking || DEFAULT_TRANSFER_SETTINGS.albumPacking;
+          const customSize = transferSettings?.albumGroupSize || DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
+          const avoidSingle = transferSettings?.albumAvoidSingle ?? DEFAULT_TRANSFER_SETTINGS.albumAvoidSingle;
+          const partition = calculateAlbumPartition(report.items.length, strategy, mediaType, customSize, avoidSingle);
+          const fullCollages = partition.sizes.filter((s) => s > 1).length;
+          const stratName = strategy === 'smart_adaptive'
+            ? t('drive.album_strategy_smart_adaptive')
+            : strategy === 'balanced'
+            ? t('drive.album_strategy_safe_balanced')
+            : strategy === 'maximum'
+            ? t('drive.album_strategy_maximum')
+            : t('drive.album_strategy_custom');
+
+          return (
+            <div
+              className="td-preflight-banner"
+              style={{
+                background: partition.isSafe ? 'rgba(56, 189, 248, 0.1)' : 'rgba(245, 158, 11, 0.12)',
+                border: partition.isSafe ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#f8fafc',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                marginBottom: '10px',
+              }}
+              role="status"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={14} style={{ color: partition.isSafe ? '#38bdf8' : '#f59e0b', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                  {t('drive.album_preflight_plan_summary', {
+                    count: report.items.length,
+                    type: hasVideo ? 'Video' : 'Foto',
+                    groups: fullCollages,
+                    partition: partition.sizes.join(' + '),
+                    strategy: stratName,
+                  })}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: partition.isSafe ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: partition.isSafe ? '#34d399' : '#fbbf24',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {partition.isSafe ? t('drive.album_strategy_smart_badge') : t('drive.album_strategy_maximum_warning')}
+              </span>
+            </div>
+          );
+        })()}
 
         {duplicateCount === 0 ? (
           <div className="td-preflight-banner is-clean" role="status">
