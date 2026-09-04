@@ -1,3 +1,13 @@
+## v3.9.41 — Forwarder Full-Viewport Layout Repair
+
+### 1. Workspace Height Integrity
+- **Viewport-Fill Contract**: Memperbaiki shell Media Forwarder yang sempat berhenti pada tinggi konten saat root React memakai flex layout. Shell, layout, sidebar, dan area utama kini mengisi tinggi viewport yang sama sehingga tidak menyisakan blok kosong di bagian bawah aplikasi.
+
+### 2. Verification
+- **Live CDP Geometry Audit**: Pada viewport native 1536×794, shell, layout, sidebar, dan main terukur tepat 794 px; tidak ada overflow horizontal atau area canvas yang tidak dimiliki Forwarder.
+
+---
+
 ## v3.9.40 — Media Forwarder Navigation Parity & Safe Account Switching
 
 ### 1. Cloud Drives Navigation Model for Media Forwarder
