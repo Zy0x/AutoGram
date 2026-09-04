@@ -1,3 +1,20 @@
+## v3.9.48 — Transfer Activity Log Refinement & Telemetry De-cluttering
+
+### 1. Eliminasi Redundansi Log & Penyaringan Telemetri Internal
+- **Pembersihan Log Telemetri Pengembang**: Memfilter pesan diagnostik teknis mentah seperti `item_count=... anchor_message_id=...`, `action=skip_reupload`, dan `whole_album_identity` dari panel log pengguna (`appendDebugLog` & `TransferLog`). Pesan album selesai di backend (`media_transfer.rs`) kini menggunakan bahasa Indonesia yang ramah dan jelas: `"Kolase album (N berkas) berhasil diposting"`.
+- **Penyaringan Log Pasca-Transfer (`MediaStudio/index.tsx`)**: Menghilangkan dump duplikat riwayat `rec.logs` pada akhir proses transfer. Sistem kini hanya menyaring peringatan (*warnings*), kesalahan (*errors*), dan rencana pengiriman strategis yang belum tercatat sebelumnya, mencegah 16 berkas dicatat ulang untuk kedua kalinya saat transfer rampung.
+- **Pencegahan Re-logging pada Loop Rekonsiliasi**: Menyempurnakan penanganan `StudioItemDone` agar berkas yang sudah berhasil dicatat dan memiliki ID pesan tidak lagi dicatat ulang ke panel log selama proses rekonsiliasi state antarmuka.
+
+### 2. Format Penulisan Log Bersih, Informatif & Touch-First
+- **Penghapusan Spam Fase Penyiapan**: Menghentikan pencatatan fase sementara yang bising seperti `Menyiapkan (probe)` dan `Menyiapkan (remux)` untuk berkas reguler. Log penyiapan kini hanya dicatat secara selektif apabila berkas benar-benar memerlukan optimasi format video (`Mengoptimalkan format video...`) atau jika penyiapan mengalami kendala.
+- **Standarisasi Penulisan Status Berkas**: Mengubah format log menjadi rapi dan mudah dibaca: `Item N (nama_berkas.ext): Selesai [ID: 45009]`, `Item N (nama_berkas.ext): Dilewati (duplikat)`, atau `Item N (nama_berkas.ext): Gagal (alasan)`. Nama berkas kini selalu diprioritaskan dari nama asli daripada placeholder generik.
+- **Ringkasan Akhir Transfer (*Completion Summary*)**: Menambahkan baris penutup yang informatif saat sesi transfer selesai pada `StudioFinished`: `"Transfer selesai: X dari Y berkas berhasil, Z dilewati"`.
+
+### 3. Integritas Kualitas & Verifikasi Mutu 5-Dimensi
+- **100% Quality Gates Passed**: Seluruh 6 Quality Gates lulus dengan 0 kesalahan: 6.323 kunci lokalisasi ID & EN (100% key parity), 0 TypeScript compile errors, 51 pengujian Vitest (termasuk pengujian filter telemetri dan format log baru), konsistensi database SQLite WAL, proteksi rahasia, serta invarian kolase album MTProto.
+
+---
+
 ## v3.9.47 — Real-Time Transfer Event Listener Stabilization & Smart Log Deduplication
 
 ### 1. Eliminasi Kebocoran Event Listener Transfer (`MediaStudio/index.tsx`)
@@ -77,6 +94,22 @@
 - **Pelabelan Komposisi Visual Dinamis**: Memperbarui banner rangkuman partisi kolase pada `TransferPreflightDialog.tsx` agar menghitung partisi murni berdasarkan jumlah berkas visual yang valid (`albumEligible`), menghilangkan label keliru seperti *"16 Video"* ketika hanya ada 3 video di dalam folder. Format campuran kini dilabeli secara cerdas (misal: `"6 Media Visual (3 Foto, 3 Video)"`).
 - **Rekonsiliasi Sinkronisasi Banner**: Menyelaraskan partisi banner oranye dengan `report.plannedAlbumSizes` dari Rust backend sehingga kedua indikator menampilkan angka partisi yang 100% konsisten tanpa kontradiksi.
 - **Lokalisasi Multi-Bahasa**: Menambahkan kunci terjemahan `album_type_media_visual` dan `album_type_composition` ke dalam `id/drive.json` dan `en/drive.json` dengan paritas 100%.
+
+---
+
+## v3.9.43 — Forwarder Overview and Jobs Workspace Polish
+
+### 1. Overview UX
+- **At-a-glance status cards**: Menambahkan ringkasan pekerjaan aktif, keputusan yang membutuhkan perhatian, dan pekerjaan selesai dengan aksi langsung ke konteks terkait.
+- **Loading and empty clarity**: State loading memakai skeleton yang mengikuti bentuk angka, sementara empty state menggunakan ikon Forwarder agar halaman tetap mudah dipahami tanpa istilah backend.
+
+### 2. Jobs Workspace
+- **Cloud Drives visual language**: Toolbar, kartu job, spacing, dan action density dirapikan agar daftar pekerjaan terasa satu keluarga dengan Cloud Drives.
+- **Localized fallback names**: Nama job fallback kini memakai locale Forwarder, sehingga tidak lagi menampilkan istilah internal `Migration #` pada antarmuka.
+- **TypeScript regression repair**: Memperbaiki urutan deklarasi item sebelumnya pada progress reducer agar build kembali bebas error tanpa mengubah state transfer.
+
+### 3. Verification
+- **Quality gates**: `npm run build`, `npm run test:quality`, dan `npm test` lulus; 49 file test dan 421 test berhasil, locale ID/EN tetap 100% parity.
 
 ---
 

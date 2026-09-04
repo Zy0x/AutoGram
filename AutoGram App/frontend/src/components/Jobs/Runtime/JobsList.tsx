@@ -1,4 +1,4 @@
-import { Play, Pause, Trash2, Edit3, Plus, Terminal, RefreshCw, Upload, Download, Eye } from 'lucide-react';
+import { Play, Pause, Trash2, Edit3, Plus, ArrowRightLeft, RefreshCw, Upload, Download, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { RerunModal } from '../Modals/RerunModal';
@@ -49,9 +49,9 @@ export function JobsList({
     <div className="jobs-workspace">
       <header className="page-toolbar">
         <div className="page-toolbar-title">
-          <h1 className="title-gradient">{t('nav.forwarder')}</h1>
+          <h1 className="title-gradient">{t('jobs.forwarder_tab_jobs')}</h1>
           <p>
-            {t('ui.generated.migrasi_chat_forward_cepat_atau_clean_copy_re_up_f71ad9d')}
+            {t('jobs.forwarder_overview_description')}
           </p>
         </div>
         <div className="page-toolbar-actions">
@@ -73,7 +73,7 @@ export function JobsList({
       {jobs.length === 0 && !isLoading ? (
         <div className="glass-panel empty-state-panel">
           <div className="empty-state-icon">
-            <Terminal size={40} />
+            <ArrowRightLeft size={40} />
           </div>
           <h2>{t('ui.generated.belum_ada_job_forwarder_dcdf0fa')}</h2>
           <p>
@@ -216,7 +216,7 @@ export function JobsList({
                 <div className="job-card-header">
                   <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
                     <div className="job-card-title-row">
-                      <h3>{job.job_name || `Migration #${job.id}`}</h3>
+                      <h3>{job.job_name || t('jobs.forwarder_overview_untitled_job', { id: job.id })}</h3>
                       <span className={`modern-badge ${statusClass}${nativeStage ? ` stage-${nativeStage}` : ''}`}>{displayStatus}</span>
                     </div>
                     <div className="job-route" title={`${sourceLabel} → ${targetLabel}`}>
@@ -290,7 +290,7 @@ export function JobsList({
 
       {selectedJobForRerun && (
         <RerunModal
-          jobName={selectedJobForRerun.job_name || `Migration #${selectedJobForRerun.id}`}
+          jobName={selectedJobForRerun.job_name || t('jobs.forwarder_overview_untitled_job', { id: selectedJobForRerun.id })}
           successCount={selectedJobForRerun.processed_messages || 0}
           onClose={() => setSelectedJobForRerun(null)}
           onConfirm={(mode) => {

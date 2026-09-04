@@ -1385,7 +1385,7 @@ pub fn upload_prepared_album_blocking_with_app(
                         tid,
                         "info",
                         "album_committed",
-                        format!("item_count={} anchor_message_id={anchor}", out.len()),
+                        format!("Kolase album ({} berkas) berhasil diposting", out.len()),
                     );
                 }
                 Ok(out)

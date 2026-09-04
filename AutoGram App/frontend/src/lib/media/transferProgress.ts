@@ -299,7 +299,16 @@ export function appendDebugLog(session: TransferSession, logLine: string): strin
   const trimmed = logLine.trim();
   if (!trimmed) return prev;
 
-  // 1. Prevent consecutive duplicate log lines
+  // 1. Filter out internal developer telemetry and raw debug strings
+  if (
+    /item_count=|anchor_message_id=|action=skip_reupload|whole_album_identity/i.test(
+      trimmed
+    )
+  ) {
+    return prev;
+  }
+
+  // 2. Prevent consecutive duplicate log lines
   const lastEntry = prev[prev.length - 1];
   if (lastEntry) {
     const lastText = lastEntry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
@@ -308,7 +317,7 @@ export function appendDebugLog(session: TransferSession, logLine: string): strin
     }
   }
 
-  // 2. Prevent duplicate batch start logs in the same session
+  // 3. Prevent duplicate batch start logs in the same session
   if (trimmed.startsWith('Mulai transfer')) {
     const alreadyStarted = prev.some((entry) => {
       const text = entry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
@@ -319,10 +328,21 @@ export function appendDebugLog(session: TransferSession, logLine: string): strin
     }
   }
 
-  // 3. Prevent duplicate or placeholder item completion logs (SELESAI, DILEWATI, GAGAL)
+  // 4. Prevent duplicate batch completion summary logs
+  if (trimmed.startsWith('Transfer selesai:')) {
+    const alreadyFinished = prev.some((entry) => {
+      const text = entry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+      return text === trimmed;
+    });
+    if (alreadyFinished) {
+      return prev;
+    }
+  }
+
+  // 5. Prevent duplicate or placeholder item completion logs (Selesai, SELESAI, Dilewati, Gagal)
   if (
     trimmed.startsWith('Item ') &&
-    (trimmed.includes(': SELESAI') || trimmed.includes(': DILEWATI') || trimmed.includes(': GAGAL'))
+    /: (selesai|dilewati|gagal)/i.test(trimmed)
   ) {
     const itemMatch = trimmed.match(/^Item\s+(\d+)\b/);
     if (itemMatch) {
@@ -330,20 +350,16 @@ export function appendDebugLog(session: TransferSession, logLine: string): strin
       const existingIdx = prev.findIndex((entry) => {
         const text = entry.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
         if (text === trimmed) return true;
-        if (
-          text.startsWith(`Item ${itemNum} `) &&
-          trimmed.includes('[msg_id:') &&
-          text.includes(trimmed.slice(trimmed.indexOf('[msg_id:')))
-        ) {
+        if (text.startsWith(`Item ${itemNum} `) && /: (selesai|dilewati|gagal)/i.test(text)) {
           return true;
         }
         return false;
       });
 
       if (existingIdx !== -1) {
-        // If the existing entry was a generic "File X" placeholder and the new one has the real filename, update it in-place
+        // If the existing entry was a generic "File X" / "Berkas X" placeholder and the new one has the real filename, update it in-place
         const existingText = prev[existingIdx].replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
-        if (existingText.includes(`(File ${itemNum})`) && !trimmed.includes(`(File ${itemNum})`)) {
+        if (/\((File|Berkas)\s+\d+\)/i.test(existingText) && !/\((File|Berkas)\s+\d+\)/i.test(trimmed)) {
           const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
           const updated = [...prev];
           updated[existingIdx] = `[${timeStr}] ${trimmed}`;
@@ -420,7 +436,18 @@ export function applyTransferEvent(
       estimatedOutputBytes: num(p.output_bytes, session.items[index]?.estimatedOutputBytes || 0) || undefined,
       ...(name ? { name } : {}),
     });
-    const debugLogs = appendDebugLog(session, `Item ${index + 1} (${name || 'File'}): Menyiapkan (${phase})`);
+    // Only log preparation if it is an active video re-encode or if preparation failed
+    const isTranscode = rawPhase === 'reencode' || rawPhase === 'reencoding';
+    const isFailed = phase === 'prepare_failed' || phase === 'rejected_oversize';
+    const resolvedName = name || session.items[index]?.name || `Berkas ${index + 1}`;
+    const debugLogs = isFailed
+      ? appendDebugLog(
+          session,
+          `Item ${index + 1} (${resolvedName}): Gagal disiapkan - ${str(p.error || 'melebihi batas ukuran')}`
+        )
+      : isTranscode
+        ? appendDebugLog(session, `Item ${index + 1} (${resolvedName}): Mengoptimalkan format video...`)
+        : session.debugLogs || [];
     return recomputeOverall({
       ...session,
       debugLogs,
@@ -642,10 +669,10 @@ export function applyTransferEvent(
     const needsVerification = statusRaw === 'needs_verification';
     const ok = !isSkipped && !needsVerification && (statusRaw === 'done' || statusRaw === 'ok' || statusRaw === 'success');
     const err = str(p.error || '');
-    const name = basename(str(p.path || p.file_name || ''));
+    const prev = session.items[index];
+    const name = basename(str(p.path || p.file_name || '')) || prev?.name || session.items[index]?.name || '';
     const size = num(p.size, 0);
     const mid = num(p.message_id ?? p.messageId, 0);
-    const prev = session.items[index];
     // Never downgrade a successful item to failed — even if messageId was not
     // stored yet (StudioItemDone done without mid), or mid arrives with failed.
     const alreadyDone = prev?.status === 'done';
@@ -658,8 +685,28 @@ export function applyTransferEvent(
     const skipNote = finalSkipped
       ? (note || 'Duplikat dilewati — sudah ada di tujuan')
       : undefined;
-    const logText = `Item ${index + 1} (${name || `File ${index + 1}`}): ${finalOk ? 'SELESAI' : finalSkipped ? 'DILEWATI' : 'GAGAL'} ${mid > 0 ? `[msg_id: ${mid}]` : ''} ${err ? `err: ${err}` : ''}`.trim();
-    const debugLogs = appendDebugLog(session, logText);
+    const resolvedName = name || `Berkas ${index + 1}`;
+    const statusText = finalOk
+      ? 'Selesai'
+      : finalSkipped
+        ? `Dilewati (${skipNote || 'duplikat'})`
+        : `Gagal (${err || 'kesalahan'})`;
+    const idSuffix = mid > 0 ? ` [ID: ${mid}]` : '';
+    const logText = `Item ${index + 1} (${resolvedName}): ${statusText}${idSuffix}`.trim();
+    const prevItemLog = session.debugLogs?.find((l) => {
+      const text = l.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+      return text.startsWith(`Item ${index + 1} `) && /: (selesai|dilewati|gagal)/i.test(text);
+    });
+    const needsUpgrade =
+      prevItemLog &&
+      /\((File|Berkas)\s+\d+\)/i.test(prevItemLog) &&
+      !/\((File|Berkas)\s+\d+\)/i.test(logText);
+
+    // If this item was already recorded as done/committed and does not need placeholder upgrade, do not append duplicate log entry
+    const debugLogs =
+      alreadyDone && prevMid > 0 && finalOk && !needsUpgrade
+        ? session.debugLogs || []
+        : appendDebugLog(session, logText);
     const items = ensureItem(session.items, index, session.direction, {
       status: needsVerification ? 'needs_verification' : finalSkipped ? 'skipped' : finalOk ? 'done' : 'failed',
       percent: (needsVerification || finalSkipped || finalOk) ? 100 : session.items[index]?.percent ?? 0,
@@ -744,8 +791,16 @@ export function applyTransferEvent(
       };
     });
     const anyFailed = items.some((i) => i.status === 'failed' || i.status === 'needs_verification');
+    const doneCount = items.filter((i) => i.status === 'done').length;
+    const skippedCount = items.filter((i) => i.status === 'skipped').length;
+    const failedCount = items.filter((i) => i.status === 'failed' || i.status === 'needs_verification').length;
+    let summary = `Transfer selesai: ${doneCount} dari ${items.length} berkas berhasil`;
+    if (skippedCount > 0) summary += `, ${skippedCount} dilewati`;
+    if (failedCount > 0) summary += `, ${failedCount} gagal`;
+    const debugLogs = items.length > 0 ? appendDebugLog(session, summary) : session.debugLogs || [];
     const finished = recomputeOverall({
       ...session,
+      debugLogs,
       active: false,
       paused: false,
       items,
@@ -806,6 +861,9 @@ export function applyTransferEvent(
     const phase = str(p.phase || '');
     const scope = str(p.scope || '');
     const msg = str(p.message || p.msg || '');
+    if (!msg || /item_count=|anchor_message_id=|action=skip_reupload|whole_album_identity/i.test(msg)) {
+      return session;
+    }
     const line = [
       level,
       scope ? `{${scope}}` : '',

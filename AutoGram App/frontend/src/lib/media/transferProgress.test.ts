@@ -121,7 +121,7 @@ describe('debug log deduplication and stream stability', () => {
 
     const itemLogs = (s.debugLogs || []).filter((l) => l.includes('Item 6'));
     expect(itemLogs).toHaveLength(1);
-    expect(itemLogs[0]).toContain('SELESAI [msg_id: 45009]');
+    expect(itemLogs[0]).toContain('Selesai [ID: 45009]');
   });
 
   it('upgrades placeholder (File N) to actual filename in-place without duplicate log lines', () => {
@@ -134,7 +134,7 @@ describe('debug log deduplication and stream stability', () => {
       path: 'File 6',
     } as any);
     expect(s.debugLogs).toHaveLength(1);
-    expect(s.debugLogs![0]).toContain('Item 6 (File 6): SELESAI [msg_id: 45009]');
+    expect(s.debugLogs![0]).toContain('Item 6 (File 6): Selesai [ID: 45009]');
 
     // Later event arrives with real filename
     s = applyTransferEvent(s, {
@@ -146,7 +146,54 @@ describe('debug log deduplication and stream stability', () => {
     } as any);
 
     expect(s.debugLogs).toHaveLength(1);
-    expect(s.debugLogs![0]).toContain('Item 6 (_kayu.tt-21-05-2023-0001.mp4): SELESAI [msg_id: 45009]');
+    expect(s.debugLogs![0]).toContain('Item 6 (_kayu.tt-21-05-2023-0001.mp4): Selesai [ID: 45009]');
+  });
+
+  it('filters out raw developer telemetry strings', () => {
+    let s = session([]);
+    s = { ...s, debugLogs: appendDebugLog(s, 'item_count=6 anchor_message_id=45009') };
+    s = { ...s, debugLogs: appendDebugLog(s, 'action=skip_reupload index=5') };
+    expect(s.debugLogs || []).toHaveLength(0);
+  });
+
+  it('does not spam intermediate probe/prepare steps, but logs re-encoding and summary', () => {
+    let s = session([item({ index: 0, name: 'video.mp4' })]);
+    // Normal probe should not generate a debug log
+    s = applyTransferEvent(s, {
+      type: 'StudioItemPrepare',
+      index: 0,
+      phase: 'probe',
+      path: 'video.mp4',
+    } as any);
+    expect(s.debugLogs || []).toHaveLength(0);
+
+    // Active reencode should generate a helpful log
+    s = applyTransferEvent(s, {
+      type: 'StudioItemPrepare',
+      index: 0,
+      phase: 'reencode',
+      path: 'video.mp4',
+    } as any);
+    expect(s.debugLogs || []).toHaveLength(1);
+    expect(s.debugLogs![0]).toContain('Mengoptimalkan format video');
+
+    // Item done
+    s = applyTransferEvent(s, {
+      type: 'StudioItemDone',
+      index: 0,
+      status: 'done',
+      message_id: 101,
+      path: 'video.mp4',
+    } as any);
+    expect(s.debugLogs || []).toHaveLength(2);
+
+    // StudioFinished appends a clean summary
+    s = applyTransferEvent(s, {
+      type: 'StudioFinished',
+    } as any);
+    const finishedLogs = (s.debugLogs || []).filter((l) => l.includes('Transfer selesai:'));
+    expect(finishedLogs).toHaveLength(1);
+    expect(finishedLogs[0]).toContain('1 dari 1 berkas berhasil');
   });
 });
 

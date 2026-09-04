@@ -5712,15 +5712,36 @@ function MediaDriveDesktop({
             .reverse()
             .find((entry) => entry.level === 'error' || entry.level === 'warn');
           if (rec?.logs && rec.logs.length > 0) {
-            const formatted = rec.logs.map((entry) => {
-              const time = new Date(entry.timestampMs).toLocaleTimeString();
-              return `[${time}] [${entry.level.toUpperCase()}] ${entry.message}`;
+            // Only extract meaningful warnings, errors, or high-level strategic plans
+            // Filter out internal developer telemetry (item_count=, anchor_message_id=, etc.) and item duplicates
+            const meaningfulLogs = rec.logs
+              .filter((entry) => {
+                const msg = entry.message || '';
+                if (/item_count=|anchor_message_id=|action=skip_reupload|whole_album_identity/i.test(msg)) {
+                  return false;
+                }
+                if (/^Item\s+\d+\b/i.test(msg)) {
+                  return false; // Items are already recorded cleanly in real-time
+                }
+                return entry.level === 'error' || entry.level === 'warn' || /Rencana pengiriman/i.test(msg);
+              })
+              .map((entry) => {
+                const time = new Date(entry.timestampMs).toLocaleTimeString();
+                return `[${time}] [${entry.level.toUpperCase()}] ${entry.message}`;
+              });
+
+            setTransfer((current) => {
+              const prevLogs = current.debugLogs || [];
+              const toAdd = meaningfulLogs.filter((m) => {
+                const textWithoutTime = m.replace(/^\[\d{1,2}[.:]\d{2}[.:]\d{2}\]\s*/, '').trim();
+                return !prevLogs.some((p) => p.includes(textWithoutTime));
+              });
+              return {
+                ...current,
+                banner: notableLog ? notableLog.message : current.banner,
+                debugLogs: toAdd.length > 0 ? [...prevLogs, ...toAdd] : prevLogs,
+              };
             });
-            setTransfer((current) => ({
-              ...current,
-              banner: notableLog ? notableLog.message : current.banner,
-              debugLogs: [...(current.debugLogs || []), ...formatted],
-            }));
           } else if (notableLog) {
             setTransfer((current) => ({
               ...current,

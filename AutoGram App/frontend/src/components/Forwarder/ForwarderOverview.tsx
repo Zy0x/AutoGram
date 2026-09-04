@@ -59,7 +59,7 @@ function jobRoute(job: any, fallback: string) {
 export function ForwarderOverview({
   onCreateJob,
   onOpenJobs,
-  onOpenDecisions: _onOpenDecisions,
+  onOpenDecisions,
 }: ForwarderOverviewProps) {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState<OverviewData | null>(null);
@@ -131,6 +131,24 @@ export function ForwarderOverview({
           <button type="button" onClick={() => void load()}>{t('jobs.forwarder_overview_try_again')}</button>
         </div>
       )}
+
+      <section className="ag-forwarder-summary-grid" aria-label={t('jobs.forwarder_overview_recent_description')}>
+        <button type="button" className="ag-forwarder-summary-card" onClick={onOpenJobs}>
+          <span className="ag-forwarder-summary-label">{t('jobs.forwarder_overview_stat_active')}</span>
+          {isLoading ? <span className="ag-forwarder-summary-skeleton" aria-hidden="true" /> : <strong>{summary.active.length}</strong>}
+          <span className="ag-forwarder-summary-help">{t('jobs.forwarder_overview_stat_active_help')}</span>
+        </button>
+        <button type="button" className="ag-forwarder-summary-card is-attention" onClick={onOpenDecisions}>
+          <span className="ag-forwarder-summary-label">{t('jobs.forwarder_overview_stat_attention')}</span>
+          {isLoading ? <span className="ag-forwarder-summary-skeleton" aria-hidden="true" /> : <strong>{attentionCount}</strong>}
+          <span className="ag-forwarder-summary-help">{t('jobs.forwarder_overview_stat_attention_help')}</span>
+        </button>
+        <button type="button" className="ag-forwarder-summary-card" onClick={onOpenJobs}>
+          <span className="ag-forwarder-summary-label">{t('jobs.forwarder_overview_stat_completed')}</span>
+          {isLoading ? <span className="ag-forwarder-summary-skeleton" aria-hidden="true" /> : <strong>{summary.completed}</strong>}
+          <span className="ag-forwarder-summary-help">{t('jobs.forwarder_overview_stat_completed_help')}</span>
+        </button>
+      </section>
 
       {!isLoading && summary.jobs.length === 0 ? (
         <section className="ag-forwarder-empty-overview">
