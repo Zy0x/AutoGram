@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Sparkles,
   ShieldCheck,
   Sliders,
-  Film,
-  Image as ImageIcon,
   AlertTriangle,
   CheckCircle2,
-  Cpu,
   Layers,
   Gauge,
   ArrowRight,
@@ -95,29 +92,10 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Simulator local state
-  const [simCount, setSimCount] = useState<number>(13);
-  const [simType, setSimType] = useState<'video' | 'photo'>('video');
-
   const rawStrategy = draft.albumPacking || 'smart_adaptive';
   const isSmart = rawStrategy === 'smart_adaptive' || (rawStrategy as string) === 'smart' || rawStrategy === 'balanced';
   const currentStrategy: 'smart_adaptive' | 'custom' = isSmart ? 'smart_adaptive' : 'custom';
   const customGridSize = draft.albumGroupSize || 10;
-  const avoidSingle = draft.albumAvoidSingle ?? true;
-
-  // Calculate simulation result
-  const simResult = calculateAlbumPartition(
-    simCount,
-    currentStrategy,
-    simType,
-    customGridSize,
-    avoidSingle
-  );
-
-  const fullCollageCount = simResult.sizes.filter((s) => s > 1).length;
-  const singleFileCount = simResult.sizes.filter((s) => s === 1).length;
-
-  const quickPresets = [10, 13, 15, 17, 27, 50, 100];
 
   return (
     <div className="td-conditional-box" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -393,249 +371,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
         </div>
       )}
 
-      {/* 3. INTERACTIVE BATCH PARTITION SIMULATOR */}
-      <div
-        style={{
-          background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.75) 0%, rgba(20, 30, 50, 0.6) 100%)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
-          borderRadius: '12px',
-          padding: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Cpu size={18} style={{ color: '#38bdf8' }} />
-            <div>
-              <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
-                {t('drive.album_simulator_title')}
-              </strong>
-              <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8' }}>
-                {t('drive.album_simulator_desc')}
-              </p>
-            </div>
-          </div>
-
-          {/* MEDIA TYPE SWITCH */}
-          <div style={{ display: 'flex', gap: '4px', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <button
-              type="button"
-              onClick={() => setSimType('video')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                minHeight: '36px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: 'none',
-                background: simType === 'video' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: simType === 'video' ? '#38bdf8' : '#94a3b8',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Film size={14} />
-              {t('drive.album_simulator_type_video')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSimType('photo')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                minHeight: '36px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: 'none',
-                background: simType === 'photo' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: simType === 'photo' ? '#38bdf8' : '#94a3b8',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <ImageIcon size={14} />
-              {t('drive.album_simulator_type_photo')}
-            </button>
-          </div>
-        </div>
-
-        {/* INPUT COUNT CONTROLLER & PRESETS */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(0, 0, 0, 0.2)', padding: '12px', borderRadius: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
-              {t('drive.album_simulator_count')}:
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setSimCount((prev) => Math.max(2, prev - 1))}
-                style={{
-                  minWidth: '32px',
-                  minHeight: '32px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: '#f8fafc',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={2}
-                max={200}
-                value={simCount}
-                onChange={(e) => setSimCount(Math.max(2, Math.min(200, Number(e.target.value) || 2)))}
-                style={{
-                  width: '64px',
-                  textAlign: 'center',
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  color: '#38bdf8',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setSimCount((prev) => Math.min(200, prev + 1))}
-                style={{
-                  minWidth: '32px',
-                  minHeight: '32px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: '#f8fafc',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* PRESET CHIPS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.74rem', color: '#94a3b8', marginRight: '4px' }}>
-              {t('drive.album_simulator_presets')}
-            </span>
-            {quickPresets.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setSimCount(preset)}
-                style={{
-                  padding: '4px 10px',
-                  minHeight: '32px',
-                  borderRadius: '6px',
-                  border: simCount === preset ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
-                  background: simCount === preset ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                  color: simCount === preset ? '#38bdf8' : '#cbd5e1',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* REAL-TIME COLLAGE CHIP DISPLAY */}
-        <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {t('drive.album_simulator_result')}:
-            </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em' }}>
-              [{simResult.sizes.join(' + ')}]
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {simResult.sizes.map((size, idx) => {
-              const isSingle = size === 1;
-              const typeLabel = simType === 'video'
-                ? t('drive.album_simulator_type_video')
-                : t('drive.album_simulator_type_photo');
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    background: isSingle
-                      ? 'rgba(239, 68, 68, 0.15)'
-                      : 'rgba(56, 189, 248, 0.15)',
-                    border: isSingle
-                      ? '1px solid rgba(239, 68, 68, 0.35)'
-                      : '1px solid rgba(56, 189, 248, 0.35)',
-                    color: isSingle ? '#fca5a5' : '#7dd3fc',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  <span>
-                    {isSingle
-                      ? t('drive.album_simulator_single_label', { count: 1, type: typeLabel })
-                      : t('drive.album_simulator_collage_label', { index: idx + 1, count: size, type: typeLabel })}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* SAFETY / SPLIT STATUS BANNER */}
-          <div
-            style={{
-              marginTop: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              background: simResult.isSafe ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-              border: simResult.isSafe ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.4)',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {simResult.isSafe ? (
-                <CheckCircle2 size={15} style={{ color: '#10b981', flexShrink: 0 }} />
-              ) : (
-                <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              )}
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: simResult.isSafe ? '#34d399' : '#fbbf24' }}>
-                {simResult.isSafe
-                  ? t('drive.album_simulator_anti_split')
-                  : t('drive.album_simulator_timeout_warning')}
-              </span>
-            </div>
-
-            <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-              {t('drive.album_simulator_summary', { groups: fullCollageCount, singles: singleFileCount })}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. BEHAVIOR SWITCHES */}
+      {/* 3. BEHAVIOR SWITCHES */}
       <div className="td-switches-list" style={{ marginTop: '4px' }}>
         <label className="td-switch-row">
           <div>

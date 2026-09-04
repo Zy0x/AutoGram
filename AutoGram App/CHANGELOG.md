@@ -1,3 +1,21 @@
+## v3.9.26 — Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator
+
+### 1. Elimination of Redundant Simulation Calculator
+- **Streamlined User Interface**: Menghapus blok *Batch Partition Simulation Calculator* dari komponen antarmuka `AlbumStrategyControl.tsx`. Panel Pengaturan Album kini tampil jauh lebih bersih, bersih dari elemen tidak perlu, dan fokus langsung pada pengaturan esensial.
+- **State & DOM Optimization**: Menghapus state lokal yang tidak lagi digunakan (`simCount`, `simType`) beserta listener input numerik dan preset simulasi, mempercepat rendering komponen antarmuka.
+
+### 2. Preserved Two-Mode Album Architecture & Server Safeguards
+- **Uncompromised Smart & Custom Mode**: Tetap mempertahankan secara utuh 2 mode utama (Smart Auto-Adaptive dan Custom Grid). Mode Smart tetap memproteksi video dengan partisi aman 6–8 berkas tanpa sisa 1 item, membebaskan pengguna dari risiko timeout server 60s Telegram DC dan menghemat kuota internet.
+- **Custom Warning Alert Preserved**: Kotak peringatan interaktif berikon `AlertTriangle` dengan contoh nyata layout pecah (10 $\rightarrow$ 9+1, 13 $\rightarrow$ 9+1+3 atau 7+1+2) tetap aktif saat mode Custom Grid dipilih, membimbing pengguna untuk beralih ke Smart mode jika menginginkan kestabilan maksimal.
+- **Preflight Partition Plan Intact**: Logika kalkulasi partisi (`calculateAlbumPartition`) tetap aktif di `TransferPreflightDialog.tsx` untuk menampilkan rencana partisi nyata saat transfer berkas riil akan dieksekusi.
+
+### 3. Verification & Quality Sentinel Gate Certification
+- **Automated Unit Testing**: Seluruh 18 unit tests pada `AlbumStrategyControl.test.ts` dan 47 Vitest tests lulus bersih (100% pass).
+- **Strict TypeScript & Core Compiles**: 0 TypeScript compilation errors (`tsc --noEmit`), dan kompilasi backend Rust tetap bersih.
+- **Autonomous 6-Dimension Quality Sentinel (`npm run test:quality`)**: 100% lulus seluruh 6 Quality Gates.
+
+---
+
 ## v3.9.25 — Two-Mode Smart & Custom Album Architecture with Server Timeout Safeguards
 
 ### 1. Two-Mode Strategy Consolidation (Smart vs Custom)
