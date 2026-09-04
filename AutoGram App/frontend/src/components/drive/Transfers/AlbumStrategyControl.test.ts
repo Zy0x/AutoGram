@@ -5,7 +5,7 @@ import {
   calculateAlbumPartition,
 } from './AlbumStrategyControl';
 
-describe('AlbumStrategyControl - Partition Mathematics & Simulator', () => {
+describe('AlbumStrategyControl - 2-Mode Partition Mathematics & Simulator', () => {
   describe('videoBalancedPartitionSizes', () => {
     it('returns empty for 0 items', () => {
       expect(videoBalancedPartitionSizes(0, 8)).toEqual([]);
@@ -49,7 +49,7 @@ describe('AlbumStrategyControl - Partition Mathematics & Simulator', () => {
     });
   });
 
-  describe('partitionSizes (Photos & Aggressive Maximum)', () => {
+  describe('partitionSizes (Photos & Custom)', () => {
     it('returns empty for 0 items', () => {
       expect(partitionSizes(0, 10, true)).toEqual([]);
     });
@@ -67,42 +67,53 @@ describe('AlbumStrategyControl - Partition Mathematics & Simulator', () => {
     });
   });
 
-  describe('calculateAlbumPartition (High-Level Strategy Resolver)', () => {
-    it('resolves Smart Adaptive for video as Safe Balanced (isSafe=true)', () => {
+  describe('calculateAlbumPartition (2-Mode Strategy Resolver)', () => {
+    it('resolves Smart Mode for video as Safe Balanced (isSafe=true, 0 timeout risk)', () => {
       const result = calculateAlbumPartition(13, 'smart_adaptive', 'video');
       expect(result.sizes).toEqual([7, 6]);
       expect(result.isSafe).toBe(true);
       expect(result.warningKey).toBeUndefined();
     });
 
-    it('resolves Smart Adaptive for photo as Maximum 10 (isSafe=true)', () => {
+    it('resolves Smart Mode for photo as Maximum 10 (isSafe=true)', () => {
       const result = calculateAlbumPartition(13, 'smart_adaptive', 'photo');
       expect(result.sizes).toEqual([10, 3]);
       expect(result.isSafe).toBe(true);
       expect(result.warningKey).toBeUndefined();
     });
 
-    it('flags Maximum 10 for video as potentially risky under Telegram server timeout', () => {
-      const result = calculateAlbumPartition(13, 'maximum', 'video');
+    it('flags Custom Grid for video with size 10 as timeout risk (isSafe=false)', () => {
+      const result = calculateAlbumPartition(13, 'custom', 'video', 10);
       expect(result.sizes).toEqual([10, 3]);
       expect(result.isSafe).toBe(false);
-      expect(result.warningKey).toBe('drive.album_strategy_maximum_warning');
+      expect(result.warningKey).toBe('drive.album_strategy_custom_warning_title');
     });
 
-    it('resolves Balanced mode for both photo and video as safe clusters', () => {
-      const resultVid = calculateAlbumPartition(17, 'balanced', 'video');
-      expect(resultVid.sizes).toEqual([6, 6, 5]);
-      expect(resultVid.isSafe).toBe(true);
-
-      const resultPhoto = calculateAlbumPartition(17, 'balanced', 'photo');
-      expect(resultPhoto.sizes).toEqual([6, 6, 5]);
-      expect(resultPhoto.isSafe).toBe(true);
+    it('flags Custom Grid for video with size 9 as timeout risk (isSafe=false)', () => {
+      const result = calculateAlbumPartition(13, 'custom', 'video', 9);
+      expect(result.sizes).toEqual([9, 4]);
+      expect(result.isSafe).toBe(false);
+      expect(result.warningKey).toBe('drive.album_strategy_custom_warning_title');
     });
 
-    it('resolves Custom mode according to customGridSize', () => {
+    it('considers Custom Grid for video with safe size <= 8 as safe (isSafe=true)', () => {
       const result = calculateAlbumPartition(13, 'custom', 'video', 7);
       expect(result.sizes).toEqual([7, 6]);
       expect(result.isSafe).toBe(true);
+      expect(result.warningKey).toBeUndefined();
+    });
+
+    it('considers Custom Grid for photo with size 10 as safe (isSafe=true, photos never timeout)', () => {
+      const result = calculateAlbumPartition(13, 'custom', 'photo', 10);
+      expect(result.sizes).toEqual([10, 3]);
+      expect(result.isSafe).toBe(true);
+      expect(result.warningKey).toBeUndefined();
+    });
+
+    it('seamlessly maps legacy "balanced" strategy to Smart Mode', () => {
+      const resultVid = calculateAlbumPartition(17, 'balanced', 'video');
+      expect(resultVid.sizes).toEqual([6, 6, 5]);
+      expect(resultVid.isSafe).toBe(true);
     });
   });
 });

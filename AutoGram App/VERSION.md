@@ -1,14 +1,15 @@
-AutoGram Version: v3.9.23
+AutoGram Version: v3.9.25
 
 Current State:
-v3.9.23 Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul:
-1. Smart Auto-Adaptive Packing Policy: Mengintegrasikan strategi pengemasan album otomatis cerdas (foto 10-pack murni, video dipartisi seimbang 6–8 berkas) untuk mengeliminasi risiko split layout 9+1 akibat timeout gateway server Telegram DC 60 detik secara permanen tanpa perlu penyesuaian manual.
-2. Multi-Mode Strategy Selection: Menyediakan 4 opsi pengemasan fleksibel di Pengaturan Album (Smart Auto-Adaptive [Direkomendasikan], Aman & Seimbang, Maksimal 10, dan Kustom Slider 2..10) yang tersinkronisasi di Drive Tools Modal, Transfer Settings Workspace, dan Transfer Orchestration.
-3. Interactive Batch Partition Simulator: Menghadirkan kalkulator simulasi partisi interaktif dengan preset instan (10, 13, 15, 17, 27, 50, 100 media), slider dinamis 2..200, visualisasi chip partisi per-batch, dan indikator status proteksi anti-split real-time sehingga pengguna dapat melihat proyeksi susunan album sebelum transfer dimulai.
-4. Preflight Partition Plan Banner: Menampilkan banner informatif real-time pada dialog preflight transfer yang merinci jumlah kolase dan distribusi media yang akan dikirim.
-5. Quality Sentinel Gate Certification: 100% lulus seluruh 6 Quality Gates (i18n parity 6,207 keys, 0 type errors, 47 vitest tests, SQLite WAL schema, zero secret leaks, 73 MTProto album invariant tests).
+v3.9.25 Two-Mode Smart & Custom Album Architecture with Server Timeout Safeguards:
+1. Two-Mode Strategy Consolidation: Menyederhanakan pilihan strategi album menjadi tepat 2 mode utama (Smart Auto-Adaptive dan Custom Grid), mengeliminasi kebingungan pengguna dan menghapus opsi redundan.
+2. Intelligent Zero-Reupload Smart Engine: Mode Smart otomatis menganalisis tipe berkas: foto hingga 10 item penuh, video dipartisi cerdas dalam klaster aman 6–8 media tanpa sisa 1 item. Mengeliminasi 100% risiko server timeout 60 detik Telegram DC, mencegah gagal commit, dan menyelamatkan kuota internet besar pengguna.
+3. Prominent Custom Grid Warning Box: Menghadirkan kotak peringatan interaktif berikon AlertTriangle pada mode Custom yang secara eksplisit membeberkan contoh nyata kolase pecah akibat server timeout (10 video -> 9+1, 13 video -> 9+1+3 atau 7+1+2) dan risiko boros kuota, lengkap dengan tombol instan beralih ke Smart mode.
+4. Synchronized Batch Simulator & Zero Hardcoded Parity: Simulator partisi batch beradaptasi otomatis dengan kedua mode, 100% zero hardcoded strings (6.274 kunci ID/EN).
+5. Quality Sentinel Gate Certification: Lolos sempurna seluruh 6 Quality Gates (i18n parity, 0 type errors, 47 Vitest tests, SQLite schema WAL, zero credential exposure, 65 MTProto album invariant tests).
 
 Previous:
+v3.9.23 Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul:
 v3.9.22 Strict Maximum-First Chunk Ordering Architecture:
 v3.9.21 Mathematical Partition Invariance & Comprehensive Multi-Item Collage Guarantee:
 v3.9.20 Intelligent Weight-Sorted Maximum 10+5 Video Collage Architecture:
