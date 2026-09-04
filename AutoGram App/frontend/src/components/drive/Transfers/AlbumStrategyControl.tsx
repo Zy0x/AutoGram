@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Sparkles,
@@ -9,6 +9,8 @@ import {
   Layers,
   Gauge,
   ArrowRight,
+  Info,
+  X,
 } from 'lucide-react';
 import type { AlbumPacking, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
 
@@ -91,6 +93,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
   transferActive = false,
 }) => {
   const { t } = useTranslation();
+  const [activeInfo, setActiveInfo] = useState<'smart' | 'custom' | null>(null);
 
   const rawStrategy = draft.albumPacking || 'smart_adaptive';
   const isSmart = rawStrategy === 'smart_adaptive' || (rawStrategy as string) === 'smart' || rawStrategy === 'balanced';
@@ -98,133 +101,202 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
   const customGridSize = draft.albumGroupSize || 10;
 
   return (
-    <div className="td-conditional-box" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 1. STRATEGY SELECTION TILES — EXACTLY 2 MODES: SMART VS CUSTOM */}
+    <div className="td-conditional-box" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* 1. STRATEGY SELECTION TILES — COMPACT 2-COLUMN TILES */}
       <div>
-        <div style={{ marginBottom: '12px' }}>
-          <label className="td-field-label" style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={17} style={{ color: '#38bdf8' }} />
+        <div style={{ marginBottom: '10px' }}>
+          <label className="td-field-label" style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Layers size={16} style={{ color: '#38bdf8' }} />
             {t('drive.album_strategy_title')}
           </label>
-          <p className="td-xfer-hint" style={{ marginTop: '2px', fontSize: '0.78rem' }}>
+          <p className="td-xfer-hint" style={{ marginTop: '2px', fontSize: '0.76rem' }}>
             {t('drive.album_strategy_desc')}
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
           {/* 1. SMART (AUTO-ADAPTIVE) [RECOMMENDED] */}
-          <label
+          <div
             className={`td-encoder-tile ${currentStrategy === 'smart_adaptive' ? 'is-selected' : ''}`}
+            onClick={() => patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 })}
             style={{
-              minHeight: '120px',
+              padding: '12px 14px',
               position: 'relative',
               cursor: 'pointer',
+              borderRadius: '10px',
               border: currentStrategy === 'smart_adaptive' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
               background: currentStrategy === 'smart_adaptive' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(15, 23, 42, 0.4)',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
             }}
           >
-            <input
-              type="radio"
-              name="albumPackingMode"
-              value="smart_adaptive"
-              checked={currentStrategy === 'smart_adaptive'}
-              disabled={transferActive}
-              onChange={() => patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 })}
-              style={{ display: 'none' }}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-              <div>
-                <div className="td-tile-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={18} className="td-tile-icon is-auto" style={{ color: '#38bdf8' }} />
-                    <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>
-                      {t('drive.album_strategy_smart')}
-                    </strong>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      background: 'rgba(16, 185, 129, 0.2)',
-                      color: '#34d399',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {t('drive.album_strategy_smart_badge')}
-                  </span>
-                </div>
-                <p style={{ marginTop: '8px', fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.45' }}>
-                  {t('drive.album_strategy_smart_desc')}
-                </p>
+            {/* Title Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <Sparkles size={16} className="td-tile-icon is-auto" style={{ color: '#38bdf8' }} />
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                  {t('drive.album_strategy_smart')}
+                </strong>
+                <button
+                  type="button"
+                  className="td-preflight-info-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfo((prev) => (prev === 'smart' ? null : 'smart'));
+                  }}
+                  title={t('drive.album_strategy_smart_desc')}
+                  aria-label={t('drive.album_strategy_smart')}
+                  style={{ width: '18px', height: '18px' }}
+                >
+                  <Info size={11} />
+                </button>
               </div>
-
-              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#38bdf8', fontWeight: 600 }}>
-                <CheckCircle2 size={13} style={{ color: '#34d399' }} />
-                <span>{t('drive.album_simulator_anti_split')}</span>
-              </div>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#34d399',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t('drive.album_strategy_smart_badge')}
+              </span>
             </div>
-          </label>
+
+            {/* Compact 1-Line Description */}
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.35' }}>
+              {t('drive.album_strategy_smart_short_desc')}
+            </p>
+
+            {/* Compact Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
+              <CheckCircle2 size={12} style={{ color: '#34d399' }} />
+              <span>{t('drive.album_simulator_anti_split')}</span>
+            </div>
+          </div>
 
           {/* 2. CUSTOM GRID (MANUAL CONTROL) */}
-          <label
+          <div
             className={`td-encoder-tile ${currentStrategy === 'custom' ? 'is-selected' : ''}`}
+            onClick={() => patch({ albumPacking: 'custom' })}
             style={{
-              minHeight: '120px',
+              padding: '12px 14px',
               position: 'relative',
               cursor: 'pointer',
+              borderRadius: '10px',
               border: currentStrategy === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
               background: currentStrategy === 'custom' ? 'rgba(168, 85, 247, 0.08)' : 'rgba(15, 23, 42, 0.4)',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
             }}
           >
-            <input
-              type="radio"
-              name="albumPackingMode"
-              value="custom"
-              checked={currentStrategy === 'custom'}
-              disabled={transferActive}
-              onChange={() => patch({ albumPacking: 'custom' })}
-              style={{ display: 'none' }}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-              <div>
-                <div className="td-tile-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sliders size={18} className="td-tile-icon is-disable" style={{ color: '#a855f7' }} />
-                    <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>
-                      {t('drive.album_strategy_custom')}
-                    </strong>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      background: 'rgba(168, 85, 247, 0.2)',
-                      color: '#c084fc',
-                      border: '1px solid rgba(168, 85, 247, 0.4)',
-                    }}
-                  >
-                    Slider (2..10)
-                  </span>
-                </div>
-                <p style={{ marginTop: '8px', fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.45' }}>
-                  {t('drive.album_strategy_custom_desc')}
-                </p>
+            {/* Title Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <Sliders size={16} className="td-tile-icon is-disable" style={{ color: '#a855f7' }} />
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                  {t('drive.album_strategy_custom')}
+                </strong>
+                <button
+                  type="button"
+                  className="td-preflight-info-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfo((prev) => (prev === 'custom' ? null : 'custom'));
+                  }}
+                  title={t('drive.album_strategy_custom_desc')}
+                  aria-label={t('drive.album_strategy_custom')}
+                  style={{ width: '18px', height: '18px' }}
+                >
+                  <Info size={11} />
+                </button>
               </div>
-
-              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#fbbf24', fontWeight: 600 }}>
-                <AlertTriangle size={13} style={{ color: '#f59e0b' }} />
-                <span>{t('drive.album_simulator_timeout_warning')}</span>
-              </div>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: 'rgba(168, 85, 247, 0.2)',
+                  color: '#c084fc',
+                  border: '1px solid rgba(168, 85, 247, 0.4)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Slider ({customGridSize})
+              </span>
             </div>
-          </label>
+
+            {/* Compact 1-Line Description */}
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.35' }}>
+              {t('drive.album_strategy_custom_short_desc')}
+            </p>
+
+            {/* Compact Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600 }}>
+              <AlertTriangle size={12} style={{ color: '#f59e0b' }} />
+              <span>{t('drive.album_simulator_timeout_warning')}</span>
+            </div>
+          </div>
         </div>
+
+        {/* INTERACTIVE DETAIL DISCLOSURE DRAWER (Opened when "i" is clicked) */}
+        {activeInfo && (
+          <div
+            style={{
+              marginTop: '10px',
+              background: 'rgba(15, 23, 42, 0.95)',
+              border: `1px solid ${activeInfo === 'smart' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.4)'}`,
+              borderRadius: '10px',
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              position: 'relative',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <Info size={14} style={{ color: activeInfo === 'smart' ? '#38bdf8' : '#c084fc' }} />
+                <strong style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
+                  {activeInfo === 'smart' ? t('drive.album_strategy_smart') : t('drive.album_strategy_custom')}
+                </strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveInfo(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                aria-label={t('common.close', 'Close')}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.45' }}>
+              {activeInfo === 'smart'
+                ? t('drive.album_strategy_smart_desc')
+                : t('drive.album_strategy_custom_desc')}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 2. CUSTOM GRID SLIDER & PROMINENT WARNING BOX (Visible when Custom is active) */}
@@ -234,15 +306,15 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             background: 'rgba(15, 23, 42, 0.65)',
             border: '1px solid rgba(168, 85, 247, 0.3)',
             borderRadius: '12px',
-            padding: '16px',
+            padding: '14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
+            gap: '12px',
           }}
         >
           <div>
             <label className="td-field-label" style={{ fontSize: '0.84rem' }}>{t('drive.album_grid_size')}</label>
-            <div className="td-slider-row-box" style={{ marginTop: '8px' }}>
+            <div className="td-slider-row-box" style={{ marginTop: '6px' }}>
               <input
                 type="range"
                 min={2}
@@ -278,7 +350,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                 </span>
               </div>
             </div>
-            <p className="td-xfer-hint" style={{ marginTop: '6px' }}>
+            <p className="td-xfer-hint" style={{ marginTop: '4px' }}>
               {t('drive.album_grid_size_desc', { size: customGridSize })}
             </p>
           </div>
@@ -289,20 +361,20 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               background: 'rgba(245, 158, 11, 0.08)',
               border: '1px solid rgba(245, 158, 11, 0.35)',
               borderRadius: '10px',
-              padding: '14px',
+              padding: '12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
+              gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              <strong style={{ color: '#fbbf24', fontSize: '0.86rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <strong style={{ color: '#fbbf24', fontSize: '0.84rem' }}>
                 {t('drive.album_strategy_custom_warning_title')}
               </strong>
             </div>
 
-            <p style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.45', margin: 0 }}>
+            <p style={{ fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
               {t('drive.album_strategy_custom_warning_desc')}
             </p>
 
@@ -311,20 +383,20 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               style={{
                 background: 'rgba(0, 0, 0, 0.25)',
                 borderRadius: '8px',
-                padding: '10px 12px',
+                padding: '8px 10px',
                 border: '1px solid rgba(245, 158, 11, 0.2)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '6px',
+                gap: '5px',
               }}
             >
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fcd34d' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fcd34d' }}>
                 {t('drive.album_strategy_custom_warning_examples_title')}
               </span>
-              <div style={{ fontSize: '0.74rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+              <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
                 {t('drive.album_strategy_custom_warning_example_10')}
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+              <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
                 {t('drive.album_strategy_custom_warning_example_13')}
               </div>
             </div>
@@ -336,12 +408,12 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '10px',
-                paddingTop: '4px',
+                gap: '8px',
+                paddingTop: '2px',
               }}
             >
-              <span style={{ fontSize: '0.74rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                <ShieldCheck size={15} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.73rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
                 {t('drive.album_strategy_custom_warning_quota_notice')}
               </span>
 
@@ -351,20 +423,20 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
+                  gap: '5px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
                   background: 'rgba(56, 189, 248, 0.2)',
                   border: '1px solid rgba(56, 189, 248, 0.4)',
                   color: '#38bdf8',
-                  fontSize: '0.76rem',
+                  fontSize: '0.74rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
                 <span>{t('drive.album_strategy_smart')}</span>
-                <ArrowRight size={13} />
+                <ArrowRight size={12} />
               </button>
             </div>
           </div>
@@ -372,7 +444,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
       )}
 
       {/* 3. BEHAVIOR SWITCHES */}
-      <div className="td-switches-list" style={{ marginTop: '4px' }}>
+      <div className="td-switches-list" style={{ marginTop: '2px' }}>
         <label className="td-switch-row">
           <div>
             <strong>{t('ui.generated.pisahkan_dokumen_dari_album_1bd3539')}</strong>
@@ -425,7 +497,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
           />
         </label>
 
-        <div className="td-field-group" style={{ marginTop: '16px' }}>
+        <div className="td-field-group" style={{ marginTop: '14px' }}>
           <label className="td-field-label">{t('ui.generated.strategi_penanganan_gagal_item_album_c19fb1f')}</label>
           <select
             value={draft.albumFailurePolicy || 'send_failed_separately'}

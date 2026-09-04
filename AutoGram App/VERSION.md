@@ -1,13 +1,14 @@
-AutoGram Version: v3.9.26
+AutoGram Version: v3.9.27
 
 Current State:
-v3.9.26 Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator:
-1. Streamlined Clean Settings UI: Menghapus kalkulator simulasi batch yang tidak diperlukan dari antarmuka Pengaturan Album, menghasilkan tampilan yang jauh lebih ringkas, elegan, dan fokus langsung pada esensi konfigurasi.
-2. Focused Two-Mode Controls: Mempertahankan 2 mode utama (Smart Auto-Adaptive dan Custom Grid) dengan kartu peringatan server timeout interaktif dan sakelar perilaku album (groupDocuments, groupAudio, groupOriginalDocuments, avoidSingle, failurePolicy).
-3. Preflight Banner Preservation: Mempertahankan fungsi kalkulasi partisi otomatis pada Transfer Preflight Dialog sehingga pengguna tetap mendapatkan estimasi partisi yang relevan saat ada berkas nyata yang siap diunggah.
-4. Quality Sentinel Gate Certification: Lolos sempurna seluruh 6 Quality Gates (i18n parity, 0 type errors, 47 Vitest tests, SQLite schema WAL, zero credential exposure, 65 MTProto album invariant tests).
+v3.9.27 Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer:
+1. Ultra-Compact Mode Cards: Merampingkan ukuran kartu mode Smart dan Custom Grid menjadi sangat ringkas (~75px) dengan deskripsi 1-baris yang padat dan lugas.
+2. Interactive "(i)" Information Drawer: Menyematkan tombol ikon lingkaran "(i)" interaktif pada masing-masing kartu mode yang membuka panel pengungkapan (disclosure drawer) berlatar glassmorphism dan tombol tutup (✕) saat diklik untuk membaca penjelasan detail tanpa membebani tinggi kartu.
+3. 100% Zero Hardcoded & Key Parity: Menambahkan kunci i18n untuk ringkasan pendek di ID dan EN dengan audit 6,276 kunci identik.
+4. Quality Sentinel Gate Certification: Lolos sempurna seluruh 6 Quality Gates (i18n parity, 0 type errors, 47 Vitest tests, SQLite schema WAL, zero credential exposure, 65 MTProto album invariant tests) serta lolos verifikasi visual langsung via CDP port 9230.
 
 Previous:
+v3.9.26 Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator:
 v3.9.25 Two-Mode Smart & Custom Album Architecture with Server Timeout Safeguards:
 v3.9.23 Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul:
 v3.9.22 Strict Maximum-First Chunk Ordering Architecture:

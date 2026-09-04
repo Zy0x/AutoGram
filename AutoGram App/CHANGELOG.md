@@ -1,3 +1,23 @@
+## v3.9.27 — Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer
+
+### 1. Ultra-Compact Mode Cards & Clean Subtitles
+- **Height Streamlining**: Merampingkan tinggi vertikal kartu mode strategi pengelompokan album (`AlbumStrategyControl.tsx`) dari >150px menjadi ~75px. Tata letak menjadi jauh lebih seimbang, padat (*compact*), dan tidak memakan ruang gulir vertikal.
+- **Concise 1-Line Summaries**: Menggantikan paragraf deskripsi panjang pada kartu dengan teks ringkasan 1-baris yang padat dan informatif:
+  - *Mode Smart (Auto-Adaptive)*: "Foto otomatis 10 penuh, Video klaster aman 6–8 bebas timeout."
+  - *Mode Custom Grid*: "Atur batas ukuran kolase secara manual via slider."
+
+### 2. Interactive "(i)" Information Button & Disclosure Drawer
+- **Dedicated Information Trigger**: Menyematkan tombol ikon lingkaran interaktif `(i)` (`.td-preflight-info-btn` dengan ikon `Info` dari `lucide-react`) pada judul masing-masing kartu mode (Smart dan Custom Grid).
+- **Glassmorphic Disclosure Drawer**: Menampilkan panel pengungkapan detail (*disclosure drawer*) yang elegan dengan efek *backdrop blur*, border aksen sesuai tema mode aktif (Cyan untuk Smart, Violet untuk Custom), dan tombol tutup `✕` di sudut kanan atas.
+- **Smooth Toggle & Dismissal**: Pengguna dapat membaca rincian lengkap arsitektur pemisahan video (6–8 item anti-split) atau rincian slider secara opsional tanpa merusak kerapian antarmuka utama.
+
+### 3. Internationalization Parity & Quality Certification
+- **100% Zero Hardcoded Strings**: Kunci i18n baru (`album_strategy_smart_short_desc`, `album_strategy_custom_short_desc`) diekstrak ke `id/drive.json` dan `en/drive.json`. Audit `tools/locale-audit.mjs` memvalidasi paritas 100% sempurna dengan 6.276 kunci identik di kedua bahasa.
+- **Autonomous 6-Dimension Quality Sentinel**: Lolos bersih seluruh 6 Quality Gates (`npm run test:quality`), 0 error TypeScript, dan seluruh 47 tes unit Vitest berjalan sukses.
+- **Live Desktop Visual CDP Verification**: Terverifikasi secara langsung pada jendela desktop aktif via Chrome DevTools Protocol port 9230.
+
+---
+
 ## v3.9.26 — Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator
 
 ### 1. Elimination of Redundant Simulation Calculator

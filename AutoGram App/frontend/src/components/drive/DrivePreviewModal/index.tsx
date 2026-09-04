@@ -1345,6 +1345,7 @@ export function DrivePreviewModal({
 
   const [isFixingExt, setIsFixingExt] = useState(false);
   const [fixedFilename, setFixedFilename] = useState<string | null>(null);
+  const [dismissedMismatchIds, setDismissedMismatchIds] = useState<Set<string | number>>(() => new Set());
 
   useEffect(() => {
     setFixedFilename(null);
@@ -5159,14 +5160,21 @@ export function DrivePreviewModal({
             document.body
           )}
 
-        {!isZip && file.icon_type !== 'link' && !/^https?:\/\//i.test(file.name) && !/^https?:\/\//i.test(displayName) && sniffResult && sniffResult.severity !== 'safe' && (
-          <SecurityMismatchBanner
-            sniffResult={sniffResult}
-            currentFilename={displayName}
-            onFixExtension={handleFixExtension}
-            isFixing={isFixingExt}
-          />
-        )}
+        {!isZip &&
+          file.icon_type !== 'link' &&
+          !/^https?:\/\//i.test(file.name) &&
+          !/^https?:\/\//i.test(displayName) &&
+          sniffResult &&
+          sniffResult.severity !== 'safe' &&
+          !dismissedMismatchIds.has(file.id) && (
+            <SecurityMismatchBanner
+              sniffResult={sniffResult}
+              currentFilename={displayName}
+              onFixExtension={handleFixExtension}
+              isFixing={isFixingExt}
+              onDismiss={() => setDismissedMismatchIds((prev) => new Set(prev).add(file.id))}
+            />
+          )}
 
         <div
           className={`drive-preview-body${isZip ? ' is-zip-body' : ''}`}
