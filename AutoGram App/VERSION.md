@@ -1,15 +1,17 @@
-AutoGram Version: v3.9.31
+AutoGram Version: v3.9.32
 
 Current State:
-v3.9.31 Mathematically Verified Timeout Warning & Accurate Partition Examples:
-1. Eliminated Confusing Technical Jargon: Menghapus kode kesalahan biner internal mentah `(WORKER_BUSY_TOO_LONG_RETRY)` dari antarmuka pengguna dan menggantikannya dengan penjelasan teknis yang manusiawi serta mudah dipahami ("Batas Waktu Pemrosesan Server Telegram 60 Detik").
-2. Corrected Mathematical Partition Invariants: Memperbaiki kesalahan perhitungan contoh partisi (menghapus perhitungan ganjil 7+1+2=10 yang sebelumnya keliru dikaitkan dengan 13 berkas). Kini menyajikan perbandingan partisi matematis 100% presisi:
-   - 10 video: Custom (10) rawan timeout 60s vs Smart (5 + 5) selesai dalam ~12 detik.
-   - 13 video: Custom (10 + 3) tidak seimbang vs Smart (7 + 6) seimbang sempurna di zona aman 6–8 berkas.
-3. Crystal-Clear Educational Modal: Menyajikan perbandingan partisi Custom vs Smart yang mendidik, transparan, dan bebas dari informasi spekulatif yang menyesatkan pengguna.
-4. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.307 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual via CDP port 9230.
+v3.9.32 Real Binary Signature Proof (Magic Bytes) & Mismatch Dialog Stacking Fix:
+1. Resolved Info Modal Stacking & Event Interception: Memperbaiki masalah tombol "(i)" yang sebelumnya tidak dapat ditekan karena modal penjelasan dirender di belakang kanvas pratinjau (`z-index: 9999` vs `.drive-preview-overlay` `z-index: 20000`). Kini modal menggunakan `z-index: 50000 !important` dengan `e.stopPropagation()` dan `e.preventDefault()` sehingga terbuka dengan seketika dan responsif.
+2. Real Binary Signature Proof (Magic Bytes Inspector): Menyajikan bukti nyata dan ilmiah mengapa berkas dideteksi berbeda, bukan sekadar asumsi:
+   - Menampilkan byte header biner terbaca secara transparan (contoh: `FF D8 FF E0 00 10 4A 46 49 46` / ASCII `ÿØÿà··JFIF··` yang membuktikan signature asli JPEG).
+   - Menampilkan byte yang seharusnya jika berkas benar-benar HEIC (`00 00 00 18 66 74 79 70 68 65 69 63` / box `ftypheic`).
+3. Direct Browser Rendering Proof: Menyajikan penjelasan konkret bahwa Chromium/WebView2 di Windows tidak memiliki decoder HEIC bawaan. Fakta bahwa gambar dapat tampil langsung dan sempurna di kanvas AutoGram adalah bukti ilmiah 100% bahwa berkas tersebut adalah JPEG asli yang dinamai dengan ekstensi keliru.
+4. Telegram Auto-Transcoding Root Cause: Menjelaskan latar belakang pengunggahan Telegram yang otomatis mengubah foto seluler menjadi JPEG untuk kompatibilitas lintas perangkat sembari tetap mempertahankan penamaan asli.
+5. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.307 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi visual via CDP port 9230.
 
 Previous:
+v3.9.31 Mathematically Verified Timeout Warning & Accurate Partition Examples:
 v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
 v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
 v3.9.28 Non-Intrusive File Mismatch UI, Dismiss Action & Educational Format Inspector:

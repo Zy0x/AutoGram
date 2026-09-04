@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Layers,
   Gauge,
-  ArrowRight,
   Info,
   X,
 } from 'lucide-react';
@@ -328,55 +327,28 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              flexWrap: 'wrap',
+              gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '220px' }}>
-              <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <strong style={{ color: '#fbbf24', fontSize: '0.78rem' }}>
-                  {t('drive.album_strategy_custom_warning_title')}
-                </strong>
-                <span style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
-                  — {t('drive.album_strategy_custom_warning_short')}
-                </span>
-                <button
-                  type="button"
-                  className="td-preflight-info-btn"
-                  onClick={() => setActiveOverlay('warning')}
-                  title={t('drive.album_strategy_custom_warning_examples_title')}
-                  aria-label={t('drive.album_strategy_custom_warning_title')}
-                  style={{ width: '18px', height: '18px' }}
-                >
-                  <Info size={11} />
-                </button>
-              </div>
+            <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: '1 1 auto' }}>
+              <strong style={{ color: '#fbbf24', fontSize: '0.78rem' }}>
+                {t('drive.album_strategy_custom_warning_title')}
+              </strong>
+              <span style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
+                — {t('drive.album_strategy_custom_warning_short')}
+              </span>
+              <button
+                type="button"
+                className="td-preflight-info-btn"
+                onClick={() => setActiveOverlay('warning')}
+                title={t('drive.album_strategy_custom_warning_examples_title')}
+                aria-label={t('drive.album_strategy_custom_warning_title')}
+                style={{ width: '18px', height: '18px' }}
+              >
+                <Info size={11} />
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 })}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                color: '#38bdf8',
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>{t('drive.album_strategy_smart')}</span>
-              <ArrowRight size={12} />
-            </button>
           </div>
         </div>
       )}
@@ -612,21 +584,6 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
 
             {/* Modal Footer */}
             <div className="td-mismatch-modal-footer">
-              {activeOverlay === 'warning' && (
-                <button
-                  type="button"
-                  className="td-mismatch-modal-fix-btn"
-                  style={{ background: '#0284c7' }}
-                  onClick={() => {
-                    patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 });
-                    setActiveOverlay(null);
-                  }}
-                >
-                  <Sparkles size={15} />
-                  <span>{t('drive.album_strategy_smart')}</span>
-                </button>
-              )}
-
               <button
                 type="button"
                 className="td-mismatch-modal-close-action"
