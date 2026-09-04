@@ -5170,6 +5170,7 @@ export function DrivePreviewModal({
             <SecurityMismatchBanner
               sniffResult={sniffResult}
               currentFilename={displayName}
+              hexBytes={hexBytes}
               onFixExtension={handleFixExtension}
               isFixing={isFixingExt}
               onDismiss={() => setDismissedMismatchIds((prev) => new Set(prev).add(file.id))}

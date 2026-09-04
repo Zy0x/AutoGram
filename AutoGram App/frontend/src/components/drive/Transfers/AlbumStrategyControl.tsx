@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Sparkles,
@@ -93,8 +94,19 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
   transferActive = false,
 }) => {
   const { t } = useTranslation();
-  const [activeInfo, setActiveInfo] = useState<'smart' | 'custom' | null>(null);
-  const [showWarningDetails, setShowWarningDetails] = useState(false);
+  const [activeOverlay, setActiveOverlay] = useState<'smart' | 'custom' | 'warning' | null>(null);
+
+  // Close overlay on Escape key
+  useEffect(() => {
+    if (!activeOverlay) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveOverlay(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeOverlay]);
 
   const rawStrategy = draft.albumPacking || 'smart_adaptive';
   const isSmart = rawStrategy === 'smart_adaptive' || (rawStrategy as string) === 'smart' || rawStrategy === 'balanced';
@@ -145,7 +157,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   className="td-preflight-info-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveInfo((prev) => (prev === 'smart' ? null : 'smart'));
+                    setActiveOverlay('smart');
                   }}
                   title={t('drive.album_strategy_smart_desc')}
                   aria-label={t('drive.album_strategy_smart')}
@@ -212,7 +224,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   className="td-preflight-info-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveInfo((prev) => (prev === 'custom' ? null : 'custom'));
+                    setActiveOverlay('custom');
                   }}
                   title={t('drive.album_strategy_custom_desc')}
                   aria-label={t('drive.album_strategy_custom')}
@@ -249,58 +261,9 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             </div>
           </div>
         </div>
-
-        {/* INTERACTIVE DETAIL DISCLOSURE DRAWER (Opened when "i" is clicked) */}
-        {activeInfo && (
-          <div
-            style={{
-              marginTop: '10px',
-              background: 'rgba(15, 23, 42, 0.95)',
-              border: `1px solid ${activeInfo === 'smart' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.4)'}`,
-              borderRadius: '10px',
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              position: 'relative',
-              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4)',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <Info size={14} style={{ color: activeInfo === 'smart' ? '#38bdf8' : '#c084fc' }} />
-                <strong style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
-                  {activeInfo === 'smart' ? t('drive.album_strategy_smart') : t('drive.album_strategy_custom')}
-                </strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveInfo(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '2px',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                aria-label={t('common.close')}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.76rem', color: '#cbd5e1', lineHeight: '1.45' }}>
-              {activeInfo === 'smart'
-                ? t('drive.album_strategy_smart_desc')
-                : t('drive.album_strategy_custom_desc')}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* 2. CUSTOM GRID SLIDER & PROMINENT WARNING BOX (Visible when Custom is active) */}
+      {/* 2. CUSTOM GRID SLIDER & COMPACT WARNING BAR (Visible when Custom is active) */}
       {currentStrategy === 'custom' && (
         <div
           style={{
@@ -310,7 +273,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             padding: '14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '10px',
           }}
         >
           <div>
@@ -382,7 +345,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                 <button
                   type="button"
                   className="td-preflight-info-btn"
-                  onClick={() => setShowWarningDetails((prev) => !prev)}
+                  onClick={() => setActiveOverlay('warning')}
                   title={t('drive.album_strategy_custom_warning_examples_title')}
                   aria-label={t('drive.album_strategy_custom_warning_title')}
                   style={{ width: '18px', height: '18px' }}
@@ -415,81 +378,6 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               <ArrowRight size={12} />
             </button>
           </div>
-
-          {/* INTERACTIVE FAILURE EXAMPLES & TIMEOUT DISCLOSURE DRAWER */}
-          {showWarningDetails && (
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4)',
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <AlertTriangle size={15} style={{ color: '#f59e0b' }} />
-                  <strong style={{ fontSize: '0.82rem', color: '#fcd34d' }}>
-                    {t('drive.album_strategy_custom_warning_title')}
-                  </strong>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowWarningDetails(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                  aria-label={t('common.close')}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
-                {t('drive.album_strategy_custom_warning_desc')}
-              </p>
-
-              {/* Concrete Real Examples (10 -> 9+1, 13 -> 9+1+3 / 7+1+2) */}
-              <div
-                style={{
-                  background: 'rgba(0, 0, 0, 0.35)',
-                  borderRadius: '8px',
-                  padding: '8px 10px',
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '5px',
-                }}
-              >
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#fcd34d' }}>
-                  {t('drive.album_strategy_custom_warning_examples_title')}
-                </span>
-                <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
-                  {t('drive.album_strategy_custom_warning_example_10')}
-                </div>
-                <div style={{ fontSize: '0.73rem', color: '#e2e8f0', lineHeight: '1.35' }}>
-                  {t('drive.album_strategy_custom_warning_example_13')}
-                </div>
-              </div>
-
-              {/* Quota Saving Guidance */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', color: '#34d399', fontWeight: 600 }}>
-                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
-                <span>{t('drive.album_strategy_custom_warning_quota_notice')}</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -560,6 +448,197 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
           </select>
         </div>
       </div>
+
+      {/* 4. UNIFIED MODAL OVERLAY (Rendered above page via portal, zero layout duplication) */}
+      {activeOverlay && typeof document !== 'undefined' && createPortal(
+        <div
+          className="td-mismatch-modal-backdrop"
+          style={{ zIndex: 100000 }}
+          onClick={() => setActiveOverlay(null)}
+        >
+          <div
+            className="td-mismatch-modal-card"
+            style={{ maxWidth: '520px', width: '100%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="td-mismatch-modal-header">
+              <div className="td-mismatch-modal-header-info">
+                <div
+                  className="td-mismatch-modal-icon-badge"
+                  style={{
+                    background:
+                      activeOverlay === 'smart'
+                        ? 'rgba(56, 189, 248, 0.15)'
+                        : activeOverlay === 'custom'
+                        ? 'rgba(168, 85, 247, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)',
+                    borderColor:
+                      activeOverlay === 'smart'
+                        ? 'rgba(56, 189, 248, 0.35)'
+                        : activeOverlay === 'custom'
+                        ? 'rgba(168, 85, 247, 0.35)'
+                        : 'rgba(245, 158, 11, 0.35)',
+                  }}
+                >
+                  {activeOverlay === 'smart' && <Sparkles size={18} style={{ color: '#38bdf8' }} />}
+                  {activeOverlay === 'custom' && <Sliders size={18} style={{ color: '#c084fc' }} />}
+                  {activeOverlay === 'warning' && <AlertTriangle size={18} style={{ color: '#fbbf24' }} />}
+                </div>
+                <div>
+                  <div className="td-mismatch-modal-title">
+                    {activeOverlay === 'smart' && t('drive.album_strategy_smart')}
+                    {activeOverlay === 'custom' && t('drive.album_strategy_custom')}
+                    {activeOverlay === 'warning' && t('drive.album_strategy_custom_warning_title')}
+                  </div>
+                  <div className="td-mismatch-modal-subtitle">
+                    {activeOverlay === 'smart' && t('drive.album_strategy_smart_badge')}
+                    {activeOverlay === 'custom' && t('drive.album_strategy_custom_badge', { size: customGridSize })}
+                    {activeOverlay === 'warning' && t('drive.album_strategy_custom_warning_short')}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="td-mismatch-modal-close-btn"
+                onClick={() => setActiveOverlay(null)}
+                aria-label={t('common.close')}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="td-mismatch-modal-body">
+              {/* SMART MODE OVERLAY CONTENT */}
+              {activeOverlay === 'smart' && (
+                <>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                    {t('drive.album_strategy_smart_desc')}
+                  </p>
+                  <div
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: '#38bdf8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <CheckCircle2 size={16} style={{ color: '#34d399', flexShrink: 0 }} />
+                    <span>{t('drive.album_simulator_anti_split')}</span>
+                  </div>
+                </>
+              )}
+
+              {/* CUSTOM GRID OVERLAY CONTENT */}
+              {activeOverlay === 'custom' && (
+                <>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                    {t('drive.album_strategy_custom_desc')}
+                  </p>
+                  <div
+                    style={{
+                      background: 'rgba(168, 85, 247, 0.08)',
+                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      fontSize: '0.78rem',
+                      color: '#e2e8f0',
+                      lineHeight: '1.45',
+                    }}
+                  >
+                    {t('drive.album_grid_size_desc', { size: customGridSize })}
+                  </div>
+                </>
+              )}
+
+              {/* TIMEOUT WARNING OVERLAY CONTENT */}
+              {activeOverlay === 'warning' && (
+                <>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                    {t('drive.album_strategy_custom_warning_desc')}
+                  </p>
+
+                  {/* Concrete Real Examples (10 -> 9+1, 13 -> 9+1+3 / 7+1+2) */}
+                  <div
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fcd34d' }}>
+                      {t('drive.album_strategy_custom_warning_examples_title')}
+                    </span>
+                    <div style={{ fontSize: '0.76rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+                      {t('drive.album_strategy_custom_warning_example_10')}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+                      {t('drive.album_strategy_custom_warning_example_13')}
+                    </div>
+                  </div>
+
+                  {/* Quota Saving Guidance */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.78rem',
+                      color: '#34d399',
+                      fontWeight: 600,
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                    }}
+                  >
+                    <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+                    <span>{t('drive.album_strategy_custom_warning_quota_notice')}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="td-mismatch-modal-footer">
+              {activeOverlay === 'warning' && (
+                <button
+                  type="button"
+                  className="td-mismatch-modal-fix-btn"
+                  style={{ background: '#0284c7' }}
+                  onClick={() => {
+                    patch({ albumPacking: 'smart_adaptive', albumGroupSize: 10 });
+                    setActiveOverlay(null);
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>{t('drive.album_strategy_smart')}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="td-mismatch-modal-close-action"
+                onClick={() => setActiveOverlay(null)}
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

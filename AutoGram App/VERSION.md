@@ -1,13 +1,14 @@
-AutoGram Version: v3.9.29
+AutoGram Version: v3.9.30
 
 Current State:
-v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
-1. Ultra-Compact Warning Banner: Mengubah kotak peringatan risiko timeout Custom Grid yang sebelumnya masif (~220px) menjadi satu baris peringatan ringkas (~38px) terintegrasi dengan tombol pintas instan `[Smart Mode (Auto-Adaptive) →]`.
-2. Dedicated Warning "(i)" Disclosure Drawer: Menyematkan tombol ikon lingkaran "(i)" interaktif pada baris peringatan yang menampilkan penjelasan detail, skenario timeout Telegram DC 60s, dan contoh nyata kolase pecah (10 $\rightarrow$ 9+1, 13 $\rightarrow$ 9+1+3 atau 7+1+2) di dalam laci pengungkapan glassmorphism elegan dengan tombol tutup (✕).
-3. 100% Zero Hardcoded & Key Parity: Menambahkan kunci i18n `album_strategy_custom_warning_short` dan `album_strategy_custom_badge` di ID dan EN (audit paritas 6.297 kunci identik, 0 fallback calls, 0 hardcoded text).
-4. Full Quality Sentinel Certification: Lolos seluruh 6 Quality Gates secara sempurna dan lolos uji visual langsung via CDP port 9230.
+v3.9.30 Unified Modal Overlay for Album Tooltips & Elimination of Layout Duplication:
+1. Zero Layout Duplication: Mengeliminasi total seluruh laci (*in-flow drawers*) yang sebelumnya disisipkan ke dalam alur dokumen saat tombol info diklik, sehingga tidak ada lagi duplikasi tampilan atau pergeseran elemen pada halaman Pengaturan Album.
+2. Unified High-Z Modal Overlay: Mengarahkan seluruh tombol info tooltip (Smart Mode, Custom Grid, dan Peringatan Risiko Timeout) untuk membuka Modal Overlay transparan (`createPortal` ke `document.body` dengan `backdrop-filter: blur(8px)`) di atas layar.
+3. Multi-Action & Intuitive Dismissal: Modal overlay dilengkapi dengan lencana status, teks penjelasan komprehensif, contoh layout pecah, tombol pintas `[Smart Mode (Auto-Adaptive)]` untuk beralih instan, serta dukungan penutupan fleksibel (klik tombol ✕, klik backdrop luar, atau tombol Escape).
+4. Full Quality Sentinel Certification: Lolos sempurna seluruh 6 Quality Gates (i18n 6.302 kunci identik, 0 error TypeScript, 48 Vitest suites lulus, master schema WAL sinkron) dan terverifikasi via live CDP port 9230.
 
 Previous:
+v3.9.29 Ultra-Compact Custom Grid Timeout Warning Bar & Interactive Failure Details Drawer:
 v3.9.28 Non-Intrusive File Mismatch UI, Dismiss Action & Educational Format Inspector:
 v3.9.27 Ultra-Compact Two-Mode Album UI & Interactive Info Disclosure Drawer:
 v3.9.26 Clean Two-Mode Album UI & Elimination of Redundant Simulation Calculator:
