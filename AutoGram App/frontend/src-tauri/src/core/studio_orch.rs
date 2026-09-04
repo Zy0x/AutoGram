@@ -37,66 +37,7 @@ fn option_bool(options: &serde_json::Value, snake: &str, camel: &str, default: b
 
 fn is_nonstandard_image_source(path: &str) -> bool {
     let p = std::path::Path::new(path);
-    if let Ok(mut f) = std::fs::File::open(p) {
-        use std::io::Read;
-        let mut header = [0u8; 8];
-        let n = f.read(&mut header).unwrap_or(0);
-        // Only standard JPEG (0xFF, 0xD8, 0xFF) is Telegram's native standard photo format.
-        // PNG, WebP, HEIC, etc. are nonstandard image formats on Telegram (Pillar 1).
-        if n >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF {
-            return false;
-        }
-    }
-    p.extension()
-        .and_then(|value| value.to_str())
-        .map(|value| {
-            matches!(
-                value.to_ascii_lowercase().as_str(),
-                "png"
-                    | "webp"
-                    | "heic"
-                    | "heif"
-                    | "hif"
-                    | "avif"
-                    | "avis"
-                    | "jxl"
-                    | "bmp"
-                    | "tif"
-                    | "tiff"
-                    | "svg"
-                    | "svgz"
-                    | "psd"
-                    | "psb"
-                    | "tga"
-                    | "dds"
-                    | "exr"
-                    | "hdr"
-                    | "ico"
-                    | "cur"
-                    | "raw"
-                    | "dng"
-                    | "cr2"
-                    | "cr3"
-                    | "nef"
-                    | "nrw"
-                    | "arw"
-                    | "srf"
-                    | "sr2"
-                    | "orf"
-                    | "rw2"
-                    | "pef"
-                    | "raf"
-                    | "srw"
-                    | "x3f"
-                    | "erf"
-                    | "kdc"
-                    | "dcr"
-                    | "mef"
-                    | "mos"
-                    | "mrw"
-            )
-        })
-        .unwrap_or(false)
+    super::autogram_core::transfer::is_nonstandard_image_ext(p)
 }
 
 /// A non-standard image that was deliberately left untouched must remain a

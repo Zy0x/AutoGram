@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use super::{
-    analyze_media, classify_prepared_delivery, normalize_caption, utf16_len, CaptionOverflowPolicy,
+    analyze_media, classify_prepared_delivery, is_nonstandard_image_ext, normalize_caption, utf16_len, CaptionOverflowPolicy,
     MediaCategory, PayloadClass, QualityMode, TransferFeatureFlags, TransformAction,
 };
 
@@ -315,11 +315,10 @@ pub fn build_quality_preflight(
                     )
                 }
             } else if incompat_image_mode == "document"
-                && matches!(
+                && (matches!(
                     category,
                     MediaCategory::WebpImage | MediaCategory::OtherImage | MediaCategory::PngImage
-                )
-                && !force_native_media
+                ) || is_nonstandard_image_ext(source_path))
             {
                 (
                     TransformAction::PassThrough,
@@ -425,6 +424,7 @@ pub fn build_quality_preflight(
             && category == MediaCategory::PngImage
             && !force_document
             && mode != QualityMode::Document
+            && incompat_image_mode != "document"
         {
             (
                 TransformAction::PassThrough,

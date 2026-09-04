@@ -1,3 +1,20 @@
+## v3.9.46 — Telegram Visual Collage Restoration & Strict Pillar 1 Lossless Document Architecture
+
+### 1. Album Grid Reconstruction & MTProto Visual Collage Invariants
+- **Non-Standard Source Extension Guard (`is_nonstandard_image_ext`)**: Mengimplementasikan fungsi `is_nonstandard_image_ext` dan `is_standard_jpeg_ext` pada `autogram-core::transfer::quality` untuk membedakan secara tegas format foto native Telegram (`.jpg`, `.jpeg`, `.jfif`, `.jpe`) dari seluruh format gambar non-standar (`.png`, `.webp`, `.heic`, `.avif`, `.tiff`, `.bmp`, `.svg`, dll.).
+- **Pembersihan Magic Byte False-Positive pada `studio_orch.rs`**: Merefaktor fungsi `is_nonstandard_image_source` pada `studio_orch.rs` agar tidak lagi tertipu oleh magic bytes JPEG (`0xFF 0xD8 0xFF`) pada berkas WebP atau HEIC yang dikonversi dari sumber JPEG. Format non-standar kini 100% diproteksi sebagai dokumen mentah di bawah Pillar 1, mencegah MTProto photo endpoint rejection dan eliminasi fallback `send_failed_separately`.
+- **Eksekusi Sukses Kolase 6 Media Visual Live**: Menguji dan memvalidasi secara langsung pengiriman folder `New folder (2)` berisi 16 berkas campuran via AutoGram Desktop dan Telegram Web (CDP port 9222 & 9230). 6 Berkas media visual (3 JPG + 3 MP4) terkirim sukses dalam 1 kolase grid Telegram utuh 3x2 (`grouped_id`, message ID 44993–44998) tanpa fragmentasi.
+
+### 2. Kepatuhan Ketat Pillar 1 Raw Document & Paritas Preflight Dialog
+- **Sinkronisasi Preflight vs Runtime (`preflight.rs`)**: Menyelaraskan evaluasi `incompat_image_mode == "document"` pada `preflight.rs` agar tidak diabaikan oleh `force_native_media`. Berkas gambar non-standar (.png, .webp, .heic, dll.) tetap diklasifikasikan sebagai `PayloadClass::DocumentGroup` (`as_document: true`, `TransformAction::PassThrough`), memusnahkan banner palsu *"There are 3 WebP files that will be automatically converted to PNG"* saat mode dokumen mentah aktif.
+- **Deteksi Kategori & Komposisi Banner yang Presisi (`TransferPreflightDialog.tsx`)**: Memperbarui penghitungan `videoCount` dan `photoCount` pada banner dialog preflight agar mengenali format snake_case Rust (`mp4_video`, `other_video`, `jpeg_image`, `png_image`) dan ekstensi berkas. Banner kini secara akurat menampilkan `"6 Visual Media (3 Photos, 3 Videos) will be sent as 1 collages: [6] · Custom Grid"`.
+- **Pengiriman 10 Berkas Dokumen Mentah 100% Bit-Exact**: Memverifikasi 10 berkas non-standar (3 WebP, 3 HEIC, 3 PNG, 1 ZIP) terkirim utuh sebagai dokumen mentah tanpa konversi, tanpa kompresi, dan mempertahankan nama serta thumbnail dokumen aslinya di Telegram (message ID 44999–45008).
+
+### 3. Verifikasi Mutu & Autonomous Quality Sentinel
+- **100% Quality Gates Passed**: Seluruh 6 Quality Gates lulus dengan 0 kesalahan: 6.323 kunci lokalisasi ID & EN (100% parity), 0 TypeScript error, 49 Vitest unit tests, 76 test kasus di `autogram-core`, serta inspeksi visual live melalui Chrome DevTools Protocol pada WebView2 (port 9230) dan Telegram Web (port 9222).
+
+---
+
 ## v3.9.45 — Streaming Priority Sentinel & High-Throughput Transfer Orchestration
 
 ### 1. Streaming Priority Sentinel (Zero-Regression Media & Sparse ZIP Protection)

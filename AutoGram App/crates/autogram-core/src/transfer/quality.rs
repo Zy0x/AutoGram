@@ -244,10 +244,56 @@ pub fn classify_media(path: &Path) -> MediaCategory {
     extension_fallback
 }
 
-/// Telegram rejects native Photo uploads larger than this via MTProto.
-/// Any image exceeding the limit must be sent as a Document to avoid
-/// PHOTO_INVALID_DIMENSIONS or silent server-side failure.
 const TELEGRAM_NATIVE_PHOTO_MAX_BYTES: u64 = 10 * 1024 * 1024; // 10 MB
+
+pub fn is_standard_jpeg_ext(path: &Path) -> bool {
+    path.extension()
+        .and_then(|s| s.to_str())
+        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "jfif" | "jpe"))
+        .unwrap_or(false)
+}
+
+pub fn is_nonstandard_image_ext(path: &Path) -> bool {
+    path.extension()
+        .and_then(|s| s.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "png"
+                    | "webp"
+                    | "heic"
+                    | "heif"
+                    | "hif"
+                    | "avif"
+                    | "avis"
+                    | "jxl"
+                    | "bmp"
+                    | "tif"
+                    | "tiff"
+                    | "svg"
+                    | "svgz"
+                    | "psd"
+                    | "psb"
+                    | "tga"
+                    | "dds"
+                    | "exr"
+                    | "hdr"
+                    | "ico"
+                    | "cur"
+                    | "raw"
+                    | "dng"
+                    | "cr2"
+                    | "cr3"
+                    | "nef"
+                    | "nrw"
+                    | "arw"
+                    | "srf"
+                    | "sr2"
+                    | "orf"
+            )
+        })
+        .unwrap_or(false)
+}
 
 fn is_consumer_audio(path: &Path) -> bool {
     matches!(
@@ -332,11 +378,7 @@ pub fn classify_prepared_delivery(
             },
         };
     }
-    let is_jpg_extension = path
-        .extension()
-        .and_then(|s| s.to_str())
-        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "jfif" | "jpe"))
-        .unwrap_or(false);
+    let is_jpg_extension = is_standard_jpeg_ext(path);
 
     let payload_class = match category {
         MediaCategory::JpegImage if is_jpg_extension => PayloadClass::NativeVisual,

@@ -943,8 +943,8 @@ export function TransferPreflightDialog({
           const eligibleItems = report.items.filter((it) => it.albumEligible);
           if (eligibleItems.length <= 1) return null;
 
-          const videoCount = eligibleItems.filter((it) => it.category === 'video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName)).length;
-          const photoCount = eligibleItems.length - videoCount;
+          const videoCount = eligibleItems.filter((it) => it.category === 'video' || it.category === 'mp4_video' || it.category === 'other_video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName)).length;
+          const photoCount = eligibleItems.filter((it) => it.category === 'jpeg_image' || it.category === 'png_image' || it.category === 'photo' || /\.(jpe?g|png)/i.test(it.sourceName)).length;
           const mediaType = videoCount > 0 && photoCount === 0 ? 'video' : photoCount > 0 && videoCount === 0 ? 'photo' : 'mixed';
           const strategy = transferSettings?.albumPacking || DEFAULT_TRANSFER_SETTINGS.albumPacking;
           const customSize = transferSettings?.albumGroupSize || DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
