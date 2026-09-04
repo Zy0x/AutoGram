@@ -1640,33 +1640,51 @@ fn start_preview_stream_inner(
                     && partial_path.is_file()
                     && on_disk_size > 0
                 {
-                    let stream_url = stream_public_url(&stream_id, &name);
-                    let _ = persist_memory_session(&live.session, &live.session_path);
-                    tg_log::info(
+                    if !stream_server::is_progressive_entry_stalled(&existing) {
+                        let stream_url = stream_public_url(&stream_id, &name);
+                        let _ = persist_memory_session(&live.session, &live.session_path);
+                        tg_log::info(
+                            BACKEND,
+                            "[CACHE_ACTIVE]",
+                            format!("sid={stream_id} msg={message_id} — reusing active stream"),
+                        );
+                        return Ok(PreviewStreamResult {
+                            status: "success".into(),
+                            stream_id: stream_id.clone(),
+                            stream_url,
+                            path: partial_path.display().to_string(),
+                            mime_type: mime.clone(),
+                            size,
+                            data_url: None,
+                            text_content: None,
+                            preview_kind: "stream".into(),
+                            streaming: true,
+                            backend: BACKEND.into(),
+                            message: "reusing active stream".into(),
+                            source: "active_stream".into(),
+                            is_fallback: false,
+                            width: None,
+                            height: None,
+                            byte_size: size,
+                            full_download_error: None,
+                        });
+                    }
+
+                    // A `downloading` registry entry with no range commits is
+                    // a silent MTProto socket stall, not a reusable stream.
+                    // Retain sparse bytes (including a fetched MP4 tail), stop
+                    // the old generation, and create a fresh worker below.
+                    retained_ranges = existing.ranges.clone();
+                    cancel_progressive(&stream_id);
+                    tg_log::warn(
                         BACKEND,
-                        "[CACHE_ACTIVE]",
-                        format!("sid={stream_id} msg={message_id} — reusing active stream"),
+                        "progressive_stall_restart",
+                        format!(
+                            "sid={stream_id} msg={message_id} age_ms={} filled_ranges={} — renewing worker",
+                            now_ms().saturating_sub(existing.updated_at_ms),
+                            retained_ranges.len(),
+                        ),
                     );
-                    return Ok(PreviewStreamResult {
-                        status: "success".into(),
-                        stream_id: stream_id.clone(),
-                        stream_url,
-                        path: partial_path.display().to_string(),
-                        mime_type: mime.clone(),
-                        size,
-                        data_url: None,
-                        text_content: None,
-                        preview_kind: "stream".into(),
-                        streaming: true,
-                        backend: BACKEND.into(),
-                        message: "reusing active stream".into(),
-                        source: "active_stream".into(),
-                        is_fallback: false,
-                        width: None,
-                        height: None,
-                        byte_size: size,
-                        full_download_error: None,
-                    });
                 }
 
                 // CASE C: Cancelled / paused / partial entry — preserve existing downloaded ranges
@@ -1883,6 +1901,12 @@ fn start_preview_stream_inner(
             let tail_dest = dest.clone();
             let tail_sid = stream_id.clone();
             let tail_generation = cancel.clone();
+            // A tail probe only needs a small metadata window.  Cap it at two
+            // in-flight GetFile requests so it cannot consume the same session
+            // bandwidth that the sequential playback prefix needs.
+            let tail_permits = Arc::new(tokio::sync::Semaphore::new(
+                tail_clients.len().clamp(1, 2),
+            ));
 
             if let Some(mut e) = stream_server::get_entry(&stream_id) {
                 e.moov_tail_fetching = true;
@@ -1903,12 +1927,22 @@ fn start_preview_stream_inner(
                     let media_item = tail_media.clone();
                     let skip = (chunk_off / (512 * 1024)) as i32;
                     let tx_clone = tx.clone();
+                    let tail_permit = tail_permits.clone();
                     tokio::spawn(async move {
+                        let Ok(_permit) = tail_permit.acquire_owned().await else {
+                            return;
+                        };
                         let mut iter = client
                             .iter_download(&media_item)
                             .chunk_size(512 * 1024)
                             .skip_chunks(skip);
-                        let res = iter.next().await;
+                        // A silent auxiliary DC must not pin `moovTailFetching`
+                        // forever.  The browser can still demand the suffix via
+                        // the normal fill loop if this best-effort probe times out.
+                        let res = match tokio::time::timeout(Duration::from_secs(8), iter.next()).await {
+                            Ok(next) => next,
+                            Err(_) => Ok(None),
+                        };
                         let _ = tx_clone.send((chunk_off, res)).await;
                     });
                 }
@@ -1958,6 +1992,7 @@ fn start_preview_stream_inner(
                         e.moov_ready_cached = has_moov_tail || has_moov_head;
                         e.moov_tail_fetching = false;
                         stream_server::upsert_entry(e);
+                        stream_server::finish_moov_tail_fetch(&tail_sid);
                     }
                 }
             });

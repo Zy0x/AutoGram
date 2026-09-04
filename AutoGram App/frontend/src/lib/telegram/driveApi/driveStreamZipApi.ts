@@ -128,6 +128,7 @@ export async function driveStreamStatus(_creds: DriveCredentials, streamId: stri
           seek_capable: !!(st as any).seekCapable,
           paused: !!(st as any).paused,
           error: (st as any).error || null,
+          stalled: !!(st as any).stalled,
           backend: (st as any).backend || 'rust',
         };
       }

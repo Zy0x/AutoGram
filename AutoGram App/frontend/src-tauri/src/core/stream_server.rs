@@ -30,7 +30,12 @@ pub fn record_stream_activity() {
 
 pub fn has_active_streams() -> bool {
     let map = live_map().read();
-    map.values().any(|e| !e.done && !e.cancelled && !e.paused)
+    map.values().any(|entry| {
+        !entry.done
+            && !entry.cancelled
+            && !entry.paused
+            && !is_progressive_entry_stalled(entry)
+    })
 }
 
 pub fn is_streaming_recently_active(within_secs: u64) -> bool {
@@ -46,6 +51,11 @@ pub fn is_streaming_recently_active(within_secs: u64) -> bool {
 
 const HOT_HEAD_MAX_BYTES_PER_STREAM: usize = 2 * 1024 * 1024; // 2 MiB per stream
 const HOT_HEAD_MAX_STREAMS: usize = 4; // Max 4 streams = 8 MiB strict memory ceiling
+/// A progressive worker that has not committed a byte for this long cannot
+/// satisfy a browser Range request anymore.  Keep this deliberately shorter
+/// than the HTTP read timeout: the UI can renew the MTProto worker before the
+/// player burns through its small startup buffer.
+pub const PROGRESSIVE_STREAM_STALL_AFTER_MS: u128 = 12_000;
 
 static HOT_HEAD_CACHE: OnceLock<RwLock<HashMap<String, Arc<Vec<u8>>>>> = OnceLock::new();
 
@@ -125,6 +135,10 @@ pub struct StreamStatusDto {
     pub paused: bool,
     pub error: Option<String>,
     pub moov_tail_fetching: bool,
+    /// The fill worker has not committed a range recently.  This is distinct
+    /// from an explicit error: a fresh preview RPC can preserve the sparse
+    /// bytes and reconnect instead of making the user wait for an HTTP timeout.
+    pub stalled: bool,
 }
 
 fn now_ms() -> u128 {
@@ -189,6 +203,17 @@ fn contiguous_end_from(ranges: &[(u64, u64)], start: u64) -> u64 {
 
 pub fn filled_bytes(ranges: &[(u64, u64)]) -> u64 {
     ranges.iter().map(|(s, e)| e.saturating_sub(*s)).sum()
+}
+
+/// An incomplete, unpaused entry is only considered live while it is making
+/// observable progress.  Telegram sockets can become silently wedged without
+/// producing an RPC error, so `done == false` alone is not a liveness signal.
+pub fn is_progressive_entry_stalled(entry: &StreamEntry) -> bool {
+    !entry.done
+        && !entry.cancelled
+        && !entry.paused
+        && entry.error.is_none()
+        && now_ms().saturating_sub(entry.updated_at_ms) > PROGRESSIVE_STREAM_STALL_AFTER_MS
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -487,6 +512,23 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
     entry
 }
 
+/// Mark the metadata-tail probe as finished without letting a concurrent fill
+/// update re-inherit the old `true` value.  The fill loop intentionally omits
+/// its tail state so it cannot erase an in-flight probe; completion therefore
+/// needs this narrow, explicit transition.
+pub fn finish_moov_tail_fetch(sid: &str) {
+    let completed = {
+        let mut map = live_map().write();
+        let Some(entry) = map.get_mut(sid) else {
+            return;
+        };
+        entry.moov_tail_fetching = false;
+        entry.updated_at_ms = now_ms();
+        entry.clone()
+    };
+    save_entry_disk(&completed);
+}
+
 pub fn get_entry(sid: &str) -> Option<StreamEntry> {
     if let Some(e) = live_map().read().get(sid).cloned() {
         return Some(e);
@@ -574,6 +616,7 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             paused: false,
             error: None,
             moov_tail_fetching: false,
+            stalled: false,
         },
         Some(e) => {
             let prefix = contiguous_from_zero(&e.ranges);
@@ -584,12 +627,15 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             } else {
                 0.0
             };
+            let stalled = is_progressive_entry_stalled(&e);
             let status = if e.cancelled {
                 "cancelled"
             } else if e.error.is_some() {
                 "error"
             } else if e.done {
                 "done"
+            } else if stalled {
+                "stalled"
             } else {
                 "downloading"
             };
@@ -619,6 +665,7 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
                 paused: e.paused,
                 error: e.error,
                 moov_tail_fetching: e.moov_tail_fetching,
+                stalled,
             }
         }
     }
@@ -1364,5 +1411,48 @@ mod tests {
         );
         assert_eq!(bounded_response_end(10_000, Some(19_999), 50_000), 20_000);
         assert_eq!(bounded_response_end(0, None, 80_000_000), 16 * 1024 * 1024);
+    }
+
+    #[test]
+    fn incomplete_unpaused_entry_becomes_stalled_after_progress_deadline() {
+        let entry = StreamEntry {
+            stream_id: "stalled".into(),
+            path: "C:/temp/stalled.partial".into(),
+            total_size: 10,
+            mime: "video/mp4".into(),
+            label: "stalled.mp4".into(),
+            done: false,
+            ranges: vec![(0, 1)],
+            cancelled: false,
+            error: None,
+            paused: false,
+            updated_at_ms: now_ms().saturating_sub(PROGRESSIVE_STREAM_STALL_AFTER_MS + 1),
+            moov_ready_cached: false,
+            moov_tail_fetching: false,
+        };
+        assert!(is_progressive_entry_stalled(&entry));
+    }
+
+    #[test]
+    fn paused_or_completed_entry_is_not_reported_as_stalled() {
+        let mut entry = StreamEntry {
+            stream_id: "complete".into(),
+            path: "C:/temp/complete.partial".into(),
+            total_size: 10,
+            mime: "video/mp4".into(),
+            label: "complete.mp4".into(),
+            done: true,
+            ranges: vec![(0, 10)],
+            cancelled: false,
+            error: None,
+            paused: false,
+            updated_at_ms: 0,
+            moov_ready_cached: true,
+            moov_tail_fetching: false,
+        };
+        assert!(!is_progressive_entry_stalled(&entry));
+        entry.done = false;
+        entry.paused = true;
+        assert!(!is_progressive_entry_stalled(&entry));
     }
 }

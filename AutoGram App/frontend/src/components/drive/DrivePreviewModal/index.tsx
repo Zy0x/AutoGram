@@ -1215,7 +1215,7 @@ export function DrivePreviewModal({
   const ignoreSeekEventsRef = useRef(0);
   /** Debounce Telegram seek kicks while the scrub bar is dragged */
   const lastSeekKickRef = useRef(0);
-  /** One-shot auto-recover when stream_status reports missing/cancelled */
+  /** One-shot auto-recover when the backend reports a missing, cancelled, or stalled stream. */
   const streamRecoverRef = useRef(false);
   /** Consecutive missing/cancelled poll hits before recover (avoid thrash) */
   const streamMissingHitsRef = useRef(0);
@@ -2239,6 +2239,25 @@ export function DrivePreviewModal({
             } catch {
               /* the normal media error recovery remains available */
             }
+          }
+        } else if (st.status === 'stalled' || st.stalled === true) {
+          // A stream can remain registered as "downloading" while its MTProto
+          // socket has stopped committing bytes.  Reissue exactly one preview
+          // RPC: Rust preserves sparse ranges and replaces only the wedged
+          // worker, so playback recovers without discarding already-buffered data.
+          streamMissingHitsRef.current = 0;
+          if (!streamRecoverRef.current && !softReloadInFlightRef.current) {
+            streamRecoverRef.current = true;
+            softReloadInFlightRef.current = true;
+            setPlayerHint(t('ui.generated.melanjutkan_unduhan_stream_4da4182'));
+            softReloadTimerRef.current = window.setTimeout(() => {
+              softReloadInFlightRef.current = false;
+              softReloadTimerRef.current = null;
+              if (mountGenRef.current !== activeMountGen) return;
+              loadPreviewRef.current(quality, { soft: false, force: true });
+            }, 250);
+          } else {
+            setPlayerHint(t('ui.generated.melanjutkan_stream_f68fabd'));
           }
         } else if (st.status === 'missing' || st.status === 'cancelled') {
           streamMissingHitsRef.current += 1;

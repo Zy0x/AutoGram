@@ -1,3 +1,20 @@
+## v3.9.53 — Self-Healing Telegram Playback Buffer & Fair Transfer Pacing
+
+### 1. Pemulihan Buffer Streaming MTProto
+- **Watchdog progres (`stream_server.rs` & `grammers/stream.rs`)**: Stream yang tidak menambah byte selama 12 detik kini ditandai sebagai *stalled*, bukan dibiarkan berstatus mengunduh selamanya. Worker lama dihentikan aman dan preview berikutnya meneruskan sparse range yang sudah valid sebelum membuat koneksi ulang.
+- **Dampak pengguna**: Pemutaran video tidak lagi terkunci pada buffer awal ketika socket Telegram diam; data yang sudah diunduh tetap dipakai sehingga pemulihan tidak mengulang dari nol.
+
+### 2. Prioritas Playback dan Throughput Transfer Bersama
+- **Probe metadata terikat (`grammers/stream.rs`)**: Fetch MOOV tail dibatasi menjadi maksimal dua permintaan dengan batas waktu per permintaan. Status tail dibereskan eksplisit setelah selesai atau timeout, sehingga probe tidak menahan jalur preview.
+- **Pacing yang benar (`stream_server.rs` & `DrivePreviewModal`)**: Upload/download latar belakang hanya dipacing ketika stream benar-benar membuat progres. Saat stream macet, transfer lain segera kembali memakai kapasitas penuh; saat playback sehat, UI dapat meminta satu restart aman tanpa loop reload.
+- **Dampak pengguna**: Streaming mendapatkan prioritas saat diperlukan, tanpa membuat upload atau download lain lambat permanen setelah worker preview berhenti merespons.
+
+### 3. Verifikasi Mutu dan Telemetri Nyata
+- **Pengujian unit dan live CDP**: Menambahkan regresi untuk klasifikasi stream macet, lalu memverifikasi pesan Telegram target melalui server range lokal: player mencapai buffer awal yang sehat dan stream selesai tanpa error.
+- **Quality gate**: TypeScript, Vitest, parity locale, schema/security audit, serta invarian album MTProto seluruhnya lulus melalui `npm run test:quality`; test Rust stream server juga lulus.
+
+---
+
 ## v3.9.52 — Verified Deep Remote Discovery & Assisted Public Inspection
 
 ### 1. Verifikasi Media Nyata, Bukan Ekstensi atau Judul Gimmick
