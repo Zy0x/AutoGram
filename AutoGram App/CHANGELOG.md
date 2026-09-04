@@ -1,3 +1,22 @@
+## v3.9.24 - Media Forwarder Workspace & Decision Flow
+
+### 1. Media Forwarder Workspace
+- **Action-oriented overview**: Menambahkan halaman ringkasan lokal untuk memperlihatkan pekerjaan aktif, pekerjaan yang memerlukan keputusan, pekerjaan selesai, dan pekerjaan terbaru tanpa menampilkan metrik sintetis.
+- **Clear navigation path**: Menambahkan tab Ringkasan dan Pekerjaan serta jalur tindakan langsung menuju pembuatan pekerjaan, daftar eksekusi, atau inbox keputusan sehingga alur source, rules, delivery, review, dan runtime lebih mudah ditemukan.
+
+### 2. Reliability, Privacy & User Decisions
+- **Decision Inbox states**: Memperbarui inbox keputusan dengan loading skeleton, empty state, error recovery, refresh, dan tindakan resolusi yang tetap menggunakan kontrak backend `jobs_decision_inbox` dan `jobs_resolve_decision`.
+- **Local-first clarity**: Menjelaskan pada antarmuka dan panduan pengguna bahwa Forwarder berjalan pada desktop lokal dan tidak mengirim kredensial atau sesi Telegram ke cloud.
+
+### 3. UI Quality & Scope Protection
+- **Responsive interaction surface**: Menambahkan layout responsif untuk layar sempit, fokus keyboard, reduced-motion fallback, serta target aksi minimum 44 px pada kontrol baru.
+- **Delivery behavior preserved**: Perubahan hanya menyentuh workspace Forwarder, locale, dan dokumentasi. Jalur Media Studio, transfer, album, dan grid tidak dimodifikasi.
+
+### 4. Verification
+- **Frontend checks**: Menjalankan TypeScript strict check, Vite production build, dan audit locale dengan paritas Indonesia/English penuh untuk semua string baru.
+
+---
+
 ## v3.9.23 — Smart Auto-Adaptive Album Strategy, Batch Partition Simulator & Multi-Mode Settings Overhaul
 
 ### 1. Smart Auto-Adaptive Album Strategy & Multi-Mode Packaging Engine

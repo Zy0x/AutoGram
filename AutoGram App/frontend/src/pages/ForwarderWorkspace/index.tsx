@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRightLeft,
+  LayoutDashboard,
+  ListChecks,
   Plus,
-  Play,
   History,
   Zap,
   Key,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Jobs } from '../Jobs';
 import { DecisionInbox } from '../../components/Forwarder/DecisionInbox';
+import { ForwarderOverview } from '../../components/Forwarder/ForwarderOverview';
 import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 
 interface ForwarderWorkspaceProps {
@@ -31,7 +33,7 @@ export function ForwarderWorkspace({
 }: ForwarderWorkspaceProps) {
   const { t } = useTranslation();
   const { hasError: hasApiError } = useApiCredentialsStatus();
-  const [activeTab, setActiveTab] = useState<'jobs' | 'new_job' | 'history' | 'decisions' | 'settings'>('jobs');
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'new_job' | 'history' | 'decisions'>('overview');
 
   return (
     <div className="ag-forwarder-shell">
@@ -89,13 +91,23 @@ export function ForwarderWorkspace({
       <div className="ag-forwarder-tabs" role="tablist">
         <button
           type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`ag-forwarder-tab${activeTab === 'overview' ? ' is-active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'overview'}
+        >
+          <LayoutDashboard size={14} />
+          <span>{t('jobs.forwarder_tab_overview')}</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('jobs')}
           className={`ag-forwarder-tab${activeTab === 'jobs' ? ' is-active' : ''}`}
           role="tab"
           aria-selected={activeTab === 'jobs'}
         >
-          <Play size={14} />
-          <span>{t('nav.tab_jobs_active')}</span>
+          <ListChecks size={14} />
+          <span>{t('jobs.forwarder_tab_jobs')}</span>
         </button>
 
         <button
@@ -134,7 +146,13 @@ export function ForwarderWorkspace({
 
       {/* MAIN VIEWPORT */}
       <main className="ag-forwarder-main">
-        {activeTab === 'decisions' ? <DecisionInbox /> : <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />}
+        {activeTab === 'overview' ? (
+          <ForwarderOverview
+            onCreateJob={() => setActiveTab('new_job')}
+            onOpenJobs={() => setActiveTab('jobs')}
+            onOpenDecisions={() => setActiveTab('decisions')}
+          />
+        ) : activeTab === 'decisions' ? <DecisionInbox /> : <Jobs entryView={activeTab === 'new_job' ? 'new' : activeTab} />}
       </main>
     </div>
   );

@@ -74,9 +74,14 @@ AutoGram introduces revolutionary **Sparse ZIP Streaming** technology:
 
 Automate channel-to-channel content delivery:
 
+- **Media Forwarder Workspace**: The Overview surfaces only real local job status, pending decisions, completed jobs, and the next safe action. Use **Create Job** to enter the guided source, rules, delivery, and review flow.
+- **Decision Inbox**: When a duplicate or restriction requires your choice, the job pauses safely and appears in **Decisions**. Resolve it with the displayed option before resuming the job.
+- **Local-first Execution**: Forwarder jobs run on the selected desktop session. Telegram credentials and session material remain on the device.
 - **Source & Destination Mapping**: Link source channels/chats with destination channels or specific forum topics.
 - **Filtering Rules**: Filter by file extension, media kind (videos, images, docs, audio), minimum/maximum file size, or keyword matches.
 - **Caption Transformation**: Apply automated prefix/suffix headers, channel watermark removal, or dynamic file renaming patterns.
+
+The Media Forwarder workspace does not replace Transfer Manager media delivery controls. Existing album and grid delivery settings continue to be applied by the transfer engine.
 
 ---
 
