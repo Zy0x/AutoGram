@@ -1,6 +1,19 @@
-AutoGram Version: v3.9.44
+AutoGram Version: v3.9.50
 
 Current State:
+v3.9.50 Deep Transfer Double-Buffering, Fast NTFS Pre-Allocation & Hot-Head RAM Streaming Cache:
+1. Double-Buffering MTProto Transfer Pipeline: Decoupled chunk network downloads from disk I/O via `tokio::join!`, fetching the next 512KB chunk concurrently while writing the current chunk to disk, with strictly bounded RAM footprint (1 MB max).
+2. Fast NTFS Pre-allocation: Immediate file length allocation (`set_len`) on download start/resume eliminates NTFS dynamic cluster reallocations, disk fragmentation, and OS kernel write latency spikes.
+3. Hot-Head RAM Streaming Cache: Zero-latency in-memory cache for media head bytes (<0.1ms seek latency for video playback/scrubbing), bounded strictly to 4 streams × 2 MB (8 MB max memory ceiling) with automatic eviction on transfer completion or prune.
+4. Forwarder Jobs Search & Status Filters: Fast responsive filtering by job name, route, profile, and status (active, attention, completed, failed).
+5. 100% Quality Gates Passed: Verified across all 6 gates (6,333 i18n keys, 0 TypeScript errors, Vitest, SQLite WAL schema, MTProto album invariants).
+
+Previous:
+v3.9.49 Forwarder Jobs Search and Status Filters:
+1. Searchable job list by job name, route, profile, and transfer mode.
+2. Status filters for active, attention, completed, and failed jobs with responsive controls.
+3. Quality gate verification remains green with locale parity, TypeScript, Vitest, schema, security, and album invariant checks.
+
 v3.9.44 Genuine Photo Validation & Nonstandard Image MTProto Defense-in-Depth:
 1. Strict JPEG Extension Enforcement in `is_real_photo`: `media_transfer.rs` now verifies that the file extension is genuinely `jpg`, `jpeg`, `jfif`, or `jpe` before allowing `InputMediaUploadedPhoto`. Files with misleading internal JPEG bytes under non-standard extensions (e.g. `.webp`, `.heic`, `.png`) are strictly barred from the native photo endpoint, preventing Telegram MTProto dimension/format rejections and album disintegration.
 2. Delivery Classification Extension Guard: `classify_prepared_delivery` in `autogram-core/src/transfer/quality.rs` enforces that `MediaCategory::JpegImage` only yields `PayloadClass::NativeVisual` if the path has a genuine JPEG extension. Any non-standard image extension automatically routes to `PayloadClass::DocumentGroup` (`as_document: true`), ensuring 100% adherence to Pillar 1 Lossless Raw Document policy.

@@ -1,6 +1,6 @@
-import { Play, Pause, Trash2, Edit3, Plus, ArrowRightLeft, RefreshCw, Upload, Download, Eye } from 'lucide-react';
+import { Play, Pause, Trash2, Edit3, Plus, ArrowRightLeft, RefreshCw, Upload, Download, Eye, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RerunModal } from '../Modals/RerunModal';
 import {
   resolveJobUiKind,
@@ -44,6 +44,34 @@ export function JobsList({
 }: JobsListProps) {
   const { t } = useTranslation();
   const [selectedJobForRerun, setSelectedJobForRerun] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'attention' | 'completed' | 'failed'>('all');
+
+  const filteredJobs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return jobs.filter((job) => {
+      const status = normalizeJobStatus(job.status);
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'active' && !['COMPLETED', 'CANCELLED', 'FAILED', 'PARTIAL_SUCCESS', 'WAITING_USER'].includes(status))
+        || (statusFilter === 'attention' && status === 'WAITING_USER')
+        || (statusFilter === 'completed' && status === 'COMPLETED')
+        || (statusFilter === 'failed' && ['FAILED', 'CANCELLED', 'PARTIAL_SUCCESS'].includes(status));
+      if (!matchesStatus) return false;
+      if (!query) return true;
+      let config: any = {};
+      try { config = typeof job.config_json === 'string' ? JSON.parse(job.config_json) : job.config_json || {}; } catch { /* ignore malformed legacy config */ }
+      const searchable = [
+        job.job_name,
+        job.profile_name,
+        job.transfer_mode,
+        job.source_entity_id,
+        job.target_entity_id,
+        config.sourceName,
+        config.destName,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [jobs, searchQuery, statusFilter]);
 
   return (
     <div className="jobs-workspace">
@@ -70,6 +98,29 @@ export function JobsList({
         </div>
       </header>
 
+      <div className="ag-forwarder-job-filters" role="search">
+        <label className="ag-forwarder-job-search">
+          <Search size={15} aria-hidden="true" />
+          <span className="sr-only">{t('jobs.forwarder_jobs_search_label')}</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t('jobs.forwarder_jobs_search_placeholder')}
+          />
+        </label>
+        <label className="ag-forwarder-job-status-filter">
+          <span>{t('jobs.forwarder_jobs_filter_label')}</span>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
+            <option value="all">{t('jobs.forwarder_jobs_filter_all')}</option>
+            <option value="active">{t('jobs.forwarder_jobs_filter_active')}</option>
+            <option value="attention">{t('jobs.forwarder_jobs_filter_attention')}</option>
+            <option value="completed">{t('jobs.forwarder_jobs_filter_completed')}</option>
+            <option value="failed">{t('jobs.forwarder_jobs_filter_failed')}</option>
+          </select>
+        </label>
+      </div>
+
       {jobs.length === 0 && !isLoading ? (
         <div className="glass-panel empty-state-panel">
           <div className="empty-state-icon">
@@ -83,9 +134,15 @@ export function JobsList({
             <Plus size={18} /> {t('ui.generated.buat_job_pertama_2f43957')}
           </button>
         </div>
+      ) : filteredJobs.length === 0 && !isLoading ? (
+        <div className="glass-panel empty-state-panel ag-forwarder-filter-empty">
+          <Search size={30} aria-hidden="true" />
+          <h2>{t('jobs.forwarder_jobs_filter_empty_title')}</h2>
+          <p>{t('jobs.forwarder_jobs_filter_empty_description')}</p>
+        </div>
       ) : (
         <div className="cards-grid jobs-cards-scroll">
-          {jobs.map((job) => {
+          {filteredJobs.map((job) => {
             const isRunning = !!activeCommands[job.id];
             const result = runResults[job.id];
 

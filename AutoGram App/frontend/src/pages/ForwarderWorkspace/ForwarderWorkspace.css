@@ -700,6 +700,69 @@
 }
 
 .ag-forwarder-main .jobs-workspace .page-toolbar-title p { color: var(--fw-subtle); }
+.ag-forwarder-job-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.ag-forwarder-job-search {
+  display: flex;
+  min-width: 12rem;
+  flex: 1 1 16rem;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--fw-border);
+  border-radius: var(--radius-sm);
+  color: var(--fw-subtle);
+  background: rgba(14, 22, 33, 0.55);
+}
+
+.ag-forwarder-job-search:focus-within {
+  border-color: rgba(36, 129, 204, 0.72);
+  box-shadow: 0 0 0 2px rgba(36, 129, 204, 0.12);
+}
+
+.ag-forwarder-job-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--fw-text);
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.ag-forwarder-job-search input::placeholder { color: #71849a; }
+.ag-forwarder-job-search .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ag-forwarder-job-status-filter { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--fw-subtle); font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
+.ag-forwarder-job-status-filter select {
+  min-height: 2.5rem;
+  padding: 0.45rem 2rem 0.45rem 0.65rem;
+  border: 1px solid var(--fw-border);
+  border-radius: var(--radius-sm);
+  color: var(--fw-text);
+  background: rgba(14, 22, 33, 0.7);
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.ag-forwarder-filter-empty { flex: 1; margin-top: 0; }
+.ag-forwarder-filter-empty > svg { color: #8ecfff; }
 .ag-forwarder-main .jobs-workspace .job-card-shell {
   border-color: var(--fw-border);
   border-radius: var(--radius-md);
@@ -813,6 +876,10 @@
   .ag-forwarder-summary-grid { grid-template-columns: 1fr; overflow: visible; }
   .ag-forwarder-summary-card { min-width: 0; }
   .ag-forwarder-main .jobs-workspace { padding: 0.7rem; }
+  .ag-forwarder-job-filters { align-items: stretch; flex-direction: column; }
+  .ag-forwarder-job-search { min-width: 0; flex-basis: auto; }
+  .ag-forwarder-job-status-filter { justify-content: space-between; }
+  .ag-forwarder-job-status-filter select { flex: 1; }
 }
 
 @media (max-width: 520px) {

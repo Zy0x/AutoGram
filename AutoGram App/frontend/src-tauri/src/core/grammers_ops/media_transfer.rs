@@ -3278,6 +3278,12 @@ pub fn download_file_blocking_with_policy(
                 output.set_len(resume_from).await.map_err(|error| {
                     TgError::new(TgErrorCode::Io, format!("set partial length: {error}"))
                 })?;
+                // Fast NTFS Pre-allocation: Pre-allocate cluster span up to total file size
+                // to eliminate Windows NTFS fragmentation, avoid dynamic cluster reallocations,
+                // and reduce CPU spikes from the OS filesystem driver.
+                if size > resume_from {
+                    let _ = output.set_len(size).await;
+                }
                 output
                     .seek(std::io::SeekFrom::Start(resume_from))
                     .await
@@ -3308,6 +3314,7 @@ pub fn download_file_blocking_with_policy(
                         .chunk_size(DOWNLOAD_CHUNK_SIZE as i32)
                         .skip_chunks(skipped_chunks);
                     let mut refresh_reference = false;
+                    let mut current_chunk = download.next().await;
                     loop {
                         if crate::core::job_queue::is_transfer_cancelled(&transfer_id) {
                             let _ = finish_download_receipt(
@@ -3321,7 +3328,7 @@ pub fn download_file_blocking_with_policy(
                                 "download cancelled by user",
                             ));
                         }
-                        let chunk = match download.next().await {
+                        let chunk = match current_chunk {
                             Ok(Some(bytes)) => bytes,
                             Ok(None) => break,
                             Err(error) => {
@@ -3348,9 +3355,18 @@ pub fn download_file_blocking_with_policy(
                         }
                         let remaining = size.saturating_sub(offset) as usize;
                         let bytes = &chunk[..chunk.len().min(remaining)];
-                        output.write_all(bytes).await.map_err(|error| {
+
+                        // Double-Buffering Pipeline: Concurrently write the current chunk to disk
+                        // WHILE pipelining the next chunk from the network.
+                        // Bounded memory usage: strictly exactly 2 chunks in flight (max 1 MB RAM).
+                        let (write_res, next_chunk) = tokio::join!(
+                            output.write_all(bytes),
+                            download.next()
+                        );
+                        write_res.map_err(|error| {
                             TgError::new(TgErrorCode::Io, format!("write partial: {error}"))
                         })?;
+
                         pending_ranges.push(DownloadRangeCheckpoint {
                             offset,
                             length: bytes.len() as u64,
@@ -3371,6 +3387,8 @@ pub fn download_file_blocking_with_policy(
                         if crate::core::stream_server::is_streaming_recently_active(5) {
                             tokio::time::sleep(Duration::from_millis(15)).await;
                         }
+
+                        current_chunk = next_chunk;
                     }
                     if !refresh_reference {
                         break;

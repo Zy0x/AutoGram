@@ -44,6 +44,41 @@ pub fn is_streaming_recently_active(within_secs: u64) -> bool {
     has_active_streams()
 }
 
+const HOT_HEAD_MAX_BYTES_PER_STREAM: usize = 2 * 1024 * 1024; // 2 MiB per stream
+const HOT_HEAD_MAX_STREAMS: usize = 4; // Max 4 streams = 8 MiB strict memory ceiling
+
+static HOT_HEAD_CACHE: OnceLock<RwLock<HashMap<String, Arc<Vec<u8>>>>> = OnceLock::new();
+
+fn hot_head_map() -> &'static RwLock<HashMap<String, Arc<Vec<u8>>>> {
+    HOT_HEAD_CACHE.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+pub fn get_hot_head(sid: &str) -> Option<Arc<Vec<u8>>> {
+    hot_head_map().read().get(sid).cloned()
+}
+
+pub fn put_hot_head(sid: &str, data: &[u8]) {
+    if data.is_empty() {
+        return;
+    }
+    let take_len = data.len().min(HOT_HEAD_MAX_BYTES_PER_STREAM);
+    let mut map = hot_head_map().write();
+    if map.len() >= HOT_HEAD_MAX_STREAMS && !map.contains_key(sid) {
+        if let Some(first_key) = map.keys().next().cloned() {
+            map.remove(&first_key);
+        }
+    }
+    map.insert(sid.to_string(), Arc::new(data[..take_len].to_vec()));
+}
+
+pub fn remove_hot_head(sid: &str) {
+    hot_head_map().write().remove(sid);
+}
+
+pub fn clear_hot_head_cache() {
+    hot_head_map().write().clear();
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamEntry {
@@ -290,8 +325,28 @@ impl Read for DemandRangeReader {
             let available_end = contiguous_end_from(&ranges, self.position).min(self.end_exclusive);
             if available_end > self.position {
                 let count = (available_end - self.position).min(output.len() as u64) as usize;
+
+                // Fast-Path: Zero-latency read from in-memory hot-head cache if position falls within cached buffer
+                if let Some(hot_head) = get_hot_head(&self.stream_id) {
+                    let head_len = hot_head.len() as u64;
+                    if self.position < head_len {
+                        let available_in_ram = head_len.min(available_end);
+                        if available_in_ram > self.position {
+                            let ram_count = ((available_in_ram - self.position) as usize).min(count);
+                            let start_idx = self.position as usize;
+                            output[..ram_count].copy_from_slice(&hot_head[start_idx..start_idx + ram_count]);
+                            self.position = self.position.saturating_add(ram_count as u64);
+                            return Ok(ram_count);
+                        }
+                    }
+                }
+
                 self.file.seek(SeekFrom::Start(self.position))?;
                 let read = self.file.read(&mut output[..count])?;
+                // Populate hot-head cache when reading head bytes to accelerate subsequent seek/playback loops
+                if self.position == 0 && read > 0 {
+                    put_hot_head(&self.stream_id, &output[..read]);
+                }
                 self.position = self.position.saturating_add(read as u64);
                 return Ok(read);
             }
@@ -444,6 +499,7 @@ pub fn get_entry(sid: &str) -> Option<StreamEntry> {
 }
 
 pub fn remove_entry(sid: &str) {
+    remove_hot_head(sid);
     live_map().write().remove(sid);
     if let Some(p) = registry_path(sid) {
         let _ = fs::remove_file(p);
@@ -456,6 +512,7 @@ pub fn remove_entry(sid: &str) {
 /// files leaves a live entry that can hand the UI a stale Range URL after a
 /// clear, while removing only the map allows the JSON registry to resurrect it.
 pub fn clear_all_entries() -> usize {
+    clear_hot_head_cache();
     let ids: Vec<String> = live_map().read().keys().cloned().collect();
     let count = ids.len();
     live_map().write().clear();
