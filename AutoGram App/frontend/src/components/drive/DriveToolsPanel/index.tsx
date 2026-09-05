@@ -288,9 +288,7 @@ export function DriveToolsPanel({
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
     setToolsSearchQuery('');
-    if (item.isDriveTool && (['dups', 'space', 'rename', 'filter'] as string[]).includes(item.tab)) {
-      onTab(item.tab as DriveToolsTab);
-    }
+    onTab(item.tab as DriveToolsTab);
   };
 
   const node = (
@@ -771,7 +769,7 @@ export function DriveToolsPanel({
             </div>
           )}
 
-          {['upload', 'download', 'encoding', 'albums', 'duplicates', 'limits_recovery', 'network', 'ytdlp', 'advanced'].includes(tab) && transferSettings && onTransferSettingsChange && (
+          {['upload', 'download', 'playback', 'encoding', 'albums', 'duplicates', 'limits_recovery', 'network', 'ytdlp', 'advanced'].includes(tab) && transferSettings && onTransferSettingsChange && (
             <TransferSettingsWorkspace
               settings={transferSettings}
               onChange={onTransferSettingsChange}

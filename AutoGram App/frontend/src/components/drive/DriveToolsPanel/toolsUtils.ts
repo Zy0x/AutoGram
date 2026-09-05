@@ -5,6 +5,7 @@ import {
   Filter,
   Upload,
   Download,
+  PlaySquare,
   Film,
   FolderTree,
   CopyCheck,
@@ -22,6 +23,7 @@ export type DriveToolsTab =
   | 'filter'
   | 'upload'
   | 'download'
+  | 'playback'
   | 'encoding'
   | 'albums'
   | 'duplicates'
@@ -68,6 +70,7 @@ export const TOOL_GROUPS: {
     tabs: [
       { id: 'upload', icon: Upload },
       { id: 'download', icon: Download },
+      { id: 'playback', icon: PlaySquare },
       { id: 'encoding', icon: Film },
       { id: 'albums', icon: FolderTree },
       { id: 'duplicates', icon: CopyCheck },
