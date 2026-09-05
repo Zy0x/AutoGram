@@ -873,7 +873,12 @@ export function RemoteUploadModal({
   const inspectTimerRef = useRef<number | null>(null);
   const inspectRunningRef = useRef(false);
   const inspectRequestIdRef = useRef(0);
-  const queuedInspectRef = useRef<{ rawUrl: string; explicitPasscode?: string; requestId: number } | null>(null);
+  const queuedInspectRef = useRef<{
+    rawUrl: string;
+    explicitPasscode?: string;
+    forceRefresh: boolean;
+    requestId: number;
+  } | null>(null);
 
   const [batchGroups, setBatchGroups] = useState<BatchUrlResultGroup[]>([]);
   const [batchInspecting, setBatchInspecting] = useState(false);
@@ -1047,10 +1052,15 @@ export function RemoteUploadModal({
     return () => document.removeEventListener('pointerdown', onDocClick, true);
   }, [showSupportedInfo, activeTripletInfo]);
 
-  const probeUrl = useCallback(async (rawUrl: string, explicitPasscode?: string) => {
+  const probeUrl = useCallback(async (
+    rawUrl: string,
+    explicitPasscode?: string,
+    forceRefresh = false,
+  ) => {
     const request = {
       rawUrl,
       explicitPasscode,
+      forceRefresh,
       requestId: ++inspectRequestIdRef.current,
     };
     if (inspectRunningRef.current) {
@@ -1099,6 +1109,7 @@ export function RemoteUploadModal({
     try {
       const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal, {
         passcode: activePasscode,
+        forceRefresh,
       });
       if (!isCurrentRequest() || controller.signal.aborted) return;
       if (resolved) {
@@ -1214,7 +1225,7 @@ export function RemoteUploadModal({
       const queued = queuedInspectRef.current;
       queuedInspectRef.current = null;
       if (queued) {
-        void probeUrl(queued.rawUrl, queued.explicitPasscode);
+        void probeUrl(queued.rawUrl, queued.explicitPasscode, queued.forceRefresh);
       }
     }
   }, [passcode, t]);
@@ -3325,7 +3336,7 @@ export function RemoteUploadModal({
                           <button
                             type="button"
                             className="td-remote-paste-action"
-                            onClick={() => probeUrl(url.trim(), passcode.trim())}
+                            onClick={() => probeUrl(url.trim(), passcode.trim(), true)}
                             disabled={submitting || inspection?.status === 'inspecting'}
                             title={t('drive.remote_batch_reinspect_btn')}
                           >
@@ -4483,7 +4494,7 @@ export function RemoteUploadModal({
                                   <button
                                     type="button"
                                     className="td-remote-paste-action"
-                                    onClick={() => probeUrl(url.trim(), passcode.trim())}
+                                    onClick={() => probeUrl(url.trim(), passcode.trim(), true)}
                                     disabled={submitting || inspection?.status === 'inspecting'}
                                     title={t('drive.remote_batch_reinspect_btn')}
                                   >

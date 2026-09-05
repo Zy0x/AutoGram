@@ -259,8 +259,10 @@ class LinkResolverRegistry {
     assertSafeRemoteUrl(cleanUrl);
 
     // 0. Cache hit — return immediately without any network or subprocess cost.
-    //    Only skip cache when signal is already aborted (fresh resolve requested).
-    if (!signal?.aborted && !options?.discoveryCursor) {
+    //    A user-triggered re-inspection deliberately bypasses a previous result:
+    //    expiring provider URLs and a repaired extractor must not be hidden by
+    //    a still-valid fallback card.
+    if (!signal?.aborted && !options?.discoveryCursor && !options?.forceRefresh) {
       const cached = getCachedResult(cleanUrl);
       if (cached) {
         return { ...cached, resolvedAt: Date.now() };

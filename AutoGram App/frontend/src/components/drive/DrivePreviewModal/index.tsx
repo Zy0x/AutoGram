@@ -3922,6 +3922,10 @@ export function DrivePreviewModal({
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
+      // Diagnostics owns its own scrollable event list. Let its wheel event
+      // remain a scroll gesture instead of treating it as a media zoom/pan.
+      if (target.closest('.drive-preview-diagnostics')) return;
+
       // Ensure gesture is over preview modal backdrop or media stage
       const backdrop = target.closest('.drive-preview-backdrop');
       if (!backdrop) return;

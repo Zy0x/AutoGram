@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../tauri/platform';
-import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, RawStreamItem, SubtitleTrackItem } from '../types';
+import type { LinkResolverProvider, ResolvedMediaInfo, ResolveOptions, StreamQualityFormat, RawStreamItem, SubtitleTrackItem } from '../types';
 
 // ---------------------------------------------------------------------------
 // yt-dlp JSON result cache keyed by video ID.
@@ -188,7 +188,11 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
  * platform-neutral, so TikTok and future extractor-backed providers share the
  * exact same update, cookie-isolation and timeout behaviour as YouTube.
  */
-export async function fetchYtDlpMedia(url: string, signal?: AbortSignal): Promise<any | null> {
+export async function fetchYtDlpMedia(
+  url: string,
+  signal?: AbortSignal,
+  forceRefresh = false,
+): Promise<any | null> {
   if (!detectTauriRuntime()) return null;
   if (signal?.aborted) return null;
   let autoUpdate = true;
@@ -225,7 +229,9 @@ export async function fetchYtDlpMedia(url: string, signal?: AbortSignal): Promis
   // Cache key combines URL + settings fingerprint so cookie/arg changes invalidate
   const cacheKey = `${url}|${cookiesMode ?? ''}|${cookiesBrowser ?? ''}|${poToken ?? ''}|${extractorArgs ?? ''}`;
   const cached = ytdlpCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
+  // A user-initiated Re-inspect must obtain a fresh extractor response: signed
+  // media URLs can expire even while their metadata is still within the cache TTL.
+  if (!forceRefresh && cached && Date.now() < cached.expiresAt) {
     return cached.data;
   }
 
@@ -1037,7 +1043,7 @@ export const youtubeResolver: LinkResolverProvider = {
   async resolve(
     url: string,
     signal?: AbortSignal,
-    _options?: any
+    options?: ResolveOptions
   ): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
     const videoId = extractYouTubeVideoId(cleanUrl);
@@ -1062,7 +1068,7 @@ export const youtubeResolver: LinkResolverProvider = {
     let parsedSuccess = false;
     if (detectTauriRuntime()) {
       try {
-        const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal);
+        const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal, Boolean(options?.forceRefresh));
         if (ytDlpData) {
           const res = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
           if (res.title) title = res.title;

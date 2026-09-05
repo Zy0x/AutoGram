@@ -1,3 +1,20 @@
+## v3.9.56 — Reliable YouTube Re-inspection & Isolated Preview Diagnostics
+
+### 1. YouTube Format Recovery Without Synthetic Qualities
+- **Fresh resolver path (`RemoteUploadModal`, resolver registry, YouTube/TikTok providers)**: A user-selected Re-inspect now bypasses both the result cache and yt-dlp metadata cache, then requests a new extraction so expired signed media URLs and a stale fallback card cannot hide the actual format matrix.
+- **Verified metadata only**: The restored path continues to use extractor-supplied dimensions, codec, bitrate, audio, and container data. It deliberately does not reinstate the old synthetic 4K/8K labels or guessed bitrates.
+- **User impact**: Remote URL can again show every currently extractable YouTube format after Re-inspect, while an 8K claim appears only when the provider actually returns an 8K stream.
+
+### 2. Preview Diagnostics Scroll Isolation
+- **Wheel ownership (`PreviewDiagnosticsOverlay`, `DrivePreviewModal`, and CSS)**: The diagnostics event panel consumes its own wheel gestures and the preview-wide native zoom listener explicitly excludes the diagnostics subtree. Contained overscroll and vertical touch handling prevent scroll chaining into media controls.
+- **User impact**: Reading or scrolling playback logs no longer changes preview zoom, while the same media zoom behavior remains available outside the log overlay.
+
+### 3. Verification and Release Integrity
+- **Verification**: TypeScript compilation, Rust compilation, quality suite, and locale audit pass. The in-session live YouTube audit exposed real multi-format results through 2160p rather than a one-card 360p cache fallback; the desktop CDP endpoint later became unavailable without restarting the user application.
+- **Release metadata**: Version advanced to `3.9.56` across the desktop package, Tauri configuration, and Cargo metadata.
+
+---
+
 ## v3.9.55 — Responsive Remote Inspection Cancellation
 
 ### 1. Single-Flight Remote URL Inspection

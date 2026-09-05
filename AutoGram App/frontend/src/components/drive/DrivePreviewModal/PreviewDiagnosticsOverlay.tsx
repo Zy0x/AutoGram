@@ -51,6 +51,7 @@ export function PreviewDiagnosticsOverlay({
       aria-label={t('drive.preview_log_title')}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
+      onWheel={(event) => event.stopPropagation()}
     >
       <div className="drive-preview-info-head">
         <strong className="drive-preview-info-title">{t('drive.preview_log_title')}</strong>

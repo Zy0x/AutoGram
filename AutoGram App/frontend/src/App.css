@@ -26552,6 +26552,8 @@ input[type="search"]::-webkit-search-decoration {
   line-height: 1.42;
   z-index: 51;
   pointer-events: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .drive-preview-diagnostics-actions {
   display: inline-flex;

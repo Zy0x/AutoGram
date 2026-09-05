@@ -137,6 +137,8 @@ export interface ResolvedMediaItem {
 
 export interface ResolveOptions {
   passcode?: string;
+  /** Explicit user re-inspection: bypass the short-lived resolved-result cache. */
+  forceRefresh?: boolean;
   /** Continue a bounded public discovery session from a previous result. */
   discoveryCursor?: unknown;
 }

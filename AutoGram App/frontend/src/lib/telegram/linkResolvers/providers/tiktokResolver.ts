@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, QualityTier, RawStreamItem, SubtitleTrackItem } from '../types';
+import type { LinkResolverProvider, ResolvedMediaInfo, ResolveOptions, StreamQualityFormat, QualityTier, RawStreamItem, SubtitleTrackItem } from '../types';
 import { fetchYtDlpMedia, processYtDlpData } from './youtubeResolver';
 
 function qualityTierForMeasuredHeight(height?: number): QualityTier {
@@ -34,7 +34,7 @@ export const tiktokResolver: LinkResolverProvider = {
     return u.includes('tiktok.com') || u.includes('douyin.com');
   },
 
-  async resolve(url: string, signal?: AbortSignal): Promise<ResolvedMediaInfo | null> {
+  async resolve(url: string, signal?: AbortSignal, options?: ResolveOptions): Promise<ResolvedMediaInfo | null> {
     const cleanUrl = url.trim();
 
     // 0. Profile URL handler (e.g. https://www.tiktok.com/@tokyo.prompt or https://www.tiktok.com/@izuru.01)
@@ -219,7 +219,7 @@ export const tiktokResolver: LinkResolverProvider = {
     // formats, codecs, dimensions, bitrates and subtitle/audio tracks rather
     // than deriving 1080p or 320 kbps from a page title or URL shape.
     try {
-      const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal);
+      const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal, Boolean(options?.forceRefresh));
       if (ytDlpData) {
         const formats: StreamQualityFormat[] = [];
         const subtitles: SubtitleTrackItem[] = [];
