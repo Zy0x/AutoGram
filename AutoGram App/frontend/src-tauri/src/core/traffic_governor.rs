@@ -215,7 +215,8 @@ pub fn is_data_saver_enabled() -> bool {
 }
 
 /// Returns pacing delay in ms if Data Saver mode is enabled and the preview
-/// player already holds a generous buffer runway (>= 40.0s) ahead of current playback.
+/// player already holds a generous buffer runway (>= 40.0s) ahead of current playback,
+/// or when paused/idle with comfortable buffer (>= 25.0s).
 pub fn stream_buffer_pacing_ms() -> Option<u64> {
     let guard = state().lock();
     if !guard.data_saver_enabled {
@@ -226,14 +227,13 @@ pub fn stream_buffer_pacing_ms() -> Option<u64> {
     if !preview_alive {
         return None;
     }
-    // Only pace when preview is actively playing with verified TimeRanges from the DOM
-    if guard.preview_observation.as_deref() != Some("measured") {
-        return None;
-    }
-    if let Some(runway) = guard.preview_runway_seconds {
-        if runway >= DATA_SAVER_HIGH_WATERMARK_SECONDS {
-            return Some(350);
-        }
+    let is_measured_and_full = guard.preview_observation.as_deref() == Some("measured")
+        && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_HIGH_WATERMARK_SECONDS);
+    let is_idle_and_buffered = guard.preview_observation.as_deref() == Some("idle")
+        && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_LOW_WATERMARK_SECONDS);
+
+    if is_measured_and_full || is_idle_and_buffered {
+        return Some(350);
     }
     None
 }
@@ -245,10 +245,12 @@ fn governor_reason(state: &GovernorState, now: u64) -> &'static str {
     if now.saturating_sub(state.preview_active_at_ms) > 15_000 {
         return "throughput_plateau_probe";
     }
-    if state.data_saver_enabled
-        && state.preview_observation.as_deref() == Some("measured")
-        && state.preview_runway_seconds.is_some_and(|runway| runway >= DATA_SAVER_HIGH_WATERMARK_SECONDS)
-    {
+    let is_saturated = state.data_saver_enabled
+        && ((state.preview_observation.as_deref() == Some("measured")
+            && state.preview_runway_seconds.is_some_and(|runway| runway >= DATA_SAVER_HIGH_WATERMARK_SECONDS))
+            || (state.preview_observation.as_deref() == Some("idle")
+                && state.preview_runway_seconds.is_some_and(|runway| runway >= DATA_SAVER_LOW_WATERMARK_SECONDS)));
+    if is_saturated {
         return "preview_data_saver_saturated";
     }
     match state.preview_runway_seconds {
@@ -313,8 +315,10 @@ pub fn snapshot() -> TrafficSnapshot {
     let preview_alive = now.saturating_sub(guard.preview_active_at_ms) <= 15_000;
     let buffer_saturated = preview_alive
         && guard.data_saver_enabled
-        && guard.preview_observation.as_deref() == Some("measured")
-        && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_HIGH_WATERMARK_SECONDS);
+        && ((guard.preview_observation.as_deref() == Some("measured")
+            && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_HIGH_WATERMARK_SECONDS))
+            || (guard.preview_observation.as_deref() == Some("idle")
+                && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_LOW_WATERMARK_SECONDS)));
     TrafficSnapshot {
         upload: lane_snapshot(&guard.upload, now),
         download: lane_snapshot(&guard.download, now),
@@ -404,6 +408,11 @@ mod tests {
         let snap = snapshot();
         assert!(snap.buffer_saturated);
         assert_eq!(snap.governor_reason, "preview_data_saver_saturated");
+
+        // When paused (idle) but with comfortable buffer, it still paces
+        observe_preview(Some(30.0), false);
+        assert_eq!(stream_buffer_pacing_ms(), Some(350));
+        assert!(snapshot().buffer_saturated);
 
         // When runway drops, pacing clears
         observe_preview(Some(15.0), true);

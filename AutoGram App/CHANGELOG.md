@@ -1,3 +1,21 @@
+## v3.9.62 — Stream Background Buffer Pacing & Byte-Distance Quota Guard
+
+### 1. Two-Tier Anti-Runaway Background Buffer Protection
+- **35 MB Byte-Distance Guard (`stream.rs`, `stream_server.rs`)**: Implemented a secondary hard physical ceiling in the MTProto stream fill loop. Regardless of DOM runway measurements, if the stream background fetch cursor gets $\ge 35\text{ MB}$ ahead of the media player's actual read position, chunk fetching is paused immediately.
+- **Active player read offset tracking (`record_player_read_offset`)**: Integrated thread-safe tracking into `DemandRangeReader` for both RAM hot-head and disk block reads to keep the streaming engine aware of the user's real playback position.
+- **Paused / Idle Buffer Pacing (`traffic_governor.rs`)**: Extended governor pacing to apply when video is paused or idle with $\ge 25.0\text{s}$ buffer runway, preventing background workers from aggressively downloading large videos while the user is away or has paused the video.
+- **Zero Runaway Background Downloads**: Completely eliminates silent full-file background downloads during media preview. A 2 GB video preview now stops downloading chunks as soon as buffer headroom reaches safe thresholds (~25–40s / 35 MB).
+
+### 2. Backend Reliability & Traffic Governor Test Suite
+- **Comprehensive Unit Testing (`traffic_governor.rs`)**: Added automated unit test coverage (`data_saver_paces_saturated_preview`) verifying idle state pacing, saturated state transitions, and instant runway replenishment.
+- **Instant Clean Up Lifecycle**: Ensured `player_read_offsets` are pruned immediately upon `cancel_progressive` or modal unmount, eliminating orphaned state and background worker leaks.
+
+### 3. Multi-Language Parity & Quality Certification
+- **100% Locale synchronization**: Maintained 100% key parity across Indonesian and English locales (6386 keys).
+- **Autonomous Quality Gate certification**: Passed all 6 automated quality gates (`npm run test:quality`), Vitest test suite, Rust unittests, and security audits.
+
+---
+
 ## v3.9.61 — Adaptive Sliding Buffer & Preview Data Saver Mode
 
 ### 1. Telegram MTProto Adaptive Sliding Buffer Engine

@@ -48,6 +48,17 @@ fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
     REQUESTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+fn player_read_offsets() -> &'static Mutex<HashMap<String, u64>> {
+    static OFFSETS: OnceLock<Mutex<HashMap<String, u64>>> = OnceLock::new();
+    OFFSETS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn record_player_read_offset(sid: &str, offset: u64) {
+    let mut map = player_read_offsets().lock();
+    let current = map.entry(sid.to_string()).or_insert(0);
+    *current = (*current).max(offset);
+}
+
 pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
     stream_server::record_stream_activity();
     if let Some(mut e) = stream_server::get_entry(stream_id) {
@@ -161,6 +172,7 @@ fn take_cancel_if_current(sid: &str, flag: &Arc<AtomicBool>) -> bool {
 
 pub fn cancel_progressive(stream_id: &str) -> bool {
     seek_requests().lock().remove(stream_id);
+    player_read_offsets().lock().remove(stream_id);
     let mut hit = false;
     if let Some(f) = cancel_flags().lock().get(stream_id) {
         f.store(true, Ordering::SeqCst);
@@ -196,6 +208,7 @@ pub fn clear_runtime_preview_cache() -> usize {
     }
     cancel_flags().lock().clear();
     seek_requests().lock().clear();
+    player_read_offsets().lock().clear();
     live_preview_map().lock().clear();
     preview_inflight().lock().clear();
     cancelled
@@ -2097,6 +2110,24 @@ fn start_preview_stream_inner(
                             tokio::time::sleep(Duration::from_millis(40)).await;
                         }
                         continue;
+                    }
+
+                    // 2c. Byte-distance Data Saver cap:
+                    // If the fill cursor has already reached >= 35 MB ahead of the player's last read offset,
+                    // pause fetching to protect user quota even if duration/runway is not observable.
+                    if crate::core::traffic_governor::is_data_saver_enabled() {
+                        const MAX_DATA_SAVER_AHEAD_BYTES: u64 = 35 * 1024 * 1024; // 35 MB
+                        let last_read = player_read_offsets().lock().get(&sid).copied().unwrap_or(0);
+                        if cursor > last_read && (cursor - last_read) >= MAX_DATA_SAVER_AHEAD_BYTES {
+                            let sleep_until = tokio::time::Instant::now() + Duration::from_millis(300);
+                            while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
+                                if seek_requests().lock().contains_key(&sid) {
+                                    break;
+                                }
+                                tokio::time::sleep(Duration::from_millis(40)).await;
+                            }
+                            continue;
+                        }
                     }
 
                     // 3. Find next missing offset starting from current cursor position

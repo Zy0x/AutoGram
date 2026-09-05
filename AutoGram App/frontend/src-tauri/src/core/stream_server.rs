@@ -360,6 +360,7 @@ impl Read for DemandRangeReader {
                             let start_idx = self.position as usize;
                             output[..ram_count].copy_from_slice(&hot_head[start_idx..start_idx + ram_count]);
                             self.position = self.position.saturating_add(ram_count as u64);
+                            crate::core::grammers::stream::record_player_read_offset(&self.stream_id, self.position);
                             crate::core::traffic_governor::record_bytes(
                                 crate::core::traffic_governor::TransferDirection::Stream,
                                 ram_count as u64,
@@ -376,6 +377,7 @@ impl Read for DemandRangeReader {
                     put_hot_head(&self.stream_id, &output[..read]);
                 }
                 self.position = self.position.saturating_add(read as u64);
+                crate::core::grammers::stream::record_player_read_offset(&self.stream_id, self.position);
                 crate::core::traffic_governor::record_bytes(
                     crate::core::traffic_governor::TransferDirection::Stream,
                     read as u64,
