@@ -7,6 +7,7 @@ export type SubMenuCategory =
   | 'albums'
   | 'duplicates'
   | 'download'
+  | 'playback'
   | 'limits_recovery'
   | 'advanced'
   | 'network'
@@ -143,6 +144,15 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       label: String(t('drive.download_reliability_title')),
       description: String(t('drive.download_reliability_desc')),
       keywords: ['conflict', 'rename', 'overwrite', 'ask', 'integrity', 'sha256', 'resume'],
+    },
+    {
+      id: 'playback-settings',
+      tab: 'playback',
+      mode: 'basic',
+      sectionId: 'section-playback-settings',
+      label: String(t('drive.remember_playback_position_title')),
+      description: String(t('drive.remember_playback_position_desc')),
+      keywords: ['playback', 'pemutaran', 'resume', 'posisi', 'video', 'audio', 'remember', 'ingat', 'runway', 'buffer'],
     },
     {
       id: 'limits-recovery',

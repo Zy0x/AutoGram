@@ -1,3 +1,19 @@
+## v3.9.59 — Dedicated Playback Settings Menu & Navigation Architecture
+
+### 1. Dedicated Playback Settings Menu ("Playback")
+- **Settings navigation re-architecture (`TransferSettingsWorkspace`, `DriveToolsModal`, `transferSettingsSearchRegistry`)**: Relocated `rememberPlaybackPosition` (resume playback for Drive audio/video) out of the generic Download tab into a new first-class settings category: **"Playback"** (id: `playback`).
+- **Comprehensive playback settings panel**: Designed a dedicated Playback focused workspace equipped with:
+  - Resume playback position toggle (`rememberPlaybackPosition`) with 90-day automatic expiration guarantee.
+  - Zero-credential local storage guarantee notice (verifying that no URLs, session tokens, or local absolute paths are stored).
+  - Buffer telemetry and playable runway diagnostics guide linking users directly to the in-player Log overlay (shortcut `L`).
+- **Settings search & quick navigation**: Integrated `playback` tab into `transferSettingsSearchRegistry` with localized keywords (`playback`, `pemutaran`, `resume`, `posisi`, `video`, `audio`, `remember`, `ingat`, `runway`, `buffer`) for instant search discovery.
+
+### 2. Multi-Language & Component Parity
+- **100% Locale synchronization (`drive.json`, `drive_tools.json`)**: Added localized titles, subtitles, and telemetry descriptions in Indonesian and English with zero hardcoded strings.
+- **Section reset governance**: Added isolated reset handling for `playback` (`resetCurrentSection('playback')`) without polluting download configuration fields.
+
+---
+
 ## v3.9.58 — Telemetry Coverage Hardening, Scroll Restoration Guard & Adaptive Stream Reporting
 
 ### 1. Telemetry Coverage & Playable Runway Accuracy

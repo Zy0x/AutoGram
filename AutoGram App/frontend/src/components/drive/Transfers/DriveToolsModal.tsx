@@ -811,6 +811,11 @@ export function TransferSettingsWorkspace({
           notifyDownloadDone: defaults.notifyDownloadDone,
         };
         break;
+      case 'playback':
+        sectionFields = {
+          rememberPlaybackPosition: defaults.rememberPlaybackPosition,
+        };
+        break;
       case 'encoding':
         sectionFields = {
           reencodeHardware: defaults.reencodeHardware,
@@ -961,6 +966,7 @@ export function TransferSettingsWorkspace({
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
     { id: 'upload', label: t('drive.tools_tab_upload'), desc: t('drive.tools_tab_upload_desc'), icon: Upload },
     { id: 'download', label: t('drive.tools_tab_download'), desc: t('drive.tools_tab_download_desc'), icon: Download },
+    { id: 'playback', label: t('drive.tools_tab_playback'), desc: t('drive.tools_tab_playback_desc'), icon: PlaySquare },
     { id: 'encoding', label: t('drive.tools_tab_encoding'), desc: t('drive.tools_tab_encoding_desc'), icon: Film },
     { id: 'albums', label: t('drive.tools_tab_album'), desc: t('drive.tools_tab_album_desc'), icon: FolderTree },
     { id: 'duplicates', label: t('drive.tools_tab_duplicate'), desc: t('drive.tools_tab_duplicate_desc'), icon: CopyCheck },
@@ -1951,6 +1957,103 @@ export function TransferSettingsWorkspace({
                     />
                   </label>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DEDICATED PAGE: PLAYBACK */}
+        {activeTab === 'playback' && (
+          <div className="td-xfer-focused-panel" id="section-playback-settings">
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <PlaySquare size={18} style={{ color: '#38bdf8' }} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    {t('drive.tab_playback_title')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('drive.tab_playback_desc')}
+                  </p>
+                </div>
+              </div>
+
+              {/* SUB-SECTION: RESUME PLAYBACK POSITION */}
+              <div className="td-settings-subcard">
+                <div className="td-switches-list">
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('drive.remember_playback_position_title')}</strong>
+                      <p>{t('drive.remember_playback_position_desc')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.rememberPlaybackPosition !== false}
+                      onChange={(e) => patch({ rememberPlaybackPosition: e.target.checked })}
+                    />
+                  </label>
+                </div>
+
+                {/* PRIVACY & STORAGE INFO BADGE */}
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.06)',
+                    border: '1px solid rgba(56, 189, 248, 0.16)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    fontSize: '0.82rem',
+                    color: '#94a3b8',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <Activity size={16} style={{ color: '#38bdf8', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>
+                      {t('drive.playback_resume_storage_title')}
+                    </strong>
+                    {t('drive.playback_resume_storage_desc')}
+                  </div>
+                </div>
+              </div>
+
+              {/* SUB-SECTION: PLAYBACK DIAGNOSTICS & TELEMETRY */}
+              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <Activity size={16} style={{ color: '#38bdf8' }} />
+                  <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>
+                    {t('drive.playback_telemetry_title')}
+                  </strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                  {t('drive.playback_telemetry_desc')}
+                </p>
               </div>
             </div>
           </div>
