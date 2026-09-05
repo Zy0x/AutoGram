@@ -65,7 +65,7 @@ import {
   getSessionMetadata,
   type SessionOption,
 } from '../../../lib/telegram/core/sessionPicker';
-import { configureTrafficGovernor } from '../../../lib/tauri/rustBackend';
+import { configureTrafficGovernor, setTrafficGovernorDataSaver } from '../../../lib/tauri/rustBackend';
 
 function getEffectiveCaptionPosition(draft: { captionPosition?: CaptionPosition; captionAbove?: boolean }): CaptionPosition {
   if (draft.captionPosition) return draft.captionPosition;
@@ -918,7 +918,8 @@ export function TransferSettingsWorkspace({
   // above the Transfer Settings selected by the user.
   useEffect(() => {
     void configureTrafficGovernor(draft.uploadConcurrency, draft.downloadConcurrency);
-  }, [draft.downloadConcurrency, draft.uploadConcurrency]);
+    void setTrafficGovernorDataSaver(draft.playbackDataSaver !== false);
+  }, [draft.downloadConcurrency, draft.uploadConcurrency, draft.playbackDataSaver]);
 
   const patch = (partial: Partial<DriveTransferSettings>) => {
     setDraft((prev) => {
@@ -976,6 +977,7 @@ export function TransferSettingsWorkspace({
       case 'playback':
         sectionFields = {
           rememberPlaybackPosition: defaults.rememberPlaybackPosition,
+          playbackDataSaver: defaults.playbackDataSaver,
         };
         break;
       case 'encoding':
@@ -2210,6 +2212,18 @@ export function TransferSettingsWorkspace({
                       type="checkbox"
                       checked={draft.rememberPlaybackPosition !== false}
                       onChange={(e) => patch({ rememberPlaybackPosition: e.target.checked })}
+                    />
+                  </label>
+
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('drive.playback_data_saver_title')}</strong>
+                      <p>{t('drive.playback_data_saver_desc')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.playbackDataSaver !== false}
+                      onChange={(e) => patch({ playbackDataSaver: e.target.checked })}
                     />
                   </label>
                 </div>

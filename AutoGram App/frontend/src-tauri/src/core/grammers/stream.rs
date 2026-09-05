@@ -2085,6 +2085,20 @@ fn start_preview_stream_inner(
                         );
                     }
 
+                    // 2b. Data Saver adaptive buffer pacing (Sliding Buffer Window)
+                    // If the browser already holds >= 40.0s of playable buffer, pause
+                    // MTProto requests to avoid wasting bandwidth during quick previews.
+                    if let Some(pacing_ms) = crate::core::traffic_governor::stream_buffer_pacing_ms() {
+                        let sleep_until = tokio::time::Instant::now() + Duration::from_millis(pacing_ms);
+                        while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
+                            if seek_requests().lock().contains_key(&sid) {
+                                break;
+                            }
+                            tokio::time::sleep(Duration::from_millis(40)).await;
+                        }
+                        continue;
+                    }
+
                     // 3. Find next missing offset starting from current cursor position
                     let next_offset = match find_missing_offset_from(&ranges, cursor, size) {
                         Some(off) => off,

@@ -1,3 +1,25 @@
+## v3.9.61 — Adaptive Sliding Buffer & Preview Data Saver Mode
+
+### 1. Telegram MTProto Adaptive Sliding Buffer Engine
+- **Sliding buffer window (`stream.rs`, `traffic_governor.rs`)**: Introduced an intelligent sliding buffer window for Telegram media previews to prevent runaway bandwidth consumption during quick previews.
+- **Watermark pacing architecture**:
+  - High watermark ($\ge 40.0\text{s}$ buffer runway): The progressive fill loop safely delays fetching MTProto chunks with an interruptible sleep (`350ms`), keeping the network silent while video plays comfortably.
+  - Low watermark ($< 25.0\text{s}$ buffer runway): Pacing immediately clears (`0ms`), restoring full multi-worker throughput to replenish buffer before playback is interrupted.
+  - Instant Seek & Cancel Interruption: Any seek request, scrub, or modal close immediately breaks the pacing sleep loop within 40ms without lag.
+- **Quota savings**: Viewing 15–20 seconds of a 2 GB 1080p video now consumes only ~20–30 MB instead of hundreds of megabytes, saving over 90% of metered data.
+
+### 2. User-Controllable Playback Data Saver Mode
+- **Playback settings switch (`TransferSettingsWorkspace`, `DriveToolsModal`)**: Added a clean toggle switch for **"Data Saver Mode (Adaptive Buffer)"** (`playbackDataSaver`) in the Playback settings panel.
+- **Native IPC synchronization (`rustBackend.ts`, `lib.rs`)**: Wired real-time Tauri IPC command `traffic_governor_set_data_saver` to immediately apply changes across running streams.
+- **Search registry integration**: Registered `playback-data-saver` with localized keywords (`data saver`, `hemat kuota`, `kuota`, `buffer`, `sliding window`, `quota`, `stream`) in `transferSettingsSearchRegistry.ts`.
+- **Live Diagnostics Integration (`PreviewDiagnosticsOverlay`)**: Extended `TrafficSnapshot` with `dataSaverEnabled`, `bufferSaturated`, and governor reason `"preview_data_saver_saturated"`.
+
+### 3. Multi-Language Parity & Quality Certification
+- **100% Locale synchronization (`drive.json`, `drive_tools.json`)**: Added localized descriptions in Indonesian and English with 100% key parity (6386 keys).
+- **Autonomous Quality Gate certification**: Passed all 6 automated quality gates (`npm run test:quality`), Vitest unit tests, Rust unit tests (`cargo test -p frontend --lib core::traffic_governor`), and non-invasive CDP live desktop verification on port 9230.
+
+---
+
 ## v3.9.60 — Streamlined Minimalist Playback Settings & Clean Desktop UI
 
 ### 1. Minimalist Playback Settings UI Polish

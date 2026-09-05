@@ -155,6 +155,15 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       keywords: ['playback', 'pemutaran', 'resume', 'posisi', 'video', 'audio', 'remember', 'ingat', 'runway', 'buffer'],
     },
     {
+      id: 'playback-data-saver',
+      tab: 'playback',
+      mode: 'basic',
+      sectionId: 'section-playback-data-saver',
+      label: String(t('drive.playback_data_saver_title')),
+      description: String(t('drive.playback_data_saver_desc')),
+      keywords: ['data saver', 'hemat kuota', 'kuota', 'buffer', 'sliding window', 'quota', 'stream', 'video preview'],
+    },
+    {
       id: 'limits-recovery',
       tab: 'limits_recovery',
       mode: 'advanced',

@@ -1219,6 +1219,11 @@ fn traffic_governor_configure(upload_concurrency: u32, download_concurrency: u32
 }
 
 #[tauri::command]
+fn traffic_governor_set_data_saver(enabled: bool) {
+    core::traffic_governor::set_data_saver(enabled);
+}
+
+#[tauri::command]
 fn stream_register_local(
     path: String,
     total_size: Option<u64>,
@@ -3104,6 +3109,7 @@ pub fn run() {
             preview_diagnostics_clear,
             preview_traffic_observe,
             traffic_governor_configure,
+            traffic_governor_set_data_saver,
             stream_register_local,
             stream_unregister,
             zip_list_local,

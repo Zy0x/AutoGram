@@ -2054,6 +2054,8 @@
   "clear_playback_history": "Hapus riwayat",
   "clear_playback_history_done": "Riwayat pemutaran telah dihapus.",
   "playback_hint_shortcut": "Tekan pintasan 'L' saat memutar video untuk membuka log telemetri buffer & runway.",
+  "playback_data_saver_title": "Mode Hemat Kuota (Adaptive Buffer)",
+  "playback_data_saver_desc": "Batasi buffer pratinjau video hingga ~40 detik di depan posisi pemutaran untuk menghemat kuota internet dan mencegah pengunduhan seluruh berkas saat hanya melihat cuplikan.",
   "preview_log_waiting_metadata": "Menunggu metadata",
   "preview_log_idle": "Tidak diputar",
   "preview_log_not_observable": "Tidak dapat diobservasi",

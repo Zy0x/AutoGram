@@ -117,6 +117,8 @@ export type TrafficSnapshot = {
   floodWaitSeconds?: number | null;
   /** Browser-side or backend state for preview observability. */
   previewObservation?: 'waiting_metadata' | 'idle' | 'not_observable' | 'measured' | 'complete' | string | null;
+  dataSaverEnabled?: boolean;
+  bufferSaturated?: boolean;
 };
 
 export type PreviewDiagnosticsSnapshot = {
@@ -177,6 +179,15 @@ export async function configureTrafficGovernor(
     });
   } catch {
     // Transfer settings remain usable even if an older native backend is running.
+  }
+}
+
+export async function setTrafficGovernorDataSaver(enabled: boolean): Promise<void> {
+  if (!detectTauriRuntime()) return;
+  try {
+    await invoke<void>('traffic_governor_set_data_saver', { enabled });
+  } catch {
+    // Graceful fallback on older backends
   }
 }
 

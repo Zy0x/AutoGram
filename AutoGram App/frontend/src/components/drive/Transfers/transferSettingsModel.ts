@@ -193,6 +193,7 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const playbackZeroCopy = base.playbackZeroCopy !== false;
   const playbackShowDiagnostics = Boolean(base.playbackShowDiagnostics);
   const rememberPlaybackPosition = base.rememberPlaybackPosition !== false;
+  const playbackDataSaver = base.playbackDataSaver !== false;
   const remoteHideManifests = base.remoteHideManifests !== false;
   const hideRestrictedMedia = base.hideRestrictedMedia !== false;
   const ytdlpEnabled = base.ytdlpEnabled !== false;
@@ -228,6 +229,7 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     playbackZeroCopy,
     playbackShowDiagnostics,
     rememberPlaybackPosition,
+    playbackDataSaver,
     remoteHideManifests,
     hideRestrictedMedia,
     ytdlpEnabled,

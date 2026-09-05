@@ -2054,6 +2054,8 @@
   "clear_playback_history": "Clear history",
   "clear_playback_history_done": "Playback history was cleared.",
   "playback_hint_shortcut": "Press shortcut 'L' during video playback to view live buffer telemetry & runway.",
+  "playback_data_saver_title": "Data Saver Mode (Adaptive Buffer)",
+  "playback_data_saver_desc": "Limit video preview buffer to ~40 seconds ahead of playback position to save data quota and prevent full-file downloads during quick previews.",
   "preview_log_waiting_metadata": "Waiting for metadata",
   "preview_log_idle": "Not playing",
   "preview_log_not_observable": "Not observable",

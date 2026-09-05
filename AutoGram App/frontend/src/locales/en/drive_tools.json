@@ -2016,5 +2016,7 @@
   "remote_spec_media_item": "Media Item",
   "remote_format_download_only": "Download only",
   "remote_format_preview_unavailable": "Preview unavailable for this format",
-  "playback_hint_shortcut": "Press shortcut 'L' during video playback to view live buffer telemetry & runway."
+  "playback_hint_shortcut": "Press shortcut 'L' during video playback to view live buffer telemetry & runway.",
+  "playback_data_saver_title": "Data Saver Mode (Adaptive Buffer)",
+  "playback_data_saver_desc": "Limit video preview buffer to ~40 seconds ahead of playback position to save data quota and prevent full-file downloads during quick previews."
 }

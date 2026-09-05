@@ -45,6 +45,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { clearPlaybackHistory } from '../../../lib/telegram/cache/playbackHistory';
+import { setTrafficGovernorDataSaver } from '../../../lib/tauri/rustBackend';
 import type {
   CaptionPosition,
   DriveTransferSettings,
@@ -836,6 +837,7 @@ export function TransferSettingsWorkspace({
       case 'playback':
         sectionFields = {
           rememberPlaybackPosition: defaults.rememberPlaybackPosition,
+          playbackDataSaver: defaults.playbackDataSaver,
         };
         break;
       case 'encoding':
@@ -2036,6 +2038,21 @@ export function TransferSettingsWorkspace({
                       type="checkbox"
                       checked={draft.rememberPlaybackPosition !== false}
                       onChange={(e) => patch({ rememberPlaybackPosition: e.target.checked })}
+                    />
+                  </label>
+
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('drive.playback_data_saver_title')}</strong>
+                      <p>{t('drive.playback_data_saver_desc')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.playbackDataSaver !== false}
+                      onChange={(e) => {
+                        patch({ playbackDataSaver: e.target.checked });
+                        void setTrafficGovernorDataSaver(e.target.checked);
+                      }}
                     />
                   </label>
                 </div>

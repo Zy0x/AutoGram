@@ -13,6 +13,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 const ACTIVE_WINDOW_MS: u64 = 3_000;
 const CRITICAL_RUNWAY_SECONDS: f64 = 4.0;
 const RECOVERY_RUNWAY_SECONDS: f64 = 10.0;
+const DATA_SAVER_HIGH_WATERMARK_SECONDS: f64 = 40.0;
+const DATA_SAVER_LOW_WATERMARK_SECONDS: f64 = 25.0;
 
 #[derive(Debug, Clone, Copy)]
 pub enum TransferDirection {
@@ -53,6 +55,8 @@ pub struct TrafficSnapshot {
     pub dc_latency_ms: Option<u64>,
     pub flood_wait_seconds: Option<u64>,
     pub preview_observation: Option<String>,
+    pub data_saver_enabled: bool,
+    pub buffer_saturated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +90,7 @@ struct GovernorState {
     preview_active_at_ms: u64,
     dc_latency_ms: Option<u64>,
     flood_wait_until_ms: Option<u64>,
+    data_saver_enabled: bool,
 }
 
 impl Default for GovernorState {
@@ -107,6 +112,7 @@ impl Default for GovernorState {
             preview_active_at_ms: 0,
             dc_latency_ms: None,
             flood_wait_until_ms: None,
+            data_saver_enabled: true,
         }
     }
 }
@@ -199,12 +205,51 @@ pub fn record_flood_wait(wait_seconds: Option<u64>) {
         .map(|value| now_ms().saturating_add(value.saturating_mul(1_000)));
 }
 
+pub fn set_data_saver(enabled: bool) {
+    let mut guard = state().lock();
+    guard.data_saver_enabled = enabled;
+}
+
+pub fn is_data_saver_enabled() -> bool {
+    state().lock().data_saver_enabled
+}
+
+/// Returns pacing delay in ms if Data Saver mode is enabled and the preview
+/// player already holds a generous buffer runway (>= 40.0s) ahead of current playback.
+pub fn stream_buffer_pacing_ms() -> Option<u64> {
+    let guard = state().lock();
+    if !guard.data_saver_enabled {
+        return None;
+    }
+    let now = now_ms();
+    let preview_alive = now.saturating_sub(guard.preview_active_at_ms) <= 15_000;
+    if !preview_alive {
+        return None;
+    }
+    // Only pace when preview is actively playing with verified TimeRanges from the DOM
+    if guard.preview_observation.as_deref() != Some("measured") {
+        return None;
+    }
+    if let Some(runway) = guard.preview_runway_seconds {
+        if runway >= DATA_SAVER_HIGH_WATERMARK_SECONDS {
+            return Some(350);
+        }
+    }
+    None
+}
+
 fn governor_reason(state: &GovernorState, now: u64) -> &'static str {
     if state.flood_wait_until_ms.is_some_and(|until| until > now) {
         return "telegram_cooldown";
     }
     if now.saturating_sub(state.preview_active_at_ms) > 15_000 {
         return "throughput_plateau_probe";
+    }
+    if state.data_saver_enabled
+        && state.preview_observation.as_deref() == Some("measured")
+        && state.preview_runway_seconds.is_some_and(|runway| runway >= DATA_SAVER_HIGH_WATERMARK_SECONDS)
+    {
+        return "preview_data_saver_saturated";
     }
     match state.preview_runway_seconds {
         Some(runway) if runway < CRITICAL_RUNWAY_SECONDS => "preview_runway_critical",
@@ -266,6 +311,10 @@ pub fn snapshot() -> TrafficSnapshot {
     let guard = state().lock();
     let now = now_ms();
     let preview_alive = now.saturating_sub(guard.preview_active_at_ms) <= 15_000;
+    let buffer_saturated = preview_alive
+        && guard.data_saver_enabled
+        && guard.preview_observation.as_deref() == Some("measured")
+        && guard.preview_runway_seconds.is_some_and(|r| r >= DATA_SAVER_HIGH_WATERMARK_SECONDS);
     TrafficSnapshot {
         upload: lane_snapshot(&guard.upload, now),
         download: lane_snapshot(&guard.download, now),
@@ -285,6 +334,8 @@ pub fn snapshot() -> TrafficSnapshot {
         } else {
             None
         },
+        data_saver_enabled: guard.data_saver_enabled,
+        buffer_saturated,
     }
 }
 
@@ -341,5 +392,27 @@ mod tests {
         assert_eq!(stream_worker_limit(), 1);
         observe_preview(Some(7.0), true);
         assert_eq!(stream_worker_limit(), 2);
+    }
+
+    #[test]
+    fn data_saver_paces_saturated_preview() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
+        set_data_saver(true);
+        observe_preview(Some(45.0), true);
+        assert_eq!(stream_buffer_pacing_ms(), Some(350));
+        let snap = snapshot();
+        assert!(snap.buffer_saturated);
+        assert_eq!(snap.governor_reason, "preview_data_saver_saturated");
+
+        // When runway drops, pacing clears
+        observe_preview(Some(15.0), true);
+        assert_eq!(stream_buffer_pacing_ms(), None);
+        assert!(!snapshot().buffer_saturated);
+
+        // When data saver is disabled, pacing never triggers
+        set_data_saver(false);
+        observe_preview(Some(50.0), true);
+        assert_eq!(stream_buffer_pacing_ms(), None);
     }
 }

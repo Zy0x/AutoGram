@@ -982,6 +982,8 @@ export type DriveTransferSettings = {
   playbackShowDiagnostics?: boolean;
   /** Remember the last local audio/video position for this account and file. */
   rememberPlaybackPosition?: boolean;
+  /** Adaptive Data Saver: limits video preview buffer to ~40s ahead of playback position to save data quota. */
+  playbackDataSaver?: boolean;
   /** Automatically filter out and hide restricted/inaccessible messages and media (e.g. "This channel can't be displayed...") */
   hideRestrictedMedia?: boolean;
   /** Remote URL transport preference. Auto uses cloud fetch for known <=20 MiB direct files. */
@@ -1097,6 +1099,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   playbackSeekCacheMb: 256,
   playbackShowDiagnostics: false,
   rememberPlaybackPosition: true,
+  playbackDataSaver: true,
   hideRestrictedMedia: true,
   remoteEngineMode: 'auto',
   remoteHideManifests: true,
