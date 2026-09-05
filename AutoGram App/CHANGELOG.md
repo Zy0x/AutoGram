@@ -1,3 +1,17 @@
+## v3.9.60 — Streamlined Minimalist Playback Settings & Clean Desktop UI
+
+### 1. Minimalist Playback Settings UI Polish
+- **Header redundancy elimination (`TransferSettingsWorkspace`, `DriveToolsModal`)**: Conditioned the inner workspace header on `{!embedded}`, preventing stacked duplicate titles and descriptions when the Playback settings tab is opened within `DriveToolsPanel`.
+- **Streamlined single-card layout**: Replaced verbose multi-paragraph explanation blocks ("Local Position History Storage" and "Buffer Diagnostics & Playable Runway") with a unified, clean settings card.
+- **Direct action row**: Added a compact, discrete "Clear history" button directly into the Playback card alongside the "Remember playback position" toggle, providing immediate user actionability and state feedback.
+- **Non-intrusive diagnostics shortcut hint**: Replaced bulky documentation with a subtle, single-line guide pointing users to shortcut key `L` during video playback for live telemetry and buffer runway graphs.
+
+### 2. Multi-Language Parity & Build Certification
+- **100% Locale synchronization (`drive.json`, `drive_tools.json`)**: Added localized shortcut hint keys (`playback_hint_shortcut`) in Indonesian and English, preserving strict zero hardcoded strings and 100% key parity (6382 keys).
+- **Autonomous Quality Gate certification**: Passed all 6 automated quality gates (`npm run test:quality`), Vitest unit tests, strict TypeScript checks, and live CDP desktop verification on port 9230 without user interruption.
+
+---
+
 ## v3.9.59 — Dedicated Playback Settings Menu & Navigation Architecture
 
 ### 1. Dedicated Playback Settings Menu ("Playback")

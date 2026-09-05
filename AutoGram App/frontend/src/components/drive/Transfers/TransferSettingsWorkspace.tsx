@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Sparkles,
   CheckCircle2,
+  Check,
   FolderTree,
   CopyCheck,
   HardDriveUpload,
@@ -44,6 +45,7 @@ import {
   ShieldCheck,
   Gauge,
 } from 'lucide-react';
+import { clearPlaybackHistory } from '../../../lib/telegram/cache/playbackHistory';
 import type {
   CaptionPosition,
   DriveTransferSettings,
@@ -282,6 +284,25 @@ export function TransferSettingsWorkspace({
   const searchInputId = useId();
 
   // Navigation state: allow 'menu' (main menu overview) or specific sub-menu category
+  const [clearingPlaybackHistory, setClearingPlaybackHistory] = useState(false);
+  const [clearedPlaybackSuccess, setClearedPlaybackSuccess] = useState(false);
+
+  const handleClearPlaybackHistory = () => {
+    if (clearingPlaybackHistory) return;
+    setClearingPlaybackHistory(true);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        clearPlaybackHistory(window.localStorage);
+      }
+      setClearedPlaybackSuccess(true);
+      setTimeout(() => setClearedPlaybackSuccess(false), 2500);
+    } catch {
+      /* ignore */
+    } finally {
+      setClearingPlaybackHistory(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<WorkspaceTabState>(() => propsActiveCategory || 'menu');
 
   useEffect(() => {
@@ -2150,33 +2171,34 @@ export function TransferSettingsWorkspace({
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <PlaySquare size={18} style={{ color: '#38bdf8' }} />
+              {!embedded && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PlaySquare size={18} style={{ color: '#38bdf8' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                      {t('drive.tab_playback_title')}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                      {t('drive.tab_playback_desc')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    {t('drive.tab_playback_title')}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('drive.tab_playback_desc')}
-                  </p>
-                </div>
-              </div>
+              )}
 
-              {/* SUB-SECTION: RESUME PLAYBACK POSITION */}
               <div className="td-settings-subcard">
                 <div className="td-switches-list">
                   <label className="td-switch-row">
@@ -2192,44 +2214,60 @@ export function TransferSettingsWorkspace({
                   </label>
                 </div>
 
-                {/* PRIVACY & STORAGE INFO BADGE */}
                 <div
                   style={{
                     marginTop: '16px',
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.06)',
-                    border: '1px solid rgba(56, 189, 248, 0.16)',
+                    paddingTop: '16px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
                     display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    fontSize: '0.82rem',
-                    color: '#94a3b8',
-                    lineHeight: 1.5,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <Activity size={16} style={{ color: '#38bdf8', flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '2px' }}>
-                      {t('drive.playback_resume_storage_title')}
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                      {t('drive.playback_history_cache_title')}
                     </strong>
-                    {t('drive.playback_resume_storage_desc')}
+                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                      {t('drive.playback_history_cache_desc')}
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleClearPlaybackHistory}
+                    disabled={clearingPlaybackHistory}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: clearedPlaybackSuccess ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.12)',
+                      border: clearedPlaybackSuccess ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(239, 68, 68, 0.3)',
+                      color: clearedPlaybackSuccess ? '#86efac' : '#fca5a5',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {clearingPlaybackHistory ? (
+                      <Loader2 size={13} className="spin" />
+                    ) : clearedPlaybackSuccess ? (
+                      <Check size={13} />
+                    ) : (
+                      <Trash2 size={13} />
+                    )}
+                    <span>{clearedPlaybackSuccess ? t('drive.clear_playback_history_done') : t('drive.clear_playback_history')}</span>
+                  </button>
                 </div>
               </div>
 
-              {/* SUB-SECTION: PLAYBACK DIAGNOSTICS & TELEMETRY */}
-              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <Activity size={16} style={{ color: '#38bdf8' }} />
-                  <strong style={{ fontSize: '0.92rem', color: '#f8fafc' }}>
-                    {t('drive.playback_telemetry_title')}
-                  </strong>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                  {t('drive.playback_telemetry_desc')}
-                </p>
-              </div>
+              <p className="td-xfer-hint" style={{ marginTop: '14px', fontSize: '0.78rem', color: '#64748b' }}>
+                {t('drive.playback_hint_shortcut')}
+              </p>
             </div>
           </div>
         )}

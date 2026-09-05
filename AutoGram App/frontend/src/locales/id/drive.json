@@ -2053,6 +2053,7 @@
   "playback_history_cache_desc": "Posisi terakhir audio dan video Drive untuk setiap akun. Tidak menyimpan URL, token, atau path lokal.",
   "clear_playback_history": "Hapus riwayat",
   "clear_playback_history_done": "Riwayat pemutaran telah dihapus.",
+  "playback_hint_shortcut": "Tekan pintasan 'L' saat memutar video untuk membuka log telemetri buffer & runway.",
   "preview_log_waiting_metadata": "Menunggu metadata",
   "preview_log_idle": "Tidak diputar",
   "preview_log_not_observable": "Tidak dapat diobservasi",

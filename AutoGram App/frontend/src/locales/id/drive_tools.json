@@ -2015,5 +2015,6 @@
   "remote_spec_video_stream": "Aliran Video",
   "remote_spec_media_item": "Item Media",
   "remote_format_download_only": "Hanya untuk diunduh",
-  "remote_format_preview_unavailable": "Pratinjau tidak tersedia untuk format ini"
+  "remote_format_preview_unavailable": "Pratinjau tidak tersedia untuk format ini",
+  "playback_hint_shortcut": "Tekan pintasan 'L' saat memutar video untuk membuka log telemetri buffer & runway."
 }

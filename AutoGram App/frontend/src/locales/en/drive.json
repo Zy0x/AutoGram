@@ -2053,6 +2053,7 @@
   "playback_history_cache_desc": "The last position of Drive audio and video for each account. It stores no URL, token, or local path.",
   "clear_playback_history": "Clear history",
   "clear_playback_history_done": "Playback history was cleared.",
+  "playback_hint_shortcut": "Press shortcut 'L' during video playback to view live buffer telemetry & runway.",
   "preview_log_waiting_metadata": "Waiting for metadata",
   "preview_log_idle": "Not playing",
   "preview_log_not_observable": "Not observable",
