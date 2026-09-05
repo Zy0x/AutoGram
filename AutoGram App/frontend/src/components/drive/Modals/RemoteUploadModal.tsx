@@ -110,6 +110,17 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
 }
 
+function isInspectableRemoteUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value.trim());
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+      parsed.hostname.includes('.') &&
+      parsed.hostname.length >= 4;
+  } catch {
+    return false;
+  }
+}
+
 /** Resolver evidence may still represent a wrapper or a session-bound URL.
  * Those entries can be shown for transparency, but must never become a
  * transfer item or a preview source. */
@@ -860,6 +871,9 @@ export function RemoteUploadModal({
 
   const inspectAbortRef = useRef<AbortController | null>(null);
   const inspectTimerRef = useRef<number | null>(null);
+  const inspectRunningRef = useRef(false);
+  const inspectRequestIdRef = useRef(0);
+  const queuedInspectRef = useRef<{ rawUrl: string; explicitPasscode?: string; requestId: number } | null>(null);
 
   const [batchGroups, setBatchGroups] = useState<BatchUrlResultGroup[]>([]);
   const [batchInspecting, setBatchInspecting] = useState(false);
@@ -924,6 +938,14 @@ export function RemoteUploadModal({
       lastAppliedInitialUrlRef.current = normalizedInitialUrl;
     }
     if (!isOpen) {
+      if (inspectTimerRef.current !== null) {
+        window.clearTimeout(inspectTimerRef.current);
+        inspectTimerRef.current = null;
+      }
+      inspectRequestIdRef.current += 1;
+      queuedInspectRef.current = null;
+      inspectAbortRef.current?.abort();
+      inspectAbortRef.current = null;
       lastAppliedInitialUrlRef.current = '';
       lastProbedHandoffRef.current = '';
       setPasscode('');
@@ -1026,6 +1048,21 @@ export function RemoteUploadModal({
   }, [showSupportedInfo, activeTripletInfo]);
 
   const probeUrl = useCallback(async (rawUrl: string, explicitPasscode?: string) => {
+    const request = {
+      rawUrl,
+      explicitPasscode,
+      requestId: ++inspectRequestIdRef.current,
+    };
+    if (inspectRunningRef.current) {
+      queuedInspectRef.current = request;
+      inspectAbortRef.current?.abort();
+      return;
+    }
+
+    inspectRunningRef.current = true;
+    const isCurrentRequest = () => inspectRequestIdRef.current === request.requestId;
+    let activeController: AbortController | null = null;
+    try {
     if (inspectAbortRef.current) {
       inspectAbortRef.current.abort();
       inspectAbortRef.current = null;
@@ -1056,12 +1093,14 @@ export function RemoteUploadModal({
     });
 
     const controller = new AbortController();
+    activeController = controller;
     inspectAbortRef.current = controller;
 
     try {
       const resolved = await resolveRemoteMediaUrl(trimmed, controller.signal, {
         passcode: activePasscode,
       });
+      if (!isCurrentRequest() || controller.signal.aborted) return;
       if (resolved) {
         setResolvedMedia(resolved);
         setSelectedFormatId(resolved.selectedFormatId || resolved.formats[0]?.id || '');
@@ -1094,6 +1133,7 @@ export function RemoteUploadModal({
         return;
       }
     } catch (error) {
+      if (!isCurrentRequest() || controller.signal.aborted) return;
       if (isRemoteUrlSafetyError(error)) {
         setResolvedMedia(null);
         setInspection({
@@ -1110,11 +1150,13 @@ export function RemoteUploadModal({
       /* Unknown-provider failures may still use the bounded HEAD fallback. */
     }
 
+    if (!isCurrentRequest() || controller.signal.aborted) return;
     try {
       const resp = await fetch(trimmed, {
         method: 'HEAD',
         signal: controller.signal,
       });
+      if (!isCurrentRequest() || controller.signal.aborted) return;
 
       if (resp.ok) {
         const ctype = resp.headers.get('content-type') || '';
@@ -1154,6 +1196,7 @@ export function RemoteUploadModal({
         });
       }
     } catch {
+      if (!isCurrentRequest() || controller.signal.aborted) return;
       setInspection({
         url: trimmed,
         status: 'direct_stream',
@@ -1162,6 +1205,17 @@ export function RemoteUploadModal({
         mimeType: null,
         kind: inferredKind,
       });
+    }
+    } finally {
+      if (inspectAbortRef.current === activeController) {
+        inspectAbortRef.current = null;
+      }
+      inspectRunningRef.current = false;
+      const queued = queuedInspectRef.current;
+      queuedInspectRef.current = null;
+      if (queued) {
+        void probeUrl(queued.rawUrl, queued.explicitPasscode);
+      }
     }
   }, [passcode, t]);
 
@@ -1253,24 +1307,37 @@ export function RemoteUploadModal({
     setPasscode(extractedPasscode || '');
     if (errorMsg) setErrorMsg('');
 
-    if (inspectTimerRef.current) {
+    if (inspectTimerRef.current !== null) {
       window.clearTimeout(inspectTimerRef.current);
+      inspectTimerRef.current = null;
+    }
+    if (!isInspectableRemoteUrl(cleanUrl)) {
+      inspectRequestIdRef.current += 1;
+      queuedInspectRef.current = null;
+      inspectAbortRef.current?.abort();
+      setInspection(null);
+      setResolvedMedia(null);
+      return;
     }
     inspectTimerRef.current = window.setTimeout(() => {
+      inspectTimerRef.current = null;
       probeUrl(cleanUrl, extractedPasscode);
-    }, 280);
+    }, 850);
   };
 
   const handlePasscodeChange = (codeVal: string) => {
     setPasscode(codeVal);
     if (errorMsg) setErrorMsg('');
 
-    if (inspectTimerRef.current) {
+    if (inspectTimerRef.current !== null) {
       window.clearTimeout(inspectTimerRef.current);
+      inspectTimerRef.current = null;
     }
+    if (!isInspectableRemoteUrl(url)) return;
     inspectTimerRef.current = window.setTimeout(() => {
+      inspectTimerRef.current = null;
       probeUrl(url, codeVal);
-    }, 300);
+    }, 650);
   };
 
   const handlePasteClipboard = async () => {

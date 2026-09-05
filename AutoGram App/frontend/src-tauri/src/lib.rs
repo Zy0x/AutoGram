@@ -3077,6 +3077,7 @@ pub fn run() {
             core::ytdlp_plugin::ytdlp_update_plugin,
             core::ytdlp_plugin::ffmpeg_plugin_status,
             core::ytdlp_plugin::ffmpeg_update_plugin,
+            core::ytdlp_plugin::ytdlp_cancel_resolve,
             core::ytdlp_plugin::ytdlp_resolve,
             fetch_remote_json_metadata,
             fetch_remote_text_content,

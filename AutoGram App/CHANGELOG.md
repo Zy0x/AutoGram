@@ -1,3 +1,19 @@
+## v3.9.55 — Responsive Remote Inspection Cancellation
+
+### 1. Single-Flight Remote URL Inspection
+- **Latest-request scheduling (`RemoteUploadModal`)**: Automatic inspection now waits until a complete public URL has been stable for 850 ms; partial typing triggers no resolver work. While an inspection is active, only the latest replacement is queued and stale results cannot replace the current card.
+- **User impact**: Pasting, correcting, clearing, closing, or re-inspecting a URL no longer creates a pile of overlapping extraction jobs or renders outdated format matrices into the modal.
+
+### 2. Extractor Cancellation and Provider Propagation
+- **Cancelable yt-dlp child (`ytdlp_plugin.rs`)**: The desktop resolver assigns an opaque request ID to each extractor process and can terminate only its matching superseded process. YouTube and TikTok propagate the existing abort signal to the plugin; no URL, cookies, credentials, or signed query values are retained for cancellation.
+- **User impact**: Dismissed inspections release their CPU and network work promptly rather than running until the normal resolver timeout, keeping the app responsive while another URL is inspected.
+
+### 3. Verification and Release Integrity
+- **Verification**: TypeScript production build and Rust `cargo check` pass; the quality suite continues to pass locale, TypeScript, Vitest, database/security, and album-invariant gates. Live desktop CDP confirmed rapid URL replacement does not start inspection before the debounce and the renderer remains responsive during start/cancel.
+- **Release metadata**: Version advanced to `3.9.55` across the desktop package, Tauri configuration, and Cargo metadata.
+
+---
+
 ## v3.9.54 — Verified Remote State, Preview Diagnostics & Adaptive DC Throughput
 
 ### 1. Remote Link Verification and Recovery

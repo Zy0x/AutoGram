@@ -219,7 +219,7 @@ export const tiktokResolver: LinkResolverProvider = {
     // formats, codecs, dimensions, bitrates and subtitle/audio tracks rather
     // than deriving 1080p or 320 kbps from a page title or URL shape.
     try {
-      const ytDlpData = await fetchYtDlpMedia(cleanUrl);
+      const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal);
       if (ytDlpData) {
         const formats: StreamQualityFormat[] = [];
         const subtitles: SubtitleTrackItem[] = [];

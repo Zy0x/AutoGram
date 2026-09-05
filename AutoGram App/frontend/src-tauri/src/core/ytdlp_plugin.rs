@@ -9,12 +9,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Digest;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
@@ -108,8 +108,38 @@ fn binary_path(dir: &Path) -> PathBuf {
 /// Avoids repeated PATH scans on every `ytdlp_resolve` call.
 static BINARY_CACHE: OnceLock<Mutex<HashMap<String, Option<PathBuf>>>> = OnceLock::new();
 
+/// Active extractor children are indexed by an opaque, UI-generated request ID.
+/// This lets a dismissed or superseded Remote URL inspection release its local
+/// CPU/network work rather than waiting for the normal resolver deadline.
+static ACTIVE_RESOLVES: OnceLock<Mutex<HashMap<String, Arc<Mutex<std::process::Child>>>>> =
+    OnceLock::new();
+static CANCELLED_RESOLVES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+
 fn binary_cache() -> &'static Mutex<HashMap<String, Option<PathBuf>>> {
     BINARY_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn active_resolves() -> &'static Mutex<HashMap<String, Arc<Mutex<std::process::Child>>>> {
+    ACTIVE_RESOLVES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn cancelled_resolves() -> &'static Mutex<HashSet<String>> {
+    CANCELLED_RESOLVES.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn take_cancelled_resolve(request_id: &str) -> bool {
+    cancelled_resolves()
+        .lock()
+        .map(|mut cancelled| cancelled.remove(request_id))
+        .unwrap_or(false)
+}
+
+fn release_active_resolve(request_id: Option<&str>) {
+    if let Some(request_id) = request_id {
+        if let Ok(mut active) = active_resolves().lock() {
+            active.remove(request_id);
+        }
+    }
 }
 
 fn find_system_binary_uncached(name: &str) -> Option<PathBuf> {
@@ -722,6 +752,34 @@ pub fn ffmpeg_update_plugin(
 }
 
 #[tauri::command]
+pub fn ytdlp_cancel_resolve(request_id: String) -> bool {
+    let request_id = request_id.trim();
+    if request_id.is_empty() || request_id.len() > 128 {
+        return false;
+    }
+
+    if let Ok(mut cancelled) = cancelled_resolves().lock() {
+        // Request IDs are one-shot UUIDs. Bound the small race-protection set
+        // so a hostile or broken renderer cannot grow it indefinitely.
+        if cancelled.len() >= 256 {
+            cancelled.clear();
+        }
+        cancelled.insert(request_id.to_owned());
+    }
+
+    let active_child = active_resolves()
+        .lock()
+        .ok()
+        .and_then(|active| active.get(request_id).cloned());
+    if let Some(child) = active_child {
+        if let Ok(mut child) = child.lock() {
+            let _ = child.kill();
+        }
+    }
+    true
+}
+
+#[tauri::command]
 pub fn ytdlp_resolve(
     app: AppHandle,
     url: String,
@@ -735,7 +793,20 @@ pub fn ytdlp_resolve(
     extractor_args: Option<String>,
     custom_args: Option<String>,
     ffmpeg_path: Option<String>,
+    request_id: Option<String>,
 ) -> Result<String, String> {
+    let request_id = request_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && value.len() <= 128)
+        .map(str::to_owned);
+    if request_id
+        .as_deref()
+        .is_some_and(take_cancelled_resolve)
+    {
+        return Err("yt-dlp inspection cancelled".into());
+    }
+
     let clean = url.trim();
     if clean.is_empty() || !(clean.starts_with("http://") || clean.starts_with("https://")) {
         return Err("yt-dlp requires an absolute HTTP(S) URL".into());
@@ -849,16 +920,47 @@ pub fn ytdlp_resolve(
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
-    let mut child = cmd.spawn().map_err(|e| format!("start yt-dlp: {e}"))?;
+    let child = Arc::new(Mutex::new(
+        cmd.spawn().map_err(|e| format!("start yt-dlp: {e}"))?,
+    ));
+    if let Some(request_id) = request_id.as_deref() {
+        active_resolves()
+            .lock()
+            .map_err(|_| "track active yt-dlp inspection".to_owned())?
+            .insert(request_id.to_owned(), Arc::clone(&child));
 
-    let mut stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "yt-dlp stdout unavailable".to_owned())?;
-    let mut stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "yt-dlp stderr unavailable".to_owned())?;
+        // Covers the narrow race where the renderer cancels just before this
+        // command publishes its process handle to the active-process map.
+        if take_cancelled_resolve(request_id) {
+            if let Ok(mut child) = child.lock() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            release_active_resolve(Some(request_id));
+            return Err("yt-dlp inspection cancelled".into());
+        }
+    }
+
+    let (mut stdout, mut stderr) = {
+        let mut child = child
+            .lock()
+            .map_err(|_| "lock yt-dlp process handles".to_owned())?;
+        let stdout = match child.stdout.take() {
+            Some(stdout) => stdout,
+            None => {
+                release_active_resolve(request_id.as_deref());
+                return Err("yt-dlp stdout unavailable".into());
+            }
+        };
+        let stderr = match child.stderr.take() {
+            Some(stderr) => stderr,
+            None => {
+                release_active_resolve(request_id.as_deref());
+                return Err("yt-dlp stderr unavailable".into());
+            }
+        };
+        (stdout, stderr)
+    };
     let stdout_reader = thread::spawn(move || {
         let mut bytes = Vec::new();
         stdout.read_to_end(&mut bytes).map(|_| bytes)
@@ -870,18 +972,39 @@ pub fn ytdlp_resolve(
 
     let deadline = Instant::now() + Duration::from_secs(RESOLVE_TIMEOUT_SECS);
     let status = loop {
-        if let Some(status) = child.try_wait().map_err(|e| format!("poll yt-dlp: {e}"))? {
-            break status;
+        let poll_result = child
+            .lock()
+            .map_err(|_| "lock yt-dlp process for polling".to_owned())?
+            .try_wait()
+            .map_err(|e| format!("poll yt-dlp: {e}"));
+        match poll_result {
+            Ok(Some(status)) => break status,
+            Ok(None) => {}
+            Err(error) => {
+                if let Ok(mut child) = child.lock() {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                }
+                release_active_resolve(request_id.as_deref());
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                return Err(error);
+            }
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            if let Ok(mut child) = child.lock() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            release_active_resolve(request_id.as_deref());
             let _ = stdout_reader.join();
             let _ = stderr_reader.join();
             return Err("yt-dlp inspection timed out".into());
         }
         thread::sleep(Duration::from_millis(10));
     };
+
+    release_active_resolve(request_id.as_deref());
 
     let stdout = stdout_reader
         .join()

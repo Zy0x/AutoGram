@@ -11,6 +11,15 @@ import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, RawS
 // ---------------------------------------------------------------------------
 const YTDLP_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const ytdlpCache = new Map<string, { data: any; expiresAt: number }>();
+let ytdlpRequestSequence = 0;
+
+function createYtDlpRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  ytdlpRequestSequence += 1;
+  return `remote-${Date.now().toString(36)}-${ytdlpRequestSequence.toString(36)}`;
+}
 
 
 /**
@@ -179,8 +188,9 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
  * platform-neutral, so TikTok and future extractor-backed providers share the
  * exact same update, cookie-isolation and timeout behaviour as YouTube.
  */
-export async function fetchYtDlpMedia(url: string): Promise<any | null> {
+export async function fetchYtDlpMedia(url: string, signal?: AbortSignal): Promise<any | null> {
   if (!detectTauriRuntime()) return null;
+  if (signal?.aborted) return null;
   let autoUpdate = true;
   let checkIntervalHours = 6;
   let customPath: string | undefined;
@@ -219,8 +229,10 @@ export async function fetchYtDlpMedia(url: string): Promise<any | null> {
     return cached.data;
   }
 
+  const requestId = createYtDlpRequestId();
+  let abortListener: (() => void) | undefined;
   try {
-    const text = await invoke<string>('ytdlp_resolve', {
+    const resolvePromise = invoke<string>('ytdlp_resolve', {
       url,
       autoUpdate,
       checkIntervalHours,
@@ -232,7 +244,21 @@ export async function fetchYtDlpMedia(url: string): Promise<any | null> {
       extractorArgs,
       customArgs,
       ffmpegPath,
+      requestId,
     });
+    const text = signal
+      ? await Promise.race([
+        resolvePromise,
+        new Promise<never>((_, reject) => {
+          abortListener = () => {
+            void invoke('ytdlp_cancel_resolve', { requestId }).catch(() => undefined);
+            reject(new DOMException('Remote inspection cancelled', 'AbortError'));
+          };
+          signal.addEventListener('abort', abortListener, { once: true });
+          if (signal.aborted) abortListener();
+        }),
+      ])
+      : await resolvePromise;
     const data = JSON.parse(text);
     const result = data && Array.isArray(data.formats) ? data : null;
     if (result) {
@@ -240,8 +266,13 @@ export async function fetchYtDlpMedia(url: string): Promise<any | null> {
     }
     return result;
   } catch (err) {
+    if (signal?.aborted) return null;
     console.warn('[youtubeResolver] yt-dlp resolution fallback:', err);
     return null;
+  } finally {
+    if (signal && abortListener) {
+      signal.removeEventListener('abort', abortListener);
+    }
   }
 }
 
@@ -1031,7 +1062,7 @@ export const youtubeResolver: LinkResolverProvider = {
     let parsedSuccess = false;
     if (detectTauriRuntime()) {
       try {
-        const ytDlpData = await fetchYtDlpMedia(cleanUrl);
+        const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal);
         if (ytDlpData) {
           const res = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
           if (res.title) title = res.title;
