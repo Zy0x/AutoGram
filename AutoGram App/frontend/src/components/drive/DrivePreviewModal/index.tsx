@@ -51,6 +51,7 @@ import {
   Eye,
   FolderTree,
   Code2,
+  Activity,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -150,6 +151,14 @@ import {
 } from './duplicateCompareState';
 import { SplitVideoPlayer } from './SplitVideoPlayer';
 import { SplitSidepanelThumb } from './SplitSidepanelThumb';
+import { PreviewDiagnosticsOverlay } from './PreviewDiagnosticsOverlay';
+import {
+  clearPreviewDiagnostics,
+  observePreviewTraffic,
+  previewDiagnosticsSnapshot,
+  type PreviewDiagnosticEvent,
+  type TrafficSnapshot,
+} from '../../../lib/tauri/rustBackend';
 
 export type DuplicateContextInfo = {
   activeFilteredGroups: {
@@ -893,6 +902,11 @@ export function DrivePreviewModal({
   const [path, setPath] = useState<string | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [streamId, setStreamId] = useState<string | null>(null);
+  const [showPreviewLog, setShowPreviewLog] = useState(false);
+  const [previewDiagnosticEvents, setPreviewDiagnosticEvents] = useState<PreviewDiagnosticEvent[]>([]);
+  const [previewTraffic, setPreviewTraffic] = useState<TrafficSnapshot | null>(null);
+  const previewDiagnosticSequenceRef = useRef(0);
+  const previewDiagnosticLocalSequenceRef = useRef(0);
   const [mime, setMime] = useState<string | null>(null);
   const [poster, setPoster] = useState<string | null>(null);
   const [tooLarge, setTooLarge] = useState(false);
@@ -925,6 +939,53 @@ export function DrivePreviewModal({
   const streamIdRef = useRef<string | null>(null);
   const credsRef = useRef(creds);
   credsRef.current = creds;
+
+  const appendPreviewDiagnostic = useCallback(
+    (category: string, event: string, details: Record<string, unknown> = {}, level = 'info') => {
+      previewDiagnosticLocalSequenceRef.current += 1;
+      const local: PreviewDiagnosticEvent = {
+        sequence: -previewDiagnosticLocalSequenceRef.current,
+        timestampMs: Date.now(),
+        level,
+        category,
+        event,
+        details,
+      };
+      setPreviewDiagnosticEvents((previous) => [...previous, local].slice(-500));
+    },
+    []
+  );
+
+  useEffect(() => {
+    previewDiagnosticSequenceRef.current = 0;
+    previewDiagnosticLocalSequenceRef.current = 0;
+    setPreviewDiagnosticEvents([]);
+    setPreviewTraffic(null);
+    appendPreviewDiagnostic('preview', 'opened', { kind: customSource?.kind || 'auto' });
+    return () => {
+      if (streamId) void clearPreviewDiagnostics(streamId);
+    };
+  }, [appendPreviewDiagnostic, customSource?.kind, file.id, streamId]);
+
+  useEffect(() => {
+    if (!showPreviewLog || !streamId) return;
+    let live = true;
+    const pull = async () => {
+      const snapshot = await previewDiagnosticsSnapshot(streamId, previewDiagnosticSequenceRef.current);
+      if (!live || !snapshot) return;
+      previewDiagnosticSequenceRef.current = snapshot.nextSequence;
+      setPreviewTraffic(snapshot.traffic);
+      if (snapshot.events.length > 0) {
+        setPreviewDiagnosticEvents((previous) => [...previous, ...snapshot.events].slice(-500));
+      }
+    };
+    void pull();
+    const interval = window.setInterval(() => void pull(), 750);
+    return () => {
+      live = false;
+      window.clearInterval(interval);
+    };
+  }, [showPreviewLog, streamId]);
 
   // Pause background card/thumbnail RPCs while preview modal is open
   useEffect(() => {
@@ -2159,6 +2220,7 @@ export function DrivePreviewModal({
         const v = videoRef.current;
         let browserPct = 0;
         let browserHasData = false;
+        let browserRunwaySeconds: number | null = null;
         if (v && Number.isFinite(v.duration) && v.duration > 0) {
           try {
             const b = v.buffered;
@@ -2166,6 +2228,9 @@ export function DrivePreviewModal({
               let end = 0;
               for (let i = 0; i < b.length; i++) {
                 end = Math.max(end, b.end(i));
+                if (b.start(i) <= v.currentTime && v.currentTime <= b.end(i)) {
+                  browserRunwaySeconds = Math.max(0, b.end(i) - v.currentTime);
+                }
               }
               browserPct = (100 * end) / v.duration;
               browserHasData = end > 0.05;
@@ -2174,6 +2239,9 @@ export function DrivePreviewModal({
             /* ignore */
           }
         }
+        void observePreviewTraffic(browserRunwaySeconds, !!v && !v.paused).then((traffic) => {
+          if (alive && traffic) setPreviewTraffic(traffic);
+        });
         // Player buffer bar reflects browser TimeRanges when video has loaded metadata,
         // so when slow internet occurs, slider dot reaches the buffer bar end before pausing.
         let displayPct = browserHasData ? browserPct : pct;
@@ -2927,13 +2995,17 @@ export function DrivePreviewModal({
       setShowInfo(false);
       return true;
     }
+    if (showPreviewLog) {
+      setShowPreviewLog(false);
+      return true;
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => undefined);
       return true;
     }
     onClose();
     return true;
-  }, [onClose, qualityOpen, rateOpen, showInfo]);
+  }, [onClose, qualityOpen, rateOpen, showInfo, showPreviewLog]);
 
   // Android / Tauri / PWA Modal Back Handler
   useModalBackHandler(!isZip, () => { void handleCloseOrDismiss(); }, 'drive-preview-modal');
@@ -3030,7 +3102,14 @@ export function DrivePreviewModal({
       }
       if (e.key === 'r' || e.key === 'R') setRotation((r) => (r + 90) % 360);
       if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-      if (e.key === 'i' || e.key === 'I') setShowInfo((v) => !v);
+      if (e.key === 'i' || e.key === 'I') {
+        setShowPreviewLog(false);
+        setShowInfo((v) => !v);
+      }
+      if (e.key === 'l' || e.key === 'L') {
+        setShowInfo(false);
+        setShowPreviewLog((v) => !v);
+      }
       // Mute only applies to video (use file meta — available before stream resolves)
       const fileIsVideo = isVideoDriveFile(file) && !isImageDriveFile(file);
       if ((e.key === 'm' || e.key === 'M') && fileIsVideo) setMuted((m) => !m);
@@ -3048,6 +3127,7 @@ export function DrivePreviewModal({
     isZip,
     file,
     duplicateContext,
+    showPreviewLog,
     handleSequentialNext,
     handleSequentialPrev,
   ]);
@@ -4794,9 +4874,24 @@ export function DrivePreviewModal({
                       className={`td-icon-btn is-compact ${showInfo ? 'is-active' : ''}`}
                       title={t('drive.file_detail_tooltip')}
                       disabled={isHeaderFrozen}
-                      onClick={() => setShowInfo((v) => !v)}
+                      onClick={() => {
+                        setShowPreviewLog(false);
+                        setShowInfo((v) => !v);
+                      }}
                     >
                       <Info size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`td-icon-btn is-compact ${showPreviewLog ? 'is-active' : ''}`}
+                      title={t('drive.preview_log_tooltip')}
+                      disabled={isHeaderFrozen}
+                      onClick={() => {
+                        setShowInfo(false);
+                        setShowPreviewLog((value) => !value);
+                      }}
+                    >
+                      <Activity size={13} />
                     </button>
                   </div>
                 </div>
@@ -6169,6 +6264,10 @@ export function DrivePreviewModal({
                     }
                   }
                   updateVideoBuffered();
+                  appendPreviewDiagnostic('player', 'loaded_metadata', {
+                    readyState: v?.readyState ?? 0,
+                    durationSeconds: typeof v?.duration === 'number' && Number.isFinite(v.duration) ? v.duration : null,
+                  });
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
                       ignoreSeekEventsRef.current += 1;
@@ -6214,6 +6313,10 @@ export function DrivePreviewModal({
                     }
                   }
                   updateVideoBuffered();
+                  appendPreviewDiagnostic('player', 'loaded_data', {
+                    readyState: v?.readyState ?? 0,
+                    currentTimeSeconds: v?.currentTime ?? 0,
+                  });
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -6248,6 +6351,10 @@ export function DrivePreviewModal({
                     }
                   }
                   updateVideoBuffered();
+                  appendPreviewDiagnostic('player', 'can_play', {
+                    readyState: v?.readyState ?? 0,
+                    currentTimeSeconds: v?.currentTime ?? 0,
+                  });
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -6286,6 +6393,7 @@ export function DrivePreviewModal({
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
+                  appendPreviewDiagnostic('seek', 'started', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 });
                   userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
@@ -6296,6 +6404,7 @@ export function DrivePreviewModal({
                     userSeekPendingRef.current = false;
                     return;
                   }
+                  appendPreviewDiagnostic('seek', 'completed', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 });
                   userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
@@ -6314,6 +6423,7 @@ export function DrivePreviewModal({
                   }
                 }}
                 onWaiting={() => {
+                  appendPreviewDiagnostic('buffer', 'waiting', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 }, 'warn');
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint(t('ui.generated.buffering_014b2d2'));
                   }
@@ -6335,6 +6445,7 @@ export function DrivePreviewModal({
                   handlePause();
                 }}
                 onPlaying={() => {
+                  appendPreviewDiagnostic('player', 'playing', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 });
                   setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
@@ -6358,6 +6469,7 @@ export function DrivePreviewModal({
                   else if (!streamUrl || streamDone) setPlayerHint(null);
                 }}
                 onStalled={() => {
+                  appendPreviewDiagnostic('buffer', 'stalled', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 }, 'warn');
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint(t('ui.generated.menunggu_data_a54699d'));
                   }
@@ -6368,6 +6480,7 @@ export function DrivePreviewModal({
                   const mediaErr = v?.error || (e.target as HTMLVideoElement)?.error;
                   // MEDIA_ERR_ABORTED (1): user navigation — harmless
                   if (!mediaErr || mediaErr.code === 1) return;
+                  appendPreviewDiagnostic('player', 'error', { code: mediaErr.code }, 'error');
 
                   const progressiveFilling = !!streamUrl && !streamDoneRef.current;
                   if (progressiveFilling) {
@@ -7448,6 +7561,18 @@ export function DrivePreviewModal({
                 <strong>{t("drive.id_label")}</strong> {file.id}
               </div>
             </div>
+          )}
+          {showPreviewLog && !isSplitCompareMode && (
+            <PreviewDiagnosticsOverlay
+              events={previewDiagnosticEvents}
+              traffic={previewTraffic}
+              onClose={() => setShowPreviewLog(false)}
+              onClear={() => {
+                setPreviewDiagnosticEvents([]);
+                previewDiagnosticSequenceRef.current = 0;
+                if (streamId) void clearPreviewDiagnostics(streamId);
+              }}
+            />
           )}
         </>
       )}

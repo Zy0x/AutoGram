@@ -671,6 +671,20 @@ fn remote_transfer_get_job(
     core::remote_transfer::RemoteTransferStore::get_job(&job_id)
 }
 
+#[tauri::command]
+fn remote_transfer_save_resolver_state(
+    state: core::remote_transfer::models::RemoteResolverState,
+) -> Result<(), String> {
+    core::remote_transfer::RemoteTransferStore::upsert_resolver_state(&state)
+}
+
+#[tauri::command]
+fn remote_transfer_get_resolver_state(
+    job_id: String,
+) -> Result<Option<core::remote_transfer::models::RemoteResolverState>, String> {
+    core::remote_transfer::RemoteTransferStore::get_resolver_state(&job_id)
+}
+
 
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
@@ -1150,6 +1164,9 @@ fn get_remote_stream_proxy_url(app: tauri::AppHandle, url: String, referer: Opti
     if u_clean.is_empty() {
         return Err("empty URL".into());
     }
+    // The local range proxy must not turn a UI-controlled URL into an SSRF
+    // primitive. Redirects are resolved/validated by the remote resolver first.
+    core::remote_link_resolver::ensure_public_remote_url(u_clean)?;
     let mut port = core::stream_server::stream_port();
     if port == 0 {
         if let Ok(worker) = resolve_worker_dir(&app) {
@@ -1160,15 +1177,45 @@ fn get_remote_stream_proxy_url(app: tauri::AppHandle, url: String, referer: Opti
     if port == 0 {
         return Ok(u_clean.to_string());
     }
-    let ref_val = referer.unwrap_or_else(|| "https://streamrizz.com/".to_string());
     let enc_url = urlencoding::encode(u_clean);
-    let enc_ref = urlencoding::encode(&ref_val);
-    Ok(format!("http://127.0.0.1:{port}/proxy_remote?url={enc_url}&referer={enc_ref}"))
+    let mut proxy_url = format!("http://127.0.0.1:{port}/proxy_remote?url={enc_url}");
+    if let Some(ref_val) = referer.filter(|value| !value.trim().is_empty()) {
+        proxy_url.push_str("&referer=");
+        proxy_url.push_str(&urlencoding::encode(&ref_val));
+    }
+    Ok(proxy_url)
 }
 
 #[tauri::command]
 fn stream_status_local(stream_id: String) -> core::stream_server::StreamStatusDto {
     core::stream_server::status_of(&stream_id)
+}
+
+#[tauri::command]
+fn preview_diagnostics_snapshot(
+    stream_id: String,
+    after_sequence: Option<u64>,
+) -> core::preview_diagnostics::PreviewDiagnosticsSnapshot {
+    core::preview_diagnostics::snapshot(&stream_id, after_sequence)
+}
+
+#[tauri::command]
+fn preview_diagnostics_clear(stream_id: String) {
+    core::preview_diagnostics::clear(&stream_id);
+}
+
+#[tauri::command]
+fn preview_traffic_observe(
+    runway_seconds: Option<f64>,
+    playback_active: bool,
+) -> core::traffic_governor::TrafficSnapshot {
+    core::traffic_governor::observe_preview(runway_seconds, playback_active);
+    core::traffic_governor::snapshot()
+}
+
+#[tauri::command]
+fn traffic_governor_configure(upload_concurrency: u32, download_concurrency: u32) {
+    core::traffic_governor::configure_ceiling(upload_concurrency, download_concurrency);
 }
 
 #[tauri::command]
@@ -3052,6 +3099,10 @@ pub fn run() {
             stream_server_port,
             get_remote_stream_proxy_url,
             stream_status_local,
+            preview_diagnostics_snapshot,
+            preview_diagnostics_clear,
+            preview_traffic_observe,
+            traffic_governor_configure,
             stream_register_local,
             stream_unregister,
             zip_list_local,
@@ -3230,6 +3281,8 @@ pub fn run() {
             remote_transfer_cleanup,
             remote_transfer_list_recovery,
             remote_transfer_get_job,
+            remote_transfer_save_resolver_state,
+            remote_transfer_get_resolver_state,
             get_available_disk_space,
             get_custom_cache_dir,
             set_custom_cache_dir,

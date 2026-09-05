@@ -192,6 +192,29 @@ pub struct RemoteTransferEvent {
     pub created_at_ms: i64,
 }
 
+/// Persisted resolver checkpoint.  The store sanitizes this payload before writing it:
+/// credentials, cookies, authorization data, and signed URL queries are never retained.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteResolverState {
+    pub job_id: String,
+    #[serde(default = "default_remote_resolver_version")]
+    pub resolver_version: u32,
+    pub source_final_url: String,
+    #[serde(default)]
+    pub provenance: serde_json::Value,
+    #[serde(default)]
+    pub discovery_cursor: Option<serde_json::Value>,
+    #[serde(default)]
+    pub expires_at_ms: Option<i64>,
+    #[serde(default)]
+    pub updated_at_ms: i64,
+}
+
+fn default_remote_resolver_version() -> u32 {
+    1
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemotePreflightRequest {

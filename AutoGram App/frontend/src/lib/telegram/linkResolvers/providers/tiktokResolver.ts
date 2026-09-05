@@ -1,9 +1,29 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, QualityTier } from '../types';
+import type { LinkResolverProvider, ResolvedMediaInfo, StreamQualityFormat, QualityTier, RawStreamItem, SubtitleTrackItem } from '../types';
+import { fetchYtDlpMedia, processYtDlpData } from './youtubeResolver';
+
+function qualityTierForMeasuredHeight(height?: number): QualityTier {
+  if (!height) return 'original';
+  if (height >= 4320) return '8k';
+  if (height >= 2160) return '4k';
+  if (height >= 1440) return '2k';
+  if (height >= 1080) return '1080p';
+  if (height >= 720) return '720p';
+  if (height >= 480) return '480p';
+  if (height >= 360) return '360p';
+  if (height >= 240) return '240p';
+  if (height >= 144) return '144p';
+  return 'original';
+}
+
+function positiveNumber(value: unknown): number | undefined {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
 
 /**
- * TikTok No-Watermark Ultra-HD Resolver
- * Extracts highest quality clean video stream (no watermark) and original music audio.
+ * TikTok resolver using the shared yt-dlp provider first, then constrained
+ * public metadata fallbacks that never invent media quality.
  */
 export const tiktokResolver: LinkResolverProvider = {
   name: 'TikTokResolver',
@@ -151,14 +171,13 @@ export const tiktokResolver: LinkResolverProvider = {
         if (effectiveAvatar) {
           formats.push({
             id: 'tiktok_profile_avatar',
-            label: 'Creator Profile Photo (HD Avatar)',
+            label: 'Creator Profile Photo',
             qualityTier: 'original',
-            resolution: '1080×1080 HD',
             ext: 'jpg',
             directUrl: effectiveAvatar,
             isImage: true,
             isCleanNoWatermark: true,
-            badge: 'AVATAR HD',
+            isDownloadable: true,
           });
         } else {
           // Fallback only if avatar image could not be retrieved
@@ -166,10 +185,16 @@ export const tiktokResolver: LinkResolverProvider = {
             id: 'tiktok_profile_link',
             label: `Profile Information (@${uniqueId})`,
             qualityTier: 'original',
-            resolution: 'Creator Profile',
             ext: 'txt',
             directUrl: cleanUrl,
             badge: 'PROFILE',
+            isDownloadable: false,
+            isStreamable: false,
+            verification: {
+              status: 'wrapper',
+              sourceUrl: cleanUrl,
+              reason: 'Profile page is not a direct transferable file',
+            },
           });
         }
 
@@ -190,7 +215,48 @@ export const tiktokResolver: LinkResolverProvider = {
       }
     }
 
-    // Try reliable lightweight TikWM API via native Rust IPC (zero CORS) with web fetch fallback
+    // Prefer the updateable extractor first. It reports TikTok's actual
+    // formats, codecs, dimensions, bitrates and subtitle/audio tracks rather
+    // than deriving 1080p or 320 kbps from a page title or URL shape.
+    try {
+      const ytDlpData = await fetchYtDlpMedia(cleanUrl);
+      if (ytDlpData) {
+        const formats: StreamQualityFormat[] = [];
+        const subtitles: SubtitleTrackItem[] = [];
+        const rawStreams: RawStreamItem[] = [];
+        const metadata = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
+        if (formats.length > 0) {
+          const selected = [...formats]
+            .filter((format) => format.isVideo)
+            .sort((a, b) =>
+              Number(b.height || 0) - Number(a.height || 0) ||
+              Number(b.fps || 0) - Number(a.fps || 0) ||
+              Number(b.bitrate || 0) - Number(a.bitrate || 0)
+            )[0] || formats[0];
+          return {
+            url: cleanUrl,
+            platform: 'tiktok',
+            platformName: 'TikTok',
+            title: metadata.title || `TikTok_${Date.now()}`,
+            author: metadata.author,
+            durationSec: metadata.durationSec,
+            thumbnailUrl: metadata.thumbnailUrl,
+            formats,
+            subtitles,
+            rawStreams,
+            selectedFormatId: selected.id,
+            resolvedAt: Date.now(),
+          };
+        }
+      }
+    } catch {
+      // Continue to the public lightweight metadata service below. It may
+      // yield a direct original URL, but never fabricated stream qualities.
+    }
+
+    // Public metadata fallback for a direct original URL when yt-dlp is not
+    // available. Its cards intentionally remain Original unless the service
+    // publishes concrete media metadata.
     try {
       let data: any = null;
       try {
@@ -223,21 +289,17 @@ export const tiktokResolver: LinkResolverProvider = {
           const durationSec = data.duration;
           const formats: StreamQualityFormat[] = [];
 
-          // Detect if video is 4K, 2K, or 1080p based on title, duration, and bitrate
-          const titleLower = title.toLowerCase();
-          const rawSize = data.hd_size || data.size || 0;
-          const bitrateBps = (durationSec && rawSize) ? (rawSize * 8) / durationSec : 0;
+          const primarySize = positiveNumber(data.hd_size) || positiveNumber(data.size);
+          const measuredBitrate = durationSec && primarySize
+            ? Math.round((primarySize * 8) / durationSec)
+            : undefined;
+          const measuredWidth = positiveNumber(data.width);
+          const measuredHeight = positiveNumber(data.height);
+          const measuredFps = positiveNumber(data.fps);
 
-          // Detect explicit FPS tag from title or metadata (e.g. 120fps, 90fps, 60fps, 144fps, 240fps)
-          const fpsMatch = titleLower.match(/\b(240|144|120|90|60)\s*fps\b/i);
-          const detectedFps = fpsMatch ? `${fpsMatch[1]}fps` : (bitrateBps > 15_000_000 ? '60fps' : undefined);
-
-          let peakTier: QualityTier = '1080p';
-          let peakLabel = detectedFps ? `Full HD 1080p (${detectedFps} Master)` : 'Full HD 1080p (Master Stream)';
-          let peakBadge = '1080p FULL HD';
-          let peakRes = detectedFps ? `1080p Full HD • ${detectedFps}` : '1080p Full HD';
-
-          // 1. Peak Quality (Full HD 1080p Master with True Physical Specs)
+          // A public metadata service may give us only a URL. Keep such a
+          // result as Original; resolution/FPS are never inferred from title,
+          // file size or a provider's “HD” label.
           const isPhotoPost = Array.isArray(data.images) && data.images.length > 0;
 
           if (isPhotoPost) {
@@ -249,9 +311,8 @@ export const tiktokResolver: LinkResolverProvider = {
             if (data.images.length > 1) {
               formats.push({
                 id: 'tiktok_photo_all_pack',
-                label: `All Photos (${data.images.length} HD Photos - Full Album)`,
+                label: `All Photos (${data.images.length})`,
                 qualityTier: 'original',
-                resolution: `Album ${data.images.length} Photos`,
                 ext: 'jpg',
                 directUrl: allDirectImages[0],
                 allAlbumUrls: allDirectImages,
@@ -267,36 +328,41 @@ export const tiktokResolver: LinkResolverProvider = {
               formats.push({
                 id: `tiktok_photo_${idx + 1}`,
                 label: data.images.length === 1 
-                  ? 'Original Photo (Clean HD)' 
-                  : `Photo ${idx + 1} of ${data.images.length} (Clean HD)`,
+                  ? 'Original Photo'
+                  : `Photo ${idx + 1} of ${data.images.length}`,
                 qualityTier: 'original',
-                resolution: 'Original HD Photo',
                 ext: 'jpg',
                 directUrl: fullImgUrl,
                 isImage: true,
                 isCleanNoWatermark: true,
-                badge: data.images.length === 1 ? 'HD PHOTO' : `PHOTO ${idx + 1}`,
+                badge: data.images.length === 1 ? 'PHOTO' : `PHOTO ${idx + 1}`,
               });
             });
           } else {
             // B. VIDEO MODE
-            // 1. Peak Quality (Full HD 1080p Master with True Physical Specs)
             if (data.hdplay) {
               formats.push({
                 id: 'tiktok_hd_nwm',
-                label: peakLabel,
-                qualityTier: peakTier,
-                resolution: peakRes,
+                label: measuredHeight ? `${measuredHeight}p (MP4)` : 'Original (MP4)',
+                qualityTier: qualityTierForMeasuredHeight(measuredHeight),
+                resolution: measuredHeight ? `${measuredHeight}p` : undefined,
+                fps: measuredFps,
                 ext: 'mp4',
                 filesizeBytes: data.hd_size || data.size,
                 directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
                 isCleanNoWatermark: true,
                 isVideo: true,
-                badge: peakBadge,
+                badge: measuredBitrate ? `${Math.round(measuredBitrate / 1_000)} kbps` : undefined,
+                width: measuredWidth,
+                height: measuredHeight,
+                bitrate: measuredBitrate,
+                isDownloadable: true,
+                isStreamable: true,
               });
             }
 
-            // 2. HD 720p / Compressed Stream (Only if distinct from master HD)
+            // A distinct public URL is still a separate transferable original,
+            // but it has no invented 720p/FPS claim without metadata.
             const hasDistinctStandardStream =
               data.play &&
               data.play !== data.hdplay &&
@@ -305,50 +371,66 @@ export const tiktokResolver: LinkResolverProvider = {
             if (hasDistinctStandardStream) {
               formats.push({
                 id: 'tiktok_standard_nwm',
-                label: 'HD 720p (Compressed)',
-                qualityTier: '720p',
-                resolution: '720p HD',
+                label: 'Original (MP4)',
+                qualityTier: 'original',
                 ext: 'mp4',
                 filesizeBytes: data.size,
                 directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
                 isCleanNoWatermark: true,
                 isVideo: true,
-                badge: '720p HD',
+                isDownloadable: true,
+                isStreamable: true,
               });
             } else if (!data.hdplay && data.play) {
-              // Fallback if hdplay is not provided by server
+              // Fallback if the metadata service exposes only one direct URL.
               formats.push({
                 id: 'tiktok_standard_nwm',
-                label: peakLabel,
-                qualityTier: peakTier,
-                resolution: peakRes,
+                label: measuredHeight ? `${measuredHeight}p (MP4)` : 'Original (MP4)',
+                qualityTier: qualityTierForMeasuredHeight(measuredHeight),
+                resolution: measuredHeight ? `${measuredHeight}p` : undefined,
+                fps: measuredFps,
                 ext: 'mp4',
                 filesizeBytes: data.size,
                 directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
                 isCleanNoWatermark: true,
                 isVideo: true,
-                badge: peakBadge,
+                badge: measuredBitrate ? `${Math.round(measuredBitrate / 1_000)} kbps` : undefined,
+                width: measuredWidth,
+                height: measuredHeight,
+                bitrate: measuredBitrate,
+                isDownloadable: true,
+                isStreamable: true,
               });
             }
           }
 
-          // 4. Hi-Res Audio Track (MP3)
+          // Audio URL is an original track unless the provider returns its
+          // actual bitrate. Never label it 320 kbps based on an estimate.
           if (data.music) {
-            const estimatedAudioSize = durationSec ? Math.round(durationSec * (320 * 1024 / 8)) : (data.size ? Math.round(data.size * 0.15) : undefined);
+            const audioBitrate = positiveNumber(data.music_info?.bitrate || data.music_info?.bit_rate || data.music_bitrate);
+            const estimatedAudioSize = durationSec && audioBitrate
+              ? Math.round(durationSec * (audioBitrate / 8))
+              : undefined;
             const musicTitle = data.music_info?.title || data.music_info?.author
               ? `${data.music_info.title || 'Audio'} - ${data.music_info.author || 'TikTok Music'}`
               : `${title} (Audio Track)`;
 
             formats.push({
               id: 'tiktok_audio',
-              label: 'Hi-Res Audio (320 kbps MP3)',
+              label: audioBitrate ? `MP3 ${Math.round(audioBitrate / 1_000)} kbps` : 'Original Audio (MP3)',
               qualityTier: 'audio',
-              resolution: '320 kbps',
+              resolution: audioBitrate ? `${Math.round(audioBitrate / 1_000)} kbps` : undefined,
               ext: 'mp3',
               filesizeBytes: estimatedAudioSize,
               directUrl: data.music.startsWith('http') ? data.music : `https://www.tikwm.com${data.music}`,
               isAudio: true,
-              badge: 'HI-RES AUDIO',
+              badge: audioBitrate ? `${Math.round(audioBitrate / 1_000)} kbps` : undefined,
+              bitrate: audioBitrate,
+              audioBitrate,
+              sampleRate: positiveNumber(data.music_info?.sample_rate),
+              audioChannels: positiveNumber(data.music_info?.channels),
+              isDownloadable: true,
+              isStreamable: true,
               customTitle: musicTitle,
               customFilename: `${musicTitle}.mp3`,
             });
@@ -369,13 +451,12 @@ export const tiktokResolver: LinkResolverProvider = {
 
             formats.push({
               id: 'tiktok_profile_avatar',
-              label: 'Creator Profile Photo (HD Avatar)',
+              label: 'Creator Profile Photo',
               qualityTier: 'original',
-              resolution: 'Profile Avatar HD',
               ext: 'jpg',
               directUrl: highestAvatar.startsWith('http') ? highestAvatar : `https://www.tikwm.com${highestAvatar}`,
               isImage: true,
-              badge: 'AVATAR HD',
+              isDownloadable: true,
               customTitle: profileTitle,
               customFilename: `${profileTitle}.jpg`,
             });
@@ -430,14 +511,14 @@ export const tiktokResolver: LinkResolverProvider = {
             formats: [
               {
                 id: 'tiktok_nwm_fallback',
-                label: 'HD Lossless (No Watermark)',
-                qualityTier: '1080p',
-                resolution: '1080p HD',
+                label: 'Original (MP4)',
+                qualityTier: 'original',
                 ext: 'mp4',
                 directUrl: downloadUrl,
                 isCleanNoWatermark: true,
                 isVideo: true,
-                badge: 'NO WATERMARK HD',
+                isDownloadable: true,
+                isStreamable: true,
               },
             ],
             selectedFormatId: 'tiktok_nwm_fallback',

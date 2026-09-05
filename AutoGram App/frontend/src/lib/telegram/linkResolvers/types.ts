@@ -82,6 +82,17 @@ export interface StreamQualityFormat {
   codec?: string;
   protocol?: string;
   container?: string;
+  /** Measured/extractor-supplied stream dimensions. Never infer these from a title. */
+  width?: number;
+  height?: number;
+  /** Total stream bitrate in bits/second when the resolver can prove it. */
+  bitrate?: number;
+  audioBitrate?: number;
+  sampleRate?: number;
+  audioChannels?: number;
+  isHdr?: boolean;
+  /** Signed media URLs may expire. Omitted when the resolver cannot prove an expiry. */
+  expiresAtMs?: number;
   isDownloadable?: boolean;
   isStreamable?: boolean;
   downloadOnly?: boolean;
@@ -101,6 +112,7 @@ export interface MediaVerification {
   validation?: string;
   reason?: string;
   rangeSupported?: boolean;
+  expiresAtMs?: number;
 }
 
 /** Opaque, safe-to-round-trip crawler state. It never includes cookies or credentials. */

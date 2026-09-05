@@ -44,7 +44,7 @@ AutoGram transforms Telegram into a structured cloud file system:
 Transfer online videos and social media content directly into your Telegram Cloud without saving to your local disk:
 
 ### Supported Providers
-- **Video Platforms**: YouTube (up to 8K/4K HDR @ 60 FPS), TikTok, Instagram, Twitter/X, Videe, Vqso, StreamRizz, and generic MP4/WEBM direct URLs.
+- **Video Platforms**: YouTube, TikTok, Instagram, Twitter/X, Videe, Vqso, StreamRizz, and generic public media URLs. High-resolution, HDR, 60 FPS, audio, and subtitles appear only when the extractor/provider returns a usable format; labels in a title are never used as proof.
 
 ### Step-by-Step Usage:
 1. Click **Remote URL** in the top navigation bar.
@@ -56,6 +56,7 @@ Transfer online videos and social media content directly into your Telegram Clou
 4. **Live Synchronized Preview**:
    - Click **Play Stream** or double-click any format chip to preview that exact selected stream through the local range proxy.
    - A format marked download-only is not presented as a playable preview.
+   - Use the **Log** button beside Info to inspect the selected preview's real events: player state, playable buffer runway, HTTP ranges, MOOV head/tail work, seek, retries, decode errors, and the current upload/download/stream governor decision. The log remains only in memory for the open preview and can be copied or cleared.
 5. **Folders, galleries, and wrapper pages**:
    - Remote URL verifies payload bytes before offering a download. HTML pages disguised as `.mp4`, advertising redirects, and unavailable links are not selectable media.
    - For large public folders, use **Load next results** to continue the safe recursive scan without duplicating already found media.
@@ -102,6 +103,7 @@ The **Transfer Manager** oversees all network activity:
   4. Filename + exact size match
 - **Resolution Policies**: Choose to `Skip`, `Replace`, `Keep Both`, or `Rename` duplicate items.
 - **Smart Rate Limiter**: Automatically throttles speed and applies exponential backoff if Telegram triggers `FloodWaitError`.
+- **Adaptive shared throughput**: Upload and download use the selected Transfer Settings parallelism as their ceiling. When an actively playing preview has under four seconds of playable media, AutoGram briefly prioritizes the media range; after recovery it restores transfer capacity. Actual throughput can still be bounded by the ISP, Telegram DC, disk, CPU, codec, or account/server cooldowns, so a Speedtest result is not a guaranteed 1:1 transfer rate.
 
 ---
 

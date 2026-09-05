@@ -393,6 +393,21 @@ CREATE TABLE IF NOT EXISTS remote_transfer_events (
 );
 CREATE INDEX IF NOT EXISTS idx_remote_transfer_events_job ON remote_transfer_events(job_id, created_at_ms ASC);
 
+-- Resumable remote resolver discovery.  Provenance deliberately excludes
+-- session credentials and signed-query secrets; expiring candidates are resolved again.
+CREATE TABLE IF NOT EXISTS remote_transfer_resolver_state (
+    job_id                    TEXT PRIMARY KEY,
+    resolver_version          INTEGER NOT NULL DEFAULT 1,
+    source_final_url          TEXT NOT NULL,
+    provenance_json           TEXT NOT NULL DEFAULT '{}',
+    discovery_cursor_json     TEXT,
+    expires_at_ms             INTEGER,
+    updated_at_ms             INTEGER NOT NULL,
+    FOREIGN KEY(job_id) REFERENCES remote_transfer_jobs(job_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_remote_transfer_resolver_state_expiry
+    ON remote_transfer_resolver_state(expires_at_ms);
+
 -- ============================================================================
 -- 6. 4-LEVEL DUPLICATE PREVENTION MATRIX & SCAN CACHE
 -- ============================================================================

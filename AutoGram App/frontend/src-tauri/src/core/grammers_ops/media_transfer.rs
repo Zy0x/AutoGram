@@ -2250,11 +2250,18 @@ impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
                 let this = &mut *self;
                 this.current_bytes += newly_read as u64;
 
-                // Streaming Priority Sentinel: If user is actively streaming video or previewing ZIP,
-                // yield cooperative pacing (8ms) so outbound upload traffic does not cause bufferbloat
-                // or delay TCP ACK confirmations for incoming HTTP Range streaming packets.
-                if crate::core::stream_server::is_streaming_recently_active(5) {
-                    std::thread::sleep(Duration::from_millis(8));
+                crate::core::traffic_governor::record_bytes(
+                    crate::core::traffic_governor::TransferDirection::Upload,
+                    newly_read as u64,
+                );
+                // Yield only when the live preview's measured media runway is
+                // genuinely critical.  Static sleeps used to waste available DC
+                // bandwidth even when playback was already safe.
+                let pacing_ms = crate::core::traffic_governor::background_pacing_ms(
+                    crate::core::traffic_governor::TransferDirection::Upload,
+                );
+                if pacing_ms > 0 {
+                    std::thread::sleep(Duration::from_millis(pacing_ms));
                 }
 
                 let elapsed_ms = this.last_emit_time.elapsed().as_millis();
@@ -3382,10 +3389,15 @@ pub fn download_file_blocking_with_policy(
                             break;
                         }
 
-                        // Streaming Priority Sentinel: If user is watching a video or previewing ZIP,
-                        // yield cooperative pacing to guarantee 0-stutter playback on media range sockets.
-                        if crate::core::stream_server::is_streaming_recently_active(5) {
-                            tokio::time::sleep(Duration::from_millis(15)).await;
+                        crate::core::traffic_governor::record_bytes(
+                            crate::core::traffic_governor::TransferDirection::Download,
+                            bytes.len() as u64,
+                        );
+                        let pacing_ms = crate::core::traffic_governor::background_pacing_ms(
+                            crate::core::traffic_governor::TransferDirection::Download,
+                        );
+                        if pacing_ms > 0 {
+                            tokio::time::sleep(Duration::from_millis(pacing_ms)).await;
                         }
 
                         current_chunk = next_chunk;

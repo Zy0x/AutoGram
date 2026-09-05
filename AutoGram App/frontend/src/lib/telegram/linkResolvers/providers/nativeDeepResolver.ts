@@ -20,6 +20,8 @@ type NativeCandidate = {
   contentLength?: number | null;
   verified: boolean;
   validation?: string;
+  rangeSupported?: boolean;
+  expiresAtMs?: number | null;
   isDownloadable?: boolean;
   isStreamable?: boolean;
   downloadOnly?: boolean;
@@ -61,7 +63,8 @@ function verificationFor(candidate: NativeCandidate): MediaVerification {
     mimeType: candidate.mimeType || undefined,
     contentLength: candidate.contentLength ?? undefined,
     validation: candidate.validation,
-    rangeSupported: candidate.validation?.includes('range') || undefined,
+    rangeSupported: candidate.rangeSupported ?? (candidate.validation?.includes('range') || undefined),
+    expiresAtMs: candidate.expiresAtMs ?? undefined,
   };
 }
 
@@ -90,6 +93,7 @@ function toFormat(candidate: NativeCandidate, index: number): StreamQualityForma
     isDownloadable: candidate.isDownloadable !== false,
     isStreamable: candidate.isStreamable === true,
     downloadOnly: candidate.downloadOnly === true,
+    expiresAtMs: candidate.expiresAtMs ?? undefined,
     badge: String(i18n.t('drive.remote_native_badge')),
     verification: verificationFor(candidate),
   };

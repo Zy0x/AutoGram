@@ -3,12 +3,13 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::models::{
-    RemoteRecoveryItem, RemoteTransferEvent, RemoteTransferJob, RemoteTransferMode,
+    RemoteRecoveryItem, RemoteResolverState, RemoteTransferEvent, RemoteTransferJob, RemoteTransferMode,
     RemoteTransferState, StorageLocalPolicy,
 };
 use super::spool::{job_manifest_path, job_part_path, read_manifest, resolve_spool_root};
 
 const SCHEMA_019: &str = include_str!("../../../../../database/migrations/019_remote_transfers.sql");
+const SCHEMA_022: &str = include_str!("../../../../../database/migrations/022_remote_resolver_state.sql");
 
 fn now_ms() -> i64 {
     SystemTime::now()
@@ -39,7 +40,74 @@ impl RemoteTransferStore {
     pub fn ensure_schema(conn: &Connection) -> Result<(), String> {
         conn.execute_batch(SCHEMA_019)
             .map_err(|e| format!("migration 019 failed: {e}"))?;
+        conn.execute_batch(SCHEMA_022)
+            .map_err(|e| format!("migration 022 failed: {e}"))?;
         Ok(())
+    }
+
+    pub fn upsert_resolver_state(state: &RemoteResolverState) -> Result<(), String> {
+        let conn = Self::get_connection()?;
+        let sanitized_url = redact_url(&state.source_final_url);
+        let provenance = sanitize_json(&state.provenance);
+        let cursor = sanitize_json_option(state.discovery_cursor.as_ref());
+        let provenance_json = serde_json::to_string(&provenance)
+            .map_err(|e| format!("serialize resolver provenance: {e}"))?;
+        let cursor_json = cursor
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|e| format!("serialize resolver cursor: {e}"))?;
+        let updated_at_ms = if state.updated_at_ms > 0 { state.updated_at_ms } else { now_ms() };
+
+        conn.execute(
+            "INSERT INTO remote_transfer_resolver_state (
+                job_id, resolver_version, source_final_url, provenance_json,
+                discovery_cursor_json, expires_at_ms, updated_at_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(job_id) DO UPDATE SET
+                resolver_version = excluded.resolver_version,
+                source_final_url = excluded.source_final_url,
+                provenance_json = excluded.provenance_json,
+                discovery_cursor_json = excluded.discovery_cursor_json,
+                expires_at_ms = excluded.expires_at_ms,
+                updated_at_ms = excluded.updated_at_ms",
+            params![
+                state.job_id,
+                state.resolver_version as i64,
+                sanitized_url,
+                provenance_json,
+                cursor_json,
+                state.expires_at_ms,
+                updated_at_ms,
+            ],
+        )
+        .map_err(|e| format!("upsert remote resolver state: {e}"))?;
+        Ok(())
+    }
+
+    pub fn get_resolver_state(job_id: &str) -> Result<Option<RemoteResolverState>, String> {
+        let conn = Self::get_connection()?;
+        conn.query_row(
+            "SELECT job_id, resolver_version, source_final_url, provenance_json,
+                    discovery_cursor_json, expires_at_ms, updated_at_ms
+             FROM remote_transfer_resolver_state WHERE job_id = ?1",
+            params![job_id],
+            |row| {
+                let provenance_text: String = row.get(3)?;
+                let cursor_text: Option<String> = row.get(4)?;
+                Ok(RemoteResolverState {
+                    job_id: row.get(0)?,
+                    resolver_version: row.get::<_, i64>(1)?.max(1) as u32,
+                    source_final_url: row.get(2)?,
+                    provenance: serde_json::from_str(&provenance_text).unwrap_or(serde_json::Value::Null),
+                    discovery_cursor: cursor_text.and_then(|value| serde_json::from_str(&value).ok()),
+                    expires_at_ms: row.get(5)?,
+                    updated_at_ms: row.get(6)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(|e| format!("get remote resolver state: {e}"))
     }
 
     pub fn insert_job(job: &RemoteTransferJob) -> Result<(), String> {
@@ -259,5 +327,72 @@ impl RemoteTransferStore {
             }
         }
         Ok(items)
+    }
+}
+
+fn sanitize_json_option(value: Option<&serde_json::Value>) -> Option<serde_json::Value> {
+    value.map(sanitize_json)
+}
+
+fn sanitize_json(value: &serde_json::Value) -> serde_json::Value {
+    const SENSITIVE_KEYS: &[&str] = &[
+        "authorization", "cookie", "cookies", "credential", "password", "session", "token",
+        "api_key", "apikey", "signature", "sig",
+    ];
+    match value {
+        serde_json::Value::Object(object) => serde_json::Value::Object(
+            object
+                .iter()
+                .filter(|(key, _)| {
+                    let lower = key.to_ascii_lowercase();
+                    !SENSITIVE_KEYS.iter().any(|needle| lower.contains(needle))
+                })
+                .map(|(key, value)| (key.clone(), sanitize_json(value)))
+                .collect(),
+        ),
+        serde_json::Value::Array(values) => {
+            serde_json::Value::Array(values.iter().map(sanitize_json).collect())
+        }
+        serde_json::Value::String(value) if value.starts_with("http://") || value.starts_with("https://") => {
+            serde_json::Value::String(redact_url(value))
+        }
+        _ => value.clone(),
+    }
+}
+
+fn redact_url(value: &str) -> String {
+    match url::Url::parse(value) {
+        Ok(mut url) => {
+            url.set_query(None);
+            url.set_fragment(None);
+            url.to_string()
+        }
+        Err(_) => "[invalid-url]".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolver_provenance_never_persists_secrets_or_signed_queries() {
+        let value = serde_json::json!({
+            "source": "https://cdn.example/media.mp4?token=secret&expire=10",
+            "authorization": "Bearer secret",
+            "nested": { "cookie": "private", "parent": "https://site.example/watch?a=b" },
+        });
+        let safe = sanitize_json(&value);
+        let serialized = safe.to_string();
+        assert!(!serialized.contains("secret"));
+        assert!(!serialized.contains("authorization"));
+        assert!(!serialized.contains("cookie"));
+        assert!(serialized.contains("https://cdn.example/media.mp4"));
+        assert!(!serialized.contains("?token"));
+    }
+
+    #[test]
+    fn invalid_final_url_fails_closed_for_persistence() {
+        assert_eq!(redact_url("not a url"), "[invalid-url]");
     }
 }

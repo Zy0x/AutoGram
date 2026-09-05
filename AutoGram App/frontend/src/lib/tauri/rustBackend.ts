@@ -92,6 +92,92 @@ export async function streamStatusLocal(streamId: string) {
   }
 }
 
+export type PreviewDiagnosticEvent = {
+  sequence: number;
+  timestampMs: number;
+  level: string;
+  category: string;
+  event: string;
+  details: Record<string, unknown>;
+};
+
+export type TrafficLaneSnapshot = {
+  goodputBps: number;
+  activeWorkers: number;
+  configuredCeiling: number;
+};
+
+export type TrafficSnapshot = {
+  upload: TrafficLaneSnapshot;
+  download: TrafficLaneSnapshot;
+  stream: TrafficLaneSnapshot;
+  previewRunwaySeconds?: number | null;
+  governorReason: string;
+  dcLatencyMs?: number | null;
+  floodWaitSeconds?: number | null;
+};
+
+export type PreviewDiagnosticsSnapshot = {
+  streamId: string;
+  nextSequence: number;
+  events: PreviewDiagnosticEvent[];
+  traffic: TrafficSnapshot;
+};
+
+export async function previewDiagnosticsSnapshot(
+  streamId: string,
+  afterSequence?: number
+): Promise<PreviewDiagnosticsSnapshot | null> {
+  if (!detectTauriRuntime() || !streamId) return null;
+  try {
+    return await invoke<PreviewDiagnosticsSnapshot>('preview_diagnostics_snapshot', {
+      streamId,
+      afterSequence: afterSequence ?? null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPreviewDiagnostics(streamId: string): Promise<void> {
+  if (!detectTauriRuntime() || !streamId) return;
+  try {
+    await invoke<void>('preview_diagnostics_clear', { streamId });
+  } catch {
+    // Diagnostics must never interfere with preview cleanup.
+  }
+}
+
+export async function observePreviewTraffic(
+  runwaySeconds: number | null,
+  playbackActive: boolean
+): Promise<TrafficSnapshot | null> {
+  if (!detectTauriRuntime()) return null;
+  try {
+    return await invoke<TrafficSnapshot>('preview_traffic_observe', {
+      runwaySeconds,
+      playbackActive,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function configureTrafficGovernor(
+  uploadConcurrency: number,
+  downloadConcurrency: number
+): Promise<void> {
+  if (!detectTauriRuntime()) return;
+  try {
+    await invoke<void>('traffic_governor_configure', {
+      uploadConcurrency: Math.max(1, Math.trunc(uploadConcurrency) || 1),
+      downloadConcurrency: Math.max(1, Math.trunc(downloadConcurrency) || 1),
+    });
+  } catch {
+    // Transfer settings remain usable even if an older native backend is running.
+  }
+}
+
 export async function streamRegisterLocal(
   path: string,
   opts?: { totalSize?: number; mime?: string; label?: string }

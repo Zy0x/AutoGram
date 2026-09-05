@@ -1,3 +1,26 @@
+## v3.9.54 — Verified Remote State, Preview Diagnostics & Adaptive DC Throughput
+
+### 1. Remote Link Verification and Recovery
+- **Verified candidate guard (`RemoteUploadModal`, native resolver, and range proxy)**: Remote Link now carries measured dimensions, bitrate, audio metadata, HDR, range capability, expiry, and provenance from the resolver; General/Audio choose only measured best candidates and batch/single transfers reject wrapper, blocked, session-bound, and unverified sources instead of falling back to the pasted URL.
+- **Resumable resolver state (`022_remote_resolver_state.sql`)**: Adds a versioned SQLite checkpoint for query-redacted provenance, cursor, and expiry evidence, with matching master schema and data dictionary entries. Expiring signed candidates are deliberately re-resolved rather than retaining secrets.
+- **User impact**: A filename, page title, or `.mp4` suffix cannot create a fictional 4K/8K card, a fake direct download, or a preview of the provider container.
+
+### 2. Preview Diagnostics and Playback Readiness
+- **In-memory diagnostics (`preview_diagnostics.rs`, `DrivePreviewModal`)**: The new toolbar Log overlay shows selected-preview player, buffer, range, MOOV head/tail, seek, retry, decode, and error events together with observed upload/download/stream goodput. The buffer is capped at 500 events and is erased when the preview closes.
+- **Privacy boundary**: Log serialization strips cookie, token, authorization, signed URL query, and absolute-path data before it can reach the UI or clipboard.
+- **User impact**: Video playback starts when the browser has actual playable media and metadata; it does not wait for a cosmetic buffer percentage or a complete download. Download-only formats remain non-previewable.
+
+### 3. Adaptive Shared Throughput and Safety
+- **Traffic governor (`traffic_governor.rs`)**: Replaces fixed 8/15 ms upload/download sleeps with measured, short-lived adaptive pacing. Transfer Settings upload/download concurrency remains the hard user ceiling; a playing preview gets a temporary reservation only below a four-second runway and capacity returns once it reaches recovery.
+- **DC-safe behavior**: Goodput is tracked per upload, download, and local stream lane. Telegram FloodWait/cooldown remains authoritative; AutoGram never bypasses account, API, DC, CAPTCHA, DRM, paywall, or session restrictions.
+- **User impact**: Healthy transfers are no longer slowed just because a stale stream exists, while an actually starving preview can recover without forcing users to wait for a high buffer percentage.
+
+### 4. Documentation, Localisation, and Release Integrity
+- **Bilingual UI and docs**: Added matching Indonesian/English Log controls plus user-facing explanations of verified remote formats, diagnostics privacy, and realistic ISP/DC/disk/decoder throughput limits.
+- **Release metadata**: Version advanced to `3.9.54`; verification covers TypeScript build, Rust compilation, locale parity, resolver safety, and preview/governor regression paths.
+
+---
+
 ## v3.9.53 — Self-Healing Telegram Playback Buffer & Fair Transfer Pacing
 
 ### 1. Pemulihan Buffer Streaming MTProto

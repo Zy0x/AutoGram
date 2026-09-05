@@ -64,6 +64,18 @@ export interface RemoteTransferJob {
   completedAtMs?: number | null;
 }
 
+export interface RemoteResolverState {
+  jobId: string;
+  resolverVersion?: number;
+  sourceFinalUrl: string;
+  /** Sanitized resolver evidence; it may be an object or an ordered chain. */
+  provenance?: unknown;
+  /** Opaque, credential-free traversal cursor returned by the crawler. */
+  discoveryCursor?: unknown | null;
+  expiresAtMs?: number | null;
+  updatedAtMs?: number;
+}
+
 export interface RemoteRecoveryItem {
   jobId: string;
   sourceUrl: string;
@@ -124,4 +136,16 @@ export async function remoteTransferGetJob(
   jobId: string
 ): Promise<RemoteTransferJob | null> {
   return await invoke<RemoteTransferJob | null>('remote_transfer_get_job', { jobId });
+}
+
+export async function remoteTransferSaveResolverState(
+  state: RemoteResolverState
+): Promise<void> {
+  await invoke<void>('remote_transfer_save_resolver_state', { state });
+}
+
+export async function remoteTransferGetResolverState(
+  jobId: string
+): Promise<RemoteResolverState | null> {
+  return await invoke<RemoteResolverState | null>('remote_transfer_get_resolver_state', { jobId });
 }

@@ -502,14 +502,17 @@ pub fn note_error(session: &str, err: &TgError) {
     if err.code() == TgErrorCode::FloodWait {
         if let Some(secs) = err.flood_wait_secs() {
             note_flood_wait(session, secs);
+            crate::core::traffic_governor::record_flood_wait(Some(secs as u64));
             return;
         }
         if let Some(secs) = parse_flood_secs(&err.to_string()) {
             note_flood_wait(session, secs);
+            crate::core::traffic_governor::record_flood_wait(Some(secs as u64));
             return;
         }
         // Fallback default for TgErrorCode::FloodWait without explicit seconds
         note_flood_wait(session, 30);
+        crate::core::traffic_governor::record_flood_wait(Some(30));
     }
 }
 

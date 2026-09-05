@@ -26535,6 +26535,88 @@ input[type="search"]::-webkit-search-decoration {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+.drive-preview-diagnostics {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: min(440px, calc(100% - 24px));
+  max-height: min(64%, 460px);
+  overflow: hidden;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.52);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  line-height: 1.42;
+  z-index: 51;
+  pointer-events: auto;
+}
+.drive-preview-diagnostics-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+.drive-preview-diagnostics-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 12px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+.drive-preview-diagnostics-summary div {
+  min-width: 0;
+}
+.drive-preview-diagnostics-summary dt {
+  color: #94a3b8;
+}
+.drive-preview-diagnostics-summary dd {
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-preview-diagnostics-events {
+  display: grid;
+  gap: 5px;
+  max-height: 250px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.drive-preview-diagnostics-events p {
+  margin: 4px 0;
+  color: #94a3b8;
+}
+.drive-preview-diagnostics-events article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 7px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.58);
+}
+.drive-preview-diagnostics-events article.is-warn,
+.drive-preview-diagnostics-events article.is-error {
+  background: rgba(127, 29, 29, 0.28);
+}
+.drive-preview-diagnostics-events time {
+  color: #7dd3fc;
+  font-variant-numeric: tabular-nums;
+}
+.drive-preview-diagnostics-events strong,
+.drive-preview-diagnostics-events span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-preview-diagnostics-events span {
+  grid-column: 2;
+  color: #94a3b8;
+}
 
 /* Media Forwarder workspace: a focused local-first control surface.
    This layer intentionally does not alter Media Studio delivery, grid, or album styles. */

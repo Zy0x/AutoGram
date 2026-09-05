@@ -124,6 +124,14 @@ Manages remote video/media downloads from YouTube, TikTok, Instagram, Twitter/X,
 - `downloaded_bytes` / `uploaded_bytes`: Real-time dual-progress tracking.
 - `destination_type` / `destination_id` / `destination_topic_id`: Target Telegram destination.
 
+#### `remote_transfer_resolver_state`
+Stores resumable discovery state for a remote-transfer job without retaining authentication material:
+- `resolver_version`: Versioned resolver-state contract for forward-compatible recovery.
+- `source_final_url`: Query-redacted final public page or media location used for rediscovery.
+- `provenance_json`: Sanitized source, redirect, parent, validation, and capability evidence for verified candidates.
+- `discovery_cursor_json`: Cursor/queue checkpoint consumed by **Muat berikutnya**, so traversal does not restart.
+- `expires_at_ms`: Signed-media expiry hint; an expired candidate must be resolved again before transfer or preview.
+
 ---
 
 ### 2.6 4-Level Duplicate Prevention Matrix

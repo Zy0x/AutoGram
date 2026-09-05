@@ -1,9 +1,8 @@
 //! Local progressive media HTTP Range server (Rust).
 //!
-//! Python Telethon only downloads bytes and publishes a registry JSON.
-//! Serving Range requests here cuts Python/aiohttp RAM for playback.
-//!
-//! Dual-path: if registry missing, Python's own aiohttp port still works.
+//! Grammers fills verified byte ranges and this native server serves them.
+//! Serving Range requests here keeps playback memory bounded and avoids a
+//! second HTTP media stack in the desktop runtime.
 
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -361,6 +360,10 @@ impl Read for DemandRangeReader {
                             let start_idx = self.position as usize;
                             output[..ram_count].copy_from_slice(&hot_head[start_idx..start_idx + ram_count]);
                             self.position = self.position.saturating_add(ram_count as u64);
+                            crate::core::traffic_governor::record_bytes(
+                                crate::core::traffic_governor::TransferDirection::Stream,
+                                ram_count as u64,
+                            );
                             return Ok(ram_count);
                         }
                     }
@@ -373,6 +376,10 @@ impl Read for DemandRangeReader {
                     put_hot_head(&self.stream_id, &output[..read]);
                 }
                 self.position = self.position.saturating_add(read as u64);
+                crate::core::traffic_governor::record_bytes(
+                    crate::core::traffic_governor::TransferDirection::Stream,
+                    read as u64,
+                );
                 return Ok(read);
             }
 
@@ -505,6 +512,22 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
         }
     }
 
+    let prefix_bytes = contiguous_from_zero(&entry.ranges);
+    let filled_bytes = filled_bytes(&entry.ranges);
+    crate::core::preview_diagnostics::record(
+        &entry.stream_id,
+        "debug",
+        "buffer",
+        "range_commit",
+        serde_json::json!({
+            "prefixBytes": prefix_bytes,
+            "filledBytes": filled_bytes,
+            "totalBytes": entry.total_size,
+            "moovReady": entry.moov_ready_cached,
+            "tailFetchActive": entry.moov_tail_fetching,
+            "complete": entry.done,
+        }),
+    );
     save_entry_disk(&entry);
     live_map()
         .write()
@@ -526,6 +549,13 @@ pub fn finish_moov_tail_fetch(sid: &str) {
         entry.updated_at_ms = now_ms();
         entry.clone()
     };
+    crate::core::preview_diagnostics::record(
+        sid,
+        "info",
+        "moov",
+        "tail_fetch_finished",
+        serde_json::json!({"moovReady": completed.moov_ready_cached}),
+    );
     save_entry_disk(&completed);
 }
 
@@ -779,6 +809,13 @@ fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
 
 fn handle_stream(request: Request, sid: &str) {
     record_stream_activity();
+    crate::core::preview_diagnostics::record(
+        sid,
+        "debug",
+        "network",
+        "range_request",
+        serde_json::json!({"method": request.method().as_str()}),
+    );
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
         Some(_e) if _e.cancelled => {
@@ -830,6 +867,13 @@ fn handle_stream(request: Request, sid: &str) {
 
     // If start is beyond total size, return RFC 7233 416 Range Not Satisfiable
     if req_start >= total && total > 0 {
+        crate::core::preview_diagnostics::record(
+            sid,
+            "warn",
+            "network",
+            "range_rejected",
+            serde_json::json!({"requestedStart": req_start, "totalBytes": total, "status": 416}),
+        );
         let mut res =
             Response::from_string("Range Not Satisfiable").with_status_code(StatusCode(416));
         for h in cors_headers() {
@@ -852,6 +896,13 @@ fn handle_stream(request: Request, sid: &str) {
     if !entry.done {
         let have = contiguous_end_from(&entry.ranges, req_start);
         if have <= req_start {
+            crate::core::preview_diagnostics::record(
+                sid,
+                "info",
+                "seek",
+                "range_demanded",
+                serde_json::json!({"offset": req_start}),
+            );
             let _ = crate::core::grammers::stream::request_progressive_range(sid, req_start);
             if entry.paused || entry.cancelled {
                 entry.paused = false;
@@ -934,6 +985,21 @@ fn handle_stream(request: Request, sid: &str) {
         "[REAL_HTTP_RANGE][CAP16] sid={sid} req={:?} -> status={status} cr=bytes {start}-{end_incl}/{total} len={length} done={}",
         range_hdr,
         entry.done
+    );
+    crate::core::preview_diagnostics::record(
+        sid,
+        "info",
+        "network",
+        "range_response",
+        serde_json::json!({
+            "start": start,
+            "end": end_incl,
+            "totalBytes": total,
+            "status": status,
+            "availableBytes": prefix,
+            "filledBytes": filled,
+            "complete": entry.done,
+        }),
     );
 
     let mime = if entry.mime.is_empty() {
@@ -1180,7 +1246,7 @@ fn handle_remote_proxy(request: Request) {
     let raw_url = request.url().to_string();
     let query_str = raw_url.split_once('?').map(|x| x.1).unwrap_or("");
     let mut target_url = String::new();
-    let mut referer = "https://streamrizz.com/".to_string();
+    let mut referer: Option<String> = None;
 
     for pair in query_str.split('&') {
         if let Some((k, v)) = pair.split_once('=') {
@@ -1189,7 +1255,7 @@ fn handle_remote_proxy(request: Request) {
                     if decoded_k == "url" {
                         target_url = decoded_v.to_string();
                     } else if decoded_k == "referer" {
-                        referer = decoded_v.to_string();
+                        referer = Some(decoded_v.to_string());
                     }
                 }
             }
@@ -1205,10 +1271,22 @@ fn handle_remote_proxy(request: Request) {
         return;
     }
 
+    // `/proxy_remote` is reachable from a webview. Only public HTTP(S) media
+    // hosts previously accepted by the resolver are permitted; automatic HTTP
+    // redirects are disabled below so every redirect hop remains explicit.
+    if crate::core::remote_link_resolver::ensure_public_remote_url(&target_url).is_err() {
+        let mut res = Response::from_string("unsafe remote URL").with_status_code(StatusCode(400));
+        for h in cors_headers() {
+            res.add_header(h);
+        }
+        let _ = request.respond(res);
+        return;
+    }
+
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(10))
         .timeout_read(Duration::from_secs(45))
-        .redirects(8)
+        .redirects(0)
         .build();
 
     let is_head = request.method() == &Method::Head;
@@ -1219,8 +1297,10 @@ fn handle_remote_proxy(request: Request) {
     };
 
     upstream_req = upstream_req
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-        .set("Referer", &referer);
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+    if let Some(referer) = referer.as_deref() {
+        upstream_req = upstream_req.set("Referer", referer);
+    }
 
     for hdr in request.headers() {
         if hdr.field.equiv("range") {

@@ -63,6 +63,7 @@ import {
   getSessionMetadata,
   type SessionOption,
 } from '../../../lib/telegram/core/sessionPicker';
+import { configureTrafficGovernor } from '../../../lib/tauri/rustBackend';
 
 function getEffectiveCaptionPosition(draft: { captionPosition?: CaptionPosition; captionAbove?: boolean }): CaptionPosition {
   if (draft.captionPosition) return draft.captionPosition;
@@ -890,6 +891,13 @@ export function TransferSettingsWorkspace({
     () => validateTransferSettings(draft, hardwareCapabilities),
     [draft, hardwareCapabilities]
   );
+
+  // The traffic governor sees these only as user ceilings. It may reserve a
+  // little capacity for a critical preview, but it never raises parallelism
+  // above the Transfer Settings selected by the user.
+  useEffect(() => {
+    void configureTrafficGovernor(draft.uploadConcurrency, draft.downloadConcurrency);
+  }, [draft.downloadConcurrency, draft.uploadConcurrency]);
 
   const patch = (partial: Partial<DriveTransferSettings>) => {
     setDraft((prev) => {

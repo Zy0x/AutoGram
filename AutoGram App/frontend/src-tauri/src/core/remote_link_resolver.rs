@@ -29,6 +29,8 @@ pub struct RemoteLinkCandidate {
     pub content_length: Option<u64>,
     pub verified: bool,
     pub validation: String,
+    pub range_supported: bool,
+    pub expires_at_ms: Option<u64>,
     pub is_downloadable: bool,
     pub is_streamable: bool,
     pub download_only: bool,
@@ -85,7 +87,21 @@ struct PageInspection {
     links: Vec<Url>,
     validation: Option<String>,
     is_streamable: bool,
+    range_supported: bool,
     blocker_reason: Option<String>,
+}
+
+/// Only expose expiry when the public URL itself uses a conventional unix
+/// timestamp parameter.  A missing value means "unknown", never "permanent".
+fn public_url_expiry_ms(url: &Url) -> Option<u64> {
+    for (key, value) in url.query_pairs() {
+        if !matches!(key.to_ascii_lowercase().as_str(), "expire" | "expires" | "expiry" | "exp") {
+            continue;
+        }
+        let raw = value.parse::<u64>().ok()?;
+        return Some(if raw < 10_000_000_000 { raw.saturating_mul(1000) } else { raw });
+    }
+    None
 }
 
 fn is_private_ip(ip: IpAddr) -> bool {
@@ -681,6 +697,7 @@ fn inspect_page(agent: &ureq::Agent, url: &Url) -> Result<PageInspection, String
                 "magic".into()
             }),
             is_streamable,
+            range_supported: has_range,
             blocker_reason: None,
         });
     }
@@ -713,6 +730,7 @@ fn inspect_page(agent: &ureq::Agent, url: &Url) -> Result<PageInspection, String
         links,
         validation: None,
         is_streamable: false,
+        range_supported: false,
         blocker_reason,
     })
 }
@@ -829,6 +847,8 @@ pub fn resolve_remote_link_deep(
                 content_length: inspection.content_length,
                 verified: true,
                 validation: inspection.validation.unwrap_or_else(|| "magic".into()),
+                range_supported: inspection.range_supported,
+                expires_at_ms: public_url_expiry_ms(&inspection.final_url),
                 is_downloadable: true,
                 is_streamable,
                 download_only: !is_streamable,
@@ -1016,5 +1036,15 @@ mod tests {
     fn parses_total_length_from_range_response() {
         assert_eq!(content_range_total("bytes 0-1023/987654"), Some(987654));
         assert_eq!(content_range_total("bytes */*"), None);
+    }
+
+    #[test]
+    fn extracts_conventional_signed_url_expiry_without_guessing() {
+        let seconds = Url::parse("https://cdn.example/media.mp4?expire=1234").unwrap();
+        let milliseconds = Url::parse("https://cdn.example/media.mp4?expires=1234567890123").unwrap();
+        let unknown = Url::parse("https://cdn.example/media.mp4?signature=not-a-time").unwrap();
+        assert_eq!(public_url_expiry_ms(&seconds), Some(1_234_000));
+        assert_eq!(public_url_expiry_ms(&milliseconds), Some(1_234_567_890_123));
+        assert_eq!(public_url_expiry_ms(&unknown), None);
     }
 }

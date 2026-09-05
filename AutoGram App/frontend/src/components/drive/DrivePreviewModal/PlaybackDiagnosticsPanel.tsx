@@ -22,22 +22,15 @@ interface PlaybackDiagnosticsPanelProps {
 }
 
 export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> = ({
-  telemetry = {
-    activeBackend: 'D3D11VA (Direct3D11 Video Acceleration)',
-    gpuAdapterName: 'NVIDIA GeForce GPU',
-    zeroCopyActive: true,
-    sourceFps: 60,
-    renderedFps: 60,
-    droppedFrames: 0,
-    avDriftMs: 0.4,
-    vramUsedMb: 312,
-    vramCapMb: 1024,
-    seekCacheHitPct: 98.4,
-    decoderProfile: 'HEVC Main10 @ Level 5.1 (4K 60FPS)',
-  },
+  telemetry,
   onClose,
 }) => {
   const { t } = useTranslation();
+
+  // This legacy player is not connected to a native telemetry source. Do not
+  // invent GPU, decoder or cache numbers: the active DrivePreviewModal owns
+  // the real in-memory diagnostic log and renders it through its Log button.
+  if (!telemetry) return null;
 
   return (
     <div

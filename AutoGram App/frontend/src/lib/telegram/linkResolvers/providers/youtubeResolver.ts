@@ -174,7 +174,12 @@ async function fetchYouTubeInnertubePlayer(videoId: string, signal?: AbortSignal
   return null;
 }
 
-async function fetchYouTubeYtDlp(url: string): Promise<any | null> {
+/**
+ * Runs the updateable yt-dlp provider for a public media page. The parser is
+ * platform-neutral, so TikTok and future extractor-backed providers share the
+ * exact same update, cookie-isolation and timeout behaviour as YouTube.
+ */
+export async function fetchYtDlpMedia(url: string): Promise<any | null> {
   if (!detectTauriRuntime()) return null;
   let autoUpdate = true;
   let checkIntervalHours = 6;
@@ -252,20 +257,6 @@ function qualityTierForHeight(height?: number): StreamQualityFormat['qualityTier
   if (height >= 240) return '240p';
   if (height >= 144) return '144p';
   return 'original';
-}
-
-function defaultBitrateForHeight(height?: number, isAudio?: boolean): number {
-  if (isAudio) return 128_000;
-  if (!height) return 2_000_000;
-  if (height >= 4320) return 50_000_000;
-  if (height >= 2160) return 25_000_000;
-  if (height >= 1440) return 16_000_000;
-  if (height >= 1080) return 8_000_000;
-  if (height >= 720) return 4_000_000;
-  if (height >= 480) return 2_000_000;
-  if (height >= 360) return 1_000_000;
-  if (height >= 240) return 500_000;
-  return 250_000;
 }
 
 function stableFormatNumber(value: unknown, index: number): number {
@@ -369,10 +360,13 @@ export function processYtDlpData(
     const height = typeof f.height === 'number' ? f.height : undefined;
     const rawBitrate = Number(f.tbr || f.vbr || f.abr || 0) * 1000;
     const audioBitrate = Number(f.abr || 0) * 1000;
-    const effectiveBitrate = (isAudio ? audioBitrate : rawBitrate) || defaultBitrateForHeight(height, isAudio);
-    const bitrateText = effectiveBitrate >= 1_000_000
+    // Bitrate must come from the extractor. A guessed rate turns a provider
+    // title into a false quality card, particularly when YouTube only exposes
+    // SABR metadata to a browser client.
+    const effectiveBitrate = isAudio ? audioBitrate : rawBitrate;
+    const bitrateText = effectiveBitrate > 0 && effectiveBitrate >= 1_000_000
       ? `${(effectiveBitrate / 1_000_000).toFixed(1)} Mbps`
-      : `${Math.round(effectiveBitrate / 1000)} kbps`;
+      : effectiveBitrate > 0 ? `${Math.round(effectiveBitrate / 1000)} kbps` : '';
     const formatId = String(f.format_id || stableFormatNumber(f.format_id, index));
     const itag = stableFormatNumber(formatId, index);
     const ext = String(f.ext || (isAudio ? 'm4a' : 'mp4')).toLowerCase();
@@ -388,8 +382,8 @@ export function processYtDlpData(
     const downloadable = true;
 
     const label = isAudio
-      ? `${ext.toUpperCase()} ${Math.round((effectiveBitrate || 0) / 1000)} kbps`
-      : `${f.format_note || (height ? `${height}p` : 'Video')} (${ext.toUpperCase()})`;
+      ? `${ext.toUpperCase()}${effectiveBitrate > 0 ? ` ${Math.round(effectiveBitrate / 1000)} kbps` : ''}`
+      : `${height ? `${height}p` : 'Original'} (${ext.toUpperCase()})`;
     const qualityTier = isAudio ? 'audio' : qualityTierForHeight(height);
     const codec = String(vcodec !== 'none' ? vcodec : acodec);
     const rawSize = Number(f.filesize || f.filesize_approx || 0) || 0;
@@ -400,7 +394,7 @@ export function processYtDlpData(
 
     const stream: RawStreamItem = {
       itag,
-      qualityLabel: isAudio ? 'Audio Stream' : (f.format_note || `${height || 'Video'}p`),
+      qualityLabel: isAudio ? 'Audio Stream' : (height ? `${height}p` : 'Original'),
       mimeType: isAudio ? `audio/${ext}` : `video/${ext}`,
       codec,
       bitrate: effectiveBitrate,
@@ -425,7 +419,9 @@ export function processYtDlpData(
       id: `yt_ytdlp_${formatId}`,
       label,
       qualityTier,
-      resolution: isAudio ? `${Math.round((effectiveBitrate || 0) / 1000)} kbps` : `${height || 'unknown'}p • ${bitrateText}`,
+      resolution: isAudio
+        ? (effectiveBitrate > 0 ? `${Math.round(effectiveBitrate / 1000)} kbps` : undefined)
+        : (height ? `${height}p` : undefined),
       fps: stream.fps,
       ext,
       filesizeBytes: size,
@@ -435,10 +431,17 @@ export function processYtDlpData(
       downloadOnly: downloadable && !streamable,
       isVideo,
       isAudio,
-      badge: isAudio ? bitrateText : `${height || 'Video'}p • ${bitrateText}`,
+      badge: bitrateText || undefined,
       codec,
       protocol,
       container: ext,
+      width: typeof f.width === 'number' ? f.width : undefined,
+      height,
+      bitrate: effectiveBitrate || undefined,
+      audioBitrate: audioBitrate || undefined,
+      sampleRate: f.asr ? Number(f.asr) : undefined,
+      audioChannels: typeof f.audio_channels === 'number' ? f.audio_channels : undefined,
+      isHdr: String(f.dynamic_range || '').toLowerCase() === 'hdr' || /(?:hdr|hlg|pq)/i.test(String(f.format_note || '')),
       itag,
     };
 
@@ -602,21 +605,21 @@ function processPlayerData(
     })
     .filter((f) => typeof f?.url === 'string' && f.url.startsWith('http'));
 
-  const dur = durationSec || 180;
+  const dur = durationSec;
 
-  const tiers: Array<{ key: string; label: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | '240p' | '144p'; height: number; defaultBitrateMbps: number }> = [
-    { key: '4320p', label: '8K Ultra HD', tier: '8k', height: 4320, defaultBitrateMbps: 50.0 },
-    { key: '2160p', label: '4K Ultra HD', tier: '4k', height: 2160, defaultBitrateMbps: 25.0 },
-    { key: '1440p', label: '2K Quad HD', tier: '2k', height: 1440, defaultBitrateMbps: 12.0 },
-    { key: '1080p', label: 'Full HD 1080p', tier: '1080p', height: 1080, defaultBitrateMbps: 4.5 },
-    { key: '720p', label: 'HD 720p', tier: '720p', height: 720, defaultBitrateMbps: 2.5 },
-    { key: '480p', label: 'SD 480p', tier: '480p', height: 480, defaultBitrateMbps: 1.2 },
-    { key: '360p', label: 'Compact 360p', tier: '360p', height: 360, defaultBitrateMbps: 0.6 },
-    { key: '240p', label: '240p', tier: '240p', height: 240, defaultBitrateMbps: 0.3 },
-    { key: '144p', label: '144p', tier: '144p', height: 144, defaultBitrateMbps: 0.15 },
+  const tiers: Array<{ key: string; tier: '8k' | '4k' | '2k' | '1080p' | '720p' | '480p' | '360p' | '240p' | '144p'; height: number }> = [
+    { key: '4320p', tier: '8k', height: 4320 },
+    { key: '2160p', tier: '4k', height: 2160 },
+    { key: '1440p', tier: '2k', height: 1440 },
+    { key: '1080p', tier: '1080p', height: 1080 },
+    { key: '720p', tier: '720p', height: 720 },
+    { key: '480p', tier: '480p', height: 480 },
+    { key: '360p', tier: '360p', height: 360 },
+    { key: '240p', tier: '240p', height: 240 },
+    { key: '144p', tier: '144p', height: 144 },
   ];
 
-  tiers.forEach(({ key, label, tier, height, defaultBitrateMbps }) => {
+  tiers.forEach(({ key, tier, height }) => {
     const tierMatches = allFormats.filter((f) => {
       const isAud = !f.qualityLabel && (f.mimeType?.includes('audio') || !!f.audioQuality);
       if (isAud) return false;
@@ -633,52 +636,61 @@ function processPlayerData(
     // 1. WebM stream - strictly when concrete WebM stream exists on server
     if (webms.length > 0) {
       const v = webms[0];
-      const bit = (v.bitrate || 0) || (v.averageBitrate || 0) || Math.round(defaultBitrateMbps * 1000000);
-      const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : defaultBitrateMbps.toFixed(1);
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+      const bitrateText = bit >= 1_000_000 ? `${(bit / 1_000_000).toFixed(1)} Mbps` : bit > 0 ? `${Math.round(bit / 1_000)} kbps` : '';
       const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
-      const size = v.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
+      const actualHeight = typeof v.height === 'number' && v.height > 0 ? v.height : undefined;
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : undefined;
 
       formats.push({
         id: `yt_${key}_webm`,
-        label: `${label} (WebM)`,
+        label: `${actualHeight ? `${actualHeight}p` : 'Original'} (WebM)`,
         qualityTier: tier,
-        resolution: `${v.qualityLabel || key} • ${mbps} Mbps`,
-        fps: v.fps || (isHdr ? 60 : 30),
+        resolution: actualHeight ? `${actualHeight}p` : undefined,
+        fps: typeof v.fps === 'number' ? v.fps : undefined,
         ext: 'webm',
         filesizeBytes: size,
         directUrl: v.url,
         isDownloadable: true,
         isStreamable: true,
         isVideo: true,
-        badge: `${mbps} Mbps`,
+        badge: bitrateText || undefined,
         codec: isHdr ? 'VP9 HDR' : 'VP9',
         itag: v.itag,
+        width: typeof v.width === 'number' ? v.width : undefined,
+        height: actualHeight,
+        bitrate: bit || undefined,
+        isHdr,
       });
     }
 
     // 2. MP4 stream - strictly when concrete MP4 stream exists on server
     if (mp4s.length > 0) {
       const v = mp4s[0];
-      const bit = (v.bitrate || 0) || (v.averageBitrate || 0) || Math.round(defaultBitrateMbps * 1000000);
-      const mbps = bit > 0 ? (bit / 1000000).toFixed(1) : defaultBitrateMbps.toFixed(1);
+      const bit = (v.bitrate || 0) || (v.averageBitrate || 0);
+      const bitrateText = bit >= 1_000_000 ? `${(bit / 1_000_000).toFixed(1)} Mbps` : bit > 0 ? `${Math.round(bit / 1_000)} kbps` : '';
       const isAv1 = v.mimeType?.includes('av01');
-      const size = v.contentLength ? parseInt(v.contentLength, 10) : Math.round(dur * (parseFloat(mbps) * 1000000 / 8));
+      const actualHeight = typeof v.height === 'number' && v.height > 0 ? v.height : undefined;
+      const size = v.contentLength ? parseInt(v.contentLength, 10) : undefined;
 
       formats.push({
         id: `yt_${key}_mp4`,
-        label: `${label} (MP4)`,
+        label: `${actualHeight ? `${actualHeight}p` : 'Original'} (MP4)`,
         qualityTier: tier,
-        resolution: `${v.qualityLabel || key} • ${mbps} Mbps`,
-        fps: v.fps || 60,
+        resolution: actualHeight ? `${actualHeight}p` : undefined,
+        fps: typeof v.fps === 'number' ? v.fps : undefined,
         ext: 'mp4',
         filesizeBytes: size,
         directUrl: v.url,
         isDownloadable: true,
         isStreamable: true,
         isVideo: true,
-        badge: `${mbps} Mbps`,
+        badge: bitrateText || undefined,
         codec: isAv1 ? 'AV1' : 'H.264',
         itag: v.itag,
+        width: typeof v.width === 'number' ? v.width : undefined,
+        height: actualHeight,
+        bitrate: bit || undefined,
       });
     }
   });
@@ -694,15 +706,18 @@ function processPlayerData(
 
   const seenM4aBitrates = new Set<number>();
   m4aAudios.forEach((bestM4a) => {
-    const m4aKbps = bestM4a?.bitrate ? Math.round(bestM4a.bitrate / 1000) : 128;
+    const m4aBitrate = Number(bestM4a?.bitrate || bestM4a?.averageBitrate || 0);
+    if (m4aBitrate <= 0) return;
+    const m4aKbps = Math.round(m4aBitrate / 1000);
     if (seenM4aBitrates.has(m4aKbps)) return;
     seenM4aBitrates.add(m4aKbps);
-    const m4aSize = bestM4a?.contentLength ? parseInt(bestM4a.contentLength, 10) : Math.round(dur * (m4aKbps * 1024 / 8));
-    const isPrimary = formats.filter((f) => f.isAudio && f.ext === 'm4a').length === 0;
+    const m4aSize = bestM4a?.contentLength
+      ? parseInt(bestM4a.contentLength, 10)
+      : dur && dur > 0 ? Math.round(dur * (m4aBitrate / 8)) : undefined;
 
     formats.push({
-      id: isPrimary ? 'yt_audio_m4a' : `yt_audio_m4a_${m4aKbps}k`,
-      label: isPrimary ? 'Hi-Res Audio (M4A)' : `Audio M4A (${m4aKbps}k)`,
+      id: `yt_audio_m4a_${m4aKbps}k`,
+      label: `M4A ${m4aKbps} kbps`,
       qualityTier: 'audio',
       resolution: `${m4aKbps} kbps (AAC)`,
       ext: 'm4a',
@@ -714,23 +729,27 @@ function processPlayerData(
       badge: `${m4aKbps} KBPS • AAC`,
       codec: 'AAC',
       itag: bestM4a.itag,
+      bitrate: m4aBitrate,
+      audioBitrate: m4aBitrate,
+      sampleRate: bestM4a.audioSampleRate ? Number(bestM4a.audioSampleRate) : undefined,
+      audioChannels: typeof bestM4a.audioChannels === 'number' ? bestM4a.audioChannels : undefined,
     });
   });
 
   const seenOpusBitrates = new Set<number>();
   opusAudios.forEach((bestOpus) => {
-    const opusKbps = bestOpus?.bitrate ? Math.round(bestOpus.bitrate / 1000) : 160;
+    const opusBitrate = Number(bestOpus?.bitrate || bestOpus?.averageBitrate || 0);
+    if (opusBitrate <= 0) return;
+    const opusKbps = Math.round(opusBitrate / 1000);
     if (seenOpusBitrates.has(opusKbps)) return;
     seenOpusBitrates.add(opusKbps);
-    const opusSize = bestOpus?.contentLength ? parseInt(bestOpus.contentLength, 10) : Math.round(dur * (opusKbps * 1024 / 8));
-    const count = formats.filter((f) => f.isAudio && f.ext === 'opus').length;
-    let lbl = `Audio Opus (${opusKbps}k)`;
-    if (count === 0) lbl = 'Studio Audio (Opus)';
-    else if (opusKbps <= 60) lbl = `Voice Audio (Opus ${opusKbps}k)`;
+    const opusSize = bestOpus?.contentLength
+      ? parseInt(bestOpus.contentLength, 10)
+      : dur && dur > 0 ? Math.round(dur * (opusBitrate / 8)) : undefined;
 
     formats.push({
-      id: count === 0 ? 'yt_audio_opus' : `yt_audio_opus_${opusKbps}k`,
-      label: lbl,
+      id: `yt_audio_opus_${opusKbps}k`,
+      label: `Opus ${opusKbps} kbps`,
       qualityTier: 'audio',
       resolution: `${opusKbps} kbps (Opus)`,
       ext: 'opus',
@@ -742,6 +761,10 @@ function processPlayerData(
       badge: `${opusKbps} KBPS • OPUS`,
       codec: 'Opus',
       itag: bestOpus.itag,
+      bitrate: opusBitrate,
+      audioBitrate: opusBitrate,
+      sampleRate: bestOpus.audioSampleRate ? Number(bestOpus.audioSampleRate) : undefined,
+      audioChannels: typeof bestOpus.audioChannels === 'number' ? bestOpus.audioChannels : undefined,
     });
   });
 
@@ -867,7 +890,7 @@ function processPlayerData(
   // Raw streams: 100% concrete streams directly from YouTube server response
   allFormats.forEach((f) => {
     const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
-    const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : `${Math.round(bit / 1000)} kbps`;
+    const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : bit > 0 ? `${Math.round(bit / 1000)} kbps` : '';
     const mime = f.mimeType || '';
     const isAudio = !f.qualityLabel && (mime.includes('audio') || !!f.audioQuality);
     const isVideo = !!f.qualityLabel || mime.includes('video');
@@ -887,11 +910,13 @@ function processPlayerData(
     }
 
     const isHdr = f.qualityLabel?.includes('HDR') || mime.includes('vp9.2') || f.colorInfo?.transferCharacteristics?.includes('SMPTE');
-    const size = f.contentLength ? parseInt(f.contentLength, 10) : (bit > 0 ? Math.round(dur * (bit / 8)) : undefined);
+    const size = f.contentLength
+      ? parseInt(f.contentLength, 10)
+      : (dur && dur > 0 && bit > 0 ? Math.round(dur * (bit / 8)) : undefined);
 
     rawStreams.push({
       itag: f.itag || 0,
-      qualityLabel: f.qualityLabel || (isAudio ? 'Audio Stream' : 'Video Stream'),
+      qualityLabel: f.height ? `${f.height}p` : (isAudio ? 'Audio Stream' : 'Original'),
       mimeType: mime.split(';')[0] || mime,
       codec,
       bitrate: bit,
@@ -924,14 +949,16 @@ function processPlayerData(
     const exists = formats.some((fmt) => fmt.itag === s.itag);
     if (!exists) {
       const isAud = s.type === 'audio';
-      const qualityLabel = s.qualityLabel || (isAud ? 'Audio Stream' : 'Video Stream');
+      const qualityLabel = s.height ? `${s.height}p` : (isAud ? 'Audio Stream' : 'Original');
       const isMp4 = s.mimeType.includes('mp4');
       const ext = isMp4 ? (isAud ? 'm4a' : 'mp4') : (isAud ? 'opus' : 'webm');
       formats.push({
         id: `yt_itag_${s.itag}`,
         label: qualityLabel,
-        qualityTier: isAud ? 'audio' : (qualityLabel.includes('4320') ? '8k' : qualityLabel.includes('2160') ? '4k' : qualityLabel.includes('1440') ? '2k' : qualityLabel.includes('1080') ? '1080p' : qualityLabel.includes('720') ? '720p' : qualityLabel.includes('480') ? '480p' : qualityLabel.includes('360') ? '360p' : qualityLabel.includes('240') ? '240p' : qualityLabel.includes('144') ? '144p' : 'original'),
-        resolution: `${qualityLabel} • ${s.bitrateFormatted}`,
+        qualityTier: isAud ? 'audio' : qualityTierForHeight(s.height),
+        resolution: isAud
+          ? (s.bitrate > 0 ? `${Math.round(s.bitrate / 1_000)} kbps` : undefined)
+          : (s.height ? `${s.height}p` : undefined),
         fps: s.fps,
         ext,
         filesizeBytes: s.filesizeBytes,
@@ -940,9 +967,18 @@ function processPlayerData(
         isStreamable: s.isStreamable,
         isVideo: !isAud,
         isAudio: isAud,
-        badge: s.bitrateFormatted,
+        badge: s.bitrateFormatted || undefined,
         codec: s.codec,
         itag: s.itag,
+        width: s.width,
+        height: s.height,
+        bitrate: s.bitrate || undefined,
+        audioBitrate: isAud ? s.bitrate || undefined : undefined,
+        sampleRate: s.sampleRate,
+        audioChannels: s.audioChannels,
+        isHdr: s.isHdr === true,
+        protocol: s.protocol,
+        container: s.container,
       });
     }
   });
@@ -995,7 +1031,7 @@ export const youtubeResolver: LinkResolverProvider = {
     let parsedSuccess = false;
     if (detectTauriRuntime()) {
       try {
-        const ytDlpData = await fetchYouTubeYtDlp(cleanUrl);
+        const ytDlpData = await fetchYtDlpMedia(cleanUrl);
         if (ytDlpData) {
           const res = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
           if (res.title) title = res.title;

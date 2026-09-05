@@ -1912,6 +1912,17 @@ fn start_preview_stream_inner(
                 e.moov_tail_fetching = true;
                 stream_server::upsert_entry(e);
             }
+            crate::core::preview_diagnostics::record(
+                &stream_id,
+                "info",
+                "moov",
+                "tail_fetch_started",
+                serde_json::json!({
+                    "offset": aligned_tail_start,
+                    "probeBytes": tail_probe_bytes,
+                    "parallelRequests": tail_clients.len().clamp(1, 2),
+                }),
+            );
 
             tokio::spawn(async move {
                 if tail_generation.load(Ordering::SeqCst)
@@ -1980,6 +1991,16 @@ fn start_preview_stream_inner(
                 log::info!(
                     "[MOOV_SCAN] sid={tail_sid} requested_range=tail_{tail_probe_bytes} new_unique_bytes={} found={has_moov_tail}",
                     tail_bytes_buf.len()
+                );
+                crate::core::preview_diagnostics::record(
+                    &tail_sid,
+                    "info",
+                    "moov",
+                    "tail_scan_result",
+                    serde_json::json!({
+                        "bytesRead": tail_bytes_buf.len(),
+                        "found": has_moov_tail,
+                    }),
                 );
                 let _ = stream_server::inspect_mp4_layout(&tail_dest);
                 if !tail_generation.load(Ordering::SeqCst)

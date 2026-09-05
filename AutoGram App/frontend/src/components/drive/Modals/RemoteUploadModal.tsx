@@ -110,6 +110,21 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
 }
 
+/** Resolver evidence may still represent a wrapper or a session-bound URL.
+ * Those entries can be shown for transparency, but must never become a
+ * transfer item or a preview source. */
+function canTransferResolvedFormat(format: StreamQualityFormat | null | undefined): format is StreamQualityFormat {
+  const status = format?.verification?.status;
+  return Boolean(
+    format?.directUrl &&
+      format.isDownloadable !== false &&
+      status !== 'blocked' &&
+      status !== 'session-bound' &&
+      status !== 'wrapper' &&
+      status !== 'unverified'
+  );
+}
+
 interface UrlInspection {
   url: string;
   status: 'idle' | 'inspecting' | 'valid' | 'direct_stream' | 'error';
@@ -285,6 +300,20 @@ function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undef
   if (fmt.badge === 'PASSWORD PROTECTED') {
     return t('drive.remote_passcode_required_badge');
   }
+  // Do not surface a resolver/provider badge as a quality claim. Labels such
+  // as "8K" or "60 FPS" are occasionally derived from a page title by an
+  // upstream provider. Resolution, FPS and HDR have dedicated rendering below
+  // and are only shown from measured format metadata.
+  if (fmt.isVideo) {
+    const bitrate = Number(fmt.bitrate || 0);
+    return bitrate > 0
+      ? t('drive.remote_format_bitrate_mbps', { value: (bitrate / 1_000_000).toFixed(bitrate >= 10_000_000 ? 1 : 2) })
+      : undefined;
+  }
+  if (fmt.isAudio || fmt.qualityTier === 'audio') {
+    const bitrate = Number(fmt.audioBitrate || fmt.bitrate || 0);
+    return bitrate > 0 ? t('drive.remote_format_bitrate_kbps', { value: Math.round(bitrate / 1_000) }) : undefined;
+  }
   if (!fmt.badge) return undefined;
   // Suppress duplicate badges that repeat the title/label text
   const normBadge = fmt.badge.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -319,24 +348,22 @@ function selectFormatByPreference(formats?: StreamQualityFormat[], pref?: BatchQ
     if (audioFmt) return audioFmt;
   }
   if (p === '720p') {
-    const p720 = formats.find((f) => f.qualityTier === '720p' || f.resolution?.includes('720'));
+    const p720 = formats.find((f) => Number(f.height || 0) === 720);
     if (p720) return p720;
   }
   if (p === '1080p') {
-    const p1080 = formats.find((f) => f.qualityTier === '1080p' || f.resolution?.includes('1080'));
+    const p1080 = formats.find((f) => Number(f.height || 0) === 1080);
     if (p1080) return p1080;
   }
   if (p === 'best') {
-    const top =
-      formats.find((f) => f.qualityTier === '8k') ||
-      formats.find((f) => f.qualityTier === '4k') ||
-      formats.find((f) => f.qualityTier === '2k') ||
-      formats.find((f) => f.qualityTier === '1080p') ||
-      formats.find((f) => f.isVideo) ||
-      formats[0];
+    const top = [...formats].sort((a, b) =>
+      Number(b.height || 0) - Number(a.height || 0) ||
+      Number(b.fps || 0) - Number(a.fps || 0) ||
+      Number(b.bitrate || 0) - Number(a.bitrate || 0)
+    )[0];
     if (top) return top;
   }
-  return formats.find((f) => f.qualityTier === '1080p') || formats[0];
+  return formats.find((f) => Number(f.height || 0) === 1080) || formats[0];
 }
 
 const KNOWN_MEDIA_EXTENSIONS = new Set([
@@ -469,17 +496,10 @@ function getSingleUnifiedBadgeInfo(
 
   const ext = (fmt.ext || '').toLowerCase();
 
-  // Extract dimensions from probe, badge, or format resolution
-  let width = knownRes?.width;
-  let height = knownRes?.height;
-
-  if (!width || !height) {
-    const dimMatch = (fmt.badge || fmt.resolution || '').match(/(\d+)\s*[x×]\s*(\d+)/i);
-    if (dimMatch) {
-      width = parseInt(dimMatch[1], 10);
-      height = parseInt(dimMatch[2], 10);
-    }
-  }
+  // Only extractor/probe dimensions are evidence. Labels, badges, and page
+  // titles are presentation text and must never manufacture a 4K/8K tier.
+  const width = knownRes?.width || fmt.width;
+  const height = knownRes?.height || fmt.height;
 
   // Profile / Avatar Kind
   if (item.kind === 'profile') {
@@ -621,31 +641,6 @@ function getSingleUnifiedBadgeInfo(
     return { text: dimStr, tierClass: 'tier-sd' };
   }
 
-  // If dimensions not yet probed, check if format has explicit tier
-  const rawTier = fmt.qualityTier && fmt.qualityTier !== 'original'
-    ? fmt.qualityTier.toUpperCase()
-    : fmt.label?.toUpperCase().includes('8K')
-      ? '8K'
-      : fmt.label?.toUpperCase().includes('4K')
-        ? '4K'
-        : fmt.label?.toUpperCase().includes('2K')
-          ? '2K'
-          : fmt.label?.toUpperCase().includes('1080')
-            ? 'FHD'
-            : fmt.label?.toUpperCase().includes('720')
-              ? 'HD'
-              : null;
-
-  if (rawTier) {
-    const normTier = rawTier.toUpperCase() === '1080P' ? 'FHD' : rawTier.toUpperCase();
-    const tierClass =
-      normTier === '8K' ? 'tier-8k' :
-      normTier === '4K' || normTier === 'UHD' ? 'tier-4k' :
-      normTier === '2K' ? 'tier-2k' :
-      normTier === 'FHD' ? 'tier-fhd' : 'tier-hd';
-    return { text: normTier, tierClass };
-  }
-
   // Fallback for general valid extension
   if (ext && ext.length >= 2 && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext)) {
     return { text: ext.toUpperCase(), tierClass: 'tier-sd' };
@@ -660,17 +655,14 @@ function getSingleUnifiedBadgeInfo(
   return null;
 }
 
-function inferRawTierBadge(rawTier?: string, ext?: string): string {
-  if (rawTier) {
-    const norm = rawTier.toUpperCase();
-    if (norm === '1080P' || norm === '1080') return '1080p FHD';
-    if (norm === '720P' || norm === '720') return '720p HD';
-    if (norm === '4K' || norm === 'UHD') return '4K UHD';
-    if (norm === '8K') return '8K UHD';
-    return norm;
+function getMeasuredFormatBadge(format: StreamQualityFormat | null | undefined, ext?: string): string {
+  const height = Number(format?.height || 0);
+  if (height > 0) return `${Math.round(height)}p`;
+  const audioBps = Number(format?.audioBitrate || format?.bitrate || 0);
+  if ((format?.isAudio || format?.qualityTier === 'audio') && audioBps > 0) {
+    return `${Math.round(audioBps / 1000)} kbps`;
   }
-  if (ext) return ext.toUpperCase();
-  return 'HD';
+  return (ext || format?.ext || 'original').toUpperCase();
 }
 
 const ItemDurationBadge: React.FC<{
@@ -805,23 +797,6 @@ const BatchMediaCard = React.memo(function BatchMediaCard({
     </div>
   );
 });
-
-function getYouTubeQualityParam(fmt?: StreamQualityFormat): string {
-  if (!fmt) return 'highres';
-  const tier = fmt.qualityTier?.toLowerCase() || '';
-  const res = (fmt.resolution || '').toLowerCase();
-  const label = (fmt.label || '').toLowerCase();
-  if (tier === '8k' || res.includes('4320') || label.includes('4320') || label.includes('8k')) return 'highres';
-  if (tier === '4k' || res.includes('2160') || label.includes('2160') || label.includes('4k')) return 'hd2160';
-  if (tier === '2k' || res.includes('1440') || label.includes('1440') || label.includes('2k')) return 'hd1440';
-  if (tier === '1080p' || res.includes('1080') || label.includes('1080')) return 'hd1080';
-  if (tier === '720p' || res.includes('720') || label.includes('720')) return 'hd720';
-  if (tier === '480p' || res.includes('480') || label.includes('480')) return 'large';
-  if (tier === '360p' || res.includes('360') || label.includes('360')) return 'medium';
-  if (tier === '240p' || res.includes('240') || label.includes('240')) return 'small';
-  if (tier === '144p' || res.includes('144') || label.includes('144')) return 'tiny';
-  return 'highres';
-}
 
 export function RemoteUploadModal({
   isOpen,
@@ -1660,13 +1635,13 @@ export function RemoteUploadModal({
         : undefined
     );
 
-    if (detectTauriRuntime() && referer) {
+    if (detectTauriRuntime()) {
       invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer })
         .then((proxied) => {
           if (!isCancelled) setActivePlayableUrl(proxied);
         })
         .catch(() => {
-          if (!isCancelled) setActivePlayableUrl(rawUrl);
+          if (!isCancelled) setActivePlayableUrl('');
         });
     } else {
       setActivePlayableUrl(rawUrl);
@@ -1820,7 +1795,7 @@ export function RemoteUploadModal({
       setIsPlayingStream(false);
       setActivePlayableUrl('');
     } else if (isPlayingStream && fmt.directUrl) {
-      setActivePlayableUrl(fmt.directUrl);
+      setActivePlayableUrl('');
     }
     const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
     setInspection((prev) =>
@@ -1876,7 +1851,6 @@ export function RemoteUploadModal({
     }
     setIsPlayingStream(true);
     if (fmt.directUrl) {
-      setActivePlayableUrl(fmt.directUrl);
       // Preview always uses the selected verified URL. The local range proxy
       // preserves provider Referer requirements while upload retains the
       // original URL and never falls back to a provider container player.
@@ -1892,8 +1866,10 @@ export function RemoteUploadModal({
           });
           if (proxyUrl && requestId === playRequestRef.current) setActivePlayableUrl(proxyUrl);
         } catch {
-          /* keep the signed URL as a fallback */
+          if (requestId === playRequestRef.current) setActivePlayableUrl('');
         }
+      } else {
+        setActivePlayableUrl(fmt.directUrl);
       }
     }
   }, [handleSelectFormat]);
@@ -2115,19 +2091,20 @@ export function RemoteUploadModal({
           const items: BatchMediaItem[] = [];
           if (res.mediaItems && res.mediaItems.length > 0) {
             res.mediaItems.forEach((mItem, mIdx) => {
-              const bestFmt = selectFormatByPreference(mItem.formats, batchQualityPreference) || mItem.formats[0];
-              const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
+              const transferableFormats = mItem.formats.filter(canTransferResolvedFormat);
+              const bestFmt = selectFormatByPreference(transferableFormats, batchQualityPreference) || transferableFormats[0];
+              if (!bestFmt) return;
+              const ext = bestFmt.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
               const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
               const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
-              const rawTier = bestFmt?.qualityTier || (bestFmt?.badge ? bestFmt.badge : 'HD');
-              const qualityBadge = inferRawTierBadge(rawTier, ext);
+              const qualityBadge = getMeasuredFormatBadge(bestFmt, ext);
               const itemObj: BatchMediaItem = {
                 id: `grp_${idx}_item_${mIdx}_${mItem.id}`,
                 groupId: updatedGroups[idx].id,
                 sourceUrl: singleUrl,
                 title: mItem.title,
                 filename,
-                directUrl: bestFmt?.directUrl || singleUrl,
+                directUrl: bestFmt.directUrl,
                 thumbnailUrl: mItem.thumbnailUrl,
                 filesizeBytes: bestFmt?.filesizeBytes,
                 durationSec: mItem.durationSec || bestFmt?.durationSec,
@@ -2141,7 +2118,17 @@ export function RemoteUploadModal({
               if (!firstValidItem) firstValidItem = itemObj;
             });
           } else if (res.formats && res.formats.length > 0) {
-            const masterFmt = selectFormatByPreference(res.formats, batchQualityPreference) || res.formats[0];
+            const transferableFormats = res.formats.filter(canTransferResolvedFormat);
+            const masterFmt = selectFormatByPreference(transferableFormats, batchQualityPreference) || transferableFormats[0];
+            if (!masterFmt) {
+              updatedGroups[idx] = {
+                ...updatedGroups[idx],
+                status: 'error',
+                errorMessage: t('drive.remote_native_interaction_required'),
+                items: [],
+              };
+              continue;
+            }
             if (masterFmt.isAlbumPack && masterFmt.allAlbumUrls && masterFmt.allAlbumUrls.length > 0) {
               masterFmt.allAlbumUrls.forEach((imgUrl, imgIdx) => {
                 const filename = `Photo_${imgIdx + 1}_${Date.now()}.jpg`;
@@ -2153,7 +2140,7 @@ export function RemoteUploadModal({
                   filename,
                   directUrl: imgUrl,
                   thumbnailUrl: imgUrl,
-                  qualityBadge: 'HD PHOTO',
+                  qualityBadge: 'PHOTO',
                   headers: masterFmt.headers,
                   isVideo: false,
                   kind: 'photo',
@@ -2166,8 +2153,7 @@ export function RemoteUploadModal({
               const ext = masterFmt.ext || 'mp4';
               const filename = sanitizeFilename(res.title.endsWith(`.${ext}`) ? res.title : `${res.title}.${ext}`);
               const isVid = masterFmt.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
-              const rawTier = masterFmt.qualityTier || (masterFmt.badge ? masterFmt.badge : 'HD');
-              const qualityBadge = inferRawTierBadge(rawTier, ext);
+              const qualityBadge = getMeasuredFormatBadge(masterFmt, ext);
               const itemObj: BatchMediaItem = {
                 id: `grp_${idx}_master_0`,
                 groupId: updatedGroups[idx].id,
@@ -2178,7 +2164,7 @@ export function RemoteUploadModal({
                 thumbnailUrl: res.thumbnailUrl,
                 filesizeBytes: masterFmt.filesizeBytes,
                 durationSec: res.durationSec || masterFmt.durationSec,
-                qualityBadge: qualityBadge || (isVid ? '1080p FHD' : 'HD'),
+                qualityBadge,
                 headers: masterFmt.headers,
                 isVideo: !!isVid,
                 kind: isVid ? 'video' : 'document',
@@ -2188,25 +2174,23 @@ export function RemoteUploadModal({
               if (!firstValidItem) firstValidItem = itemObj;
             }
           } else {
-            const parsedName = singleUrl.split('/').filter(Boolean).pop() || `File_${Date.now()}`;
-            const itemObj: BatchMediaItem = {
-              id: `grp_${idx}_direct_0`,
-              groupId: updatedGroups[idx].id,
-              sourceUrl: singleUrl,
-              title: res.title || parsedName,
-              filename: sanitizeFilename(parsedName),
-              directUrl: singleUrl,
-              thumbnailUrl: res.thumbnailUrl,
-              qualityBadge: 'DIRECT',
-              isVideo: false,
-              kind: 'document',
+            updatedGroups[idx] = {
+              ...updatedGroups[idx],
+              status: 'error',
+              errorMessage: t('drive.remote_native_interaction_required'),
+              items: [],
             };
-            items.push(itemObj);
-            newSelectedIds.add(itemObj.id);
-            if (!firstValidItem) {
-              firstValidItem = itemObj;
-              setFocusedBatchItem((prev) => prev || itemObj);
-            }
+            continue;
+          }
+
+          if (items.length === 0) {
+            updatedGroups[idx] = {
+              ...updatedGroups[idx],
+              status: 'error',
+              errorMessage: t('drive.remote_native_interaction_required'),
+              items: [],
+            };
+            continue;
           }
 
           updatedGroups[idx] = {
@@ -2264,13 +2248,13 @@ export function RemoteUploadModal({
         ? 'https://www.tiktok.com/'
         : undefined);
 
-    if (detectTauriRuntime() && referer) {
+    if (detectTauriRuntime()) {
       invoke<string>('get_remote_stream_proxy_url', { url: rawUrl, referer })
         .then((proxied) => {
           if (!isCancelled) setBatchPlayableUrl(proxied);
         })
         .catch(() => {
-          if (!isCancelled) setBatchPlayableUrl(rawUrl);
+          if (!isCancelled) setBatchPlayableUrl('');
         });
     } else {
       setBatchPlayableUrl(rawUrl);
@@ -2377,19 +2361,20 @@ export function RemoteUploadModal({
 
       if (res.mediaItems && res.mediaItems.length > 0) {
         res.mediaItems.forEach((mItem, mIdx) => {
-          const bestFmt = selectFormatByPreference(mItem.formats, batchQualityPreference) || mItem.formats[0];
-          const ext = bestFmt?.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
+          const transferableFormats = mItem.formats.filter(canTransferResolvedFormat);
+          const bestFmt = selectFormatByPreference(transferableFormats, batchQualityPreference) || transferableFormats[0];
+          if (!bestFmt) return;
+          const ext = bestFmt.ext || (mItem.kind === 'image' ? 'jpg' : 'mp4');
           const filename = sanitizeFilename(mItem.title.endsWith(`.${ext}`) ? mItem.title : `${mItem.title}.${ext}`);
           const isVid = mItem.kind === 'video' || bestFmt?.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
-          const rawTier = bestFmt?.qualityTier || (bestFmt?.badge ? bestFmt.badge : 'HD');
-          const qualityBadge = inferRawTierBadge(rawTier, ext);
+          const qualityBadge = getMeasuredFormatBadge(bestFmt, ext);
           const itemObj: BatchMediaItem = {
             id: `grp_${grpIdx}_item_${mIdx}_${mItem.id}`,
             groupId,
             sourceUrl: targetGroup.sourceUrl,
             title: mItem.title,
             filename,
-            directUrl: bestFmt?.directUrl || targetGroup.sourceUrl,
+            directUrl: bestFmt.directUrl,
             thumbnailUrl: mItem.thumbnailUrl,
             filesizeBytes: bestFmt?.filesizeBytes,
             durationSec: mItem.durationSec || bestFmt?.durationSec,
@@ -2401,12 +2386,13 @@ export function RemoteUploadModal({
           items.push(itemObj);
         });
       } else if (res.formats && res.formats.length > 0) {
-        const masterFmt = selectFormatByPreference(res.formats, batchQualityPreference) || res.formats[0];
+        const transferableFormats = res.formats.filter(canTransferResolvedFormat);
+        const masterFmt = selectFormatByPreference(transferableFormats, batchQualityPreference) || transferableFormats[0];
+        if (!masterFmt) throw new Error(t('drive.remote_native_interaction_required'));
         const ext = masterFmt.ext || 'mp4';
         const filename = sanitizeFilename(res.title.endsWith(`.${ext}`) ? res.title : `${res.title}.${ext}`);
         const isVid = masterFmt.isVideo || ext === 'mp4' || ext === 'mkv' || ext === 'webm';
-        const rawTier = masterFmt.qualityTier || (masterFmt.badge ? masterFmt.badge : 'HD');
-        const qualityBadge = inferRawTierBadge(rawTier, ext);
+        const qualityBadge = getMeasuredFormatBadge(masterFmt, ext);
         const itemObj: BatchMediaItem = {
           id: `grp_${grpIdx}_master_0`,
           groupId,
@@ -2417,13 +2403,15 @@ export function RemoteUploadModal({
           thumbnailUrl: res.thumbnailUrl,
           filesizeBytes: masterFmt.filesizeBytes,
           durationSec: res.durationSec || masterFmt.durationSec,
-          qualityBadge: qualityBadge || (isVid ? '1080p FHD' : 'HD'),
+          qualityBadge,
           headers: masterFmt.headers,
           isVideo: !!isVid,
           kind: isVid ? 'video' : 'document',
         };
         items.push(itemObj);
       }
+
+      if (items.length === 0) throw new Error(t('drive.remote_native_interaction_required'));
 
       setBatchGroups((prev) =>
         prev.map((g) =>
@@ -2538,7 +2526,7 @@ export function RemoteUploadModal({
           for (const item of selectedItems) {
             const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
             const chosenFmt = item.formats.find((f) => f.id === chosenFmtId) || item.formats[0];
-            if (chosenFmt?.directUrl) {
+            if (canTransferResolvedFormat(chosenFmt)) {
               uploadUrls.push(chosenFmt.directUrl);
               const origName = getEffectiveFormatFilename(chosenFmt, resolvedMedia) || item.title;
               const finalName = itemCustomNames[item.id]?.trim() || origName;
@@ -2603,7 +2591,11 @@ export function RemoteUploadModal({
         const activeFormat =
           activeResolved?.formats.find((f) => f.id === selectedFormatId) ||
           activeResolved?.formats[0];
-        const effectiveUrl = activeFormat?.directUrl || targetUrl;
+        if (!canTransferResolvedFormat(activeFormat)) {
+          setErrorMsg(t('drive.remote_native_interaction_required'));
+          return;
+        }
+        const effectiveUrl = activeFormat.directUrl;
         const uploadUrls = (activeFormat?.isAlbumPack && activeFormat.allAlbumUrls && activeFormat.allAlbumUrls.length > 0)
           ? activeFormat.allAlbumUrls
           : [effectiveUrl];
@@ -3401,9 +3393,6 @@ export function RemoteUploadModal({
                       {/* Active Player Canvas */}
                       {(() => {
                         const activeFormatForCanvas = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats?.[0];
-                        const ytMatch = (url || activePlayableUrl || resolvedMedia?.thumbnailUrl || '').match(/(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|\/e\/|watch\?.+&v=)([\w-]{11})/);
-                        const vId = ytMatch ? ytMatch[1] : undefined;
-
                         const isDirectStream = Boolean(
                           activePlayableUrl &&
                           activeFormatForCanvas?.isStreamable !== false &&
@@ -3476,43 +3465,11 @@ export function RemoteUploadModal({
                                   }}
                                 />
                               </div>
-                            ) : isPlayingStream && vId ? (
-                              (() => {
-                                const ytQualityCode = getYouTubeQualityParam(activeFormatForCanvas);
-                                return (
-                                  <div className="td-remote-big-canvas-inner td-remote-single-player-canvas" style={{ background: '#000000', position: 'relative' }}>
-                                    <iframe
-                                      key={`${vId}_${ytQualityCode}_${activeFormatForCanvas?.id || 'default'}`}
-                                      src={`https://www.youtube-nocookie.com/embed/${vId}?autoplay=1&vq=${ytQualityCode}&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}&rel=0&modestbranding=1&controls=1&playsinline=1&iv_load_policy=3&color=white`}
-                                      title={resolvedMedia.title}
-                                      className="td-remote-big-canvas-video td-remote-embedded-iframe"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                      allowFullScreen
-                                      style={{ border: 'none', width: '100%', height: '100%', borderRadius: '8px', background: '#000000' }}
-                                      onLoad={(e) => {
-                                        try {
-                                          const cw = e.currentTarget.contentWindow;
-                                          if (cw) {
-                                            cw.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQuality', args: [ytQualityCode] }), '*');
-                                            cw.postMessage(JSON.stringify({ event: 'command', func: 'setPlaybackQualityRange', args: [ytQualityCode, ytQualityCode] }), '*');
-                                          }
-                                        } catch {
-                                          /* ignore cross-origin postMessage */
-                                        }
-                                      }}
-                                    />
-                                    {activeFormatForCanvas && (
-                                      <div className="td-remote-canvas-active-quality-pill">
-                                        <span className="td-remote-pulse-dot" />
-                                        <span>{getFormatDisplayLabel(activeFormatForCanvas, resolvedMedia, t)}</span>
-                                        {activeFormatForCanvas.badge && (
-                                          <span className="td-remote-quality-subbadge">{activeFormatForCanvas.badge}</span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()
+                            ) : isPlayingStream ? (
+                              <div className="td-remote-big-canvas-fallback">
+                                <FileText size={36} className="td-remote-fallback-icon" />
+                                <span>{t('drive_tools.remote_format_preview_unavailable')}</span>
+                              </div>
                             ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
                               <div className="td-remote-big-canvas-inner">
                                 <img
@@ -3521,11 +3478,6 @@ export function RemoteUploadModal({
                                   className="td-remote-big-canvas-img"
                                   loading="eager"
                                   referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    if (vId && !e.currentTarget.src.includes('hqdefault.jpg')) {
-                                      e.currentTarget.src = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
-                                    }
-                                  }}
                                 />
                                 {activeFormatForCanvas && (
                                   <button
@@ -4167,22 +4119,20 @@ export function RemoteUploadModal({
 
                           const allAudioFmts = resolvedMedia.formats
                             .filter((f) => (f.isAudio || f.qualityTier === 'audio') && !isBrokenOrM3u8(f))
-                            .sort((a, b) => (b.filesizeBytes || 0) - (a.filesizeBytes || 0));
+                            .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                           // Audio has the same no-redundancy rule as General:
                           // collapse equivalent bitrate tiers and keep the
                           // highest concrete format in each tier.
                           const audioBitrate = (f: StreamQualityFormat): number => {
-                            const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
-                            const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
-                            if (mbps) return Number(mbps[1]) * 1000;
-                            const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
-                            return kbps ? Number(kbps[1]) : 0;
+                            return Number(f.audioBitrate || f.bitrate || 0);
                           };
                           const audioGroups = new Map<string, StreamQualityFormat[]>();
                           allAudioFmts.forEach((f) => {
-                            const kbps = audioBitrate(f);
-                            const key = kbps > 0 ? `kbps-${Math.round(kbps / 16) * 16}` : `format-${f.ext}-${f.codec || f.id}`;
+                            const bps = audioBitrate(f);
+                            // Unknown metadata is deliberately not collapsed into an invented
+                            // quality tier. It remains an explicit Original candidate.
+                            const key = bps > 0 ? `bps-${Math.round(bps / 1000)}` : `original-${f.id}`;
                             const group = audioGroups.get(key) || [];
                             group.push(f);
                             audioGroups.set(key, group);
@@ -4191,6 +4141,12 @@ export function RemoteUploadModal({
                             .map((group) => group.sort((a, b) => {
                               const bitrateDiff = audioBitrate(b) - audioBitrate(a);
                               if (bitrateDiff !== 0) return bitrateDiff;
+                              const sampleRateDiff = (b.sampleRate || 0) - (a.sampleRate || 0);
+                              if (sampleRateDiff !== 0) return sampleRateDiff;
+                              const channelDiff = (b.audioChannels || 0) - (a.audioChannels || 0);
+                              if (channelDiff !== 0) return channelDiff;
+                              const streamableDiff = Number(b.isStreamable === true) - Number(a.isStreamable === true);
+                              if (streamableDiff !== 0) return streamableDiff;
                               return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
                             })[0])
                             .filter(Boolean)
@@ -4237,46 +4193,26 @@ export function RemoteUploadModal({
                           const rawStreamsList = resolvedMedia.rawStreams || [];
 
                           const getFormatResolutionKey = (f: StreamQualityFormat): string => {
-                            const match = (f.resolution || f.label || '').match(/\b(4320p|2160p|1440p|1080p|720p|480p|360p|240p|144p|8k|4k|2k)\b/i);
-                            if (match) {
-                              const m = match[1].toLowerCase();
-                              if (m === '4320p') return '8k';
-                              if (m === '2160p') return '4k';
-                              if (m === '1440p') return '2k';
-                              return m;
-                            }
-                            const tier = (f.qualityTier || '').toLowerCase();
-                            if (QUALITY_ORDER[tier] !== undefined) return tier;
-                            return tier || f.label;
+                            const height = Number(f.height || 0);
+                            return height > 0 ? `height-${height}` : `original-${f.id}`;
                           };
 
                           const getVideoBitrate = (f: StreamQualityFormat): number => {
-                            const raw = `${f.resolution || ''} ${f.badge || ''} ${f.label || ''}`;
-                            const mbps = raw.match(/(\d+(?:\.\d+)?)\s*mbps/i);
-                            if (mbps) return Number(mbps[1]) * 1000;
-                            const kbps = raw.match(/(\d+(?:\.\d+)?)\s*(?:kbps|k\b)/i);
-                            return kbps ? Number(kbps[1]) : 0;
+                            return Number(f.bitrate || 0);
                           };
 
                           const isHdrFormat = (f: StreamQualityFormat): boolean => {
-                            return Boolean(
-                              f.badge?.includes('HDR') ||
-                              f.resolution?.includes('HDR') ||
-                              f.codec?.includes('HDR') ||
-                              f.codec?.toLowerCase().includes('vp9.2')
-                            );
+                            return f.isHdr === true;
                           };
 
                           const getFormatFps = (f: StreamQualityFormat): number => {
-                            if (f.fps) return f.fps;
-                            if (f.resolution?.includes('60fps') || f.label?.includes('60fps') || f.badge?.includes('60fps')) return 60;
-                            if (f.resolution?.includes('50fps') || f.label?.includes('50fps') || f.badge?.includes('50fps')) return 50;
-                            return 30;
+                            return Number(f.fps || 0);
                           };
 
                           const sortTiersByQuality = (fmts: StreamQualityFormat[]): StreamQualityFormat[] => {
                             return [...fmts].sort((a, b) => {
-                              // 1. HDR over SDR
+                              // The General tab is a factual one-card-per-height view.
+                              // Never prefer a container or parse the title to manufacture quality.
                               const hdrDiff = (isHdrFormat(b) ? 1 : 0) - (isHdrFormat(a) ? 1 : 0);
                               if (hdrDiff !== 0) return hdrDiff;
 
@@ -4288,13 +4224,15 @@ export function RemoteUploadModal({
                               const brDiff = getVideoBitrate(b) - getVideoBitrate(a);
                               if (brDiff !== 0) return brDiff;
 
-                              // 4. File size fallback
+                              const streamableDiff = Number(b.isStreamable === true) - Number(a.isStreamable === true);
+                              if (streamableDiff !== 0) return streamableDiff;
+                              // 4. File size fallback only after measured stream metadata.
                               return (b.filesizeBytes || 0) - (a.filesizeBytes || 0);
                             });
                           };
 
-                          // Group all video formats by their resolution tier to pick the single highest quality for General tab
-                          // Rule: MP4 First, except if another format (e.g. WebM) has genuinely superior quality (HDR, 60fps, higher bitrate)
+                          // Group only by measured height. A generic direct link without dimensions
+                          // remains "Original" instead of borrowing a resolution from its filename/title.
                           const resGroups = new Map<string, StreamQualityFormat[]>();
                           allVideoFmts.forEach((f) => {
                             const key = getFormatResolutionKey(f);
@@ -4305,50 +4243,14 @@ export function RemoteUploadModal({
 
                           const curatedGeneralVideos: StreamQualityFormat[] = [];
                           resGroups.forEach((groupFmts) => {
-                            const mp4List = sortTiersByQuality(groupFmts.filter((f) => f.ext === 'mp4'));
-                            const nonMp4List = sortTiersByQuality(groupFmts.filter((f) => f.ext !== 'mp4'));
-
-                            let chosen: StreamQualityFormat | undefined;
-
-                            if (mp4List.length > 0 && nonMp4List.length > 0) {
-                              const bestMp4 = mp4List[0];
-                              const bestOther = nonMp4List[0];
-
-                              const otherHdr = isHdrFormat(bestOther);
-                              const mp4Hdr = isHdrFormat(bestMp4);
-                              const otherFps = getFormatFps(bestOther);
-                              const mp4Fps = getFormatFps(bestMp4);
-                              const otherBr = getVideoBitrate(bestOther);
-                              const mp4Br = getVideoBitrate(bestMp4);
-                              const otherSize = bestOther.filesizeBytes || 0;
-                              const mp4Size = bestMp4.filesizeBytes || 0;
-
-                              // Is bestOther genuinely superior in quality over bestMp4?
-                              const isOtherSuperior =
-                                (otherHdr && !mp4Hdr) ||
-                                (otherFps >= 50 && otherFps > mp4Fps) ||
-                                (otherBr > 0 && mp4Br > 0 && otherBr >= mp4Br * 1.15) ||
-                                (otherSize > 0 && mp4Size > 0 && otherSize >= mp4Size * 1.15);
-
-                              if (isOtherSuperior) {
-                                chosen = bestOther;
-                              } else {
-                                // Default: MP4 first when quality is comparable/equal
-                                chosen = bestMp4;
-                              }
-                            } else if (mp4List.length > 0) {
-                              chosen = mp4List[0];
-                            } else if (nonMp4List.length > 0) {
-                              chosen = nonMp4List[0];
-                            }
-
+                            const chosen = sortTiersByQuality(groupFmts)[0];
                             if (chosen) {
                               curatedGeneralVideos.push(chosen);
                             }
                           });
 
                           curatedGeneralVideos.sort(
-                            (a, b) => (QUALITY_ORDER[a.qualityTier] || 99) - (QUALITY_ORDER[b.qualityTier] || 99) || (b.filesizeBytes || 0) - (a.filesizeBytes || 0)
+                            (a, b) => (Number(b.height || 0) - Number(a.height || 0)) || getVideoBitrate(b) - getVideoBitrate(a)
                           );
 
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
@@ -4396,8 +4298,8 @@ export function RemoteUploadModal({
                           const renderFormatChip = (fmt: StreamQualityFormat) => {
                             const isSelected = selectedFormatId === fmt.id;
                             const isDownloadOnly = fmt.isDownloadable !== false && fmt.isStreamable === false;
-                            const isHdr = fmt.badge?.includes('HDR') || fmt.codec?.includes('HDR');
-                            const is60fps = fmt.fps === 60 || fmt.resolution?.includes('60fps') || fmt.label?.includes('60fps');
+                            const isHdr = fmt.isHdr === true;
+                            const is60fps = Number(fmt.fps || 0) >= 50;
                             let displayBadge = getFormatDisplayBadge(fmt, t);
 
                             if (isHdr && displayBadge) {
@@ -4596,15 +4498,23 @@ export function RemoteUploadModal({
                                   const renderMatrixRow = (s: RawStreamItem) => {
                                     const matchedFmt = resolvedMedia.formats.find((f) => (f.itag && f.itag === s.itag) || f.id === `raw_itag_${s.itag}`) || {
                                       id: `raw_itag_${s.itag}`,
-                                      label: `${s.qualityLabel || s.codec} (itag ${s.itag})`,
+                                      label: `${s.height ? t('drive.remote_format_height', { height: s.height }) : s.type === 'audio' ? t('drive.remote_format_filter_audio_tab') : s.codec} (itag ${s.itag})`,
                                       qualityTier: 'original' as const,
-                                      resolution: `${s.qualityLabel || s.codec} • ${s.bitrateFormatted}`,
+                                      resolution: s.height ? t('drive.remote_format_height', { height: s.height }) : undefined,
                                       ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
                                       filesizeBytes: s.filesizeBytes,
                                       directUrl: s.directUrl,
                                       isVideo: s.type === 'video' || s.type === 'muxed',
                                       isAudio: s.type === 'audio',
-                                      badge: s.isHdr ? `HDR • ${s.bitrateFormatted}` : s.bitrateFormatted,
+                                      width: s.width,
+                                      height: s.height,
+                                      fps: s.fps,
+                                      bitrate: s.bitrate,
+                                      audioBitrate: s.type === 'audio' ? s.bitrate : undefined,
+                                      sampleRate: s.sampleRate,
+                                      audioChannels: s.audioChannels,
+                                      isHdr: s.isHdr === true,
+                                      badge: s.bitrateFormatted,
                                       itag: s.itag,
                                       isDownloadable: s.isDownloadable,
                                       isStreamable: s.isStreamable,
@@ -5123,12 +5033,18 @@ export function RemoteUploadModal({
                                             {t('drive.remote_badge_fps_val', { fps: activeFmt.fps })}
                                           </span>
                                         )}
-                                        {(activeFmt.badge?.includes('HDR') || activeFmt.resolution?.includes('HDR')) && (
+                                        {activeFmt.isHdr === true && (
                                           <span className="td-remote-spec-pill hdr">{t('drive.remote_badge_hdr')}</span>
                                         )}
                                       </div>
                                       <div className="td-remote-selected-spec-meta">
-                                        <span className="td-remote-spec-meta-item">{activeFmt.resolution || activeFmt.badge}</span>
+                                        <span className="td-remote-spec-meta-item">
+                                          {Number(activeFmt.height || 0) > 0
+                                            ? t('drive.remote_format_height', { height: Math.round(Number(activeFmt.height)) })
+                                            : activeFmt.isAudio && Number(activeFmt.audioBitrate || activeFmt.bitrate || 0) > 0
+                                              ? t('drive.remote_format_bitrate_kbps', { value: Math.round(Number(activeFmt.audioBitrate || activeFmt.bitrate) / 1_000) })
+                                              : t('drive.remote_quality_original')}
+                                        </span>
                                         <span className="td-remote-spec-dot">•</span>
                                         <span className="td-remote-spec-meta-item ext">{activeFmt.ext ? `.${activeFmt.ext.toUpperCase()}` : '.MP4'}</span>
                                         {activeFmt.filesizeBytes ? (
@@ -5393,11 +5309,11 @@ export function RemoteUploadModal({
                 <div className="td-remote-stream-player-col">
                   <div className="td-remote-big-canvas-wrap">
                     {focusedBatchItem ? (
-                      focusedBatchItem.isVideo ? (
+                      focusedBatchItem.isVideo && batchPlayableUrl ? (
                         <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
                           <video
-                            key={batchPlayableUrl || focusedBatchItem.directUrl}
-                            src={batchPlayableUrl || focusedBatchItem.directUrl}
+                            key={batchPlayableUrl}
+                            src={batchPlayableUrl}
                             poster={focusedBatchItem.thumbnailUrl}
                             controls
                             preload="metadata"
@@ -5438,6 +5354,11 @@ export function RemoteUploadModal({
                               }
                             }}
                           />
+                        </div>
+                      ) : focusedBatchItem.isVideo ? (
+                        <div className="td-remote-big-canvas-fallback">
+                          <FileText size={36} className="td-remote-fallback-icon" />
+                          <span>{t('drive_tools.remote_format_preview_unavailable')}</span>
                         </div>
                       ) : focusedBatchItem.kind === 'photo' ? (
                         <div className="td-remote-big-canvas-inner">
