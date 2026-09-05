@@ -9,6 +9,7 @@ const LOCAL_CACHE_PREFIXES = [
   'autogram_drive_topics_v1_',
   'autogram_drive_peer_v2_',
   'autogram_drive_scroll_v1_',
+  'autogram_drive_playback_v1_',
   'autogram_drive_recents_v2_',
   'autogram_chat_folder_',
 ];

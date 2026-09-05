@@ -980,10 +980,14 @@ export type DriveTransferSettings = {
   playbackSeekCacheMb?: number;
   /** Show real-time telemetry overlay on video player */
   playbackShowDiagnostics?: boolean;
+  /** Remember the last local audio/video position for this account and file. */
+  rememberPlaybackPosition?: boolean;
   /** Automatically filter out and hide restricted/inaccessible messages and media (e.g. "This channel can't be displayed...") */
   hideRestrictedMedia?: boolean;
   /** Remote URL transport preference. Auto uses cloud fetch for known <=20 MiB direct files. */
   remoteEngineMode?: RemoteEngineMode;
+  /** Hide HLS/DASH manifests from normal Remote URL transfer choices. */
+  remoteHideManifests?: boolean;
   /** Enable the bundled yt-dlp resolver for Remote URL inspections. */
   ytdlpEnabled?: boolean;
   /** Allow the resolver plugin to refresh itself from the latest yt-dlp release. */
@@ -1092,8 +1096,10 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   playbackMaxVramMb: 1024,
   playbackSeekCacheMb: 256,
   playbackShowDiagnostics: false,
+  rememberPlaybackPosition: true,
   hideRestrictedMedia: true,
   remoteEngineMode: 'auto',
+  remoteHideManifests: true,
   ytdlpEnabled: true,
   ytdlpAutoUpdate: true,
   ytdlpCheckIntervalHours: 6,

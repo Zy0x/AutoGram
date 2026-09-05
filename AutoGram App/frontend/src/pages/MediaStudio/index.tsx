@@ -213,7 +213,7 @@ import {
 } from '../../components/drive/utils/mediaStatistics';
 import {
   driveScrollLocationKey,
-  loadDriveScrollPosition,
+  loadDriveScrollEntry,
   saveDriveScrollPosition,
 } from '../../lib/telegram';
 import { getDrivePerfProfile, perfStatusHint } from '../../lib/utils/devicePerformance';
@@ -790,18 +790,19 @@ function MediaDriveDesktop({
     () => driveScrollLocationKey(locationKind, activePeerId, topicFilter, viewMode),
     [locationKind, activePeerId, topicFilter, viewMode]
   );
-  const explorerInitialScrollTop = useMemo(() => {
-    if (!session) return 0;
+  const explorerScrollState = useMemo(() => {
+    if (!session) return null;
     try {
-      return loadDriveScrollPosition(localStorage, session, explorerScrollKey);
+      return loadDriveScrollEntry(localStorage, session, explorerScrollKey);
     } catch {
-      return 0;
+      return null;
     }
   }, [session, explorerScrollKey]);
+  const explorerInitialScrollTop = explorerScrollState?.top || 0;
   const rememberExplorerScroll = useCallback(
-    (key: string, top: number) => {
+    (key: string, top: number, anchor?: { itemId: number; offset: number } | null) => {
       if (!session) return;
-      saveDriveScrollPosition(localStorage, session, key, top);
+      saveDriveScrollPosition(localStorage, session, key, top, anchor);
     },
     [session]
   );
@@ -11030,6 +11031,7 @@ function MediaDriveDesktop({
               progressiveReady={progressiveReady}
               scrollKey={explorerScrollKey}
               initialScrollTop={explorerInitialScrollTop}
+              initialScrollAnchor={explorerScrollState?.anchor || null}
               onScrollPositionChange={rememberExplorerScroll}
               scaleHint={scaleHint}
               error={error && activeContentFiles.length === 0 ? error : null}

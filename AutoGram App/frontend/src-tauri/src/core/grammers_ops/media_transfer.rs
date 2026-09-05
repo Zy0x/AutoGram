@@ -787,6 +787,9 @@ pub fn upload_prepared_album_blocking_with_app(
                         .unwrap_or(size);
 
                     let uploaded = if let Ok(file) = tokio::fs::File::open(&effective_upload_path).await {
+                        let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                            crate::core::traffic_governor::TransferDirection::Upload,
+                        );
                         let mut reader = ProgressAsyncReader {
                             inner: file,
                             stage: "upload".into(),
@@ -1490,6 +1493,9 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     }
 
                     let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(path_buf).await {
+                        let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                            crate::core::traffic_governor::TransferDirection::Upload,
+                        );
                         let mut progress_reader = ProgressAsyncReader {
                             inner: tokio_file,
                             stage: "upload".to_string(),
@@ -2110,6 +2116,9 @@ pub fn upload_remote_url_blocking_topic_with_app(
                         return Err(TgError::new(TgErrorCode::Io, "remote object has an invalid or unsupported size"));
                     }
                     let reader = RemoteUrlReader { inner: Box::new(response.into_reader()) };
+                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                        crate::core::traffic_governor::TransferDirection::Upload,
+                    );
                     let mut progress = ProgressAsyncReader {
                         inner: reader,
                         stage: "upload".into(),
@@ -2415,6 +2424,9 @@ pub fn upload_file_blocking_topic_with_app(
                 );
 
                 let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(&path_buf).await {
+                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                        crate::core::traffic_governor::TransferDirection::Upload,
+                    );
                     let mut progress_reader = ProgressAsyncReader {
                         inner: tokio_file,
                         stage: "upload".to_string(),
@@ -2842,6 +2854,9 @@ pub fn upload_file_blocking_topic_with_delivery(
                 };
 
                 let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
+                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                        crate::core::traffic_governor::TransferDirection::Upload,
+                    );
                     let mut reader = ProgressAsyncReader {
                         inner: file,
                         stage: "upload".into(),
@@ -3298,6 +3313,9 @@ pub fn download_file_blocking_with_policy(
                         TgError::new(TgErrorCode::Io, format!("seek partial: {error}"))
                     })?;
 
+                let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                    crate::core::traffic_governor::TransferDirection::Download,
+                );
                 let mut offset = resume_from;
                 let mut refresh_attempts = 0usize;
                 let mut pending_ranges = Vec::new();

@@ -193,6 +193,8 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   const playbackFpsMode = base.playbackFpsMode || 'adaptive';
   const playbackZeroCopy = base.playbackZeroCopy !== false;
   const playbackShowDiagnostics = Boolean(base.playbackShowDiagnostics);
+  const rememberPlaybackPosition = base.rememberPlaybackPosition !== false;
+  const remoteHideManifests = base.remoteHideManifests !== false;
 
   return {
     ...base,
@@ -212,6 +214,8 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     playbackSeekCacheMb,
     playbackZeroCopy,
     playbackShowDiagnostics,
+    rememberPlaybackPosition,
+    remoteHideManifests,
   };
 }
 

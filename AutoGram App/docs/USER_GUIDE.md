@@ -104,6 +104,7 @@ The **Transfer Manager** oversees all network activity:
 - **Resolution Policies**: Choose to `Skip`, `Replace`, `Keep Both`, or `Rename` duplicate items.
 - **Smart Rate Limiter**: Automatically throttles speed and applies exponential backoff if Telegram triggers `FloodWaitError`.
 - **Adaptive shared throughput**: Upload and download use the selected Transfer Settings parallelism as their ceiling. When an actively playing preview has under four seconds of playable media, AutoGram briefly prioritizes the media range; after recovery it restores transfer capacity. Actual throughput can still be bounded by the ISP, Telegram DC, disk, CPU, codec, or account/server cooldowns, so a Speedtest result is not a guaranteed 1:1 transfer rate.
+- **Resume playback**: Drive audio and video resume locally per account and file for up to 90 days. It can be disabled in Drive Settings or erased globally/per account from Manage Specific Cache; history contains only position, duration, and time—not URLs, tokens, or local paths.
 
 ---
 
@@ -112,3 +113,4 @@ The **Transfer Manager** oversees all network activity:
 - **Theme & Appearance**: Dark slate modern glassmorphism interface with high-contrast readability.
 - **Language**: Full bilingual support (Bahasa Indonesia & English) with 100% complete localized terminology.
 - **Database Backup & Export**: Export your SQLite transfer history and catalog metadata with 1-click JSON/SQL backups.
+- **Remote manifest filter**: HLS (`.m3u8`) and DASH (`.mpd`) are hidden from normal Remote choices by default. They remain inspection-only and are never presented as direct transfer cards.

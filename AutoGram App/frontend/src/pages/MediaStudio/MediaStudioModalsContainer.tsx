@@ -195,6 +195,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           creds={creds}
           folders={folders}
           chats={chats}
+          rememberPlaybackPosition={transferSettings?.rememberPlaybackPosition !== false}
           duplicateContext={duplicateContext}
           onRefreshDrive={() => {
             void refreshFiles();

@@ -43,6 +43,7 @@ interface SessionBuckets {
   topics: string[];
   peer: string[];
   chatFolder: string[];
+  playback: string[];
   state: string[];
 }
 
@@ -113,6 +114,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       topics: [],
       peer: [],
       chatFolder: [],
+      playback: [],
       state: [],
     };
 
@@ -122,7 +124,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       if (!key) return;
 
       const lower = key.toLowerCase();
-      if (lower.includes('location') || lower.includes('root') || lower.includes('path')) {
+      if (lower.includes('playback')) {
+        buckets.playback.push(key);
+      } else if (lower.includes('location') || lower.includes('root') || lower.includes('path')) {
         buckets.locations.push(key);
       } else if (lower.includes('sidebar') || lower.includes('tree') || lower.includes('expanded')) {
         buckets.sidebar.push(key);
@@ -163,6 +167,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     sessionBuckets.topics.length +
     sessionBuckets.peer.length +
     sessionBuckets.chatFolder.length +
+    sessionBuckets.playback.length +
     sessionBuckets.state.length;
 
   const showToast = (msg: string) => {
@@ -329,6 +334,18 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   };
 
+  const handleClearGlobalPlayback = () => {
+    setClearingItem('playback_global');
+    try {
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith('autogram_drive_playback_v1_'));
+      keys.forEach((key) => localStorage.removeItem(key));
+      showToast(t('drive.clear_playback_history_done'));
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
   const handleClearUploadQueue = async () => {
     setClearingItem('upload');
     try {
@@ -413,6 +430,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const handleClearSessionScroll = () =>
     handleClearBucket(sessionBuckets.state, t('ui.generated.cache_scroll_state_workspace_sesi_e123a45'));
 
+  const handleClearSessionPlayback = () =>
+    handleClearBucket(sessionBuckets.playback, t('drive.playback_history_cache_title'));
+
   const handleClearSessionMediaIndex = async () => {
     if (!selectedSession) return;
     setClearingItem('session_media_db');
@@ -435,6 +455,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         ...sessionBuckets.topics,
         ...sessionBuckets.peer,
         ...sessionBuckets.chatFolder,
+        ...sessionBuckets.playback,
         ...sessionBuckets.state,
       ];
 
@@ -461,6 +482,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   );
   const hasGlobalChatFolders = Object.keys(localStorage).some((k) => k.startsWith('autogram_chat_folder_'));
   const hasGlobalScroll = Object.keys(localStorage).some((k) => k.startsWith('autogram_drive_scroll_v1_'));
+  const hasGlobalPlayback = Object.keys(localStorage).some((k) => k.startsWith('autogram_drive_playback_v1_'));
   const hasGlobalUpload = localStorage.getItem('autogram_drive_upload_queue') !== null;
   const hasGlobalUi =
     localStorage.getItem('autogram_drive_view_mode') !== null ||
@@ -474,6 +496,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const hasSessionPeer = sessionBuckets.peer.length > 0;
   const hasSessionChatFolder = sessionBuckets.chatFolder.length > 0;
   const hasSessionScroll = sessionBuckets.state.length > 0;
+  const hasSessionPlayback = sessionBuckets.playback.length > 0;
   const hasSessionTotal = sessionKeysCount > 0;
 
   // Reusable button styling for active vs darkened/disabled states
@@ -955,6 +978,24 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       <span>
                         {clearingItem === 'scroll_global' ? '...' : t('ui.generated.hapus_state_d789e01')}
                       </span>
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <RotateCcw size={16} style={{ color: '#a78bfa' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>{t('drive.playback_history_cache_title')}</strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{t('drive.playback_history_cache_desc')}</p>
+                    </div>
+                    <button type="button" onClick={handleClearGlobalPlayback} disabled={!hasGlobalPlayback || clearingItem === 'playback_global'} style={getBtnStyle(hasGlobalPlayback, '#c4b5fd', 'rgba(139, 92, 246, 0.15)', '1px solid rgba(139, 92, 246, 0.3)')}>
+                      <Trash2 size={13} />
+                      <span>{clearingItem === 'playback_global' ? '...' : t('drive.clear_playback_history')}</span>
                     </button>
                   </div>
                 </div>
@@ -1638,6 +1679,27 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       >
                         <RotateCcw size={13} />
                         <span>{t('ui.generated.hapus_state_d789e01')}</span>
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RotateCcw size={16} style={{ color: '#a78bfa' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>{t('drive.playback_history_cache_title')}</strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionPlayback ? '#c4b5fd' : '#64748b', fontWeight: 600 }}>{sessionBuckets.playback.length} {t('ui.generated.entri_terdeteksi_c123d45')}</span>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{t('drive.playback_history_cache_desc')}</p>
+                      </div>
+                      <button type="button" onClick={handleClearSessionPlayback} disabled={!hasSessionPlayback} style={getBtnStyle(hasSessionPlayback, '#c4b5fd', 'rgba(139, 92, 246, 0.15)', '1px solid rgba(139, 92, 246, 0.3)')}>
+                        <Trash2 size={13} />
+                        <span>{t('drive.clear_playback_history')}</span>
                       </button>
                     </div>
 

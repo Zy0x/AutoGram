@@ -2036,7 +2036,6 @@ fn start_preview_stream_inner(
 
             let result = async {
                 const CHUNK_SIZE: u64 = 512 * 1024;
-                const PARALLEL_WORKERS: usize = 4; // Capped at MAX 4 workers during playback/demand
                 let mut file = std::fs::OpenOptions::new()
                     .write(true)
                     .read(true)
@@ -2091,11 +2090,14 @@ fn start_preview_stream_inner(
 
                     cursor = next_offset;
 
-                    // 4. Batch fetch up to PARALLEL_WORKERS chunks starting from cursor
-                    let window_limit = (cursor + (PARALLEL_WORKERS as u64) * CHUNK_SIZE).min(size);
+                    // 4. Batch fetch through the adaptive governor. It remains
+                    // capped at four workers and never exceeds the configured
+                    // download ceiling, but reserves capacity when runway is low.
+                    let parallel_workers = crate::core::traffic_governor::stream_worker_limit();
+                    let window_limit = (cursor + (parallel_workers as u64) * CHUNK_SIZE).min(size);
                     let mut pending_offsets = Vec::new();
                     let mut scan_off = cursor;
-                    while pending_offsets.len() < PARALLEL_WORKERS && scan_off < window_limit {
+                    while pending_offsets.len() < parallel_workers && scan_off < window_limit {
                         let already = ranges.iter().any(|(s, e)| *s <= scan_off && scan_off < *e);
                         if !already {
                             pending_offsets.push(scan_off);
@@ -2119,6 +2121,9 @@ fn start_preview_stream_inner(
                         let skip = (chunk_off / CHUNK_SIZE) as i32;
                         let tx_clone = tx.clone();
                         tokio::spawn(async move {
+                            let _traffic_worker = crate::core::traffic_governor::acquire_worker(
+                                crate::core::traffic_governor::TransferDirection::Stream,
+                            );
                             let mut iter = client
                                 .iter_download(&media_item)
                                 .chunk_size(CHUNK_SIZE as i32)

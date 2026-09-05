@@ -21,6 +21,19 @@ pub enum TransferDirection {
     Stream,
 }
 
+/// RAII lifecycle counter for real transfer workers.  It deliberately does
+/// not grant permission to exceed a caller's configured concurrency; callers
+/// acquire it only after their own queue/concurrency limit has admitted work.
+pub struct WorkerLease(TransferDirection);
+
+impl Drop for WorkerLease {
+    fn drop(&mut self) {
+        let mut guard = state().lock();
+        let lane = lane_mut(&mut guard, self.0);
+        lane.active_workers = lane.active_workers.saturating_sub(1);
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrafficLaneSnapshot {
@@ -47,6 +60,7 @@ struct Lane {
     last_bytes_at_ms: u64,
     last_active_at_ms: u64,
     configured_ceiling: u32,
+    active_workers: u32,
 }
 
 impl Default for Lane {
@@ -56,6 +70,7 @@ impl Default for Lane {
             last_bytes_at_ms: 0,
             last_active_at_ms: 0,
             configured_ceiling: 0,
+            active_workers: 0,
         }
     }
 }
@@ -73,10 +88,18 @@ struct GovernorState {
 
 impl Default for GovernorState {
     fn default() -> Self {
+        let mut upload = Lane::default();
+        let mut download = Lane::default();
+        let mut stream = Lane::default();
+        // Mirror the product's default Transfer Settings before the settings
+        // workspace has mounted and sent its first configured ceiling.
+        upload.configured_ceiling = 4;
+        download.configured_ceiling = 4;
+        stream.configured_ceiling = 4;
         Self {
-            upload: Lane::default(),
-            download: Lane::default(),
-            stream: Lane::default(),
+            upload,
+            download,
+            stream,
             preview_runway_seconds: None,
             preview_active_at_ms: 0,
             dc_latency_ms: None,
@@ -126,10 +149,20 @@ pub fn record_bytes(direction: TransferDirection, bytes: u64) {
     lane.last_active_at_ms = now;
 }
 
+pub fn acquire_worker(direction: TransferDirection) -> WorkerLease {
+    let mut guard = state().lock();
+    let lane = lane_mut(&mut guard, direction);
+    lane.active_workers = lane.active_workers.saturating_add(1);
+    WorkerLease(direction)
+}
+
 pub fn configure_ceiling(upload: u32, download: u32) {
     let mut guard = state().lock();
     guard.upload.configured_ceiling = upload.max(1);
     guard.download.configured_ceiling = download.max(1);
+    // Playback uses at most four MTProto chunk workers and shares the download
+    // ceiling; it never manufactures extra sessions beyond that hard cap.
+    guard.stream.configured_ceiling = download.clamp(1, 4);
 }
 
 pub fn observe_preview(runway_seconds: Option<f64>, playback_active: bool) {
@@ -180,6 +213,18 @@ pub fn background_pacing_ms(_direction: TransferDirection) -> u64 {
     }
 }
 
+/// Adaptive streaming window. It starts/runs fast when healthy, preserves a
+/// critical preview with one demand worker, and ramps back without a static cap.
+pub fn stream_worker_limit() -> usize {
+    let guard = state().lock();
+    match governor_reason(&guard, now_ms()) {
+        "preview_runway_critical" => 1,
+        "preview_runway_recovering" => 2,
+        "telegram_cooldown" => 1,
+        _ => guard.stream.configured_ceiling.clamp(1, 4) as usize,
+    }
+}
+
 fn lane_snapshot(lane: &Lane, now: u64) -> TrafficLaneSnapshot {
     TrafficLaneSnapshot {
         goodput_bps: if now.saturating_sub(lane.last_active_at_ms) <= ACTIVE_WINDOW_MS {
@@ -187,7 +232,7 @@ fn lane_snapshot(lane: &Lane, now: u64) -> TrafficLaneSnapshot {
         } else {
             0.0
         },
-        active_workers: u32::from(now.saturating_sub(lane.last_active_at_ms) <= ACTIVE_WINDOW_MS),
+        active_workers: lane.active_workers,
         configured_ceiling: lane.configured_ceiling,
     }
 }
@@ -232,5 +277,23 @@ mod tests {
         let snapshot = snapshot();
         assert_eq!(snapshot.upload.configured_ceiling, 6);
         assert_eq!(snapshot.download.configured_ceiling, 4);
+        assert_eq!(snapshot.stream.configured_ceiling, 4);
+    }
+
+    #[test]
+    fn worker_leases_report_real_lifecycle() {
+        let worker = acquire_worker(TransferDirection::Stream);
+        assert!(snapshot().stream.active_workers >= 1);
+        drop(worker);
+        assert_eq!(snapshot().stream.active_workers, 0);
+    }
+
+    #[test]
+    fn stream_window_prioritizes_critical_preview() {
+        configure_ceiling(4, 4);
+        observe_preview(Some(3.0), true);
+        assert_eq!(stream_worker_limit(), 1);
+        observe_preview(Some(7.0), true);
+        assert_eq!(stream_worker_limit(), 2);
     }
 }

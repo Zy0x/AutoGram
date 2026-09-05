@@ -124,10 +124,16 @@ function isInspectableRemoteUrl(value: string): boolean {
 /** Resolver evidence may still represent a wrapper or a session-bound URL.
  * Those entries can be shown for transparency, but must never become a
  * transfer item or a preview source. */
+function isManifestFormat(format: Pick<StreamQualityFormat, 'ext' | 'protocol' | 'directUrl'> | null | undefined): boolean {
+  const value = `${format?.ext || ''} ${format?.protocol || ''} ${format?.directUrl || ''}`.toLowerCase();
+  return /(^|[./\s])(m3u8|mpd)(?:[?\s/]|$)/.test(value) || value.includes('dash') || value.includes('hls');
+}
+
 function canTransferResolvedFormat(format: StreamQualityFormat | null | undefined): format is StreamQualityFormat {
   const status = format?.verification?.status;
   return Boolean(
     format?.directUrl &&
+      !isManifestFormat(format) &&
       format.isDownloadable !== false &&
       status !== 'blocked' &&
       status !== 'session-bound' &&
@@ -845,7 +851,7 @@ export function RemoteUploadModal({
   type StreamContainerFilter = 'all' | 'general' | 'video' | 'mp4' | 'webm' | 'sd' | 'audio' | 'subtitle' | 'advance' | 'matrix';
   const [streamContainerFilter, setStreamContainerFilter] = useState<StreamContainerFilter>('all');
   const [matrixSearchQuery, setMatrixSearchQuery] = useState<string>('');
-  const [matrixHideM3u8, setMatrixHideM3u8] = useState<boolean>(false);
+  const [matrixHideM3u8, setMatrixHideM3u8] = useState<boolean>(() => transferSettings?.remoteHideManifests !== false);
   const [subtitleSearchQuery, setSubtitleSearchQuery] = useState<string>('');
   const [subtitleTypeFilter, setSubtitleTypeFilter] = useState<'all' | 'id' | 'en' | 'manual' | 'auto' | 'srt' | 'vtt' | 'ass'>('all');
   const [copiedStreamUrl, setCopiedStreamUrl] = useState<boolean>(false);
@@ -856,6 +862,10 @@ export function RemoteUploadModal({
   const playRequestRef = useRef(0);
 
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
+
+  useEffect(() => {
+    if (isOpen) setMatrixHideM3u8(transferSettings?.remoteHideManifests !== false);
+  }, [isOpen, transferSettings?.remoteHideManifests]);
 
   const [selectedDest, setSelectedDest] = useState<DriveDestChoice>(
     currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' }
@@ -4178,9 +4188,7 @@ export function RemoteUploadModal({
                           };
 
                           const isBrokenOrM3u8 = (f: StreamQualityFormat) =>
-                            f.ext === 'm3u8' ||
-                            f.protocol?.toLowerCase().includes('m3u8') ||
-                            f.directUrl?.toLowerCase().includes('.m3u8') ||
+                            isManifestFormat(f) ||
                             (f.filesizeBytes === 0 && !f.resolution && !f.badge);
 
                           const allVideoFmts = resolvedMedia.formats.filter(
@@ -4346,7 +4354,7 @@ export function RemoteUploadModal({
                             { key: 'audio', label: t('drive.remote_matrix_group_audio'), formats: resolvedMedia.formats.filter((f) => f.isAudio || f.qualityTier === 'audio') },
                             { key: 'image', label: t('drive.remote_advanced_group_images'), formats: resolvedMedia.formats.filter((f) => f.isImage) },
                             { key: 'subtitle', label: t('drive.remote_advanced_group_subtitles'), formats: resolvedMedia.formats.filter((f) => f.isSubtitle || f.qualityTier === 'subtitle') },
-                            { key: 'playlist', label: t('drive.remote_advanced_group_playlist'), formats: resolvedMedia.formats.filter((f) => f.isAlbumPack || f.ext === 'm3u8' || f.ext === 'mpd') },
+                            { key: 'playlist', label: t('drive.remote_advanced_group_playlist'), formats: matrixHideM3u8 ? [] : resolvedMedia.formats.filter((f) => f.isAlbumPack || isManifestFormat(f)) },
                             { key: 'document', label: t('drive.remote_advanced_group_documents'), formats: resolvedMedia.formats.filter((f) => !f.isVideo && !f.isAudio && !f.isImage && !f.isSubtitle && !f.isAlbumPack && !['mp4', 'webm', 'm3u8', 'mpd'].includes(f.ext)) },
                           ].filter((group) => group.formats.length > 0);
                           const hasAdvancedFormats = advancedFormatGroups.length > 0;
@@ -4358,7 +4366,7 @@ export function RemoteUploadModal({
                           const isSubtitleTab = streamContainerFilter === 'subtitle';
                           const isAdvanceTab = streamContainerFilter === 'advance' || streamContainerFilter === 'matrix';
 
-                          const isStreamHls = (s: RawStreamItem) => Boolean(s.protocol?.toLowerCase().includes('m3u8') || s.directUrl?.toLowerCase().includes('.m3u8'));
+                          const isStreamHls = (s: RawStreamItem) => Boolean(/m3u8|mpd|dash|hls/i.test(`${s.protocol || ''} ${s.directUrl || ''}`));
 
                           const filteredRawStreams = rawStreamsList.filter((s) => {
                             if (matrixHideM3u8 && isStreamHls(s)) return false;

@@ -1,3 +1,22 @@
+## v3.9.57 — Drive Playback Reliability & Measured Adaptive Throughput
+
+### 1. Resume Playback and Honest Preview Telemetry
+- **Drive preview (`DrivePreviewModal`, local playback history)**: Audio/video positions are stored locally per account, Drive location, and file identity no more than once every five seconds, on pause/close/backgrounding, capped at 500 records and automatically expired after 90 days. Near-complete items deliberately start from the beginning.
+- **Diagnostics coverage**: The Log overlay now measures the browser `HTMLMediaElement.buffered` range for direct/cache sources as well as progressive Telegram streams. It reports explicit waiting/idle/not-observable states rather than a misleading blank runway.
+- **User impact**: A direct or cached video can show its true buffer runway and an unfinished Drive item resumes where it was left, without retaining URLs, signed tokens, cookies, or local paths.
+
+### 2. Scroll and DC-Concurrency Reliability
+- **Explorer scroll retention (`DriveExplorer`)**: A refresh that temporarily renders an empty virtual list no longer persists the browser-clamped zero scroll position. Restores wait for renderable rows and use a safe clamped fallback.
+- **Traffic governor (`traffic_governor.rs`, Grammers transfer paths)**: Upload, download, and stream worker counts now come from scoped worker lifecycles instead of a byte-activity `0/1` guess. The progressive stream window uses one/two/up-to-four workers according to buffer runway and the configured download ceiling.
+- **User impact**: Telemetry reflects actual concurrent work; a starving preview gets temporary priority while upload/download return to the user-selected ceiling when healthy. Telegram/DC/FloodWait limits remain enforced.
+
+### 3. Remote Format Safety, Settings, and Release Integrity
+- **Remote manifest preference**: HLS/DASH manifests are hidden by default, excluded from transfer cards, and visible only through the Advanced inspection toggle. Verified high-resolution WebM is kept when providers do not offer an equivalent direct MP4—no synthetic MP4 rendition is created.
+- **Settings/cache controls**: Drive Settings adds resume playback and manifest filtering defaults; Manage Specific Cache can remove resume history globally or for one session, and broad cache clearing includes it.
+- **Release metadata**: Version advanced to `3.9.57` across desktop package, Tauri, and Cargo metadata. Verification covers TypeScript, Rust, playback-history unit tests, locale parity, quality suite, and non-invasive desktop CDP inspection.
+
+---
+
 ## v3.9.56 — Reliable YouTube Re-inspection & Isolated Preview Diagnostics
 
 ### 1. YouTube Format Recovery Without Synthetic Qualities

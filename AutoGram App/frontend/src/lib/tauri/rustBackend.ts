@@ -115,6 +115,8 @@ export type TrafficSnapshot = {
   governorReason: string;
   dcLatencyMs?: number | null;
   floodWaitSeconds?: number | null;
+  /** Browser-side state when a preview has no native progressive stream id. */
+  previewObservation?: 'waiting_metadata' | 'idle' | 'not_observable' | 'measured';
 };
 
 export type PreviewDiagnosticsSnapshot = {

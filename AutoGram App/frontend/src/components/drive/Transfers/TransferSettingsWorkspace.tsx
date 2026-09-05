@@ -950,6 +950,7 @@ export function TransferSettingsWorkspace({
           downloadResumePartial: defaults.downloadResumePartial,
           downloadIntegrity: defaults.downloadIntegrity,
           notifyDownloadDone: defaults.notifyDownloadDone,
+          rememberPlaybackPosition: defaults.rememberPlaybackPosition,
         };
         break;
       case 'encoding':
@@ -999,6 +1000,7 @@ export function TransferSettingsWorkspace({
           smartRateControlEnabled: defaults.smartRateControlEnabled,
           debugLoggingEnabled: defaults.debugLoggingEnabled,
           hideRestrictedMedia: defaults.hideRestrictedMedia,
+          remoteHideManifests: defaults.remoteHideManifests,
         };
         break;
       case 'ytdlp':
@@ -2121,6 +2123,17 @@ export function TransferSettingsWorkspace({
                       checked={draft.notifyDownloadDone}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ notifyDownloadDone: e.target.checked })}
+                    />
+                  </label>
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('drive.remember_playback_position_title')}</strong>
+                      <p>{t('drive.remember_playback_position_desc')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.rememberPlaybackPosition !== false}
+                      onChange={(e) => patch({ rememberPlaybackPosition: e.target.checked })}
                     />
                   </label>
                 </div>
@@ -3696,6 +3709,18 @@ export function TransferSettingsWorkspace({
                     checked={draft.hideRestrictedMedia ?? true}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ hideRestrictedMedia: e.target.checked })}
+                  />
+                </label>
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('drive.remote_hide_manifests_title')}</strong>
+                    <p>{t('drive.remote_hide_manifests_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.remoteHideManifests !== false}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ remoteHideManifests: e.target.checked })}
                   />
                 </label>
               </div>

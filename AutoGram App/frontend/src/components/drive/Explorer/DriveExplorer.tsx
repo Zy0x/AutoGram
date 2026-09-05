@@ -46,7 +46,8 @@ type Props = {
   /** Stable per-session/location/topic/view key used for scroll restoration. */
   scrollKey?: string;
   initialScrollTop?: number;
-  onScrollPositionChange?: (key: string, scrollTop: number) => void;
+  initialScrollAnchor?: { itemId: number; offset: number } | null;
+  onScrollPositionChange?: (key: string, scrollTop: number, anchor?: { itemId: number; offset: number } | null) => void;
   scaleHint?: string | null;
   error: string | null;
   viewMode: DriveViewMode;
@@ -138,6 +139,7 @@ export function DriveExplorer({
   onLoadMore,
   progressiveReady = true,
   initialScrollTop = 0,
+  initialScrollAnchor = null,
   onScrollPositionChange,
   scaleHint: _scaleHint,
   error,
@@ -188,14 +190,20 @@ export function DriveExplorer({
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
   const parentRef = useRef<HTMLDivElement>(null);
-  const pendingScrollRestoreRef = useRef<{ key: string; top: number } | null>(null);
+  const pendingScrollRestoreRef = useRef<{ key: string; top: number; anchor: { itemId: number; offset: number } | null } | null>(null);
+  // Browsers clamp scrollTop to zero while a refresh temporarily removes the
+  // virtual rows. Keep the last user-intended position separate from that DOM
+  // artefact so a background refresh cannot overwrite it.
+  const lastStableScrollTopRef = useRef(0);
   const lastScrollKeyRef = useRef<string | null>(null);
   const activeScrollKey = scrollKey ?? 'default';
   if (lastScrollKeyRef.current !== activeScrollKey) {
     lastScrollKeyRef.current = activeScrollKey;
+    lastStableScrollTopRef.current = Math.max(0, initialScrollTop || 0);
     pendingScrollRestoreRef.current = {
       key: activeScrollKey,
       top: Math.max(0, initialScrollTop || 0),
+      anchor: initialScrollAnchor,
     };
   }
   const [width, setWidth] = useState(800);
@@ -627,14 +635,30 @@ export function DriveExplorer({
     const pending = pendingScrollRestoreRef.current;
     const el = parentRef.current;
     if (!pending || pending.key !== scrollKey || !el) return;
-    el.scrollTop = pending.top;
-    if (!loading) pendingScrollRestoreRef.current = null;
-  }, [scrollKey, initialScrollTop, loading, displayed.length]);
+    if (pending.top <= 0) {
+      el.scrollTop = 0;
+      pendingScrollRestoreRef.current = null;
+      return;
+    }
+    if (displayed.length === 0 || loading) return;
+    const anchorIndex = pending.anchor ? displayed.findIndex((item) => item.id === pending.anchor?.itemId) : -1;
+    const anchorTop = anchorIndex >= 0
+      ? (viewMode === 'list' ? anchorIndex * LIST_ROW_H : Math.floor(anchorIndex / Math.max(1, cols)) * (rowHeight || 180)) + (pending.anchor?.offset || 0)
+      : pending.top;
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+    const restoredTop = Math.min(Math.max(0, anchorTop), maxTop);
+    el.scrollTop = restoredTop;
+    lastStableScrollTopRef.current = restoredTop;
+    // Content has rendered. Keep the requested position until it is reachable;
+    // this permits progressive/virtual lists to grow without a jump to top.
+    if (maxTop >= pending.top || !loading) pendingScrollRestoreRef.current = null;
+  }, [scrollKey, initialScrollTop, initialScrollAnchor, loading, displayed.length, viewMode, cols, rowHeight]);
 
   useLayoutEffect(() => {
     return () => {
-      const el = parentRef.current;
-      if (el && scrollKey) onScrollPositionChange?.(scrollKey, el.scrollTop);
+      if (scrollKey && lastStableScrollTopRef.current > 0) {
+        onScrollPositionChange?.(scrollKey, lastStableScrollTopRef.current);
+      }
     };
   }, [scrollKey, onScrollPositionChange]);
 
@@ -669,7 +693,20 @@ export function DriveExplorer({
     if (!el || !onScrollPositionChange || !scrollKey) return;
     const targetKey = scrollKey;
     let saveTimer: number | undefined;
-    const save = () => onScrollPositionChange(targetKey, el.scrollTop);
+    const save = () => {
+      const currentTop = el.scrollTop;
+      const hasRenderableRows = displayed.length > 0 && el.scrollHeight > el.clientHeight;
+      // Never persist a browser-created zero caused by an empty refresh. A
+      // deliberate return-to-top remains valid once the list is renderable.
+      if (currentTop <= 0 && lastStableScrollTopRef.current > 0 && (!hasRenderableRows || loading)) return;
+      lastStableScrollTopRef.current = Math.max(0, currentTop);
+      const index = viewMode === 'list'
+        ? Math.floor(lastStableScrollTopRef.current / LIST_ROW_H)
+        : Math.floor(lastStableScrollTopRef.current / (rowHeight || 180)) * Math.max(1, cols);
+      const item = displayed[index];
+      const itemTop = viewMode === 'list' ? index * LIST_ROW_H : Math.floor(index / Math.max(1, cols)) * (rowHeight || 180);
+      onScrollPositionChange(targetKey, lastStableScrollTopRef.current, item ? { itemId: item.id, offset: lastStableScrollTopRef.current - itemTop } : null);
+    };
     const onScroll = () => {
       if (parentRef.current && parentRef.current.scrollTop <= 40) {
         setContentNotice(null);
@@ -682,7 +719,7 @@ export function DriveExplorer({
       if (saveTimer != null) window.clearTimeout(saveTimer);
       el.removeEventListener('scroll', onScroll);
     };
-  }, [scrollKey, onScrollPositionChange, loading]);
+  }, [scrollKey, onScrollPositionChange, loading, displayed, viewMode, cols, rowHeight]);
 
   const isFastScrollingRef = useRef(false);
   const lastScrollTopRef = useRef(0);

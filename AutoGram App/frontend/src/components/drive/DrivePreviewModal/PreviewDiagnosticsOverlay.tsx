@@ -35,6 +35,15 @@ export function PreviewDiagnosticsOverlay({
   onClear,
 }: PreviewDiagnosticsOverlayProps) {
   const { t } = useTranslation();
+  const runwayLabel = traffic?.previewRunwaySeconds != null
+    ? `${traffic.previewRunwaySeconds.toFixed(1)} s`
+    : traffic?.previewObservation === 'waiting_metadata'
+      ? t('drive.preview_log_waiting_metadata')
+      : traffic?.previewObservation === 'idle'
+        ? t('drive.preview_log_idle')
+        : traffic?.previewObservation === 'not_observable'
+          ? t('drive.preview_log_not_observable')
+          : '—';
   const copy = async () => {
     const data = JSON.stringify({ traffic, events }, null, 2);
     try {
@@ -69,7 +78,7 @@ export function PreviewDiagnosticsOverlay({
       </div>
 
       <dl className="drive-preview-diagnostics-summary">
-        <div><dt>{t('drive.preview_log_buffer_runway')}</dt><dd>{traffic?.previewRunwaySeconds == null ? '—' : `${traffic.previewRunwaySeconds.toFixed(1)} s`}</dd></div>
+        <div><dt>{t('drive.preview_log_buffer_runway')}</dt><dd>{runwayLabel}</dd></div>
         <div><dt>{t('drive.preview_log_stream')}</dt><dd>{formatRate(traffic?.stream.goodputBps)}</dd></div>
         <div><dt>{t('drive.preview_log_download')}</dt><dd>{formatRate(traffic?.download.goodputBps)}</dd></div>
         <div><dt>{t('drive.preview_log_upload')}</dt><dd>{formatRate(traffic?.upload.goodputBps)}</dd></div>

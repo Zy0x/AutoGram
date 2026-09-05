@@ -159,6 +159,11 @@ import {
   type PreviewDiagnosticEvent,
   type TrafficSnapshot,
 } from '../../../lib/tauri/rustBackend';
+import {
+  drivePlaybackIdentity,
+  loadPlaybackPosition,
+  savePlaybackPosition,
+} from '../../../lib/telegram/cache/playbackHistory';
 
 export type DuplicateContextInfo = {
   activeFilteredGroups: {
@@ -218,6 +223,8 @@ type Props = {
   /** Open the detailed metadata panel immediately (context-menu Info). */
   initialInfoOpen?: boolean;
   customSource?: CustomPreviewSource;
+  /** Local preference from Drive Settings; defaults to enabled for older callers. */
+  rememberPlaybackPosition?: boolean;
 };
 
 type PlayQuality = {
@@ -750,6 +757,7 @@ export function DrivePreviewModal({
   initialFullscreen = false,
   initialInfoOpen = false,
   customSource,
+  rememberPlaybackPosition = true,
 }: Props) {
   const { t } = useTranslation();
   const defaultVideoQualities = useMemo(() => fallbackVideoQualities(t), [t]);
@@ -985,6 +993,18 @@ export function DrivePreviewModal({
       live = false;
       window.clearInterval(interval);
     };
+  }, [showPreviewLog, streamId]);
+
+  // A cached/direct player has no native stream id, but its browser buffer is
+  // still meaningful. Poll only while diagnostics are visible to keep preview
+  // rendering independent from the telemetry overlay.
+  useEffect(() => {
+    if (!showPreviewLog || streamId) return;
+    publishBrowserTraffic();
+    const interval = window.setInterval(publishBrowserTraffic, 750);
+    return () => window.clearInterval(interval);
+  // publishBrowserTraffic intentionally reads current refs and is recreated by render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPreviewLog, streamId]);
 
   // Pause background card/thumbnail RPCs while preview modal is open
@@ -1556,6 +1576,46 @@ export function DrivePreviewModal({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
+  const lastPlaybackPersistedAtRef = useRef(0);
+  const playbackIdentity = useMemo(
+    () => drivePlaybackIdentity(folderId, file),
+    [file, folderId]
+  );
+  const persistPlaybackPosition = useCallback((force = false) => {
+    if (!rememberPlaybackPosition || !creds.session) return;
+    const player = videoRef.current;
+    if (!player || player.ended || !Number.isFinite(player.currentTime) || !Number.isFinite(player.duration)) return;
+    const now = Date.now();
+    if (!force && now - lastPlaybackPersistedAtRef.current < 5_000) return;
+    savePlaybackPosition(localStorage, creds.session, playbackIdentity, player.currentTime, player.duration, now);
+    lastPlaybackPersistedAtRef.current = now;
+  }, [creds.session, playbackIdentity, rememberPlaybackPosition]);
+
+  useEffect(() => {
+    lastPlaybackPersistedAtRef.current = 0;
+    resumeAtRef.current = 0;
+    if (!rememberPlaybackPosition || !creds.session) return;
+    const entry = loadPlaybackPosition(localStorage, creds.session, playbackIdentity);
+    if (!entry) return;
+    // Do not surprise the user by resuming a completed or near-completed item.
+    if (entry.positionSeconds < entry.durationSeconds * 0.95 && entry.durationSeconds - entry.positionSeconds >= 30) {
+      resumeAtRef.current = entry.positionSeconds;
+    }
+  }, [creds.session, playbackIdentity, rememberPlaybackPosition]);
+
+  useEffect(() => {
+    const flush = () => persistPlaybackPosition(true);
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      flush();
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [persistPlaybackPosition]);
   const qualityMenuRef = useRef<HTMLDivElement | null>(null);
   const rateMenuRef = useRef<HTMLDivElement | null>(null);
   const qualityBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -4075,9 +4135,51 @@ export function DrivePreviewModal({
     zoom * (flipH ? -1 : 1)
   }, ${zoom * (flipV ? -1 : 1)})`;
 
+  const publishBrowserTraffic = () => {
+    const player = videoRef.current;
+    let runwaySeconds: number | null = null;
+    let observation: NonNullable<TrafficSnapshot['previewObservation']> = 'not_observable';
+    if (player) {
+      if (!Number.isFinite(player.duration) || player.duration <= 0) {
+        observation = 'waiting_metadata';
+      } else {
+        try {
+          for (let index = 0; index < player.buffered.length; index += 1) {
+            if (player.buffered.start(index) <= player.currentTime && player.currentTime <= player.buffered.end(index)) {
+              runwaySeconds = Math.max(0, player.buffered.end(index) - player.currentTime);
+              observation = 'measured';
+              break;
+            }
+          }
+          if (runwaySeconds == null) observation = player.paused ? 'idle' : 'not_observable';
+        } catch {
+          observation = 'not_observable';
+        }
+      }
+    }
+    const fallback: TrafficSnapshot = {
+      upload: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
+      download: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
+      stream: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
+      previewRunwaySeconds: runwaySeconds,
+      previewObservation: observation,
+      governorReason: observation === 'measured' ? 'browser_buffer_observing' : observation,
+    };
+    void observePreviewTraffic(runwaySeconds, Boolean(player && !player.paused && !player.ended)).then((native) => {
+      setPreviewTraffic({
+        ...(native || fallback),
+        previewRunwaySeconds: runwaySeconds ?? native?.previewRunwaySeconds ?? null,
+        previewObservation: observation,
+      });
+    });
+  };
+
   const updateVideoBuffered = () => {
     const v = videoRef.current;
-    if (!v || !v.duration || !Number.isFinite(v.duration) || v.duration <= 0) return;
+    if (!v || !v.duration || !Number.isFinite(v.duration) || v.duration <= 0) {
+      publishBrowserTraffic();
+      return;
+    }
     let end = 0;
     try {
       for (let i = 0; i < v.buffered.length; i++) {
@@ -4094,6 +4196,7 @@ export function DrivePreviewModal({
     }
     const pct = Math.min(100, Math.max(0, (end / v.duration) * 100));
     setVideoBufferedPercent(pct);
+    publishBrowserTraffic();
   };
 
   const resetControlsTimeout = () => {
@@ -6391,6 +6494,7 @@ export function DrivePreviewModal({
                       setVideoDuration(v.duration);
                     }
                     checkAndRequestLookaheadBuffer(v);
+                    persistPlaybackPosition();
                   }
                   updateVideoBuffered();
                   captureVideoFrame();
@@ -6446,6 +6550,7 @@ export function DrivePreviewModal({
                     userExplicitlyPausedRef.current = true;
                   }
                   captureVideoFrame();
+                  persistPlaybackPosition(true);
                   handlePause();
                 }}
                 onPlaying={() => {
@@ -7039,6 +7144,7 @@ export function DrivePreviewModal({
                 onPause={() => {
                   handlePause();
                   setHasVideoFrame(false);
+                  persistPlaybackPosition(true);
                 }}
                 onPlaying={() => {
                   setHasVideoFrame(true);
