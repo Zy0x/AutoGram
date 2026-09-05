@@ -35,15 +35,19 @@ export function PreviewDiagnosticsOverlay({
   onClear,
 }: PreviewDiagnosticsOverlayProps) {
   const { t } = useTranslation();
-  const runwayLabel = traffic?.previewRunwaySeconds != null
-    ? `${traffic.previewRunwaySeconds.toFixed(1)} s`
-    : traffic?.previewObservation === 'waiting_metadata'
-      ? t('drive.preview_log_waiting_metadata')
-      : traffic?.previewObservation === 'idle'
-        ? t('drive.preview_log_idle')
-        : traffic?.previewObservation === 'not_observable'
-          ? t('drive.preview_log_not_observable')
-          : '—';
+  const runwayLabel = traffic?.previewObservation === 'complete'
+    ? (traffic?.previewRunwaySeconds != null
+        ? `${traffic.previewRunwaySeconds.toFixed(1)} s (${t('drive.preview_log_complete')})`
+        : t('drive.preview_log_complete'))
+    : traffic?.previewRunwaySeconds != null
+      ? `${traffic.previewRunwaySeconds.toFixed(1)} s${traffic.previewObservation === 'idle' ? ` (${t('drive.preview_log_idle')})` : ''}`
+      : traffic?.previewObservation === 'waiting_metadata'
+        ? t('drive.preview_log_waiting_metadata')
+        : traffic?.previewObservation === 'idle'
+          ? t('drive.preview_log_idle')
+          : traffic?.previewObservation === 'not_observable'
+            ? t('drive.preview_log_not_observable')
+            : '—';
   const copy = async () => {
     const data = JSON.stringify({ traffic, events }, null, 2);
     try {

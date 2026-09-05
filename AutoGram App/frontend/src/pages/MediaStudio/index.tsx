@@ -4752,13 +4752,10 @@ function MediaDriveDesktop({
         const headChanged =
           previousHead.length !== liveHead.length ||
           previousHead.some((file, index) => file.id !== liveHead[index]?.id);
-        // Topic heads are authoritative and must replace the visible list;
-        // retaining older cached rows here would re-introduce deleted media.
-        // Non-topic locations keep the extended-page merge for pagination.
-        const keptExtendedPages = tid == null && !!res.has_more && loadedBefore > liveHead.length;
-        const merged = tid != null
-          ? liveHead
-          : reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
+        // Reconcile live head while retaining older loaded pages so that background
+        // interval sync does not abruptly truncate the list and reset user scroll position.
+        const keptExtendedPages = !!res.has_more && loadedBefore > liveHead.length;
+        const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
         liveFilesRef.current = merged;
         filesCacheRef.current.set(cacheKey, merged);
         setFiles(merged);
@@ -5301,10 +5298,8 @@ function MediaDriveDesktop({
         requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
       }
 
-      const keptExtendedPages = tid == null && !!res.has_more && liveFilesRef.current.length > liveHead.length;
-      const merged = tid != null
-        ? liveHead
-        : reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
+      const keptExtendedPages = !!res.has_more && liveFilesRef.current.length > liveHead.length;
+      const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
       liveFilesRef.current = merged;
       filesCacheRef.current.set(cacheKey, merged);
       setFiles(merged);

@@ -976,16 +976,23 @@ export function DrivePreviewModal({
   }, [appendPreviewDiagnostic, customSource?.kind, file.id, streamId]);
 
   useEffect(() => {
-    if (!showPreviewLog || !streamId) return;
+    if (!showPreviewLog) return;
     let live = true;
     const pull = async () => {
-      const snapshot = await previewDiagnosticsSnapshot(streamId, previewDiagnosticSequenceRef.current);
-      if (!live || !snapshot) return;
-      previewDiagnosticSequenceRef.current = snapshot.nextSequence;
-      setPreviewTraffic(snapshot.traffic);
-      if (snapshot.events.length > 0) {
-        setPreviewDiagnosticEvents((previous) => [...previous, ...snapshot.events].slice(-500));
+      if (streamId) {
+        const snapshot = await previewDiagnosticsSnapshot(streamId, previewDiagnosticSequenceRef.current);
+        if (!live || !snapshot) return;
+        previewDiagnosticSequenceRef.current = snapshot.nextSequence;
+        setPreviewTraffic((prev) => ({
+          ...snapshot.traffic,
+          previewRunwaySeconds: prev?.previewRunwaySeconds ?? snapshot.traffic.previewRunwaySeconds ?? null,
+          previewObservation: prev?.previewObservation ?? snapshot.traffic.previewObservation ?? null,
+        }));
+        if (snapshot.events.length > 0) {
+          setPreviewDiagnosticEvents((previous) => [...previous, ...snapshot.events].slice(-500));
+        }
       }
+      publishBrowserTraffic();
     };
     void pull();
     const interval = window.setInterval(() => void pull(), 750);
@@ -993,17 +1000,7 @@ export function DrivePreviewModal({
       live = false;
       window.clearInterval(interval);
     };
-  }, [showPreviewLog, streamId]);
-
-  // A cached/direct player has no native stream id, but its browser buffer is
-  // still meaningful. Poll only while diagnostics are visible to keep preview
-  // rendering independent from the telemetry overlay.
-  useEffect(() => {
-    if (!showPreviewLog || streamId) return;
-    publishBrowserTraffic();
-    const interval = window.setInterval(publishBrowserTraffic, 750);
-    return () => window.clearInterval(interval);
-  // publishBrowserTraffic intentionally reads current refs and is recreated by render.
+  // publishBrowserTraffic intentionally reads current refs and is refreshed on tick.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPreviewLog, streamId]);
 
@@ -4144,14 +4141,27 @@ export function DrivePreviewModal({
         observation = 'waiting_metadata';
       } else {
         try {
+          let maxBufferEnd = 0;
           for (let index = 0; index < player.buffered.length; index += 1) {
-            if (player.buffered.start(index) <= player.currentTime && player.currentTime <= player.buffered.end(index)) {
-              runwaySeconds = Math.max(0, player.buffered.end(index) - player.currentTime);
+            const start = player.buffered.start(index);
+            const end = player.buffered.end(index);
+            maxBufferEnd = Math.max(maxBufferEnd, end);
+            if (start <= player.currentTime && player.currentTime <= end) {
+              runwaySeconds = Math.max(0, end - player.currentTime);
               observation = 'measured';
-              break;
             }
           }
-          if (runwaySeconds == null) observation = player.paused ? 'idle' : 'not_observable';
+          const isFullyBuffered = streamDone || (player.duration > 0 && maxBufferEnd >= player.duration * 0.99);
+          if (isFullyBuffered) {
+            observation = 'complete';
+            if (runwaySeconds == null) {
+              runwaySeconds = Math.max(0, player.duration - player.currentTime);
+            }
+          } else if (runwaySeconds == null) {
+            observation = player.paused ? 'idle' : 'not_observable';
+          } else if (player.paused) {
+            observation = 'idle';
+          }
         } catch {
           observation = 'not_observable';
         }
@@ -4163,14 +4173,15 @@ export function DrivePreviewModal({
       stream: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
       previewRunwaySeconds: runwaySeconds,
       previewObservation: observation,
-      governorReason: observation === 'measured' ? 'browser_buffer_observing' : observation,
+      governorReason: observation === 'complete' ? 'playback_buffer_complete' : observation === 'measured' ? 'browser_buffer_observing' : observation,
     };
     void observePreviewTraffic(runwaySeconds, Boolean(player && !player.paused && !player.ended)).then((native) => {
-      setPreviewTraffic({
-        ...(native || fallback),
-        previewRunwaySeconds: runwaySeconds ?? native?.previewRunwaySeconds ?? null,
+      setPreviewTraffic((prev) => ({
+        ...(native || prev || fallback),
+        previewRunwaySeconds: runwaySeconds ?? native?.previewRunwaySeconds ?? prev?.previewRunwaySeconds ?? null,
         previewObservation: observation,
-      });
+        governorReason: native?.governorReason || prev?.governorReason || (observation === 'complete' ? 'playback_buffer_complete' : observation),
+      }));
     });
   };
 

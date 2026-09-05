@@ -2048,6 +2048,7 @@
   "preview_log_waiting_metadata": "Waiting for metadata",
   "preview_log_idle": "Not playing",
   "preview_log_not_observable": "Not observable",
+  "preview_log_complete": "Fully buffered",
   "remote_hide_manifests_title": "Hide streaming manifests",
   "remote_hide_manifests_desc": "Hide HLS (.m3u8) and DASH (.mpd) from normal Remote choices. Manifests are inspection-only and are not direct transfer cards.",
   "tab_download_desc": "Configure download parallelism, filename conflict policy, and resume reliability.",

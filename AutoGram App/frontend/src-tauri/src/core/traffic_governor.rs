@@ -52,6 +52,7 @@ pub struct TrafficSnapshot {
     pub governor_reason: String,
     pub dc_latency_ms: Option<u64>,
     pub flood_wait_seconds: Option<u64>,
+    pub preview_observation: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +82,7 @@ struct GovernorState {
     download: Lane,
     stream: Lane,
     preview_runway_seconds: Option<f64>,
+    preview_observation: Option<String>,
     preview_active_at_ms: u64,
     dc_latency_ms: Option<u64>,
     flood_wait_until_ms: Option<u64>,
@@ -101,6 +103,7 @@ impl Default for GovernorState {
             download,
             stream,
             preview_runway_seconds: None,
+            preview_observation: None,
             preview_active_at_ms: 0,
             dc_latency_ms: None,
             flood_wait_until_ms: None,
@@ -167,11 +170,21 @@ pub fn configure_ceiling(upload: u32, download: u32) {
 
 pub fn observe_preview(runway_seconds: Option<f64>, playback_active: bool) {
     let mut guard = state().lock();
-    if playback_active {
-        guard.preview_active_at_ms = now_ms();
-        guard.preview_runway_seconds = runway_seconds.filter(|value| value.is_finite() && *value >= 0.0);
+    guard.preview_active_at_ms = now_ms();
+    if let Some(runway) = runway_seconds.filter(|value| value.is_finite() && *value >= 0.0) {
+        guard.preview_runway_seconds = Some(runway);
+        guard.preview_observation = Some(if playback_active {
+            "measured".to_string()
+        } else {
+            "idle".to_string()
+        });
     } else {
         guard.preview_runway_seconds = None;
+        guard.preview_observation = Some(if playback_active {
+            "waiting_metadata".to_string()
+        } else {
+            "idle".to_string()
+        });
     }
 }
 
@@ -190,14 +203,26 @@ fn governor_reason(state: &GovernorState, now: u64) -> &'static str {
     if state.flood_wait_until_ms.is_some_and(|until| until > now) {
         return "telegram_cooldown";
     }
-    if now.saturating_sub(state.preview_active_at_ms) > ACTIVE_WINDOW_MS {
+    if now.saturating_sub(state.preview_active_at_ms) > 15_000 {
         return "throughput_plateau_probe";
     }
     match state.preview_runway_seconds {
         Some(runway) if runway < CRITICAL_RUNWAY_SECONDS => "preview_runway_critical",
         Some(runway) if runway < RECOVERY_RUNWAY_SECONDS => "preview_runway_recovering",
-        Some(_) => "preview_runway_safe",
-        None => "throughput_plateau_probe",
+        Some(_) => {
+            if state.preview_observation.as_deref() == Some("idle") {
+                "preview_idle_buffered"
+            } else {
+                "preview_runway_safe"
+            }
+        }
+        None => {
+            if state.preview_observation.as_deref() == Some("waiting_metadata") {
+                "preview_waiting_metadata"
+            } else {
+                "throughput_plateau_probe"
+            }
+        }
     }
 }
 
@@ -240,11 +265,12 @@ fn lane_snapshot(lane: &Lane, now: u64) -> TrafficLaneSnapshot {
 pub fn snapshot() -> TrafficSnapshot {
     let guard = state().lock();
     let now = now_ms();
+    let preview_alive = now.saturating_sub(guard.preview_active_at_ms) <= 15_000;
     TrafficSnapshot {
         upload: lane_snapshot(&guard.upload, now),
         download: lane_snapshot(&guard.download, now),
         stream: lane_snapshot(&guard.stream, now),
-        preview_runway_seconds: if now.saturating_sub(guard.preview_active_at_ms) <= ACTIVE_WINDOW_MS {
+        preview_runway_seconds: if preview_alive {
             guard.preview_runway_seconds
         } else {
             None
@@ -254,6 +280,11 @@ pub fn snapshot() -> TrafficSnapshot {
         flood_wait_seconds: guard
             .flood_wait_until_ms
             .and_then(|until| (until > now).then_some((until - now).div_ceil(1_000))),
+        preview_observation: if preview_alive {
+            guard.preview_observation.clone()
+        } else {
+            None
+        },
     }
 }
 
@@ -261,8 +292,17 @@ pub fn snapshot() -> TrafficSnapshot {
 mod tests {
     use super::*;
 
+    static TEST_MUTEX: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+
+    fn reset_state() {
+        let mut guard = state().lock();
+        *guard = GovernorState::default();
+    }
+
     #[test]
     fn only_critical_playback_yields_background_work() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
         observe_preview(Some(12.0), true);
         assert_eq!(background_pacing_ms(TransferDirection::Download), 0);
         observe_preview(Some(3.5), true);
@@ -273,6 +313,8 @@ mod tests {
 
     #[test]
     fn configured_ceiling_is_reported_not_exceeded() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
         configure_ceiling(6, 4);
         let snapshot = snapshot();
         assert_eq!(snapshot.upload.configured_ceiling, 6);
@@ -282,6 +324,8 @@ mod tests {
 
     #[test]
     fn worker_leases_report_real_lifecycle() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
         let worker = acquire_worker(TransferDirection::Stream);
         assert!(snapshot().stream.active_workers >= 1);
         drop(worker);
@@ -290,6 +334,8 @@ mod tests {
 
     #[test]
     fn stream_window_prioritizes_critical_preview() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
         configure_ceiling(4, 4);
         observe_preview(Some(3.0), true);
         assert_eq!(stream_worker_limit(), 1);

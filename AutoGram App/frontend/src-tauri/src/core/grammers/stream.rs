@@ -1781,6 +1781,10 @@ fn start_preview_stream_inner(
                             .map_err(|e| TgError::new(TgErrorCode::Io, format!("seek: {e}")))?;
                         file.write_all(&chunk)
                             .map_err(|e| TgError::new(TgErrorCode::Io, format!("write: {e}")))?;
+                        crate::core::traffic_governor::record_bytes(
+                            crate::core::traffic_governor::TransferDirection::Stream,
+                            chunk.len() as u64,
+                        );
                         let end = offset + chunk.len() as u64;
                         boot_ranges.push((offset, end));
                         offset = end;
@@ -1968,6 +1972,10 @@ fn start_preview_stream_inner(
                         }
                         if let Ok(Some(bytes)) = res {
                             if !bytes.is_empty() {
+                                crate::core::traffic_governor::record_bytes(
+                                    crate::core::traffic_governor::TransferDirection::Stream,
+                                    bytes.len() as u64,
+                                );
                                 if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&bytes).is_ok() {
                                     tail_ranges.push((chunk_off, chunk_off + bytes.len() as u64));
                                 }
@@ -2180,10 +2188,15 @@ fn start_preview_stream_inner(
                                 }
                                 match res {
                                     Ok(Some(bytes)) if !bytes.is_empty() => {
+                                        let byte_count = bytes.len() as u64;
+                                        crate::core::traffic_governor::record_bytes(
+                                            crate::core::traffic_governor::TransferDirection::Stream,
+                                            byte_count,
+                                        );
                                         if file.seek(SeekFrom::Start(chunk_off)).is_ok()
                                             && file.write_all(&bytes).is_ok()
                                         {
-                                            ranges.push((chunk_off, chunk_off + bytes.len() as u64));
+                                            ranges.push((chunk_off, chunk_off + byte_count));
                                             written_any = true;
                                         }
                                     }
@@ -2192,6 +2205,7 @@ fn start_preview_stream_inner(
                                         session_rate::note_error(&session_bg, &mapped);
                                         if mapped.code() == TgErrorCode::FloodWait {
                                             if let Some(secs) = mapped.flood_wait_secs() {
+                                                crate::core::traffic_governor::record_flood_wait(Some(u64::from(secs)));
                                                 tg_log::warn(
                                                     BACKEND,
                                                     "progressive_flood",

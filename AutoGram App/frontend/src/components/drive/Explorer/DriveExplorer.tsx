@@ -651,7 +651,9 @@ export function DriveExplorer({
     lastStableScrollTopRef.current = restoredTop;
     // Content has rendered. Keep the requested position until it is reachable;
     // this permits progressive/virtual lists to grow without a jump to top.
-    if (maxTop >= pending.top || !loading) pendingScrollRestoreRef.current = null;
+    if (maxTop >= pending.top || (anchorIndex >= 0 && maxTop >= anchorTop)) {
+      pendingScrollRestoreRef.current = null;
+    }
   }, [scrollKey, initialScrollTop, initialScrollAnchor, loading, displayed.length, viewMode, cols, rowHeight]);
 
   useLayoutEffect(() => {
@@ -696,9 +698,10 @@ export function DriveExplorer({
     const save = () => {
       const currentTop = el.scrollTop;
       const hasRenderableRows = displayed.length > 0 && el.scrollHeight > el.clientHeight;
-      // Never persist a browser-created zero caused by an empty refresh. A
-      // deliberate return-to-top remains valid once the list is renderable.
-      if (currentTop <= 0 && lastStableScrollTopRef.current > 0 && (!hasRenderableRows || loading)) return;
+      // Never persist a browser-created zero caused by an empty refresh or list shrinkage. A
+      // deliberate return-to-top remains valid once the list is stable and renderable.
+      if (currentTop <= 0 && lastStableScrollTopRef.current > 0 && (!hasRenderableRows || loading || pendingScrollRestoreRef.current)) return;
+      if (pendingScrollRestoreRef.current && currentTop < pendingScrollRestoreRef.current.top) return;
       lastStableScrollTopRef.current = Math.max(0, currentTop);
       const index = viewMode === 'list'
         ? Math.floor(lastStableScrollTopRef.current / LIST_ROW_H)

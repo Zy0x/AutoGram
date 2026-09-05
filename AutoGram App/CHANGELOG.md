@@ -1,3 +1,23 @@
+## v3.9.58 — Telemetry Coverage Hardening, Scroll Restoration Guard & Adaptive Stream Reporting
+
+### 1. Telemetry Coverage & Playable Runway Accuracy
+- **Preview diagnostics telemetry (`DrivePreviewModal`, `PreviewDiagnosticsOverlay`, `traffic_governor.rs`)**: Fixed the telemetry blank runway bug where paused, cached, or completed videos rendered strip (`—`) indicators. Added full buffer observation states (`complete`, `measured`, `idle`, `waiting_metadata`, `not_observable`) directly to `TrafficSnapshot` and preserved buffered runway across pause and idle states.
+- **Unified telemetry polling loop (`DrivePreviewModal`)**: Replaced split conditional polling with a unified telemetry interval that queries backend MTProto diagnostics when available and concurrently measures the live `HTMLMediaElement.buffered` TimeRanges from the DOM for all active video sources.
+- **User impact**: Playable runway, governor decisions, and stream goodput remain visible and accurate regardless of whether video is playing from cache, remote URL, or active MTProto stream.
+
+### 2. Explorer Scroll Stability & Background Sync Isolation
+- **Scroll clamping protection (`DriveExplorer`)**: Added an explicit guard preventing DOM layout-shift zero-clamping from overwriting `lastStableScrollTopRef` during live data updates or while a pending scroll restore ticket is active.
+- **Pending restore persistence (`DriveExplorer`)**: Prevented premature clearing of `pendingScrollRestoreRef` on `!loading` before virtual list rows have expanded to reach the target scroll height or anchor item.
+- **Forum topic live head reconciliation (`MediaStudio/index.tsx`)**: Reconciled live head updates with existing loaded pages in topic views (`reconcileDriveLiveHead`) rather than abruptly truncating the visible list to the first 50 items, eliminating the idle scroll jump bug.
+- **User impact**: Idling in large channels, groups, drives, or forum topics no longer resets the scroll position to the top when background sync or focus refresh fires.
+
+### 3. Progressive Stream Goodput & Governor Integration
+- **MTProto progressive stream byte accounting (`stream.rs`)**: Wired MTProto chunk delivery in boot chunk, tail moov probe, and main parallel chunk loops directly into `traffic_governor::record_bytes(TransferDirection::Stream, ...)`.
+- **FloodWait notification bridge (`stream.rs`)**: Connected MTProto progressive stream FloodWait error events directly to `traffic_governor::record_flood_wait`.
+- **Test isolation & release certification**: Added mutex synchronization and state resets for concurrent `traffic_governor` test execution. All 6 autonomous quality gates, Vitest suites, TypeScript checks, and Rust unit tests pass cleanly.
+
+---
+
 ## v3.9.57 — Drive Playback Reliability & Measured Adaptive Throughput
 
 ### 1. Resume Playback and Honest Preview Telemetry

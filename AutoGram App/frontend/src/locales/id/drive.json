@@ -2048,6 +2048,7 @@
   "preview_log_waiting_metadata": "Menunggu metadata",
   "preview_log_idle": "Tidak diputar",
   "preview_log_not_observable": "Tidak dapat diobservasi",
+  "preview_log_complete": "Buffer Lengkap",
   "remote_hide_manifests_title": "Sembunyikan manifest streaming",
   "remote_hide_manifests_desc": "Sembunyikan HLS (.m3u8) dan DASH (.mpd) dari pilihan Remote normal. Manifest hanya untuk inspeksi dan bukan kartu transfer langsung.",
   "tab_download_desc": "Atur paralelisme unduhan, kebijakan konflik nama berkas, dan keandalan resume.",
