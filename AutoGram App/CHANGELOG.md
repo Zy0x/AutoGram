@@ -13,9 +13,10 @@
 - **In-Memory Frontend Pre-Generation (`uploadThumbnailGenerator.ts`, `studioOrch.ts`)**: Added automatic client-side pre-generation for HEIC, TIFF, and high-res image files before queue dispatch, caching 320px JPEG thumbnails directly into the local thumbnail store via Tauri IPC `save_upload_thumbnail`.
 
 ### 3. Safety, Quality Sentinel & Rule 17 Compliance
+- **Real-Time LiveDev & Build Version Synchronizer (`tools/sync-version.mjs`, Gate 7)**: Implemented automatic synchronization across all application metadata endpoints (`package.json`, `Cargo.toml`, `tauri.conf.json`, `githubUpdater.ts`, and `VERSION.md`). Integrated `sync-version.mjs` into `Buka_AutoGram_LiveDev.bat`, `npm predev`, `prebuild`, `pretauri`, and Quality Sentinel Gate 7, guaranteeing Cargo build banners, terminal logs, and in-app settings always display the active release version in real-time.
 - **Sidecar & Temp File Safety (`safe_remove_temp_thumbnail`)**: Protected user sidecar files (`*.thumb.jpg`, `*.thumb.png`) from accidental deletion during cleanup, strictly removing only temporary cache artifacts.
-- **Strict LOC Budget Compliance**: Maintained all new and modified modules well under the 2,000 physical lines limit (`universal_thumbnail.rs` at 342 lines, `uploadThumbnailGenerator.ts` at 194 lines, `studioOrch.ts` at 237 lines, `HeicTiffViewer.tsx` at 263 lines).
-- **All 6 Quality Gates Certified**: Passed the 5-Dimension Autonomous Quality Sentinel suite with zero errors (100% i18n key parity, 0 TypeScript errors, 57 Vitest tests passed, SQLite WAL & migrations verified, and MTProto album invariants validated).
+- **Strict LOC Budget Compliance**: Maintained all new and modified modules well under the 2,000 physical lines limit (`universal_thumbnail.rs` at 342 lines, `uploadThumbnailGenerator.ts` at 194 lines, `studioOrch.ts` at 237 lines, `HeicTiffViewer.tsx` at 263 lines, `sync-version.mjs` at 105 lines).
+- **All 7 Quality Gates Certified**: Passed the 7-Dimension Autonomous Quality Sentinel suite with zero errors (100% i18n key parity, 0 TypeScript errors, 57 Vitest tests passed, SQLite WAL & migrations verified, MTProto album invariants validated, and version metadata parity certified).
 
 ---
 

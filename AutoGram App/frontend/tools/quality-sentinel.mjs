@@ -248,11 +248,43 @@ try {
 }
 
 // ============================================================================
+// 7. GATE 7: RELEASE VERSION & METADATA PARITY GATE
+// ============================================================================
+logHeader('7. RELEASE VERSION & METADATA PARITY GATE');
+try {
+  // Run sync-version tool to verify and auto-synchronize
+  const syncScript = path.join(import.meta.dirname, 'sync-version.mjs');
+  if (fs.existsSync(syncScript)) {
+    execSync(`node "${syncScript}"`, { cwd: root, stdio: 'pipe' });
+  }
+
+  const pkgJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const currentVer = pkgJson.version;
+
+  const cargoToml = fs.readFileSync(path.join(root, 'src-tauri', 'Cargo.toml'), 'utf8');
+  const cargoMatch = cargoToml.match(/\[package\][\s\S]*?version\s*=\s*"([^"]+)"/);
+  const cargoVer = cargoMatch ? cargoMatch[1] : null;
+
+  const tauriConf = JSON.parse(fs.readFileSync(path.join(root, 'src-tauri', 'tauri.conf.json'), 'utf8'));
+  const tauriVer = tauriConf.version;
+
+  if (cargoVer === currentVer && tauriVer === currentVer) {
+    logPass('Version Parity', `All release targets match active version v${currentVer} (package.json, Cargo.toml, tauri.conf.json).`);
+  } else {
+    logFail('Version Parity', `Mismatch detected! package.json=${currentVer}, Cargo.toml=${cargoVer}, tauri.conf.json=${tauriVer}`);
+    allPassed = false;
+  }
+} catch (e) {
+  logFail('Version Parity Gate', e.message);
+  allPassed = false;
+}
+
+// ============================================================================
 // FINAL CERTIFICATION SUMMARY
 // ============================================================================
 console.log(`\n${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}`);
 if (allPassed) {
-  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 6 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 7 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
   console.log(`${colors.bright}${colors.green}  AutoGram is certified production-ready, regress-free, and safe.${colors.reset}`);
   console.log(`${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}\n`);
   process.exit(0);
