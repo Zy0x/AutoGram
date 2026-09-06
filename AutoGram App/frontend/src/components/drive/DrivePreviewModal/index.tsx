@@ -6290,6 +6290,7 @@ export function DrivePreviewModal({
                     transform: mediaTransform,
                     transformOrigin: 'center center',
                     pointerEvents: 'none',
+                    imageRendering: '-webkit-optimize-contrast',
                   }}
                   onLoad={(w, h) => {
                     setMediaWidth(w);
@@ -6312,6 +6313,7 @@ export function DrivePreviewModal({
                     transform: mediaTransform,
                     transformOrigin: 'center center',
                     pointerEvents: 'none',
+                    imageRendering: '-webkit-optimize-contrast',
                   }}
                   onLoad={(e) => {
                     const img = e.currentTarget;

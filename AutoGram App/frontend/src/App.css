@@ -5124,7 +5124,8 @@ video.drive-preview-media {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  will-change: transform;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
   -webkit-user-drag: none;
   user-select: none;
 }
@@ -5139,6 +5140,9 @@ video.drive-preview-media {
 .drive-preview-media-wrap.is-transformed .drive-preview-img {
   max-width: 100%;
   max-height: 100%;
+}
+.drive-preview-media-wrap.is-dragging .drive-preview-img {
+  will-change: transform;
 }
 .drive-preview-media-wrap.is-transformed .drive-preview-media {
   max-width: 100%;

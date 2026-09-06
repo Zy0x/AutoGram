@@ -99,8 +99,7 @@ async function decodeHeic(buffer: ArrayBuffer): Promise<string> {
 
     const blob = await heic2any({
       blob: new Blob([buffer], { type: 'image/heic' }),
-      toType: 'image/jpeg',
-      quality: 0.92,
+      toType: 'image/png',
     });
     const outBlob = Array.isArray(blob) ? blob[0] : blob;
     return URL.createObjectURL(outBlob);
@@ -138,7 +137,7 @@ async function decodeTiff(buffer: ArrayBuffer): Promise<string> {
     const imageData = ctx.createImageData(w, h);
     imageData.data.set(rgba);
     ctx.putImageData(imageData, 0, 0);
-    return new Promise<string>((resolve) => canvas.toBlob((b) => resolve(URL.createObjectURL(b!)), 'image/jpeg', 0.92));
+    return new Promise<string>((resolve) => canvas.toBlob((b) => resolve(URL.createObjectURL(b!)), 'image/png'));
   } catch (err: any) {
     if (nativeMime) {
       return URL.createObjectURL(new Blob([buffer], { type: nativeMime }));
@@ -274,7 +273,13 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
       src={blobUrl}
       alt={fileName}
       className={className}
-      style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        imageRendering: '-webkit-optimize-contrast',
+        ...style,
+      }}
       onLoad={() => {
         const img = imgRef.current;
         if (img) {
