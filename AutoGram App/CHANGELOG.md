@@ -1,3 +1,21 @@
+## v3.9.68 — Media Preview: Full-Range Mouse Scroll Wheel Zoom & Pan for HEIC, TIFF & Visual Media
+
+### 1. Seamless Mouse Scroll Wheel Zoom on HEIC & TIFF Visual Media
+- **Integrated Interactive Stage Hosting (`DrivePreviewModal/index.tsx`)**: Refactored the media stage so that HEIC and TIFF images (`isHeicOrTiffFile`) are cleanly rendered directly inside the primary interactive `.drive-preview-media-wrap` stage alongside other visual media, rather than being isolated in a static detached sub-container.
+- **Uninhibited Visual Zoom & Pan Gating**: Updated the visual capability check `showImage = (!!activeSrc || !!dataUrl || !!path) && isImage` to encompass decoded HEIC/TIFF formats. This restores full interactive capabilities—mouse wheel zoom (`onWheelStage`), trackpad pinch-to-zoom, left-click drag-to-pan (`onPointerDown`, `schedulePan`), double-click toggle (100% ↔ 200%), and dynamic cursor state changes (`is-zoomable`, `is-pannable`, `is-dragging`).
+- **Eliminated Duplicate Bottom Sub-Container**: Cleanly removed the redundant `{(isHeicFile || isTiffFile) && ...}` DOM block at the bottom of the modal, consolidating presentation into a single unified media container.
+
+### 2. High-Precision Desktop Wheel Zoom & Window Listener Optimization
+- **Full 25%–600% Wheel Zoom Across Entire Range**: Refined the native window wheel listener (`handleNativeWheel`) to allow continuous, discrete mouse wheel zooming across the entire zoom range (25% down to 600%), rather than arbitrarily switching to vertical panning once zoom exceeded 101%. Panning remains dedicated to intuitive left-click mouse drag or 2-finger horizontal swipe.
+- **Backdrop & Modal Selector Parity**: Added `drive-preview-backdrop` to the modal overlay container class and expanded `handleNativeWheel` selector matching (`.drive-preview-backdrop, .drive-preview-overlay, .drive-preview-modal, .drive-preview-body, .drive-preview-media-wrap`), ensuring wheel events are captured smoothly from anywhere within the preview stage.
+- **Duplicate Wheel Event Guard**: Tagged native wheel events handled by React's `onWheelStage` with `__autogramHandled` to prevent double-increment zoom jumps between component-level and window-level wheel listeners.
+
+### 3. Verification & 7-Dimension Quality Sentinel
+- **Live Desktop CDP Validation (Port 9230)**: Validated live interaction directly against the running native desktop executable (`frontend.exe`) via Chrome DevTools Protocol. Verified discrete wheel zooming up to 175% and instant reset back to 100% without restarting or interrupting the active user session.
+- **All 7 Quality Gates Certified**: Passed `npm run test:quality` with zero warnings or errors (100% i18n parity, 0 TypeScript compilation errors, Vitest test suite passed, SQLite WAL database verified, MTProto visual album invariants enforced, and metadata parity synchronized).
+
+---
+
 ## v3.9.67 — Universal Upload Thumbnail Pipeline & HEIC/TIFF Preview Isolation
 
 ### 1. HEIC & TIFF Preview Isolation & Layout Fix

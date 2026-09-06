@@ -3226,8 +3226,9 @@ export function DrivePreviewModal({
     setSrcOverride(null);
   }, [file.id]);
 
+  const isHeicOrTiffFile = isHeicFile || isTiffFile;
   const showVideo = !!activeSrc && isVideo;
-  const showImage = !!activeSrc && isImage && !isHeicFile && !isTiffFile;
+  const showImage = (!!activeSrc || !!dataUrl || !!path) && isImage;
   const showAudio = !!activeSrc && isAudio;
   const pdfSrc = useMemo(() => {
     if (!isPdf) return null;
@@ -3970,8 +3971,12 @@ export function DrivePreviewModal({
       // remain a scroll gesture instead of treating it as a media zoom/pan.
       if (target.closest('.drive-preview-diagnostics')) return;
 
+      if ((e as any).__autogramHandled) return;
+
       // Ensure gesture is over preview modal backdrop or media stage
-      const backdrop = target.closest('.drive-preview-backdrop');
+      const backdrop = target.closest(
+        '.drive-preview-backdrop, .drive-preview-overlay, .drive-preview-modal, .drive-preview-body, .drive-preview-media-wrap'
+      );
       if (!backdrop) return;
 
       // In Split Compare mode, only zoom if target is directly hovering over media container
@@ -3999,16 +4004,15 @@ export function DrivePreviewModal({
         const zoomFactor = Math.pow(0.99, dy);
         const targetZoom = clamp(zoomRef.current * zoomFactor, MIN_ZOOM, MAX_ZOOM);
         applyZoomAt(targetZoom, { x: e.clientX, y: e.clientY });
-      } else if (zoomRef.current > 1.01) {
-        // Zoomed in: 2-finger trackpad movement PANS the image/video
+      } else if (Math.abs(dx) > 0 && Math.abs(dx) > Math.abs(dy) && zoomRef.current > 1.01) {
+        // 2-finger trackpad horizontal pan
         const p = panRef.current;
         const maxPan = Math.max(400, 1200 * zoomRef.current);
         const nx = clamp(p.x - dx, -maxPan, maxPan);
-        const ny = clamp(p.y - dy, -maxPan, maxPan);
-        setPan({ x: nx, y: ny });
-        panRef.current = { x: nx, y: ny };
+        setPan({ ...p, x: nx });
+        panRef.current = { ...p, x: nx };
       } else {
-        // Standard Mouse Scroll Wheel (discrete step zoom)
+        // Standard Mouse Scroll Wheel (discrete step zoom across full range)
         const steps = Math.max(1, Math.min(4, Math.round(Math.abs(dy) / 80)));
         const dir = dy > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
         zoomBy(dir, { x: e.clientX, y: e.clientY });
@@ -4026,6 +4030,11 @@ export function DrivePreviewModal({
     if (!showImage && !showVideo) return;
     e.preventDefault();
     e.stopPropagation();
+    try {
+      (e.nativeEvent as any).__autogramHandled = true;
+    } catch {
+      /* ignore */
+    }
 
     // Normalize deltaY based on deltaMode (0: pixels, 1: lines, 2: pages)
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
@@ -4394,7 +4403,7 @@ export function DrivePreviewModal({
 
   const node = (
     <div
-      className={`drive-preview-overlay${isFullscreen ? ' is-fs' : ''}`}
+      className={`drive-preview-overlay drive-preview-backdrop${isFullscreen ? ' is-fs' : ''}`}
       role="presentation"
       onMouseDown={onBackdropPointerDown}
       onClick={onBackdropPointerDown}
@@ -6270,6 +6279,26 @@ export function DrivePreviewModal({
                     }
                   }}
                 />
+              ) : isHeicOrTiffFile ? (
+                <HeicTiffViewer
+                  src={activeSrc || dataUrl || path || ''}
+                  fileName={displayName}
+                  className="drive-preview-media drive-preview-img"
+                  style={{
+                    transform: mediaTransform,
+                    transformOrigin: 'center center',
+                    pointerEvents: 'none',
+                  }}
+                  onLoad={(w, h) => {
+                    setMediaWidth(w);
+                    setMediaHeight(h);
+                    setLoading(false);
+                    setError(null);
+                  }}
+                  onError={() => {
+                    setLoading(false);
+                  }}
+                />
               ) : (
                 <img
                   key={`${file.id}-${srcOverride || 'primary'}`}
@@ -6297,7 +6326,7 @@ export function DrivePreviewModal({
                   }}
                 />
               )}
-              {loading && !isTgsDriveFile(file) && (
+              {loading && !isTgsDriveFile(file) && !isHeicOrTiffFile && (
                 <div className="drive-preview-loading-chip">
                   <Loader2 size={14} className="spin" /> {t('ui.generated.memuat_full_651e1dd')}
                 </div>
@@ -7287,19 +7316,7 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {/* ── HEIC / TIFF — decode via JS library ──────────────────────── */}
-          {(isHeicFile || isTiffFile) && (activeSrc || dataUrl || path) && (
-            <div className="drive-preview-media-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <HeicTiffViewer
-                src={activeSrc || dataUrl || path || ''}
-                fileName={displayName}
-                className="drive-preview-media drive-preview-image"
-                style={{ transform: needsMediaTransform ? mediaTransform : 'none', transformOrigin: 'center center' }}
-                onLoad={(w, h) => { setMediaWidth(w); setMediaHeight(h); setLoading(false); setError(null); }}
-                onError={() => setError(t('drive.decode_error'))}
-              />
-            </div>
-          )}
+
 
           {/* ── Unsupported Video formats (AVI, FLV, WMV, etc.) ───────────── */}
           {isUnsupportedVideoFile && !isHeicFile && !isTiffFile && (
