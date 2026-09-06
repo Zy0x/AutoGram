@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { FolderTree, Fingerprint, Check, ChevronDown, Copy } from 'lucide-react';
+import { FolderTree, Fingerprint, Check, Copy } from 'lucide-react';
 import type { DriveFile, DriveFolder, DriveChat } from '../../../lib/telegram/driveTypes';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { buildMediaPathId, type MediaPathLocationKind } from '../utils/mediaPathId';
@@ -33,7 +33,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
 
-  const dropdownBtnRef = useRef<HTMLButtonElement | null>(null);
+  const triggerBtnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const accountUserId = useMemo(() => {
@@ -109,9 +109,9 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
   }, [disabled, messageId, onNotify, t]);
 
   const placeMenu = useCallback(() => {
-    if (!dropdownBtnRef.current || typeof window === 'undefined') return null;
-    const r = dropdownBtnRef.current.getBoundingClientRect();
-    const width = 280;
+    if (!triggerBtnRef.current || typeof window === 'undefined') return null;
+    const r = triggerBtnRef.current.getBoundingClientRect();
+    const width = 290;
     let left = r.right - width;
     left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
     const spaceBelow = window.innerHeight - r.bottom - 12;
@@ -142,20 +142,16 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
 
   useEffect(() => {
     if (!menuOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (dropdownBtnRef.current?.contains(t)) return;
-      if (menuRef.current?.contains(t)) return;
-      setMenuOpen(false);
-    };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenuOpen(false);
+      }
     };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, true);
     };
   }, [menuOpen]);
 
@@ -184,73 +180,92 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
           {copiedPath ? <Check size={13} className="text-emerald-400" /> : <FolderTree size={13} />}
         </button>
 
-        {/* Button 2: Salin ID (1-click direct copy) */}
+        {/* Button 2: Telegram Identity Modal Trigger (Opens overlay on click) */}
         <button
+          ref={triggerBtnRef}
           type="button"
-          className={`td-icon-btn is-compact ${copiedId ? 'is-active text-emerald-400' : ''}`}
-          title={t('drive.preview_copy_id_tooltip', { id: messageId })}
-          aria-label={t('drive.ctx_menu_copy_id')}
-          disabled={disabled}
-          onClick={(e) => {
-            e.stopPropagation();
-            void handleCopyId();
-          }}
-        >
-          {copiedId ? <Check size={13} className="text-emerald-400" /> : <Fingerprint size={13} />}
-        </button>
-
-        {/* Dropdown Menu Trigger for Full Identity Card */}
-        <button
-          ref={dropdownBtnRef}
-          type="button"
-          className={`td-icon-btn is-compact ${menuOpen ? 'is-active text-sky-400' : ''}`}
-          title={t('drive.ctx_menu_copy_identity')}
-          aria-label={t('drive.ctx_menu_copy_identity')}
+          className={`td-icon-btn is-compact ${menuOpen ? 'is-active text-emerald-400 bg-slate-800/80 shadow-sm' : ''}`}
+          title={t('drive.preview_identity_menu_title')}
+          aria-label={t('drive.preview_identity_menu_title')}
+          aria-expanded={menuOpen}
           disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
             setMenuOpen((prev) => !prev);
           }}
         >
-          <ChevronDown
-            size={11}
-            style={{
-              transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 150ms ease',
-              opacity: 0.8,
-            }}
-          />
+          <Fingerprint size={13} className={menuOpen ? 'text-emerald-400' : ''} />
         </button>
       </div>
 
       {/* Floating Identity Card Portal */}
       {typeof document !== 'undefined' &&
         menuOpen &&
-        menuPos &&
         createPortal(
-          <div
-            ref={menuRef}
-            className="td-dropdown-menu td-identity-popover font-sans"
-            style={{
-              position: 'fixed',
-              top: menuPos.top !== undefined ? menuPos.top : 'auto',
-              bottom: menuPos.bottom !== undefined ? menuPos.bottom : 'auto',
-              left: menuPos.left,
-              width: menuPos.width,
-              background: 'rgba(15, 23, 42, 0.98)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              padding: '8px',
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.75)',
-              zIndex: 20_200,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <>
+            {/* Transparent backdrop overlay: intercepts clicks outside to close overlay WITHOUT interrupting video playback */}
+            <div
+              className="td-identity-popover-backdrop"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100vw',
+                height: '100vh',
+                zIndex: 20_190,
+                background: 'transparent',
+                cursor: 'default',
+              }}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+              }}
+            />
+
+            {/* Popover Card */}
+            {menuPos && (
+              <div
+                ref={menuRef}
+                className="td-dropdown-menu td-identity-popover font-sans"
+                style={{
+                  position: 'fixed',
+                  top: menuPos.top !== undefined ? menuPos.top : 'auto',
+                  bottom: menuPos.bottom !== undefined ? menuPos.bottom : 'auto',
+                  left: menuPos.left,
+                  width: menuPos.width,
+                  background: 'rgba(15, 23, 42, 0.98)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.75)',
+                  zIndex: 20_200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
             {/* Popover Header */}
             <div
               style={{
@@ -392,9 +407,11 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                 {messageId}
               </div>
             </div>
-          </div>,
-          document.body
+          </div>
         )}
+      </>,
+      document.body
+    )}
     </>
   );
 };

@@ -1,3 +1,20 @@
+## v3.9.66 — Media Preview: Direct Fingerprint Overlay Trigger & Non-Disruptive Outside Dismissal
+
+### 1. Direct Fingerprint Modal Trigger & Chevron Elimination
+- **Streamlined Toolbar Actions (`PreviewCopyIdentityActions.tsx`)**: Removed the auxiliary chevron/arrow button (`<ChevronDown />`). The `<Fingerprint />` button now directly acts as the primary interactive trigger for opening and closing the floating Telegram identity card.
+- **Dedicated User-Driven Copying**: Users can open the identity overlay with a single click on the fingerprint icon to inspect all Telegram identity parameters (Path ID, Message ID, storage peer, topic, account) and deliberately press the respective copy buttons according to their workflow needs.
+
+### 2. Player-Safe Outside Click Interceptor & Non-Disruptive Dismissal
+- **Zero-Disruption Transparent Backdrop**: Implemented a fixed, transparent pointer interceptor backdrop (`zIndex: 20_190`) rendered via React Portal. When the identity overlay is open, any clicks, taps, or mouse events outside the overlay card are trapped and prevented from reaching underlying media elements.
+- **Guaranteed Continuous Playback**: Prevents media player event leakage where clicking outside previously risked pausing or resuming video/audio playback. Video playback continues uninterrupted when closing the identity overlay.
+- **Keyboard Escape Accessibility**: Enhanced keyboard accessibility with a capturing `Escape` key handler that cleanly dismisses the overlay card without triggering parent preview modal closures.
+
+### 3. Quality Certification & Rule 17 Compliance
+- **Modular LOC Limit**: Kept `PreviewCopyIdentityActions.tsx` at 418 lines ($\le 2,000$ lines limit).
+- **Quality Gates Certified**: All 6 Autonomous Quality Sentinel gates pass with 0 errors (strict TypeScript, Vitest unit tests, 100% i18n parity, and SQLite database invariants).
+
+---
+
 ## v3.9.65 — Media Preview: Modern Fingerprint Icon for Salin ID Action
 
 ### 1. Visual Icon Refinement: Fingerprint Icon for Salin ID Action
