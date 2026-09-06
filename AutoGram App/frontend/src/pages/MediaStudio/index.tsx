@@ -12,30 +12,6 @@ import { reconcileFilteredTotal } from './filterCountPolicy';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
 
-function localizedDriveError(
-  error: unknown,
-  t: (key: string, options?: Record<string, unknown>) => string
-): string {
-  const issue = telegramAccessIssue(error);
-  if (issue === 'restricted') return t('drive.telegram_access_restricted');
-  if (issue === 'private') return t('drive.telegram_access_private');
-  if (issue === 'unavailable') return t('drive.telegram_access_unavailable');
-  return friendlyDriveError(error);
-}
-
-function inferUploadMime(path: string): string | null {
-  const clean = String(path || '').split(/[?#]/, 1)[0];
-  const extension = clean.includes('.') ? clean.split('.').pop()?.toLowerCase() : '';
-  const known: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
-    gif: 'image/gif', bmp: 'image/bmp', heic: 'image/heic', avif: 'image/avif',
-    mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska',
-    mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', flac: 'audio/flac', ogg: 'audio/ogg',
-    pdf: 'application/pdf', zip: 'application/zip', rar: 'application/vnd.rar',
-    '7z': 'application/x-7z-compressed', txt: 'text/plain', json: 'application/json',
-  };
-  return extension ? known[extension] ?? 'application/octet-stream' : null;
-}
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
 import type { SubMenuCategory } from '../../components/drive/Transfers/transferSettingsSearchRegistry';
 import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
@@ -46,11 +22,19 @@ import {
 } from '../../lib/transfer/qualityPreflight';
 import { cancelledPreflightDecision } from '../../lib/transfer/preflightDuplicateDecision';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
+import {
+  flushTransferDebugLog,
+  inferUploadMime,
+  localizedDriveError,
+  type LocationKind,
+  type QueueTask,
+} from './mediaStudioDomain';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
 import type { TgScopedMediaSearchCursor } from '../../lib/telegram/core/telegramBackend';
+import type { RemoteMuxSpec } from '../../lib/telegram/linkResolvers';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
- * Tab id remains `speedtest`. Desktop only.
+ * Feature id is `cloud-drives`. Desktop only.
  *
  * Root = Saved Messages · Drives [TD] (root) · Folders nested under Drives · Any chat loadable.
  */
@@ -116,8 +100,6 @@ import {
   waitWhileDriveTransferPaused,
   clearDriveTransferPause,
   isTransferJobActive,
-  friendlyDriveError,
-  telegramAccessIssue,
   resolveRestrictionReasonKey,
   isPeerEntityError,
   isSessionLockError,
@@ -412,40 +394,6 @@ const LS_TM_MIN = 'autogram_transfer_minimized';
 /** Last used Telegram session — restore instantly so drive boot need not wait list-sessions */
 const LS_SESSION = 'autogram_drive_session';
 /** Cached picker names for first paint of session <select> */
-
-
-async function flushTransferDebugLog(session: TransferSession) {
-  if (!session || !session.debugLogs || !session.debugLogs.length) return;
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    const contents = session.debugLogs.join('\n');
-    await invoke('write_worker_temp_file', {
-      filename: 'transfer_debug.txt',
-      contents,
-    });
-  } catch (e) {
-    console.warn('Gagal menulis transfer_debug.txt', e);
-  }
-}
-
-interface QueueTask {
-  id: string;
-  kind: 'upload' | 'download' | 'download_one' | 'download_zip';
-  paths?: string[];
-  targetFolderId?: number | null;
-  targetLabel?: string;
-  skipTopic?: boolean;
-  topicId?: number | null;
-  selectedIds?: number[];
-  saveDir?: string;
-  messageId?: number;
-  savePath?: string;
-  names: string[];
-  options: any;
-  startIndex: number;
-}
-
-type LocationKind = 'saved' | 'drive' | 'chat';
 
 export function MediaStudio({
   onExitToApp,
@@ -6908,6 +6856,7 @@ function MediaDriveDesktop({
       customFilenames?: string[];
       sourceSizes?: number[];
       thumbnailUrls?: string[];
+      remoteMuxes?: Array<RemoteMuxSpec | null>;
     }
   ): Promise<boolean> => {
     if (!creds || !paths.length) return false;
@@ -6995,6 +6944,7 @@ function MediaDriveDesktop({
       return null;
     })();
     let duplicateForceUploadPaths: string[] = [];
+    let effectiveRemoteMuxes = opts?.remoteMuxes;
 
     try {
       setStatusText(String(t('drive.preflight_running')));
@@ -7050,7 +7000,14 @@ function MediaDriveDesktop({
         return false;
       }
       const skippedPaths = new Set(decision.skippedPaths);
+      const retainedIndexes = cleanPaths
+        .map((path, index) => ({ path, index }))
+        .filter(({ path }) => !skippedPaths.has(path))
+        .map(({ index }) => index);
       cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
+      if (effectiveRemoteMuxes) {
+        effectiveRemoteMuxes = retainedIndexes.map((index) => effectiveRemoteMuxes?.[index] || null);
+      }
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
       names = cleanPaths.map((path, idx) => {
         if (opts?.customFilenames && opts.customFilenames[idx]) {
@@ -7165,6 +7122,7 @@ function MediaDriveDesktop({
       remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
       source_sizes: opts?.sourceSizes,
       thumbnail_urls: opts?.thumbnailUrls,
+      remote_muxes: effectiveRemoteMuxes,
       custom_filenames: opts?.customFilenames || names,
       storage_policy: opts?.storagePolicy || 'telegram',
       custom_disk_path: opts?.customDiskPath,
@@ -7244,6 +7202,7 @@ function MediaDriveDesktop({
       customFilenames?: string[];
       sourceSizes?: number[];
       thumbnailUrls?: string[];
+      remoteMuxes?: Array<RemoteMuxSpec | null>;
       remoteEngineMode?: RemoteEngineMode;
       storagePolicy?: StorageLocalPolicy;
       customDiskPath?: string;
@@ -7265,6 +7224,7 @@ function MediaDriveDesktop({
       customFilenames: opts?.customFilenames,
       sourceSizes: opts?.sourceSizes,
       thumbnailUrls: opts?.thumbnailUrls,
+      remoteMuxes: opts?.remoteMuxes,
       remoteEngineMode: opts?.remoteEngineMode,
       storagePolicy: opts?.storagePolicy,
       customDiskPath: opts?.customDiskPath,

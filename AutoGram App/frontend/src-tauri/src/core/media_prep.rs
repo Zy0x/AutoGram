@@ -671,6 +671,187 @@ pub fn download_remote_url(
     Ok(final_dest)
 }
 
+/// Materialize a YouTube/DASH adaptive pair into one local playable file.
+///
+/// Resolver output deliberately contains the original signed URLs instead of
+/// inventing a browser URL. This function is the only place that turns the
+/// verified `video-only + audio-only` pair into a container suitable for
+/// Telegram and normal media players. The video stream is copied losslessly;
+/// audio is encoded to the target container's broadly supported codec (AAC for
+/// MP4, Opus for WebM). Temporary inputs are always removed on success, error,
+/// or cancellation.
+pub fn download_and_mux_remote(
+    video_url: &str,
+    audio_url: &str,
+    output_ext: &str,
+    app: Option<&tauri::AppHandle>,
+    item_index: usize,
+) -> Result<PathBuf, String> {
+    let video_url = video_url.trim();
+    let audio_url = audio_url.trim();
+    if !is_remote_url(video_url) || !is_remote_url(audio_url) {
+        return Err("mux source URLs must use http or https".into());
+    }
+    crate::core::remote_link_resolver::ensure_public_remote_url(video_url)?;
+    crate::core::remote_link_resolver::ensure_public_remote_url(audio_url)?;
+
+    let output_ext = match output_ext.trim().to_ascii_lowercase().as_str() {
+        "mp4" => "mp4",
+        "webm" => "webm",
+        "mkv" => "mkv",
+        _ => return Err("unsupported mux output container".into()),
+    };
+
+    // Fail before downloading either adaptive stream when the bundled/custom
+    // FFmpeg binary is unavailable. This avoids wasting the user's bandwidth
+    // on inputs that cannot be combined locally.
+    let ffmpeg = find_ffmpeg_binary()
+        .ok_or_else(|| "FFmpeg binary not found; cannot combine adaptive video and audio".to_string())?;
+
+    emit_transfer_event(
+        app,
+        "StudioProgress",
+        serde_json::json!({
+            "item_index": item_index,
+            "percent": 1.0,
+            "transferred": 0,
+            "total": 0,
+            "phase": "mux_prepare"
+        }),
+    );
+
+    let video_path = match download_remote_url(video_url, app, item_index) {
+        Ok(path) => path,
+        Err(error) => return Err(format!("video-only download failed: {error}")),
+    };
+    let audio_path = match download_remote_url(audio_url, app, item_index) {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = fs::remove_file(&video_path);
+            return Err(format!("audio-only download failed: {error}"));
+        }
+    };
+
+    let output_path = unique_name("youtube_mux", output_ext);
+    let mut command = Command::new(&ffmpeg);
+    command.args(["-y", "-nostdin", "-hide_banner", "-loglevel", "error"]);
+    command.args(["-i", video_path.to_string_lossy().as_ref()]);
+    command.args(["-i", audio_path.to_string_lossy().as_ref()]);
+    command.args(["-map", "0:v:0", "-map", "1:a:0"]);
+    command.args(["-c:v", "copy"]);
+    if output_ext == "webm" {
+        command.args(["-c:a", "libopus", "-b:a", "160k"]);
+    } else if output_ext == "mp4" {
+        // AAC keeps MP4 playable in WebView2, Telegram clients, and common
+        // desktop/mobile players even when the selected companion is Opus.
+        command.args(["-c:a", "aac", "-b:a", "192k"]);
+        command.args(["-movflags", "+faststart"]);
+    } else {
+        command.args(["-c:a", "copy"]);
+    }
+    command.args(["-shortest", output_path.to_string_lossy().as_ref()]);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    emit_transfer_event(
+        app,
+        "StudioProgress",
+        serde_json::json!({
+            "item_index": item_index,
+            "percent": 75.0,
+            "transferred": 0,
+            "total": 0,
+            "phase": "mux"
+        }),
+    );
+
+    use std::process::Stdio;
+    command.stdout(Stdio::null()).stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .map_err(|error| {
+            let _ = fs::remove_file(&video_path);
+            let _ = fs::remove_file(&audio_path);
+            format!("failed to start FFmpeg mux: {error}")
+        })?;
+    loop {
+        if crate::core::job_queue::is_any_transfer_cancelled() {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = fs::remove_file(&video_path);
+            let _ = fs::remove_file(&audio_path);
+            let _ = fs::remove_file(&output_path);
+            return Err("adaptive mux cancelled by user".into());
+        }
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(250)),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = fs::remove_file(&video_path);
+                let _ = fs::remove_file(&audio_path);
+                let _ = fs::remove_file(&output_path);
+                return Err(format!("FFmpeg mux wait failed: {error}"));
+            }
+        }
+    }
+    let result = child.wait_with_output();
+    let _ = fs::remove_file(&video_path);
+    let _ = fs::remove_file(&audio_path);
+    let output = match result {
+        Ok(output) if output.status.success() => output,
+        Ok(output) => {
+            let _ = fs::remove_file(&output_path);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("FFmpeg mux failed: {}", stderr.trim()));
+        }
+        Err(error) => {
+            let _ = fs::remove_file(&output_path);
+            return Err(format!("failed to start FFmpeg mux: {error}"));
+        }
+    };
+
+    let size = fs::metadata(&output_path)
+        .map(|meta| meta.len())
+        .map_err(|error| {
+            let _ = fs::remove_file(&output_path);
+            format!("mux output metadata failed: {error}")
+        })?;
+    if size < 1024 {
+        let _ = fs::remove_file(&output_path);
+        return Err("FFmpeg mux produced an empty or truncated output".into());
+    }
+    let (width, height, duration) = probe_video_metadata(output_path.to_string_lossy().as_ref());
+    if width == 0 || height == 0 || duration <= 0.0 {
+        let _ = fs::remove_file(&output_path);
+        return Err("FFmpeg mux output failed media validation".into());
+    }
+    path_policy::assert_safe_transfer_path(output_path.to_string_lossy().as_ref())
+        .map_err(|error| {
+            let _ = fs::remove_file(&output_path);
+            error.to_string()
+        })?;
+
+    let _ = output;
+    emit_transfer_event(
+        app,
+        "StudioProgress",
+        serde_json::json!({
+            "item_index": item_index,
+            "percent": 100.0,
+            "transferred": size,
+            "total": size,
+            "phase": "mux_done"
+        }),
+    );
+    Ok(output_path)
+}
+
 /// Downloads a remote thumbnail image (e.g. from Twitter/TikTok/YouTube) into a temporary JPG file.
 pub fn download_remote_thumbnail(thumb_url: &str) -> Option<PathBuf> {
     let thumb_url = thumb_url.trim();

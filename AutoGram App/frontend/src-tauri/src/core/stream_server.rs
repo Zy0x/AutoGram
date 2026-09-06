@@ -537,6 +537,25 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
     entry
 }
 
+/// Refresh liveness without claiming that additional bytes arrived.  The
+/// progressive worker intentionally pauses when the player has a comfortable
+/// runway (data-saver mode); those pauses must not be mistaken for a dead
+/// Telegram socket by the stall detector.
+pub fn touch_activity(sid: &str) {
+    let touched = {
+        let mut map = live_map().write();
+        let Some(entry) = map.get_mut(sid) else {
+            return;
+        };
+        if entry.done || entry.cancelled {
+            return;
+        }
+        entry.updated_at_ms = now_ms();
+        entry.clone()
+    };
+    save_entry_disk(&touched);
+}
+
 /// Mark the metadata-tail probe as finished without letting a concurrent fill
 /// update re-inherit the old `true` value.  The fill loop intentionally omits
 /// its tail state so it cannot erase an in-flight probe; completion therefore

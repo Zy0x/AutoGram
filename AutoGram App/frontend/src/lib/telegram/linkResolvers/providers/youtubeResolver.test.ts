@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { extractYouTubeVideoId, processYtDlpData, youtubeResolver } from './youtubeResolver';
+import { attachYouTubeMuxCandidates, extractYouTubeVideoId, processYtDlpData, youtubeResolver } from './youtubeResolver';
 import type { RawStreamItem, StreamQualityFormat, SubtitleTrackItem } from '../types';
 
 describe('youtubeResolver', () => {
@@ -179,8 +179,8 @@ describe('youtubeResolver', () => {
     expect(formatTiers).toContain('360p');
     expect(formatTiers).toContain('audio');
 
-    // Default selected format should be highest quality video (4k)
-    expect(result?.selectedFormatId).toBe('yt_2160p_webm');
+    // Default selected format should be highest quality streamable video (360p muxed)
+    expect(result?.selectedFormatId).toBe('yt_360p_mp4');
 
     // All formats must have valid playable direct URLs
     expect(result?.formats.every((f) => typeof f.directUrl === 'string' && f.directUrl.startsWith('http'))).toBe(true);
@@ -228,15 +228,90 @@ describe('youtubeResolver', () => {
       id: 'yt_ytdlp_337',
       qualityTier: '4k',
       isDownloadable: true,
-      isStreamable: true,
+      isStreamable: false,
+      downloadOnly: true,
     });
     expect(rawStreams).toHaveLength(2);
     expect(rawStreams.find((stream) => stream.itag === 642)).toMatchObject({
-      isDownloadable: true,
+      isDownloadable: false,
       isStreamable: true,
     });
     expect(formats.find((format) => format.itag === 642)).toBeUndefined();
     expect(formats[0].filesizeBytes).toBe(1000000);
+  });
+
+  it('keeps high-resolution video-only MP4/WebM downloadable while selecting muxed MP4 for playback', () => {
+    const formats: StreamQualityFormat[] = [];
+    const rawStreams: RawStreamItem[] = [];
+    processYtDlpData({
+      title: 'Playback matrix',
+      duration: 60,
+      formats: [
+        {
+          format_id: '400', ext: 'mp4', height: 2160, vcodec: 'av01', acodec: 'none',
+          tbr: 14000, url: 'https://video.googlevideo.com/videoplayback?itag=400',
+        },
+        {
+          format_id: '401', ext: 'webm', height: 2160, vcodec: 'vp09', acodec: 'none',
+          tbr: 16000, url: 'https://video.googlevideo.com/videoplayback?itag=401',
+        },
+        {
+          format_id: '18', ext: 'mp4', height: 360, vcodec: 'avc1', acodec: 'mp4a',
+          tbr: 700, url: 'https://video.googlevideo.com/videoplayback?itag=18',
+        },
+      ],
+    }, formats, [], rawStreams);
+
+    expect(formats.find((format) => format.itag === 400)).toMatchObject({
+      ext: 'mp4', height: 2160, isDownloadable: true, isStreamable: false, downloadOnly: true,
+    });
+    expect(formats.find((format) => format.itag === 401)).toMatchObject({
+      ext: 'webm', height: 2160, isDownloadable: true, isStreamable: false, downloadOnly: true,
+    });
+    expect(formats.find((format) => format.itag === 18)).toMatchObject({
+      ext: 'mp4', isDownloadable: true, isStreamable: true, downloadOnly: false,
+    });
+  });
+
+  it('attaches a verified audio companion to high-resolution MP4 without fabricating a URL', () => {
+    const formats: StreamQualityFormat[] = [
+      {
+        id: 'yt_2160p_mp4',
+        label: '2160p (MP4)',
+        qualityTier: '4k',
+        ext: 'mp4',
+        directUrl: 'https://video.googlevideo.com/videoplayback?itag=400',
+        isVideo: true,
+        isDownloadable: true,
+        isStreamable: false,
+        filesizeBytes: 900_000_000,
+      },
+      {
+        id: 'yt_audio_m4a_128k',
+        label: 'M4A 128 kbps',
+        qualityTier: 'audio',
+        ext: 'm4a',
+        directUrl: 'https://audio.googlevideo.com/videoplayback?itag=140',
+        isAudio: true,
+        isDownloadable: true,
+        isStreamable: true,
+        filesizeBytes: 6_000_000,
+        bitrate: 128_000,
+      },
+    ];
+
+    attachYouTubeMuxCandidates(formats);
+
+    expect(formats[0].mux).toMatchObject({
+      videoUrl: formats[0].directUrl,
+      audioUrl: formats[1].directUrl,
+      outputExt: 'mp4',
+      videoFormatId: 'yt_2160p_mp4',
+      audioFormatId: 'yt_audio_m4a_128k',
+      estimatedSizeBytes: 906_000_000,
+    });
+    expect(formats[0].directUrl).toContain('googlevideo.com');
+    expect(formats[0].directUrl).not.toContain('mux');
   });
 
   it('correctly maps manual and auto-generated subtitle tracks with human-readable language names and formats', () => {

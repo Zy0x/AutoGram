@@ -17,6 +17,8 @@ import {
   FolderOpen,
   UserPlus,
   Eye,
+  FolderTree,
+  Hash,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
@@ -46,6 +48,8 @@ import {
 import { loadPersistentThumb } from '../../../lib/media/thumbPersistentCache';
 import { getCachedPreview, loadPreviewCached } from '../../../lib/media/previewCache';
 import { tgDebugGetMessage } from '../../../lib/telegram/core/telegramBackend';
+import { buildMediaPathId } from '../utils/mediaPathId';
+import { getSessionMetadata } from '../../../lib/telegram/core/sessionPicker';
 
 export interface TelegramMessagePreviewModalProps {
   file: DriveFile | null;
@@ -392,6 +396,42 @@ export function TelegramMessagePreviewModal({
   const durationStr = formatDuration(file.duration || file.duration_s);
   const fileExt = (file.file_ext || file.name.split('.').pop() || 'FILE').toUpperCase();
 
+  const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const accountUserId = creds?.session
+    ? getSessionMetadata(creds.session)?.telegramUserId || String(creds.session).replace(/^session_/, '') || '0'
+    : file.account_id
+      ? getSessionMetadata(file.account_id)?.telegramUserId || String(file.account_id).replace(/^session_/, '') || '0'
+      : '0';
+
+  const pathId = buildMediaPathId({
+    accountUserId,
+    locationKind: isSavedMessages ? 'saved' : (folderId != null && folderId !== 0 ? 'drive' : 'chat'),
+    peerId: file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : 'me'),
+    topicId: file.topic_id ?? null,
+    mediaId: file.id,
+    file,
+  });
+
+  const handleCopyPathId = async () => {
+    if (!pathId) return;
+    const ok = await nativeWriteClipboardText(pathId);
+    if (ok) {
+      setCopiedPath(true);
+      setTimeout(() => setCopiedPath(false), 2000);
+    }
+  };
+
+  const handleCopyId = async () => {
+    if (!file.id) return;
+    const ok = await nativeWriteClipboardText(String(file.id));
+    if (ok) {
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
   const handleCopyCaption = async () => {
     if (!captionText) return;
     await nativeWriteClipboardText(captionText);
@@ -475,7 +515,53 @@ export function TelegramMessagePreviewModal({
               </div>
             </div>
           </div>
-          <div className="tg-msg-preview-header-right">
+          <div className="tg-msg-preview-header-right" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {pathId && (
+              <button
+                type="button"
+                className="tg-msg-preview-action-btn"
+                onClick={() => void handleCopyPathId()}
+                title={t('drive.preview_copy_path_id_tooltip', { path: pathId })}
+                aria-label={t('drive.ctx_menu_copy_path_id')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: copiedPath ? '#34d399' : '#94a3b8',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 150ms ease',
+                }}
+              >
+                {copiedPath ? <Check size={16} /> : <FolderTree size={16} />}
+              </button>
+            )}
+            {file && (
+              <button
+                type="button"
+                className="tg-msg-preview-action-btn"
+                onClick={() => void handleCopyId()}
+                title={t('drive.preview_copy_id_tooltip', { id: file.id })}
+                aria-label={t('drive.ctx_menu_copy_id')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: copiedId ? '#34d399' : '#94a3b8',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 150ms ease',
+                }}
+              >
+                {copiedId ? <Check size={16} /> : <Hash size={16} />}
+              </button>
+            )}
             <button
               type="button"
               className="tg-msg-preview-close-btn"

@@ -11,6 +11,12 @@ interface StreamRizzVideoItem {
   filesizeBytes?: number;
 }
 
+interface StreamRizzFolderPage {
+  title: string;
+  folders: Array<{ url: string; title?: string }>;
+  videos: Array<{ id: string; thumb?: string; title?: string }>;
+}
+
 const STREAMRIZZ_HOSTS = /(^|\.)(streamrizz\.(?:com|net|org)|vidoy\.(?:com|net|asia|org)|vidoycdn\.(?:com|net)|overfetch\.video)$/i;
 
 function isStreamrizzHost(url: string): boolean {
@@ -155,6 +161,54 @@ function inferVideoResolutionBadge(title?: string): string {
   return 'HD';
 }
 
+function parseFolderPage(html: string, pageUrl: string): StreamRizzFolderPage {
+  const titleMatch =
+    html.match(/<h1[^>]*class="[^"]*drive-title[^"]*"[^>]*>([^<]+)<\/h1>/i) ||
+    html.match(/<title>([^<]+)<\/title>/i);
+  const title = (titleMatch?.[1] || 'StreamRizz Folder')
+    .replace(/^[📂\s]+/, '')
+    .replace(/ - StreamRizz$/i, '')
+    .trim();
+  const folders: Array<{ url: string; title?: string }> = [];
+  const folderSeen = new Set<string>();
+  const folderRegex = /<a[^>]*href="(\/(?:f|folder)\/[a-zA-Z0-9_-]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(folderRegex)) {
+    try {
+      const absolute = new URL(match[1], pageUrl).toString();
+      if (folderSeen.has(absolute)) continue;
+      folderSeen.add(absolute);
+      const cleanLabel = String(match[2] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      folders.push({ url: absolute, title: cleanLabel || undefined });
+    } catch {
+      // Ignore malformed/untrusted hrefs; the native resolver applies the
+      // same URL safety policy before it visits a page.
+    }
+  }
+
+  const videos: Array<{ id: string; thumb?: string; title?: string }> = [];
+  const videoSeen = new Set<string>();
+  const addVideo = (id: string, thumb?: string, videoTitle?: string) => {
+    if (videoSeen.has(id)) return;
+    videoSeen.add(id);
+    videos.push({ id, thumb, title: videoTitle?.trim() || undefined });
+  };
+  const articleBlocks = html.match(/<article[^>]*class="[^"]*drive-file-card[^"]*"[^>]*>[\s\S]*?<\/article>/gi) || [];
+  for (const block of articleBlocks) {
+    const idMatch = block.match(/href="\/(?:d|v|e)\/([a-zA-Z0-9_-]+)"/i);
+    if (!idMatch) continue;
+    const thumbMatch = block.match(/<img[^>]*src="([^"]+)"/i);
+    const titleMatch = block.match(/title="([^"]+)"/i) || block.match(/class="[^"]*file-name[^"]*"[^>]*>([^<]+)</i);
+    addVideo(idMatch[1], thumbMatch?.[1], titleMatch?.[1]);
+  }
+  // Some folder pages render cards without the article wrapper. Keep this
+  // fallback deliberately scoped to /d|/v|/e links so navigation is ignored.
+  const linkRegex = /<a[^>]*href="\/(?:d|v|e)\/([a-zA-Z0-9_-]+)"[^>]*(?:title="([^"]*)"|aria-label="([^"]*)")?[^>]*>/gi;
+  for (const match of html.matchAll(linkRegex)) {
+    addVideo(match[1], undefined, match[2] || match[3]);
+  }
+  return { title, folders, videos };
+}
+
 /**
  * StreamRizz & Vidoy Link Resolver
  * Detects single videos and multi-video folders/directories on streamrizz.com, vidoy.com, etc.
@@ -193,44 +247,37 @@ export const streamrizzResolver: LinkResolverProvider = {
       parsedUrl.hostname.includes('overfetch.video');
 
     if (isFolder) {
-      // 1. Folder Resolution: Extract all video cards and resolve them in parallel
-      const html = await fetchRemoteHtml(cleanUrl, signal);
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-
-      // Extract folder title
-      const titleMatch =
-        html.match(/<h1[^>]*class="[^"]*drive-title[^"]*"[^>]*>([^<]+)<\/h1>/i) ||
-        html.match(/<title>([^<]+)<\/title>/i);
-      let folderTitle = titleMatch ? titleMatch[1].replace(/^[📂\s]+/, '').trim() : 'StreamRizz Folder';
-      folderTitle = folderTitle.replace(/ - StreamRizz$/i, '').trim();
-
-      // Extract video cards
-      const articleBlocks = html.match(/<article[^>]*class="[^"]*drive-file-card[^"]*"[^>]*>[\s\S]*?<\/article>/gi) || [];
-      const videoEntries: Array<{ id: string; thumb?: string; title?: string }> = [];
-
-      for (const block of articleBlocks) {
-        const idMatch = block.match(/href="\/d\/([a-zA-Z0-9_-]+)"/i);
-        const thumbMatch = block.match(/<img[^>]*src="([^"]+)"/i);
-        const titleMatch = block.match(/title="([^"]+)"/i) || block.match(/class="[^"]*file-name[^"]*"[^>]*>([^<]+)<\/a>/i);
-
-        if (idMatch) {
-          videoEntries.push({
-            id: idMatch[1],
-            thumb: thumbMatch ? thumbMatch[1] : undefined,
-            title: titleMatch ? titleMatch[1].trim() : undefined,
-          });
+      // 1. Folder Resolution: walk nested folders breadth-first. A bounded
+      // page budget keeps a huge public tree responsive while still allowing
+      // the user to resolve every discovered media item in one inspection.
+      const folderQueue = [cleanUrl];
+      const visitedFolders = new Set<string>();
+      const videoEntries: Array<{ id: string; thumb?: string; title?: string; parentUrl?: string }> = [];
+      const seenVideos = new Set<string>();
+      let folderTitle = 'StreamRizz Folder';
+      let inspectedFolders = 0;
+      const MAX_FOLDER_PAGES = 256;
+      while (folderQueue.length > 0 && inspectedFolders < MAX_FOLDER_PAGES) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        const folderUrl = folderQueue.shift()!;
+        if (visitedFolders.has(folderUrl)) continue;
+        visitedFolders.add(folderUrl);
+        let page: StreamRizzFolderPage;
+        try {
+          page = parseFolderPage(await fetchRemoteHtml(folderUrl, signal), folderUrl);
+        } catch {
+          continue;
         }
-      }
-
-      if (videoEntries.length === 0) {
-        const linkRegex = /<a[^>]*href="\/d\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]*)"/gi;
-        const linkMatches = [...html.matchAll(linkRegex)];
-        const seenIds = new Set<string>();
-        for (const lm of linkMatches) {
-          if (!seenIds.has(lm[1])) {
-            seenIds.add(lm[1]);
-            videoEntries.push({ id: lm[1], title: lm[2] });
-          }
+        inspectedFolders += 1;
+        if (folderUrl === cleanUrl) folderTitle = page.title;
+        for (const nested of page.folders) {
+          if (!visitedFolders.has(nested.url)) folderQueue.push(nested.url);
+        }
+        for (const entry of page.videos) {
+          const key = entry.id;
+          if (seenVideos.has(key)) continue;
+          seenVideos.add(key);
+          videoEntries.push({ ...entry, parentUrl: folderUrl });
         }
       }
 

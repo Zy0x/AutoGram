@@ -1,3 +1,36 @@
+## v3.9.64 — Media Preview Toolbar: Salin Path ID & Salin ID Quick Actions
+
+### 1. Media Preview Toolbar Identity Actions (Salin Path ID & Salin ID)
+- **Direct 1-Click Path ID & ID Copy Buttons (`PreviewCopyIdentityActions.tsx`, `DrivePreviewModal/index.tsx`)**: Added dedicated, accessible quick-action buttons directly into the media preview context toolbar. Users can now copy the canonical Telegram Path ID (`U{accountUserId}/{LocationPrefix}{peerId}/T{topicId}/{mediaId}`) via `<FolderTree size={13} />` and numerical Telegram Message ID via `<Hash size={13} />` with zero friction while viewing images, videos, audio tracks, or documents.
+- **Micro-Motion Visual Feedback**: Implemented a responsive 150–350ms checkmark transition (`<Check size={13} className="text-emerald-400" />`) and transient notification toasts (`Path ID disalin: ...` / `ID disalin: ...`), providing clear, instant visual confirmation to the user upon copying.
+- **Glassmorphic Identity Popover Card**: Integrated a non-intrusive dropdown popover (`<ChevronDown size={11} />`) with high-contrast, selectable mono code blocks (`rgba(15, 23, 42, 0.98)` with blur), allowing users to inspect the complete structured identity of any cloud file before copying.
+- **Cross-Modal Parity (`MediaHeaderToolbar.tsx`, `TelegramMessagePreviewModal.tsx`)**: Synchronized identity copying across modular preview headers and the Telegram message preview bubble header, ensuring consistent capability throughout all media inspection views.
+
+### 2. Architecture Boundary & Modularization Enforcement
+- **Strict Rule 17 Compliance**: Kept the new `PreviewCopyIdentityActions` module fully isolated under 400 physical lines, strictly honoring single-responsibility domain limits and preventing bloat in legacy modal wrappers.
+- **Cross-Platform Native Clipboard Integration (`desktopClipboard.ts`)**: Routed copy commands through Rust Tauri native IPC (`desktop_write_clipboard`) with transparent fallback to Web Clipboard API, preventing Chromium permission dialog prompts.
+- **Split-Compare Awareness**: Fully wires active slot detection in duplicate comparison mode, ensuring the exact active file's ID and Path ID are resolved dynamically when inspecting duplicate candidates.
+
+### 3. Multi-Language Parity & Quality Certification
+- **100% Locale Parity**: Synchronized 4 new localization keys across Indonesian (`id/drive.json`) and English (`en/drive.json`) with zero missing keys or discrepancies (6,430 keys each).
+- **Quality Sentinel Gate Clearance**: Successfully passed all 6 automated quality gates (`npm run test:quality`), including strict TypeScript compilation (0 errors), Vitest test suite (459 tests passed), and SQLite schema synchronization.
+
+---
+
+## v3.9.63 — YouTube Adaptive MP4 Mux Pipeline
+
+### 1. YouTube High-Resolution Download Integrity
+- **Verified adaptive pair metadata (`youtubeResolver.ts`, `types.ts`)**: Video-only MP4/WebM formats now retain their original signed video URL and carry a verified audio companion from the same extractor response, allowing 2160p and higher downloads without presenting HLS manifests as fake MP4 files.
+- **Playable MP4 materialization (`media_prep.rs`)**: Added a dedicated FFmpeg pipeline that downloads both streams, copies the video losslessly, encodes audio to AAC, applies `+faststart`, validates dimensions/duration, and cleans temporary inputs on every exit path.
+
+### 2. Transfer Orchestrator & Modular Queue Wiring
+- **Mux metadata propagation (`RemoteUploadModal`, `MediaStudio`, `studio_orch.rs`)**: The selected adaptive pair travels through the existing preflight and transfer queue as isolated `remote_muxes` metadata. Only mux items leave the direct cloud-fetch path; ordinary remote URLs preserve their previous fast transport.
+- **Safe fallback behavior**: Malformed or incomplete mux metadata is ignored and falls back to the normal remote URL path. FFmpeg absence or invalid output fails clearly before Telegram upload, preventing empty or unplayable files.
+
+### 3. Regression Coverage & Documentation
+- **Resolver and Rust tests**: Added coverage for audio pairing, non-fabricated URLs, queue metadata validation, and malformed-pair fallback.
+- **Quality certification**: Frontend build, all six quality gates, YouTube resolver tests, Rust mux metadata tests, and non-invasive CDP smoke verification pass.
+
 ## v3.9.62 — Stream Background Buffer Pacing & Byte-Distance Quota Guard
 
 ### 1. Two-Tier Anti-Runaway Background Buffer Protection

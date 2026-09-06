@@ -261,7 +261,7 @@ export const twitterResolver: LinkResolverProvider = {
 
               formats.push({
                 id: `twitter_photo_${pIdx + 1}`,
-                label: i18n.t('speedtest:remote_photo_n', {
+                label: i18n.t('drive:remote_photo_n', {
                   idx: pIdx + 1,
                   total: photos.length,
                 }),
@@ -281,7 +281,7 @@ export const twitterResolver: LinkResolverProvider = {
             if (albumImages.length > 1) {
               formats.unshift({
                 id: 'twitter_photo_all_pack',
-                label: i18n.t('speedtest:remote_album_full_pack', { count: albumImages.length }),
+                label: i18n.t('drive:remote_album_full_pack', { count: albumImages.length }),
                 qualityTier: 'original',
                 ext: 'jpg',
                 directUrl: albumImages[0],

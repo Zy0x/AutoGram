@@ -126,4 +126,47 @@ describe('streamrizzResolver', () => {
     expect(res?.mediaItems?.[1].title).toBe('Video 2.mp4');
     expect(res?.mediaItems?.[1].formats[0].filesizeBytes).toBe(20000000);
   });
+
+  it('walks nested folders and deduplicates media across folder pages', async () => {
+    const rootHtml = `
+      <html><title>📂 Root - StreamRizz</title><body>
+        <h1 class="drive-title">Root</h1>
+        <a href="/f/nested"><span>Nested folder</span></a>
+      </body></html>`;
+    const nestedHtml = `
+      <html><title>📂 Nested - StreamRizz</title><body>
+        <h1 class="drive-title">Nested</h1>
+        <article class="drive-file-card">
+          <a href="/d/nested-video" class="file-name" title="Nested video.mp4">Nested video.mp4</a>
+        </article>
+        <a href="/f/deeper">Deeper folder</a>
+      </body></html>`;
+    const deeperHtml = `
+      <html><title>📂 Deeper - StreamRizz</title><body>
+        <article class="drive-file-card">
+          <a href="/d/deep-video" class="file-name" title="Deep video.mp4">Deep video.mp4</a>
+          <a href="/d/nested-video" class="file-name" title="Nested video.mp4">Nested video.mp4</a>
+        </article>
+      </body></html>`;
+    const tokens = new Map([
+      ['nested-video', Buffer.from(JSON.stringify({ ti: 'Nested video.mp4', rf: 'rf-nested' })).toString('base64')],
+      ['deep-video', Buffer.from(JSON.stringify({ ti: 'Deep video.mp4', rf: 'rf-deep' })).toString('base64')],
+    ]);
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any, opts: any) => {
+      const urlStr = String(url);
+      if (opts?.method === 'HEAD') return new Response(null, { status: 200, headers: { 'content-length': '42' } });
+      if (urlStr.endsWith('/f/root')) return new Response(rootHtml, { status: 200 });
+      if (urlStr.endsWith('/f/nested')) return new Response(nestedHtml, { status: 200 });
+      if (urlStr.endsWith('/f/deeper')) return new Response(deeperHtml, { status: 200 });
+      for (const [id, token] of tokens) {
+        if (urlStr.endsWith(`/d/${id}`)) return new Response(`var embedToken = '${token}.sig';`, { status: 200 });
+      }
+      return new Response('', { status: 404 });
+    });
+
+    const res = await streamrizzResolver.resolve('https://streamrizz.com/f/root');
+    expect(res?.title).toBe('Root');
+    expect(res?.mediaItems?.map((item) => item.title)).toEqual(['Nested video.mp4', 'Deep video.mp4']);
+    expect(res?.formats.filter((format) => !format.isAlbumPack)).toHaveLength(2);
+  });
 });

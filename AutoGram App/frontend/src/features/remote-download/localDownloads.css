@@ -1,0 +1,12 @@
+.local-download-panel { position: fixed; left: 20px; bottom: 20px; z-index: 10050; width: min(420px, calc(100vw - 40px)); border: 1px solid #334155; border-radius: 14px; background: #111827; color: #e2e8f0; box-shadow: 0 8px 32px #0006; padding: 12px; }
+.local-download-panel header { display: flex; align-items: center; gap: 8px; }
+.local-download-panel header strong { flex: 1; }
+.local-download-panel button { min-width: 44px; min-height: 44px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+.local-download-panel button:disabled { opacity: .5; cursor: default; }
+.local-download-panel p, .local-download-panel small { font-size: 12px; color: #94a3b8; margin: 8px 0; overflow-wrap: anywhere; }
+.local-download-items { max-height: min(50vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
+.local-download-items article { border-top: 1px solid #334155; padding: 12px 0; display: grid; gap: 6px; }
+.local-download-items strong, .local-download-items small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.local-download-items span { font-size: 12px; }
+.local-download-items progress { width: 100%; accent-color: #38bdf8; }
+.local-download-actions { display: flex; gap: 8px; }

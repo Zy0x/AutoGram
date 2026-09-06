@@ -207,7 +207,7 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
       setLastHoverDropKey(null);
       setActiveDragTopicId(null);
 
-      // Pointer internal drag: SpeedTest pointerup in MediaStudio owns completion
+      // Pointer internal drag: Cloud Drives pointerup in MediaStudio owns completion
       if (isPointerDriveDragActive()) return;
 
       const internal = getActiveDriveDrag() || getDriveDragData(e.dataTransfer);

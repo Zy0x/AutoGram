@@ -78,7 +78,7 @@ export function formatsFromCobalt(
 
     formats.push({
       id: `${platform}_picker_${pickerIndex + 1}`,
-      label: i18n.t('speedtest:remote_social_item', {
+      label: i18n.t('drive:remote_social_item', {
         platform: platformName,
         index: pickerIndex + 1,
       }),
@@ -89,7 +89,7 @@ export function formatsFromCobalt(
       isAudio,
       isImage,
       isCleanNoWatermark: true,
-      badge: i18n.t('speedtest:remote_social_validated_badge'),
+      badge: i18n.t('drive:remote_social_validated_badge'),
     });
   });
 
@@ -102,7 +102,7 @@ export function formatsFromCobalt(
 
     formats.push({
       id: `${platform}_source`,
-      label: i18n.t('speedtest:remote_social_original', { platform: platformName }),
+      label: i18n.t('drive:remote_social_original', { platform: platformName }),
       qualityTier: isAudio ? 'audio' : 'original',
       ext,
       directUrl: singleUrl,
@@ -110,7 +110,7 @@ export function formatsFromCobalt(
       isAudio,
       isImage,
       isCleanNoWatermark: true,
-      badge: i18n.t('speedtest:remote_social_validated_badge'),
+      badge: i18n.t('drive:remote_social_validated_badge'),
     });
   }
 
@@ -161,7 +161,7 @@ export const socialMediaResolver: LinkResolverProvider = {
       const imageUrls = formats.filter((format) => format.isImage).map((format) => format.directUrl);
       const title = typeof data.filename === 'string' && data.filename.trim()
         ? data.filename.trim()
-        : i18n.t('speedtest:remote_social_default_title', { platform: platformName });
+        : i18n.t('drive:remote_social_default_title', { platform: platformName });
 
       return {
         url: cleanUrl,

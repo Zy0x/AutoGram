@@ -272,7 +272,7 @@ src/
 │  ├─ id/                          ← Bahasa Indonesia (9 namespace JSON)
 │  │  ├─ accounts.json, automation.json, dashboard.json
 │  │  ├─ jobs.json, nav.json, settings.json
-│  │  ├─ speedtest.json (44KB), statistics.json, sync.json
+│  │  ├─ drive_tools.json (122KB), statistics.json, sync.json
 │  └─ en/                          ← English (100% key parity)
 ├─ components/
 │  ├─ common/                      ← Shared UI components
@@ -922,7 +922,7 @@ sequenceDiagram
 - **Framework**: `react-i18next` diinisialisasi di `src/i18n.ts` dan di-import di `src/main.tsx`.
 - **Penggunaan Hook**: `const { t } = useTranslation('namespace');`
 - **Aturan Paritas Key 100%**: Setiap key yang ditambahkan di `src/locales/id/*.json` **WAJIB** secara otomatis ditambahkan ke `src/locales/en/*.json` dengan kunci yang persis sama.
-- **9 Namespace JSON Aktif**: `accounts`, `automation`, `dashboard`, `jobs`, `nav`, `settings`, `speedtest` (44 KB), `statistics`, `sync`.
+- **9 Namespace JSON Aktif**: `accounts`, `automation`, `dashboard`, `jobs`, `nav`, `settings`, `drive_tools` (122 KB), `statistics`, `sync`.
 - **Dilarang Hardcode**: Dilarang memasukkan teks Bahasa Indonesia atau Inggris secara langsung di file `.tsx` atau `.ts`.
 
 ---
@@ -1002,6 +1002,18 @@ sequenceDiagram
 
 
 ---
+
+## 15.1 YouTube Adaptive Pair Mux Pipeline
+
+Resolver YouTube tidak membuat URL MP4 palsu ketika kualitas tinggi hanya tersedia sebagai video-only. Setiap pasangan yang benar-benar dikembalikan extractor disimpan sebagai metadata `RemoteMuxSpec` (`videoUrl`, `audioUrl`, container, ukuran perkiraan) dan diteruskan bersama item antrean.
+
+1. UI memilih format video-only yang terverifikasi.
+2. `MediaStudio` meneruskan pasangan tersebut melalui `remote_muxes`.
+3. `studio_orch.rs` melewati external/cloud fetch hanya untuk item mux dan meminta `media_prep::download_and_mux_remote`.
+4. Rust mengunduh kedua stream ke file sementara, menyalin video tanpa re-encode, mengonversi audio ke AAC untuk MP4 (atau Opus untuk WebM), menambahkan `+faststart`, memvalidasi metadata output, lalu memasukkan artefak ke pipeline deduplikasi/upload yang sama.
+5. Semua file sementara dibersihkan saat berhasil, gagal, batal, atau FFmpeg tidak tersedia. Jika metadata pasangan rusak, item kembali ke jalur URL remote biasa dan tidak pernah diperlakukan sebagai file mux.
+
+Dengan demikian MP4 2160p dapat dihasilkan sebagai file playable nyata tanpa mengubah URL signed YouTube atau menawarkan manifest HLS sebagai MP4.
 
 ## 16. Standar Governance Agent & Ekosistem Skill Pack
 

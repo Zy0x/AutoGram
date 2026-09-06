@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../tauri/platform';
+import { isManifestTransport } from '../transportPolicy';
+import { attachYouTubeMuxCandidates } from './youtube/muxCandidates';
 import type { LinkResolverProvider, ResolvedMediaInfo, ResolveOptions, StreamQualityFormat, RawStreamItem, SubtitleTrackItem } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -90,7 +92,10 @@ function parseCipherUrl(cipherStr?: string): string | undefined {
     const params = new URLSearchParams(cipherStr);
     const url = params.get('url');
     if (!url) return undefined;
-    const sig = params.get('s') || params.get('sig') || params.get('signature');
+      // Encrypted signatures need the extractor's decipher routine; never
+      // present an encrypted `s` parameter as a valid direct signature.
+      if (params.has('s')) return undefined;
+      const sig = params.get('sig') || params.get('signature');
     const sp = params.get('sp') || 'sig';
     if (sig) {
       const glue = url.includes('?') ? '&' : '?';
@@ -305,6 +310,8 @@ function stableFormatNumber(value: unknown, index: number): number {
   return 100000 + Math.abs(hash % 899999);
 }
 
+export { attachYouTubeMuxCandidates } from './youtube/muxCandidates';
+
 export const SUBTITLE_LANGUAGE_NAMES: Record<string, string> = {
   id: 'Indonesian (Bahasa Indonesia)',
   en: 'English',
@@ -393,7 +400,7 @@ export function processYtDlpData(
     const isAudio = !isVideo && acodec !== 'none';
     if (!isVideo && !isAudio) return;
     const protocol = String(f.protocol || (/[.]m3u8(?:\?|$)/i.test(directUrl) ? 'm3u8' : 'https'));
-    const isManifest = /(?:m3u8|mpd)(?:\?|$)/i.test(protocol) || /[.]m3u8(?:\?|$)/i.test(directUrl);
+    const isManifest = isManifestTransport({ protocol, directUrl });
     const height = typeof f.height === 'number' ? f.height : undefined;
     const rawBitrate = Number(f.tbr || f.vbr || f.abr || 0) * 1000;
     const audioBitrate = Number(f.abr || 0) * 1000;
@@ -409,14 +416,17 @@ export function processYtDlpData(
     const ext = String(f.ext || (isAudio ? 'm4a' : 'mp4')).toLowerCase();
 
     // Streamable determination:
-    // - All audio formats with browser support
-    // - Muxed video (with audio) <= 1080p in mp4/webm
-    // - Manifests (m3u8)
+    // - Audio formats with browser support
+    // - Muxed video (video + audio) in a browser-supported container
+    // - Manifests (m3u8/mpd) remain visible to raw-stream diagnostics, but
+    //   are not offered as direct-file cards below.
+    // Adaptive 1440p/2160p/4320p entries are commonly video-only. Keep them
+    // downloadable, but never label them browser-playable without audio.
     const isMuxed = isVideo && acodec !== 'none';
     const streamable = isManifest
       || isAudio
-      || ['mp4', 'webm'].includes(ext);
-    const downloadable = true;
+      || (isMuxed && ['mp4', 'webm'].includes(ext));
+    const downloadable = !isManifest && !f.has_drm;
 
     const label = isAudio
       ? `${ext.toUpperCase()}${effectiveBitrate > 0 ? ` ${Math.round(effectiveBitrate / 1000)} kbps` : ''}`
@@ -454,6 +464,8 @@ export function processYtDlpData(
 
     const fmtItem: StreamQualityFormat = {
       id: `yt_ytdlp_${formatId}`,
+      durationSec,
+      headers: f.http_headers,
       label,
       qualityTier,
       resolution: isAudio
@@ -570,6 +582,8 @@ export function processYtDlpData(
   processSubGroup(subtitleMap, false);
   processSubGroup(autoCaptionMap, true);
 
+  attachYouTubeMuxCandidates(formats);
+
   return { title, author, description, durationSec, thumbnailUrl };
 }
 
@@ -637,10 +651,22 @@ function processPlayerData(
       }
       return {
         ...f,
+        autogramMuxed: regular.includes(f),
         url: directUrl,
       };
     })
     .filter((f) => typeof f?.url === 'string' && f.url.startsWith('http'));
+
+  // The player API can expose a manifest URL while labelling the entry as
+  // MP4/WebM. A manifest is not a direct downloadable file and must never be
+  // promoted to a misleading "MP4 2160p" card. Keep only concrete HTTP
+  // objects for the format matrix; yt-dlp still contributes any real direct
+  // 2160p/4320p URL independently through processYtDlpData.
+  const binaryFormats = allFormats.filter((f) => {
+    const url = String(f.url || '').toLowerCase();
+    const protocol = String(f.protocol || f.type || '').toLowerCase();
+    return !/(?:\.m3u8|\.mpd)(?:\?|$)/i.test(url) && !/(?:m3u8|dash|mpd)/i.test(protocol);
+  });
 
   const dur = durationSec;
 
@@ -657,7 +683,7 @@ function processPlayerData(
   ];
 
   tiers.forEach(({ key, tier, height }) => {
-    const tierMatches = allFormats.filter((f) => {
+    const tierMatches = binaryFormats.filter((f) => {
       const isAud = !f.qualityLabel && (f.mimeType?.includes('audio') || !!f.audioQuality);
       if (isAud) return false;
       const ql = (f.qualityLabel || '').toLowerCase();
@@ -678,6 +704,7 @@ function processPlayerData(
       const isHdr = v.qualityLabel?.includes('HDR') || v.mimeType?.includes('vp9.2');
       const actualHeight = typeof v.height === 'number' && v.height > 0 ? v.height : undefined;
       const size = v.contentLength ? parseInt(v.contentLength, 10) : undefined;
+      const hasAudio = Boolean(v.audioQuality) || String(v.acodec || 'none') !== 'none' || v.autogramMuxed;
 
       formats.push({
         id: `yt_${key}_webm`,
@@ -689,7 +716,8 @@ function processPlayerData(
         filesizeBytes: size,
         directUrl: v.url,
         isDownloadable: true,
-        isStreamable: true,
+        isStreamable: hasAudio,
+        downloadOnly: !hasAudio,
         isVideo: true,
         badge: bitrateText || undefined,
         codec: isHdr ? 'VP9 HDR' : 'VP9',
@@ -709,6 +737,7 @@ function processPlayerData(
       const isAv1 = v.mimeType?.includes('av01');
       const actualHeight = typeof v.height === 'number' && v.height > 0 ? v.height : undefined;
       const size = v.contentLength ? parseInt(v.contentLength, 10) : undefined;
+      const hasAudio = Boolean(v.audioQuality) || String(v.acodec || 'none') !== 'none' || v.autogramMuxed;
 
       formats.push({
         id: `yt_${key}_mp4`,
@@ -720,7 +749,8 @@ function processPlayerData(
         filesizeBytes: size,
         directUrl: v.url,
         isDownloadable: true,
-        isStreamable: true,
+        isStreamable: hasAudio,
+        downloadOnly: !hasAudio,
         isVideo: true,
         badge: bitrateText || undefined,
         codec: isAv1 ? 'AV1' : 'H.264',
@@ -733,7 +763,7 @@ function processPlayerData(
   });
 
   // Audio streams - Preserve every concrete audio track with deduplication
-  const allAudios = allFormats.filter(
+  const allAudios = binaryFormats.filter(
     (f) => !f.qualityLabel && (f.audioQuality || f.mimeType?.includes('audio'))
   );
   allAudios.sort((a, b) => ((b.bitrate || 0) || (b.averageBitrate || 0)) - ((a.bitrate || 0) || (a.averageBitrate || 0)));
@@ -925,13 +955,17 @@ function processPlayerData(
   }
 
   // Raw streams: 100% concrete streams directly from YouTube server response
-  allFormats.forEach((f) => {
+  binaryFormats.forEach((f) => {
     const bit = (f.bitrate || 0) || (f.averageBitrate || 0);
     const mbps = bit >= 1000000 ? `${(bit / 1000000).toFixed(1)} Mbps` : bit > 0 ? `${Math.round(bit / 1000)} kbps` : '';
     const mime = f.mimeType || '';
     const isAudio = !f.qualityLabel && (mime.includes('audio') || !!f.audioQuality);
     const isVideo = !!f.qualityLabel || mime.includes('video');
-    const isMuxed = isVideo && (regular.includes(f) || (f.audioQuality && f.qualityLabel));
+    const isMuxed = isVideo && (
+      f.autogramMuxed
+      || Boolean(f.audioQuality && f.qualityLabel)
+      || String(f.acodec || 'none') !== 'none'
+    );
 
     let codec = 'Unknown';
     const codecMatch = mime.match(/codecs="([^"]+)"/);
@@ -970,7 +1004,8 @@ function processPlayerData(
       sampleRate: f.audioSampleRate ? Number(f.audioSampleRate) : undefined,
       audioChannels: f.audioChannels,
       isDownloadable: true,
-      isStreamable: true,
+      isStreamable: isAudio || isMuxed,
+      downloadOnly: isVideo && !isMuxed,
     });
   });
 
@@ -1028,6 +1063,8 @@ function processPlayerData(
     }
     return (b.bitrate || 0) - (a.bitrate || 0);
   });
+
+  attachYouTubeMuxCandidates(formats);
 
   return { title, author, description, durationSec, thumbnailUrl };
 }
@@ -1196,16 +1233,25 @@ export const youtubeResolver: LinkResolverProvider = {
     let defaultFormatId = '';
     const videoFormats = formats.filter((f) => !f.isAudio && !f.isSubtitle && (f.isVideo || f.ext === 'mp4' || f.ext === 'webm'));
     if (videoFormats.length > 0) {
-      const highestVideo =
-        videoFormats.find((f) => f.qualityTier === '8k' && f.ext === 'mp4') ||
-        videoFormats.find((f) => f.qualityTier === '8k') ||
-        videoFormats.find((f) => f.qualityTier === '4k' && f.ext === 'mp4') ||
-        videoFormats.find((f) => f.qualityTier === '4k') ||
-        videoFormats.find((f) => f.qualityTier === '2k' && f.ext === 'mp4') ||
-        videoFormats.find((f) => f.qualityTier === '2k') ||
-        videoFormats.find((f) => f.qualityTier === '1080p' && f.ext === 'mp4') ||
-        videoFormats.find((f) => f.qualityTier === '1080p') ||
-        videoFormats[0];
+      const qualityRank: Record<string, number> = {
+        '8k': 4320,
+        '4k': 2160,
+        '2k': 1440,
+        '1080p': 1080,
+        '720p': 720,
+        '480p': 480,
+        '360p': 360,
+        '240p': 240,
+        '144p': 144,
+      };
+      const byBestQuality = (a: StreamQualityFormat, b: StreamQualityFormat) =>
+        Number(Boolean(a.mux?.transcodeVideo)) - Number(Boolean(b.mux?.transcodeVideo)) ||
+        (qualityRank[b.qualityTier] || Number(b.height) || 0) - (qualityRank[a.qualityTier] || Number(a.height) || 0)
+        || Number(b.fps || 0) - Number(a.fps || 0)
+        || Number(b.bitrate || 0) - Number(a.bitrate || 0)
+        || Number(a.ext !== 'mp4') - Number(b.ext !== 'mp4');
+      const playable = videoFormats.filter((format) => format.isStreamable !== false).sort(byBestQuality);
+      const highestVideo = (playable[0] || [...videoFormats].sort(byBestQuality)[0]);
       if (highestVideo) defaultFormatId = highestVideo.id;
     }
 

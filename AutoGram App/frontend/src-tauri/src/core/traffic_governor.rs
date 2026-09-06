@@ -15,6 +15,7 @@ const CRITICAL_RUNWAY_SECONDS: f64 = 4.0;
 const RECOVERY_RUNWAY_SECONDS: f64 = 10.0;
 const DATA_SAVER_HIGH_WATERMARK_SECONDS: f64 = 40.0;
 const DATA_SAVER_LOW_WATERMARK_SECONDS: f64 = 25.0;
+const MAX_STREAM_WORKERS: u32 = 6;
 
 #[derive(Debug, Clone, Copy)]
 pub enum TransferDirection {
@@ -169,9 +170,11 @@ pub fn configure_ceiling(upload: u32, download: u32) {
     let mut guard = state().lock();
     guard.upload.configured_ceiling = upload.max(1);
     guard.download.configured_ceiling = download.max(1);
-    // Playback uses at most four MTProto chunk workers and shares the download
-    // ceiling; it never manufactures extra sessions beyond that hard cap.
-    guard.stream.configured_ceiling = download.clamp(1, 4);
+    // Playback may use up to six MTProto chunk workers when the user has
+    // opted into a higher download ceiling. The byte-distance Data Saver cap
+    // remains authoritative, so extra workers improve recovery/goodput but do
+    // not turn a short preview into a full background download.
+    guard.stream.configured_ceiling = download.clamp(1, MAX_STREAM_WORKERS);
 }
 
 pub fn observe_preview(runway_seconds: Option<f64>, playback_active: bool) {
@@ -293,7 +296,7 @@ pub fn stream_worker_limit() -> usize {
         "preview_runway_critical" => 1,
         "preview_runway_recovering" => 2,
         "telegram_cooldown" => 1,
-        _ => guard.stream.configured_ceiling.clamp(1, 4) as usize,
+        _ => guard.stream.configured_ceiling.clamp(1, MAX_STREAM_WORKERS) as usize,
     }
 }
 
@@ -370,11 +373,11 @@ mod tests {
     fn configured_ceiling_is_reported_not_exceeded() {
         let _lock = TEST_MUTEX.lock();
         reset_state();
-        configure_ceiling(6, 4);
+        configure_ceiling(6, 6);
         let snapshot = snapshot();
         assert_eq!(snapshot.upload.configured_ceiling, 6);
-        assert_eq!(snapshot.download.configured_ceiling, 4);
-        assert_eq!(snapshot.stream.configured_ceiling, 4);
+        assert_eq!(snapshot.download.configured_ceiling, 6);
+        assert_eq!(snapshot.stream.configured_ceiling, 6);
     }
 
     #[test]

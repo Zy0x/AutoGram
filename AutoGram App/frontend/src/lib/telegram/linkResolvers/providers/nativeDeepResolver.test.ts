@@ -48,7 +48,11 @@ describe('nativeDeepResolver', () => {
     const resolved = await nativeDeepResolver.resolve('https://wrapper.example/watch/abc');
 
     expect(resolved?.formats).toHaveLength(1);
-    expect(resolved?.mediaItems).toBeUndefined();
+    expect(resolved?.mediaItems).toHaveLength(1);
+    expect(resolved?.mediaItems?.[0]).toMatchObject({
+      title: 'Verified 1080p',
+      selectedFormatId: resolved?.formats[0]?.id,
+    });
     expect(resolved?.formats[0]).toMatchObject({
       directUrl: 'https://cdn.example/video-1080',
       isStreamable: true,

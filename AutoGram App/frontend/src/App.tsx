@@ -2,12 +2,8 @@ import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import './App.css';
+import { LocalDownloadsPanel } from './features/remote-download/LocalDownloadsPanel';
 import { SplashScreen } from './components/layout/SplashScreen';
-import { ApiSetupScreen } from './pages/ApiSetupScreen';
-import { SessionLauncher } from './pages/SessionLauncher';
-import { ForwarderWorkspace } from './pages/ForwarderWorkspace';
-import { Settings } from './pages/Settings';
-import { Accounts } from './pages/Accounts';
 
 import { isMediaStudioAvailable } from './lib/tauri/capabilities';
 import { bootstrapSecureCredentials, notifyApiCredentialsChanged, notifyApiError } from './lib/tauri/secureCredentials';
@@ -46,6 +42,21 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
 
 const MediaStudio = lazyWithRetry(() =>
   import('./pages/MediaStudio').then((m) => ({ default: m.MediaStudio }))
+);
+const ApiSetupScreen = lazyWithRetry(() =>
+  import('./pages/ApiSetupScreen').then((m) => ({ default: m.ApiSetupScreen }))
+);
+const SessionLauncher = lazyWithRetry(() =>
+  import('./pages/SessionLauncher').then((m) => ({ default: m.SessionLauncher }))
+);
+const ForwarderWorkspace = lazyWithRetry(() =>
+  import('./pages/ForwarderWorkspace').then((m) => ({ default: m.ForwarderWorkspace }))
+);
+const Settings = lazyWithRetry(() =>
+  import('./pages/Settings').then((m) => ({ default: m.Settings }))
+);
+const Accounts = lazyWithRetry(() =>
+  import('./pages/Accounts').then((m) => ({ default: m.Accounts }))
 );
 
 function App() {
@@ -396,8 +407,17 @@ function App() {
   };
 
   return (
-    <>
+    <Suspense
+      fallback={
+        <main className="main-content main-content-fill td-page">
+          <div className="td-boot-fallback" role="status">
+            {t('ui.generated.memuat_drives_780fc8f')}
+          </div>
+        </main>
+      }
+    >
       {renderAppContent()}
+      <LocalDownloadsPanel />
       {apiModalOpen && (
         <ApiSetupScreen
           isModal
@@ -417,7 +437,7 @@ function App() {
           }}
         />
       )}
-    </>
+    </Suspense>
   );
 }
 

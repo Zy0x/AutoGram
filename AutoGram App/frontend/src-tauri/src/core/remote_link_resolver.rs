@@ -11,7 +11,10 @@ use url::Url;
 
 const MAX_HTML_BYTES: u64 = 1_250_000;
 const MEDIA_PROBE_BYTES: u64 = 131_072;
-const DISCOVERY_PAGE_BUDGET: usize = 6;
+// A folder page is cheap to inspect (bounded HTML + 128 KiB probe), so use a
+// larger page budget per cursor turn.  The cursor still keeps every request
+// bounded and lets the UI continue in explicit batches for very large trees.
+const DISCOVERY_PAGE_BUDGET: usize = 12;
 const MAX_DEPTH: usize = 8;
 const MAX_QUEUE_ENTRIES: usize = 2_000;
 const MAX_CANDIDATES_PER_BATCH: usize = 64;
@@ -526,6 +529,48 @@ fn is_likely_media_host(url: &Url) -> bool {
         || host.contains("viidooy")
 }
 
+fn is_static_site_asset(url: &Url) -> bool {
+    let path = url.path().to_ascii_lowercase();
+    let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
+    let static_extension = [".css", ".js", ".map", ".woff", ".woff2", ".ttf", ".ico"]
+        .iter()
+        .any(|suffix| path.ends_with(suffix));
+    let streamrizz_folder_noise = if host.ends_with("streamrizz.com")
+        && (path.starts_with("/f/") || path.starts_with("/folder/"))
+    {
+        let segment = path.split('/').nth(2).unwrap_or_default();
+        segment.len() < 8
+            || segment.contains(['%', '=', ';', '(', ')', ','])
+            || [
+                "empty-state",
+                "drive-file-card",
+                "grid",
+                "hover",
+                "notranslate",
+                "noindex",
+                "repeat",
+                "webkit-box",
+                "width",
+            ]
+            .iter()
+            .any(|noise| segment.starts_with(noise))
+    } else {
+        false
+    };
+    path == "/favicon.ico"
+        || (host.ends_with("streamrizz.com") && path == "/blank.jpg")
+        || static_extension
+        || path.starts_with("/assets/")
+        || path.starts_with("/static/")
+        || path.starts_with("/css/")
+        || path.starts_with("/js/")
+        || path.starts_with("/fonts/")
+        || path.ends_with("/favicon.ico")
+        || (host == "i.streamrizz.com"
+            && (path.starts_with("/image/") || path.starts_with("/thumb/") || path == "/blank.jpg"))
+        || streamrizz_folder_noise
+}
+
 /// Hosts in this family have been observed returning advertising/upload HTML
 /// for a URL shaped as `*.mp4`. They are not public player wrappers; crawling
 /// their redirected landing page would turn site chrome (favicons, logos) into
@@ -873,6 +918,13 @@ pub fn resolve_remote_link_deep(
             if validate_public_url(link.as_str()).is_err() {
                 continue;
             }
+            // StreamRizz and similar drive pages include their favicon,
+            // stylesheet, and script URLs before the actual folder/file
+            // links. Those assets are not user media and must never consume a
+            // discovery slot or become a fake single-file result.
+            if is_static_site_asset(&link) {
+                continue;
+            }
             let same_host = link.host_str().map(str::to_ascii_lowercase) == parent_host;
             // Stay within the discovered site tree. A cross-origin link is
             // inspected only when it looks like a media source, not as a page
@@ -1010,6 +1062,22 @@ mod tests {
         assert!(links
             .iter()
             .any(|url| url.as_str() == "https://mp4-01.overfetch.video/public-rf-token"));
+    }
+
+    #[test]
+    fn nested_folder_discovery_ignores_static_site_assets() {
+        let base = Url::parse("https://streamrizz.com/f/root").unwrap();
+        let links = collect_embedded_urls(
+            r#"<link href="/assets/app.css"><img src="/assets/favicon-32x32.webp"><a href="/f/child1234">Child</a><a href="/d/video">Video</a>"#,
+            &base,
+        );
+        assert!(links.iter().any(|url| url.path() == "/f/child1234"));
+        assert!(links.iter().any(|url| url.path() == "/d/video"));
+        assert!(is_static_site_asset(&Url::parse("https://streamrizz.com/assets/favicon-32x32.webp").unwrap()));
+        assert!(is_static_site_asset(&Url::parse("https://streamrizz.com/f/width=device-width").unwrap()));
+        assert!(is_static_site_asset(&Url::parse("https://i.streamrizz.com/image/abc.jpg").unwrap()));
+        assert!(is_static_site_asset(&Url::parse("https://streamrizz.com/blank.jpg").unwrap()));
+        assert!(!is_static_site_asset(&Url::parse("https://streamrizz.com/f/child1234").unwrap()));
     }
 
     #[test]

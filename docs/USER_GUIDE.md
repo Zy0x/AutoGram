@@ -58,6 +58,8 @@ Transfer online videos and social media content directly into your Telegram Clou
    - Under the **Subtitel** tab, select embedded or auto-translated captions (.SRT / .VTT).
 6. Click **Transfer to Drive** to queue the download-and-upload directly into your active Telegram destination.
 
+For YouTube qualities that are video-only (commonly 1440p/2160p/4320p), AutoGram downloads the verified video and audio streams separately, combines them with FFmpeg into a playable container, and then uploads the validated result. If FFmpeg is unavailable, the transfer fails clearly instead of producing an empty or misleading MP4.
+
 ---
 
 ## 4. Sparse ZIP Browser & In-Memory Extraction

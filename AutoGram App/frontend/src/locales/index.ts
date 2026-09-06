@@ -38,7 +38,6 @@ export const resources = {
       dashboard: dashboardID,
       drive_tools: driveToolsID,
       drive: driveID,
-      speedtest: driveID, // backward-compatibility alias so legacy calls never fail
       settings: settingsID,
       accounts: accountsID,
       jobs: jobsID,
@@ -58,7 +57,6 @@ export const resources = {
       dashboard: dashboardEN,
       drive_tools: driveToolsEN,
       drive: driveEN,
-      speedtest: driveEN, // backward-compatibility alias so legacy calls never fail
       settings: settingsEN,
       accounts: accountsEN,
       jobs: jobsEN,

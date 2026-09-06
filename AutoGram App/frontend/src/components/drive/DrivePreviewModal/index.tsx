@@ -99,6 +99,7 @@ import { SpreadsheetViewer } from './SpreadsheetViewer';
 import { JupyterNotebookViewer } from './JupyterNotebookViewer';
 import { UnsupportedFormatBanner } from './UnsupportedFormatBanner';
 import { HeicTiffViewer } from './HeicTiffViewer';
+import { PreviewCopyIdentityActions } from './PreviewCopyIdentityActions';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -4951,6 +4952,21 @@ export function DrivePreviewModal({
                         <div className="td-header-tool-divider" />
                       </>
                     )}
+
+                    {/* Copy Identity Tools: Salin Path ID & Salin ID */}
+                    <PreviewCopyIdentityActions
+                      file={isSplitCompareMode && activeSlotFile ? activeSlotFile : file}
+                      folderId={isSplitCompareMode && activeSlotFile ? (activeSlotFile.folder_id ?? folderId) : folderId}
+                      creds={creds}
+                      folders={folders}
+                      chats={chats}
+                      disabled={isHeaderFrozen}
+                      onNotify={(msg) => {
+                        setSplitNotice(msg);
+                        window.setTimeout(() => setSplitNotice(null), 1800);
+                      }}
+                    />
+                    <div className="td-header-tool-divider" />
 
                     {/* Reload Tool */}
                     <button

@@ -120,6 +120,22 @@ export const nativeDeepResolver: LinkResolverProvider = {
     const formats = (result.candidates || [])
       .map(toFormat)
       .filter((format): format is StreamQualityFormat => format !== null);
+    // Keep every validated candidate independently selectable.  This is what
+    // makes a recursive drive tree behave like a real collection instead of a
+    // single “best URL” card; parentUrl remains available in each format's
+    // verification metadata for provenance and debugging.
+    const mediaItems = formats.map((format, index) => ({
+      id: `native_deep_item_${index}_${format.id}`,
+      title: format.customTitle || format.label,
+      thumbnailUrl: format.isImage ? format.directUrl : undefined,
+      kind: format.isVideo ? 'video' as const
+        : format.isImage ? 'image' as const
+          : format.isAudio ? 'audio' as const
+            : format.isSubtitle ? 'other' as const
+              : 'doc' as const,
+      selectedFormatId: format.id,
+      formats: [format],
+    }));
 
     return {
       url: result.sourceUrl,
@@ -130,6 +146,7 @@ export const nativeDeepResolver: LinkResolverProvider = {
         ? String(i18n.t('drive.remote_native_interaction_required'))
       : String(i18n.t('drive.remote_native_inspected', { count: result.inspectedPages })),
       formats,
+      mediaItems: mediaItems.length > 0 ? mediaItems : undefined,
       selectedFormatId: formats[0]?.id || '',
       totalItems: formats.length,
       isDirectFile: formats.length > 0,

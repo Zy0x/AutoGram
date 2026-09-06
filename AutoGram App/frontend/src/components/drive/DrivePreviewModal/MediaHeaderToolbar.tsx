@@ -10,6 +10,8 @@ import {
   Maximize2,
   Minimize2,
   ExternalLink,
+  FolderTree,
+  Hash,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName, formatDriveBytes } from '../../../lib/telegram/driveTypes';
@@ -32,6 +34,9 @@ export interface MediaHeaderToolbarProps {
   onToggleInfo?: () => void;
   saving?: boolean;
   openingSystem?: boolean;
+  onCopyPathId?: () => void;
+  onCopyId?: () => void;
+  pathId?: string | null;
 }
 
 export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
@@ -51,6 +56,9 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
   onToggleInfo,
   saving,
   openingSystem,
+  onCopyPathId,
+  onCopyId,
+  pathId,
 }) => {
   const { t } = useTranslation();
   const displayName = driveFileDisplayName(file);
@@ -118,6 +126,30 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
         >
           <Download size={16} />
         </button>
+
+        {onCopyPathId && (
+          <button
+            type="button"
+            onClick={onCopyPathId}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+            title={pathId ? t('drive.preview_copy_path_id_tooltip', { path: pathId }) : t('drive.ctx_menu_copy_path_id')}
+            aria-label={t('drive.ctx_menu_copy_path_id')}
+          >
+            <FolderTree size={16} />
+          </button>
+        )}
+
+        {onCopyId && (
+          <button
+            type="button"
+            onClick={onCopyId}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+            title={t('drive.preview_copy_id_tooltip', { id: file.id })}
+            aria-label={t('drive.ctx_menu_copy_id')}
+          >
+            <Hash size={16} />
+          </button>
+        )}
 
         {onToggleInfo && (
           <button

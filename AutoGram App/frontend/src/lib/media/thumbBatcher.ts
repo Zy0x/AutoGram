@@ -189,7 +189,7 @@ const metrics: ThumbSchedulerMetrics = {
 };
 /**
  * Startup guard: visible cards still load, but only through one small batch at
- * a time.  SpeedTest releases this after the first live page has settled.
+ * a time. Cloud Drives releases this after the first live page has settled.
  */
 let bootstrapMode = false;
 

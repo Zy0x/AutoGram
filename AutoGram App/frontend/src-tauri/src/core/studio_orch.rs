@@ -70,6 +70,47 @@ fn option_usize(options: &serde_json::Value, snake: &str, camel: &str, default: 
         .unwrap_or(default)
 }
 
+/// Read the resolver-produced adaptive pair for one queue item. The pair is
+/// optional and credential-free; malformed entries are ignored so legacy queue
+/// records continue through the ordinary direct-URL path.
+fn remote_mux_for_item(
+    options: &serde_json::Value,
+    item_index: usize,
+) -> Option<(String, String, String)> {
+    let value = options
+        .get("remote_muxes")
+        .or_else(|| options.get("remoteMuxes"))?
+        .as_array()?
+        .get(item_index)?;
+    if value.is_null() {
+        return None;
+    }
+    let video_url = value
+        .get("videoUrl")
+        .or_else(|| value.get("video_url"))
+        .and_then(|value| value.as_str())?
+        .trim();
+    let audio_url = value
+        .get("audioUrl")
+        .or_else(|| value.get("audio_url"))
+        .and_then(|value| value.as_str())?
+        .trim();
+    let output_ext = value
+        .get("outputExt")
+        .or_else(|| value.get("output_ext"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("mp4")
+        .trim()
+        .to_ascii_lowercase();
+    if !(video_url.starts_with("http://") || video_url.starts_with("https://"))
+        || !(audio_url.starts_with("http://") || audio_url.starts_with("https://"))
+        || !matches!(output_ext.as_str(), "mp4" | "webm" | "mkv")
+    {
+        return None;
+    }
+    Some((video_url.to_string(), audio_url.to_string(), output_ext))
+}
+
 fn effective_upload_limit(rec: &TransferRecord, runtime_limit: u64) -> u64 {
     rec.options
         .get("account_max_file_size_bytes")
@@ -953,8 +994,11 @@ fn run_intelligent_album(
         let spoiler = item_spoiler(&rec.options, item.index);
         let _ = job_queue::update_item(tid, item.index, ItemState::Preparing, None, None);
 
-        // Direct handling for remote URLs: bypass local disk download & ffmpeg preparation
-        if media_prep::is_remote_url(&item.path) {
+        // Direct handling for ordinary remote URLs. Adaptive video/audio pairs
+        // must first be materialized locally so they can be muxed by FFmpeg.
+        if media_prep::is_remote_url(&item.path)
+            && remote_mux_for_item(&rec.options, item.index).is_none()
+        {
             let remote_as_document = rec
                 .options
                 .get("presentation_override")
@@ -1037,6 +1081,41 @@ fn run_intelligent_album(
             continue;
         }
 
+        let muxed_remote_path = if let Some((video_url, audio_url, output_ext)) =
+            remote_mux_for_item(&rec.options, item.index)
+        {
+            match media_prep::download_and_mux_remote(
+                &video_url,
+                &audio_url,
+                &output_ext,
+                app,
+                item.index,
+            ) {
+                Ok(path) => Some(path),
+                Err(error) => {
+                    let message = format!("adaptive mux: {error}");
+                    let state = ItemState::Failed;
+                    let _ = job_queue::update_item(
+                        tid,
+                        item.index,
+                        state.clone(),
+                        None,
+                        Some(message.clone()),
+                    );
+                    emit_album_item_result(app, item.index, &state, None, Some(message.clone()));
+                    if first_error.is_none() {
+                        first_error = Some(message);
+                    }
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+        let muxed_source_string = muxed_remote_path
+            .as_ref()
+            .map(|path| path.to_string_lossy().to_string());
+        let preparation_source = muxed_source_string.as_deref().unwrap_or(&item.path);
         let mut prepared = None;
         let mut prepare_error = None;
         let video_transcode_scope = rec
@@ -1077,7 +1156,7 @@ fn run_intelligent_album(
         for attempt in 0..=1 {
             match prepare_with_receipt(
                 tid,
-                &item.path,
+                preparation_source,
                 quality_mode_value,
                 hardware_override,
                 encoder_strategy,
@@ -1093,7 +1172,10 @@ fn run_intelligent_album(
                 app,
                 item.index,
             ) {
-                Ok(value) => {
+                Ok(mut value) => {
+                    if let Some(path) = muxed_remote_path.as_ref() {
+                        value.cleanup_paths.push(path.clone());
+                    }
                     prepared = Some(value);
                     break;
                 }
@@ -1110,6 +1192,9 @@ fn run_intelligent_album(
             }
         }
         let Some(artifact) = prepared else {
+            if let Some(path) = muxed_remote_path.as_ref() {
+                let _ = std::fs::remove_file(path);
+            }
             preparation_failed = true;
             let message = format!(
                 "prepare: {}",
@@ -2722,7 +2807,9 @@ fn run_orchestrated_grammers(
         // Remote URLs use a dedicated transport path: Telegram external media
         // for small objects, or a bounded in-memory pipe for larger objects.
         // This deliberately bypasses media_prep's temp-file downloader.
-        if media_prep::is_remote_url(&item.path) {
+        if media_prep::is_remote_url(&item.path)
+            && remote_mux_for_item(&rec.options, item.index).is_none()
+        {
             let remote_as_document = as_doc
                 || rec
                     .options
@@ -2813,6 +2900,53 @@ fn run_orchestrated_grammers(
             }
             continue;
         }
+        let muxed_remote_path = if let Some((video_url, audio_url, output_ext)) =
+            remote_mux_for_item(&rec.options, item.index)
+        {
+            match media_prep::download_and_mux_remote(
+                &video_url,
+                &audio_url,
+                &output_ext,
+                app,
+                item.index,
+            ) {
+                Ok(path) => Some(path),
+                Err(error) => {
+                    let msg = format!("adaptive mux: {error}");
+                    let _ = job_queue::update_item(
+                        &tid,
+                        item.index,
+                        ItemState::Failed,
+                        None,
+                        Some(msg.clone()),
+                    );
+                    if let Some(app) = app {
+                        use tauri::Emitter;
+                        let _ = app.emit(
+                            "transfer-event",
+                            serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": item.index,
+                                "status": "failed",
+                                "error": msg,
+                                "path": file_name,
+                            }),
+                        );
+                    }
+                    if first_fatal.is_none() {
+                        first_fatal = Some(msg);
+                    }
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+        let muxed_source_string = muxed_remote_path
+            .as_ref()
+            .map(|path| path.to_string_lossy().to_string());
+        let preparation_source = muxed_source_string.as_deref().unwrap_or(&item.path);
+
         // Remote URL download + optional ffmpeg reencode (no Telethon), pass user hardware preference
         let video_transcode_scope = rec
             .options
@@ -2851,7 +2985,7 @@ fn run_orchestrated_grammers(
             });
         let prepared_artifact = match prepare_with_receipt(
             &tid,
-            &item.path,
+            preparation_source,
             quality_mode.as_deref(),
             hardware_override.as_deref(),
             encoder_strategy.as_deref(),
@@ -2870,8 +3004,16 @@ fn run_orchestrated_grammers(
             app,
             item.index,
         ) {
-            Ok(v) => v,
+            Ok(mut v) => {
+                if let Some(path) = muxed_remote_path.as_ref() {
+                    v.cleanup_paths.push(path.clone());
+                }
+                v
+            }
             Err(e) => {
+                if let Some(path) = muxed_remote_path.as_ref() {
+                    let _ = std::fs::remove_file(path);
+                }
                 let msg = format!("prepare: {e}");
                 let _ = job_queue::update_item(
                     &tid,
@@ -3545,5 +3687,35 @@ mod tests {
         ));
         assert_eq!(classification.payload_class, PayloadClass::NativeVisual);
         assert!(!classification.as_document);
+    }
+
+    #[test]
+    fn adaptive_mux_pair_is_read_only_from_verified_queue_metadata() {
+        let options = json!({
+            "remote_muxes": [
+                {
+                    "videoUrl": "https://video.googlevideo.com/videoplayback?itag=400",
+                    "audioUrl": "https://audio.googlevideo.com/videoplayback?itag=140",
+                    "outputExt": "mp4"
+                },
+                null
+            ]
+        });
+        let pair = remote_mux_for_item(&options, 0).expect("mux metadata should parse");
+        assert_eq!(pair.2, "mp4");
+        assert_eq!(pair.0, "https://video.googlevideo.com/videoplayback?itag=400");
+        assert!(remote_mux_for_item(&options, 1).is_none());
+    }
+
+    #[test]
+    fn malformed_adaptive_mux_metadata_falls_back_to_ordinary_remote_path() {
+        let options = json!({
+            "remote_muxes": [{
+                "videoUrl": "file:///unsafe",
+                "audioUrl": "https://audio.googlevideo.com/videoplayback?itag=140",
+                "outputExt": "mp4"
+            }]
+        });
+        assert!(remote_mux_for_item(&options, 0).is_none());
     }
 }

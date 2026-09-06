@@ -40,7 +40,7 @@ const body0 = await page.locator('body').innerText().catch(() => '');
 step('boot', { title, body: snip(body0, 400) });
 await page.screenshot({ path: path.join(OUT, '01-boot.png') });
 
-// Click Drives / Media Studio / speedtest nav
+// Click Cloud Drives / Media Studio navigation
 const candidates = [
   page.getByRole('button', { name: /Drives/i }),
   page.getByRole('button', { name: /Media/i }),

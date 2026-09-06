@@ -1859,22 +1859,25 @@ fn start_preview_stream_inner(
             // _boot_slot dropped here — UI can open another video without waiting for full fill.
         }
 
-        // Establish a pool of 4 parallel Client connections (capped at MAX 4 MTProto TCP sockets for playback demand)
+        // Establish a bounded pool of parallel Client connections. Six is the
+        // absolute playback ceiling; the governor normally stays at the user's
+        // configured download concurrency and the Data Saver window can still
+        // pause the fill loop before excess bytes are requested.
         let download_clients = if startup_policy.immediate_url {
             // The live client is the non-negotiable recovery layer. Auxiliary
             // clients improve throughput, but a successfully-created socket can
             // still become silent on its first GetFile request. Keeping live at
             // index zero guarantees forward progress on every four-chunk batch.
             // This ordering is isolated to oversized streams.
-            let mut clients = obtain_download_clients(sessions_dir, identity, 3)
+            let mut clients = obtain_download_clients(sessions_dir, identity, 5)
                 .await
                 .unwrap_or_default();
             clients.insert(0, live.client.clone());
-            clients.truncate(4);
+            clients.truncate(6);
             clients
         } else {
             // Preserve the established connection behavior for ordinary preview.
-            obtain_download_clients(sessions_dir, identity, 4)
+            obtain_download_clients(sessions_dir, identity, 6)
                 .await
                 .unwrap_or_else(|_| vec![live.client.clone()])
         };
@@ -2076,6 +2079,7 @@ fn start_preview_stream_inner(
                     }
 
                     if entry.paused {
+                        stream_server::touch_activity(&sid);
                         tokio::time::sleep(Duration::from_millis(100)).await;
                         continue;
                     }
@@ -2102,6 +2106,7 @@ fn start_preview_stream_inner(
                     // If the browser already holds >= 40.0s of playable buffer, pause
                     // MTProto requests to avoid wasting bandwidth during quick previews.
                     if let Some(pacing_ms) = crate::core::traffic_governor::stream_buffer_pacing_ms() {
+                        stream_server::touch_activity(&sid);
                         let sleep_until = tokio::time::Instant::now() + Duration::from_millis(pacing_ms);
                         while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
                             if seek_requests().lock().contains_key(&sid) {
@@ -2119,6 +2124,7 @@ fn start_preview_stream_inner(
                         const MAX_DATA_SAVER_AHEAD_BYTES: u64 = 35 * 1024 * 1024; // 35 MB
                         let last_read = player_read_offsets().lock().get(&sid).copied().unwrap_or(0);
                         if cursor > last_read && (cursor - last_read) >= MAX_DATA_SAVER_AHEAD_BYTES {
+                            stream_server::touch_activity(&sid);
                             let sleep_until = tokio::time::Instant::now() + Duration::from_millis(300);
                             while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
                                 if seek_requests().lock().contains_key(&sid) {
@@ -2144,7 +2150,7 @@ fn start_preview_stream_inner(
                     cursor = next_offset;
 
                     // 4. Batch fetch through the adaptive governor. It remains
-                    // capped at four workers and never exceeds the configured
+                // capped at six workers and never exceeds the configured
                     // download ceiling, but reserves capacity when runway is low.
                     let parallel_workers = crate::core::traffic_governor::stream_worker_limit();
                     let window_limit = (cursor + (parallel_workers as u64) * CHUNK_SIZE).min(size);

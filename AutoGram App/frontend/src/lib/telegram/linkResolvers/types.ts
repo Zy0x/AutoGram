@@ -96,8 +96,29 @@ export interface StreamQualityFormat {
   isDownloadable?: boolean;
   isStreamable?: boolean;
   downloadOnly?: boolean;
+  /**
+   * A verified adaptive pair that must be materialized into one playable file
+   * before upload. The resolver never replaces directUrl with a synthetic URL;
+   * this metadata is consumed by the native transfer pipeline.
+   */
+  mux?: RemoteMuxSpec;
   /** Provenance and transport validation supplied by the native public crawler. */
   verification?: MediaVerification;
+}
+
+export interface RemoteMuxSpec {
+  videoUrl: string;
+  audioUrl: string;
+  outputExt: 'mp4' | 'webm' | 'mkv';
+  videoFormatId?: string;
+  audioFormatId?: string;
+  videoSizeBytes?: number;
+  audioSizeBytes?: number;
+  estimatedSizeBytes?: number;
+  expectedHeight?: number;
+  expectedDurationSec?: number;
+  /** Explicit compatibility conversion, never represented as an original direct MP4. */
+  transcodeVideo?: boolean;
 }
 
 export type MediaVerificationStatus = 'verified' | 'wrapper' | 'blocked' | 'session-bound' | 'unverified';
