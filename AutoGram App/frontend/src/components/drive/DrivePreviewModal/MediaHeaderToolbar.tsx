@@ -11,7 +11,7 @@ import {
   Minimize2,
   ExternalLink,
   FolderTree,
-  Hash,
+  Fingerprint,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName, formatDriveBytes } from '../../../lib/telegram/driveTypes';
@@ -147,7 +147,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             title={t('drive.preview_copy_id_tooltip', { id: file.id })}
             aria-label={t('drive.ctx_menu_copy_id')}
           >
-            <Hash size={16} />
+            <Fingerprint size={16} />
           </button>
         )}
 

@@ -18,7 +18,7 @@ import {
   UserPlus,
   Eye,
   FolderTree,
-  Hash,
+  Fingerprint,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import {
@@ -559,7 +559,7 @@ export function TelegramMessagePreviewModal({
                   transition: 'color 150ms ease',
                 }}
               >
-                {copiedId ? <Check size={16} /> : <Hash size={16} />}
+                {copiedId ? <Check size={16} /> : <Fingerprint size={16} />}
               </button>
             )}
             <button

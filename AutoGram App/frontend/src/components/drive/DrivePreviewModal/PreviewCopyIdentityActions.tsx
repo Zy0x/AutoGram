@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { FolderTree, Hash, Check, ChevronDown, Copy } from 'lucide-react';
+import { FolderTree, Fingerprint, Check, ChevronDown, Copy } from 'lucide-react';
 import type { DriveFile, DriveFolder, DriveChat } from '../../../lib/telegram/driveTypes';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { buildMediaPathId, type MediaPathLocationKind } from '../utils/mediaPathId';
@@ -196,7 +196,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
             void handleCopyId();
           }}
         >
-          {copiedId ? <Check size={13} className="text-emerald-400" /> : <Hash size={13} />}
+          {copiedId ? <Check size={13} className="text-emerald-400" /> : <Fingerprint size={13} />}
         </button>
 
         {/* Dropdown Menu Trigger for Full Identity Card */}
@@ -292,7 +292,10 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   color: '#cbd5e1',
                 }}
               >
-                <span style={{ fontWeight: 600 }}>{t('drive.ctx_menu_copy_path_id')}</span>
+                <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <FolderTree size={11} className="text-sky-400" />
+                  {t('drive.ctx_menu_copy_path_id')}
+                </span>
                 <button
                   type="button"
                   onClick={() => void handleCopyPathId()}
@@ -345,7 +348,10 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   color: '#cbd5e1',
                 }}
               >
-                <span style={{ fontWeight: 600 }}>{t('drive.ctx_menu_copy_id')}</span>
+                <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Fingerprint size={11} className="text-emerald-400" />
+                  {t('drive.ctx_menu_copy_id')}
+                </span>
                 <button
                   type="button"
                   onClick={() => void handleCopyId()}
