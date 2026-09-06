@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Universal Upload Thumbnail Generator
  * Pre-generates high-quality 320px JPEG thumbnails for uploads (HEIC, TIFF, images)
  * and registers them via Tauri command `save_upload_thumbnail`.
@@ -81,14 +81,35 @@ async function decodeHeicToJpegBase64(buffer: ArrayBuffer): Promise<string> {
     return loadNativeBlobToJpegBase64(new Blob([buffer], { type: nativeMime }));
   }
 
-  const heic2any = (await import('heic2any')).default;
-  const blob = await heic2any({
-    blob: new Blob([buffer], { type: 'image/heic' }),
-    toType: 'image/jpeg',
-    quality: 0.9,
-  });
-  const outBlob = Array.isArray(blob) ? blob[0] : blob;
-  return loadNativeBlobToJpegBase64(outBlob);
+  try {
+    const heic2anyMod = (await import('heic2any')) as any;
+    const heic2any =
+      (typeof (window as any).heic2any === 'function' ? (window as any).heic2any : null) ||
+      (typeof heic2anyMod === 'function' ? heic2anyMod : null) ||
+      (typeof heic2anyMod?.default === 'function' ? heic2anyMod.default : null);
+
+    if (!heic2any) {
+      throw new Error('heic2any decoder function is unavailable');
+    }
+
+    const blob = await heic2any({
+      blob: new Blob([buffer], { type: 'image/heic' }),
+      toType: 'image/jpeg',
+      quality: 0.88,
+    });
+    const outBlob = Array.isArray(blob) ? blob[0] : blob;
+    return loadNativeBlobToJpegBase64(outBlob);
+  } catch (err: any) {
+    const errMsg = (err?.message || String(err || '')).toLowerCase();
+    if (
+      errMsg.includes('already browser readable') ||
+      errMsg.includes('err_user') ||
+      errMsg.includes('image/')
+    ) {
+      return loadNativeBlobToJpegBase64(new Blob([buffer], { type: 'image/jpeg' }));
+    }
+    throw err;
+  }
 }
 
 /**
@@ -138,10 +159,24 @@ export async function pregenerateThumbnailForFile(filePath: string): Promise<str
   }
 
   try {
-    const assetUrl = convertFileSrc(filePath);
-    const res = await fetch(assetUrl);
-    if (!res.ok) return null;
-    const buffer = await res.arrayBuffer();
+    let buffer: ArrayBuffer | null = null;
+    try {
+      const { readFile } = await import('@tauri-apps/plugin-fs');
+      const u8 = await readFile(filePath);
+      buffer = u8.buffer;
+    } catch {
+      try {
+        const assetUrl = convertFileSrc(filePath);
+        const res = await fetch(assetUrl);
+        if (res.ok) {
+          buffer = await res.arrayBuffer();
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (!buffer || buffer.byteLength === 0) return null;
 
     let jpegBase64: string;
     if (isHeic) {

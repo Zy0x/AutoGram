@@ -2,10 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { cacheCapturedThumb } from '../../../lib/media/thumbBatcher';
 
 interface HeicTiffViewerProps {
   src: string;        // local file path or blob URL or data URL
   fileName: string;
+  fileId?: number | null;
+  folderId?: number | null;
   onLoad?: (w: number, h: number) => void;
   onError?: () => void;
   style?: React.CSSProperties;
@@ -86,7 +89,14 @@ async function decodeHeic(buffer: ArrayBuffer): Promise<string> {
 
   // 2. Invoke heic2any with fallback handling
   try {
-    const heic2any = (await import('heic2any')).default;
+    const heic2anyMod = (await import('heic2any')) as any;
+    const heic2any =
+      (typeof (window as any).heic2any === 'function' ? (window as any).heic2any : null) ||
+      (typeof heic2anyMod === 'function' ? heic2anyMod : null) ||
+      (typeof heic2anyMod?.default === 'function' ? heic2anyMod.default : null);
+
+    if (!heic2any) throw new Error('heic2any decoder is unavailable');
+
     const blob = await heic2any({
       blob: new Blob([buffer], { type: 'image/heic' }),
       toType: 'image/jpeg',
@@ -147,6 +157,8 @@ type DecodeState = 'idle' | 'loading' | 'done' | 'error';
 export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
   src,
   fileName,
+  fileId,
+  folderId,
   onLoad,
   onError,
   style,
@@ -171,17 +183,31 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
 
     (async () => {
       try {
-        const fetchTarget =
+        let buf: ArrayBuffer;
+        const isRemoteOrBlob =
           src.startsWith('http://') ||
           src.startsWith('https://') ||
           src.startsWith('blob:') ||
           src.startsWith('data:') ||
-          src.startsWith('asset:')
-            ? src
-            : convertFileSrc(src);
-        const resp = await fetch(fetchTarget);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const buf = await resp.arrayBuffer();
+          src.startsWith('asset:');
+
+        if (!isRemoteOrBlob) {
+          try {
+            const { readFile } = await import('@tauri-apps/plugin-fs');
+            const u8 = await readFile(src);
+            buf = u8.buffer;
+          } catch {
+            const fetchTarget = convertFileSrc(src);
+            const resp = await fetch(fetchTarget);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            buf = await resp.arrayBuffer();
+          }
+        } else {
+          const resp = await fetch(src);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          buf = await resp.arrayBuffer();
+        }
+
         if (cancelled) return;
 
         let url: string;
@@ -251,7 +277,44 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
       style={{ width: '100%', height: '100%', objectFit: 'contain', ...style }}
       onLoad={() => {
         const img = imgRef.current;
-        if (img) onLoad?.(img.naturalWidth, img.naturalHeight);
+        if (img) {
+          const nw = img.naturalWidth || img.width;
+          const nh = img.naturalHeight || img.height;
+          onLoad?.(nw, nh);
+
+          // Automatically capture and register high-quality 320px thumbnail into drive cache
+          if (fileId != null && nw > 0 && nh > 0) {
+            try {
+              const maxDim = 320;
+              let tw = nw;
+              let th = nh;
+              if (nw > maxDim || nh > maxDim) {
+                if (nw >= nh) {
+                  tw = maxDim;
+                  th = Math.max(1, Math.round((nh * maxDim) / nw));
+                } else {
+                  th = maxDim;
+                  tw = Math.max(1, Math.round((nw * maxDim) / nh));
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = tw;
+              canvas.height = th;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, tw, th);
+                ctx.drawImage(img, 0, 0, tw, th);
+                const thumbDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                if (thumbDataUrl && thumbDataUrl.startsWith('data:image/jpeg')) {
+                  cacheCapturedThumb(folderId ?? null, fileId, thumbDataUrl);
+                }
+              }
+            } catch {
+              /* ignore canvas capture restriction */
+            }
+          }
+        }
       }}
       onError={() => { setState('error'); onError?.(); }}
       draggable={false}

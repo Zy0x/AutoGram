@@ -58,6 +58,7 @@ allow = [
     "studio_list_transfers",
     "studio_get_transfer",
     "studio_run_orchestrated",
+    "save_upload_thumbnail",
     "studio_dismiss_transfer",
     "studio_clear_transfers",
     "studio_cancel_transfer",

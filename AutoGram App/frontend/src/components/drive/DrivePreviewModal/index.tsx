@@ -6283,6 +6283,8 @@ export function DrivePreviewModal({
                 <HeicTiffViewer
                   src={activeSrc || dataUrl || path || ''}
                   fileName={displayName}
+                  fileId={file.id}
+                  folderId={folderId}
                   className="drive-preview-media drive-preview-img"
                   style={{
                     transform: mediaTransform,

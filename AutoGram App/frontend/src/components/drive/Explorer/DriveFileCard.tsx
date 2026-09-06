@@ -23,6 +23,7 @@ import {
 } from '../../../lib/media/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 import { VideoCanvasThumbnailCapturer } from './VideoCanvasThumbnailCapturer';
+import { ImageCanvasThumbnailCapturer } from './ImageCanvasThumbnailCapturer';
 
 type Props = {
   file: DriveFile;
@@ -692,6 +693,16 @@ function DriveFileCardInner({
           fileId={file.id}
           folderId={folderId}
           streamUrl={(file as any).stream_url || (file as any).streamUrl}
+        />
+      )}
+      {(!thumb || file.file_ext === 'heic' || file.file_ext === 'heif' || file.file_ext === 'tiff' || file.file_ext === 'tif') && visible && (
+        <ImageCanvasThumbnailCapturer
+          fileId={file.id}
+          folderId={folderId}
+          fileName={file.name}
+          fileExt={file.file_ext}
+          streamUrl={(file as any).stream_url || (file as any).streamUrl}
+          localPath={(file as any).local_path || (file as any).path}
         />
       )}
     </div>

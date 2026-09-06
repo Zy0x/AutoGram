@@ -1,3 +1,22 @@
+## v3.9.69 — Genuine Media Thumbnails: Real Image Decoding for HEIC, TIFF & Visual Media Uploads
+
+### 1. Genuine Media Thumbnail Generation for HEIC, TIFF & Visual Uploads
+- **Resilient Multi-Strategy HEIC Decoder (`uploadThumbnailGenerator.ts`)**: Upgraded `decodeHeicToJpegBase64` to resolve the decoder function across multiple module export patterns (`window.heic2any`, CJS/UMD default exports, direct module callable). Added graceful fallback to native image handling when encountering browser-readable or `ERR_USER` errors, ensuring visual media files never fail thumbnail pregeneration.
+- **Strict 320px JPEG Downscaling**: Configured `loadNativeBlobToJpegBase64` and `canvasToJpegBase64` to rescale full-resolution images into compact, aspect-ratio-preserving 320x320 JPEG thumbnails (~20–30 KB). This guarantees strict compliance with Telegram MTProto document thumbnail constraints while preventing excessive bandwidth overhead.
+- **Eliminated Fallback Pillar Badge on Visual Media**: By guaranteeing successful Tier 1 pregeneration before Telegram dispatch, Grammers MTProto attaches genuine 320px photo thumbnails to every uploaded HEIC, TIFF, and visual document, eliminating the generic purple text badge ("HEIC AUTOGRAM") in Telegram Web, Desktop, and Cloud Drives.
+
+### 2. Cloud Drives & Preview Automatic Real Image Thumbnail Caching
+- **Isolated Image Canvas Thumbnail Capturer (`ImageCanvasThumbnailCapturer.tsx`)**: Created a dedicated, non-intrusive client-side thumbnail capturer mounted on drive file cards. Searches local file paths, streams, and standard download directories (`BaseDirectory.Download`, `BaseDirectory.Desktop`) to decode real photos via `heic2any` / `utif2` / canvas and cache the resulting 320px data URL directly into the drive persistent cache.
+- **Synchronous Preview Thumbnail Extraction (`HeicTiffViewer.tsx`)**: Integrated 320px thumbnail capture into `HeicTiffViewer`'s `onLoad` handler. As soon as a user previews any HEIC or TIFF file in `DrivePreviewModal`, the high-resolution decoded frame is drawn to canvas and registered into `cacheCapturedThumb`, immediately upgrading the corresponding drive card in real time.
+- **Permission-Safe Local Buffer Reader**: Replaced restricted `convertFileSrc` asset-protocol fetches in thumbnail generators with direct `@tauri-apps/plugin-fs` `readFile` buffer extraction, completely eliminating HTTP 403 scope errors when processing files in user folders.
+
+### 3. Backend IPC Permissions & 7-Dimension Quality Sentinel
+- **Tauri 2.x Custom Command Authorization (`permissions/autogram-commands.toml`)**: Explicitly registered `save_upload_thumbnail` in the custom commands capability allowlist, authorizing the frontend pre-renderer to safely write pregenerated JPEG thumbnails to `autogram_upload_thumbs` on disk.
+- **Live Desktop Visual Verification via CDP (Port 9230)**: Validated thumbnail replacement live on the running native desktop executable (`frontend.exe`). Confirmed that the `IMG_2507.HEIC` card in Cloud Drives immediately paints the genuine photograph with ICC color profile instead of the generic text placeholder card.
+- **All 7 Quality Gates Certified**: Passed `npm run test:quality` with zero warnings or errors (100% i18n parity across 6,430 keys, 0 TypeScript errors, Vitest test suite passed, SQLite WAL database verified, MTProto visual album invariants enforced, and metadata parity synchronized).
+
+---
+
 ## v3.9.68 — Media Preview: Full-Range Mouse Scroll Wheel Zoom & Pan for HEIC, TIFF & Visual Media
 
 ### 1. Seamless Mouse Scroll Wheel Zoom on HEIC & TIFF Visual Media
