@@ -137,7 +137,7 @@ export function ImageCanvasThumbnailCapturer({
         if (!buf || buf.byteLength === 0 || cancelled) return;
 
         const ext = (fileExt || fileName.split('.').pop() || '').toLowerCase();
-        const isHeic = ext === 'heic' || ext === 'heif';
+        const isHeic = ext === 'heic' || ext === 'heif' || ext === 'hif';
         const isTiff = ext === 'tif' || ext === 'tiff';
 
         let dataUrl: string | null = null;
@@ -179,7 +179,24 @@ export function ImageCanvasThumbnailCapturer({
             }
           }
         } else {
-          const mime = detectBrowserNativeMime(buf) || 'image/jpeg';
+          const detected = detectBrowserNativeMime(buf);
+          const mime =
+            detected ||
+            (ext === 'png'
+              ? 'image/png'
+              : ext === 'webp'
+              ? 'image/webp'
+              : ext === 'gif'
+              ? 'image/gif'
+              : ext === 'bmp'
+              ? 'image/bmp'
+              : ext === 'svg' || ext === 'svgz'
+              ? 'image/svg+xml'
+              : ext === 'avif' || ext === 'avis'
+              ? 'image/avif'
+              : ext === 'ico'
+              ? 'image/x-icon'
+              : 'image/jpeg');
           const blob = new Blob([buf], { type: mime });
           dataUrl = await blobToScaledDataUrl(blob, 320);
         }

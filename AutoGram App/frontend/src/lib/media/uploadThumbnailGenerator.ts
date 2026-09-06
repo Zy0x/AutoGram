@@ -147,11 +147,24 @@ export async function pregenerateThumbnailForFile(filePath: string): Promise<str
 
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
 
-  // Candidates for frontend thumbnail generation:
-  // HEIC, HEIF, TIFF, TIF (formats FFmpeg might struggle with or lack libheif)
-  const isHeic = ext === 'heic' || ext === 'heif';
+  // Candidates for frontend thumbnail generation across all visual image media:
+  // HEIC, HEIF, HIF, TIFF, TIF, JPG, JPEG, JFIF, PNG, WEBP, BMP, GIF, AVIF, SVG, ICO
+  const isHeic = ext === 'heic' || ext === 'heif' || ext === 'hif';
   const isTiff = ext === 'tif' || ext === 'tiff';
-  const isNativeImage = ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(ext);
+  const isNativeImage = [
+    'jpg',
+    'jpeg',
+    'jfif',
+    'png',
+    'webp',
+    'bmp',
+    'gif',
+    'avif',
+    'avis',
+    'svg',
+    'svgz',
+    'ico',
+  ].includes(ext);
 
   if (!isHeic && !isTiff && !isNativeImage) {
     // Other pillars (video, audio, PDF, ZIP, code) are handled natively in Rust by FFmpeg / Universal Pillar Badges!
@@ -184,14 +197,24 @@ export async function pregenerateThumbnailForFile(filePath: string): Promise<str
     } else if (isTiff) {
       jpegBase64 = await decodeTiffToJpegBase64(buffer);
     } else {
+      const detected = detectBrowserNativeMime(buffer);
       const mime =
-        ext === 'png'
+        detected ||
+        (ext === 'png'
           ? 'image/png'
           : ext === 'webp'
           ? 'image/webp'
+          : ext === 'gif'
+          ? 'image/gif'
           : ext === 'bmp'
           ? 'image/bmp'
-          : 'image/jpeg';
+          : ext === 'svg' || ext === 'svgz'
+          ? 'image/svg+xml'
+          : ext === 'avif' || ext === 'avis'
+          ? 'image/avif'
+          : ext === 'ico'
+          ? 'image/x-icon'
+          : 'image/jpeg');
       jpegBase64 = await loadNativeBlobToJpegBase64(new Blob([buffer], { type: mime }));
     }
 

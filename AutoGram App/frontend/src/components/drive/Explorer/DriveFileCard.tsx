@@ -11,6 +11,7 @@ import {
   formatDriveDuration,
   formatDriveKindLabel,
   isVideoDriveFile,
+  isImageDriveFile,
   type DriveFile,
 } from '../../../lib/telegram/driveTypes';
 import { usePointerDragPrime, useDriveClipboard } from '../../../lib/telegram';
@@ -74,6 +75,7 @@ function DriveFileCardInner({
   const { t } = useTranslation();
   const canThumb = canShowDriveThumb(file);
   const isVideo = isVideoDriveFile(file);
+  const isImage = isImageDriveFile(file);
   const durationSecs = driveFileDurationSeconds(file);
   const durationLabel = formatDriveDuration(durationSecs);
   const kindLabel = formatDriveKindLabel(file);
@@ -695,7 +697,7 @@ function DriveFileCardInner({
           streamUrl={(file as any).stream_url || (file as any).streamUrl}
         />
       )}
-      {(!thumb || file.file_ext === 'heic' || file.file_ext === 'heif' || file.file_ext === 'tiff' || file.file_ext === 'tif') && visible && (
+      {isImage && (!thumb || isPlaceholderImg || file.file_ext === 'heic' || file.file_ext === 'heif' || file.file_ext === 'hif' || file.file_ext === 'tiff' || file.file_ext === 'tif') && visible && (
         <ImageCanvasThumbnailCapturer
           fileId={file.id}
           folderId={folderId}
