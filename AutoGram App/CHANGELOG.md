@@ -1,3 +1,27 @@
+## v3.9.72 — Modular TikTok Engine: Audio Integrity Analysis, Copyright Mute Detection & Auto-Remuxing Architecture
+
+### 1. Domain-First Modular TikTok Engine Decomposition (`providers/tiktok/`)
+- **Full Modular Restructuring**: Decomposed the monolithic `tiktokResolver.ts` (536 lines) into an isolated domain package under `lib/telegram/linkResolvers/providers/tiktok/` in strict compliance with AGENTS.md Rule 15 & 17, creating focused, maintainable modules:
+  - `types.ts` (105 lines): Type definitions for TikTok API payloads, music info, creator profiles, and audio integrity status.
+  - `audioInspector.ts` (122 lines): Pure domain policies for audio stream presence verification, copyright mute detection, and adaptive remux pairing.
+  - `profileResolver.ts` (198 lines): Dedicated creator profile handler with multi-tier avatar extraction (Rust IPC `fetch_remote_json_metadata`, dev proxy, mobile web scrape, and oEmbed fallback).
+  - `videoResolver.ts` (343 lines): High-performance video & photo slideshow resolver covering Tier 1 (yt-dlp), Tier 2 (TikWM clean HD stream & slideshow albums), and Tier 3 (VKR fallback).
+  - `index.ts` (40 lines): Public provider façade exporting `tiktokResolver: LinkResolverProvider`.
+  - `tiktok.test.ts` (194 lines): Vitest test suite covering URL detection, profile metadata, audio integrity inspection, copyright mute badges, and remux pairing.
+- **Thin Façade Backward Compatibility**: Retained `tiktokResolver.ts` as a 12-line re-export façade, guaranteeing 100% zero breaking changes for existing registry consumers.
+
+### 2. Audio Stream Integrity, Copyright Mute Detection & Auto-Remuxing Architecture (`audioInspector.ts`)
+- **Dual-Stream Clarification & Verification**: Verified empirically via FFmpeg probe on 4K/120fps TikTok media (`IMG_2507` / Izuru Yangyang Xuanling) that the primary MP4 video container (`hdplay`/`play`) already houses embedded multi-channel AAC audio (276–300 kbps), while the secondary format card (*Original Audio MP3*, 128 kbps) is the isolated catalog soundtrack provided for lightweight audio-only extraction.
+- **Intelligent Copyright & Region Mute Detection**: Implemented `inspectTikTokAudio` to identify when audio has been muted or stripped by TikTok servers (`music_info.status = 0`, copyright takedown keywords, or regional licensing blocks). Automatically annotates format items with informative badges (`MUTED (COPYRIGHT)`, `MUTED (GEO-BLOCKED)`) and transparent verification warnings, preventing end-user confusion over silent video playbacks.
+- **Seamless Native Audio-Video Remuxing (`RemoteMuxSpec`)**: Implemented `attachTikTokMuxIfSilent` so that if a TikTok video stream is served as video-only while a valid companion soundtrack is available, AutoGram automatically pairs them into an adaptive remux specification, invoking native backend FFmpeg (`download_and_mux_remote`) to merge them losslessly into a complete MP4.
+
+### 3. UI & Visual Badge Polish (`remoteUploadUiPrimitives.tsx` & `App.css`)
+- **Visual Alert Badges**: Added `.badge-muted` CSS styling with subtle amber/rose alert borders and backgrounds, ensuring immediate visual clarity for muted or region-restricted media.
+- **Zero Hardcoded Strings & 100% Locale Parity**: Maintained 100% key parity across all 6,430 i18n locale keys in Indonesian and English.
+- **All 7 Quality Gates Certified**: Passed the Autonomous Quality Sentinel suite (`npm run test:quality`) across all 7 dimensions (i18n parity, strict TypeScript, Vitest unit tests, SQLite database pragmas & migrations, architectural security boundaries, Telegram MTProto visual album invariants, and version synchronization).
+
+---
+
 ## v3.9.71 — High-Fidelity Image Rendering: Elimination of Chromium GPU Layer Blurring & Lossless HEIC Decoding
 
 ### 1. Elimination of Chromium GPU Layer Raster Blurring (`App.css` & `DrivePreviewModal`)

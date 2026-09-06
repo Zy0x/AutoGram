@@ -29404,6 +29404,20 @@ button.td-confirm-icon.is-back-btn:active {
   border-color: rgba(56, 189, 248, 0.3);
 }
 
+.td-remote-quality-chip-badge.badge-muted {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.td-remote-quality-chip.active .td-remote-quality-chip-badge.badge-muted {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #fecaca;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
 .td-remote-format-filter-chip.matrix-toggle {
   color: #e879f9;
   border-color: rgba(232, 121, 249, 0.35);
