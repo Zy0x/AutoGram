@@ -3407,7 +3407,7 @@ export function DrivePreviewModal({
           return;
         }
         // 2) Local path via Tauri asset protocol
-        if (path && detectTauriRuntime()) {
+        if (path && detectTauriRuntime() && !path.endsWith('.partial')) {
           try {
             const localUrl = convertFileSrc(path);
             const text = await tryFetch(localUrl);

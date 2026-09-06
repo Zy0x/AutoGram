@@ -909,6 +909,9 @@ fn handle_stream(request: Request, sid: &str) {
         return;
     }
 
+    // Record player read demand offset immediately
+    crate::core::grammers::stream::record_player_read_offset(sid, req_start);
+
     // FIX Bug #1: Jika stream masih mengisi, trigger upstream fetch dan tunggu bytes di req_start.
     // Bug lama: `r` di-clone dari entry.ranges SEBELUM get_entry() dipanggil di dalam loop,
     // sehingga contiguous_end_from selalu mengecek snapshot stale yang tidak pernah berubah
@@ -984,17 +987,18 @@ fn handle_stream(request: Request, sid: &str) {
     //  • The tail-fetch task has already written those bytes (and they are now
     //    preserved thanks to the range-merge fix in upsert_entry).
     //  • Chrome gets moov, begins decoding, and playback starts within seconds.
+    let needs_tail_probe = !entry.done && is_mp4_entry(&entry) && !entry.moov_ready_cached;
     let (start, end_incl, status) = if let Some((rs, re)) = req_range {
         let start = rs;
         // bounded_response_end caps to start + 16 MB, honouring an explicit
         // end if it is smaller. Returns an exclusive endpoint.
-        let end_excl = super::preview_response_policy::startup_response_end(start, bounded_response_end(start, re, total), !entry.done && is_mp4_entry(&entry));
+        let end_excl = super::preview_response_policy::startup_response_end(start, bounded_response_end(start, re, total), needs_tail_probe);
         let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
         (start, end_incl, 206)
     } else {
         // No Range header: serve first 16 MB as 206 so browsers can
         // immediately follow up with a suffix request when needed.
-        let end_excl = super::preview_response_policy::startup_response_end(0, bounded_response_end(0, None, total), !entry.done && is_mp4_entry(&entry));
+        let end_excl = super::preview_response_policy::startup_response_end(0, bounded_response_end(0, None, total), needs_tail_probe);
         let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
         let st = if end_excl >= total { 200 } else { 206 };
         (0, end_incl, st)

@@ -1,3 +1,20 @@
+## v3.9.74 — High-Performance Streaming Preview: Player Demand Isolation, Instant MOOV Bootstrap & Non-Blocking Playback Pacing
+
+### 1. MTProto Stream Engine & Direct Player Demand Isolation (`stream_pacing.rs` & `stream.rs`)
+- **Isolation of Active Demand from Speculative Prefetch (`stream_pacing.rs`)**: Architected an explicit distinction between direct player demand (range requests actively demanded by Chromium `<video>` / player HTTP client) and background speculative prefetch. Player demand establishes an active 8 MB burst window (`demand_bounded`) that bypasses all pacing delays (`runway_delay`) and data saver caps (`MAX_AHEAD_BYTES`), ensuring that initial video frames and tail metadata stream at maximum line speed without being throttled.
+- **Directional Speculative Prefetch & `abs_diff` Deadlock Elimination**: Resolved a critical deadlock where the data saver byte cap evaluated `cursor.abs_diff(last_read) >= MAX_AHEAD_BYTES`. Because any tail atom or metadata probe created a multi-megabyte difference relative to offset 0, subsequent chunks were throttled by repetitive 300ms sleep loops even while 35 MB of head buffer had already arrived. The cap is now strictly directional (`cursor >= last_read && cursor - last_read >= MAX_AHEAD_BYTES`), allowing the player to freely fetch tail boxes or fill backward gaps without stall.
+- **Immediate Playback Read Offset Synchronization (`stream.rs` & `stream_server.rs`)**: Configured `request_progressive_range` and HTTP range handlers in `handle_stream` to record player demand offsets immediately (`record_player_read_offset`), preventing `last_read` from lagging at 0 or falling out of sync with browser demand.
+
+### 2. Tail Probe & Atom Optimization (`preview_response_policy.rs` & `stream_server.rs`)
+- **Dynamic Head MOOV Bounded Response (`preview_response_policy.rs`)**: Updated `startup_response_end` to take `needs_tail_probe: bool`. When the MP4 `moov` atom is detected at the head or cached in memory (`entry.moov_ready_cached`), the server serves up to 16 MB instead of truncating at 512 KB, enabling Chromium to receive and decode both the header and the initial video keyframes in a single round-trip without triggering `net::ERR_ABORTED`.
+- **Tauri Asset Protocol Guard (`DrivePreviewModal/index.tsx`)**: Guarded local asset resolution in document text preview with `!path.endsWith('.partial')`, preventing invalid WebView2 `asset://` requests and console errors when inspecting active progressive streams.
+
+### 3. Verification & Autonomous Quality Gates
+- **100% Rust & TypeScript Test Certification**: Executed Rust test suite with 208/208 tests passing, including dedicated test cases for `direct_demand_bypasses_runway_and_data_saver_until_covered`, `speculative_prefetch_does_not_stall_when_filling_behind`, and `speculative_prefetch_pauses_when_35mb_ahead_of_playback`.
+- **Quality Sentinel Certification**: Successfully verified all 7 quality gates via `npm run test:quality` with 0 TypeScript compilation errors, 100% i18n parity across 6,430 keys in Indonesian and English, and database integrity.
+
+---
+
 ## v3.9.73 — Remote URL High-Performance Overhaul: Async IPC Offloading, Zero-Lag Inspect & Instant Preflight Dialog
 
 ### 1. Rust Desktop Core & Non-Blocking Async IPC Offloading (`src-tauri` & `autogram-core`)

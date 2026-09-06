@@ -1,6 +1,6 @@
 //! Bounded MP4 bootstrap responses let a browser request tail metadata promptly.
-pub fn startup_response_end(start: u64, normal_end: u64, progressive_mp4: bool) -> u64 {
-    if progressive_mp4 && start == 0 { normal_end.min(512 * 1024) } else { normal_end }
+pub fn startup_response_end(start: u64, normal_end: u64, needs_tail_probe: bool) -> u64 {
+    if needs_tail_probe && start == 0 { normal_end.min(512 * 1024) } else { normal_end }
 }
 #[cfg(test)]
 mod tests {

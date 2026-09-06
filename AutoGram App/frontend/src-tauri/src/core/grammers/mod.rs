@@ -4,6 +4,7 @@ pub mod ffmpeg;
 pub mod large_stream_policy;
 pub mod session;
 pub mod stream;
+mod stream_pacing;
 pub mod thumbnail_range_bridge;
 pub mod thumbs;
 pub mod topics;

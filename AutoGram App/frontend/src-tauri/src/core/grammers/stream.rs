@@ -56,7 +56,7 @@ fn player_read_offsets() -> &'static Mutex<HashMap<String, u64>> {
 pub fn record_player_read_offset(sid: &str, offset: u64) {
     let mut map = player_read_offsets().lock();
     let current = map.entry(sid.to_string()).or_insert(0);
-    *current = (*current).max(offset);
+    *current = offset;
 }
 
 pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
@@ -78,6 +78,7 @@ pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
     }
     // 512 KB Alignment Boundary to prevent Telegram CDN offset shift / MP4 box corruption
     let aligned_offset = offset - (offset % (512 * 1024));
+    record_player_read_offset(stream_id, aligned_offset);
     seek_requests()
         .lock()
         .insert(stream_id.to_string(), aligned_offset);
@@ -2067,6 +2068,7 @@ fn start_preview_stream_inner(
                     .map_err(|e| format!("open partial: {e}"))?;
 
                 let mut cursor: u64 = 0;
+                let mut pacing = super::stream_pacing::StreamPacing::default();
 
                 while !flag.load(Ordering::SeqCst) {
                     let Some(entry) = stream_server::get_entry(&sid) else {
@@ -2095,6 +2097,7 @@ fn start_preview_stream_inner(
                     if let Some(target) = demand {
                         let target = target.min(size.saturating_sub(1));
                         cursor = (target / CHUNK_SIZE) * CHUNK_SIZE;
+                        pacing.demand_bounded(target, size);
                         tg_log::info(
                             BACKEND,
                             "[STREAM_DIAG][SEEK]",
@@ -2105,7 +2108,12 @@ fn start_preview_stream_inner(
                     // 2b. Data Saver adaptive buffer pacing (Sliding Buffer Window)
                     // If the browser already holds >= 40.0s of playable buffer, pause
                     // MTProto requests to avoid wasting bandwidth during quick previews.
-                    if let Some(pacing_ms) = crate::core::traffic_governor::stream_buffer_pacing_ms() {
+                    let last_read = player_read_offsets().lock().get(&sid).copied().unwrap_or(0);
+                    if let Some(pacing_ms) = pacing.delay_ms(
+                        &ranges, cursor, last_read,
+                        crate::core::traffic_governor::is_data_saver_enabled(),
+                        crate::core::traffic_governor::stream_buffer_pacing_ms(),
+                    ) {
                         stream_server::touch_activity(&sid);
                         let sleep_until = tokio::time::Instant::now() + Duration::from_millis(pacing_ms);
                         while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
@@ -2115,25 +2123,6 @@ fn start_preview_stream_inner(
                             tokio::time::sleep(Duration::from_millis(40)).await;
                         }
                         continue;
-                    }
-
-                    // 2c. Byte-distance Data Saver cap:
-                    // If the fill cursor has already reached >= 35 MB ahead of the player's last read offset,
-                    // pause fetching to protect user quota even if duration/runway is not observable.
-                    if crate::core::traffic_governor::is_data_saver_enabled() {
-                        const MAX_DATA_SAVER_AHEAD_BYTES: u64 = 35 * 1024 * 1024; // 35 MB
-                        let last_read = player_read_offsets().lock().get(&sid).copied().unwrap_or(0);
-                        if cursor > last_read && (cursor - last_read) >= MAX_DATA_SAVER_AHEAD_BYTES {
-                            stream_server::touch_activity(&sid);
-                            let sleep_until = tokio::time::Instant::now() + Duration::from_millis(300);
-                            while tokio::time::Instant::now() < sleep_until && !flag.load(Ordering::SeqCst) {
-                                if seek_requests().lock().contains_key(&sid) {
-                                    break;
-                                }
-                                tokio::time::sleep(Duration::from_millis(40)).await;
-                            }
-                            continue;
-                        }
                     }
 
                     // 3. Find next missing offset starting from current cursor position
@@ -2306,6 +2295,7 @@ fn start_preview_stream_inner(
                         if let Some(fresh_seek) = take_seek_request(&sid) {
                             let seek_target = fresh_seek.min(size.saturating_sub(1));
                             cursor = (seek_target / CHUNK_SIZE) * CHUNK_SIZE;
+                            pacing.demand_bounded(seek_target, size);
                             tg_log::info(
                                 BACKEND,
                                 "[STREAM_DIAG][SEEK_BATCH_INTERCEPT]",

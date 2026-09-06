@@ -3,6 +3,7 @@ import permissions from '../../../src-tauri/permissions/autogram-commands.toml?r
 import entrypoint from '../../../src-tauri/src/lib.rs?raw';
 import capability from '../../../src-tauri/capabilities/default.json';
 import remoteTransferApi from '../../lib/telegram/remoteTransferApi.ts?raw';
+import rustBackend from '../../lib/tauri/rustBackend.ts?raw';
 
 describe('Local download native IPC boundary', () => {
   for (const command of ['remote_download_start', 'remote_download_list', 'remote_download_control']) {
@@ -22,6 +23,17 @@ describe('Local download native IPC boundary', () => {
     const mainPermission = permissions.split('[[permission]]')
       .find(section => section.includes('identifier = "allow-custom-commands"'));
     for (const command of adapterCommands) {
+      expect(mainPermission).toContain(`"${command}"`);
+      expect(entrypoint).toMatch(new RegExp(`\\s${command},`));
+    }
+  });
+  it('authorizes preview diagnostics and buffer feedback used by the data saver', () => {
+    const commands = [...rustBackend.matchAll(/['"]((?:preview_diagnostics_|preview_traffic_|traffic_governor_)\w+)['"]/g)]
+      .map(match => match[1]);
+    expect(commands.length).toBeGreaterThan(0);
+    const mainPermission = permissions.split('[[permission]]')
+      .find(section => section.includes('identifier = "allow-custom-commands"'));
+    for (const command of commands) {
       expect(mainPermission).toContain(`"${command}"`);
       expect(entrypoint).toMatch(new RegExp(`\\s${command},`));
     }
