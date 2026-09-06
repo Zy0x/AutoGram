@@ -581,6 +581,25 @@ pub fn load_account_capability<T: serde::de::DeserializeOwned>(
     }
 }
 
+pub fn load_any_account_capability<T: serde::de::DeserializeOwned>(
+    account_id: &str,
+) -> Result<Option<T>, String> {
+    let conn = open()?;
+    let result = conn.query_row(
+        "SELECT capability_json FROM account_capabilities
+         WHERE account_id=?1 ORDER BY expires_at DESC LIMIT 1",
+        params![account_id],
+        |row| row.get::<_, String>(0),
+    );
+    match result {
+        Ok(value) => serde_json::from_str(&value)
+            .map(Some)
+            .map_err(|error| format!("decode account capability: {error}")),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(format!("load any account capability: {error}")),
+    }
+}
+
 pub fn record_alternate_upload(
     transfer_id: &str,
     item_index: usize,

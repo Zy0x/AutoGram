@@ -880,18 +880,22 @@ export function RemoteUploadModal({
       window.clearTimeout(inspectTimerRef.current);
       inspectTimerRef.current = null;
     }
+    // Abort ongoing inspection immediately when input changes
+    inspectAbortRef.current?.abort();
+    queuedInspectRef.current = null;
+
     if (!isInspectableRemoteUrl(cleanUrl)) {
       inspectRequestIdRef.current += 1;
-      queuedInspectRef.current = null;
-      inspectAbortRef.current?.abort();
       setInspection(null);
       setResolvedMedia(null);
       return;
     }
     inspectTimerRef.current = window.setTimeout(() => {
       inspectTimerRef.current = null;
-      probeUrl(cleanUrl, extractedPasscode);
-    }, 850);
+      React.startTransition(() => {
+        void probeUrl(cleanUrl, extractedPasscode);
+      });
+    }, 350);
   };
 
   const handlePasscodeChange = (codeVal: string) => {
@@ -902,11 +906,14 @@ export function RemoteUploadModal({
       window.clearTimeout(inspectTimerRef.current);
       inspectTimerRef.current = null;
     }
+    inspectAbortRef.current?.abort();
     if (!isInspectableRemoteUrl(url)) return;
     inspectTimerRef.current = window.setTimeout(() => {
       inspectTimerRef.current = null;
-      probeUrl(url, codeVal);
-    }, 650);
+      React.startTransition(() => {
+        void probeUrl(url, codeVal);
+      });
+    }, 350);
   };
 
   const handlePasteClipboard = async () => {

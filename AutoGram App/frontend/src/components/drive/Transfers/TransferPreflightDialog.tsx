@@ -126,6 +126,15 @@ function PreflightSourceThumb({
   useEffect(() => {
     if (!isVideo || !rawPath) return;
 
+    const isRemote = rawPath.startsWith('http://') || rawPath.startsWith('https://');
+    // For remote URLs, skip spinning up DOM <video preload="auto"> elements that stall network and main thread
+    if (isRemote) {
+      if (duration == null && preflightDurationCache.has(rawPath)) {
+        setDuration(preflightDurationCache.get(rawPath) || null);
+      }
+      return;
+    }
+
     const hasCachedThumb = preflightThumbCache.has(rawPath) || !!initialSource;
     const hasCachedDuration = preflightDurationCache.has(rawPath);
 

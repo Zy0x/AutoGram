@@ -780,7 +780,43 @@ pub fn ytdlp_cancel_resolve(request_id: String) -> bool {
 }
 
 #[tauri::command]
-pub fn ytdlp_resolve(
+pub async fn ytdlp_resolve(
+    app: AppHandle,
+    url: String,
+    auto_update: Option<bool>,
+    check_interval_hours: Option<u64>,
+    custom_path: Option<String>,
+    cookies_mode: Option<String>,
+    cookies_browser: Option<String>,
+    cookies_path: Option<String>,
+    po_token: Option<String>,
+    extractor_args: Option<String>,
+    custom_args: Option<String>,
+    ffmpeg_path: Option<String>,
+    request_id: Option<String>,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ytdlp_resolve_internal(
+            app,
+            url,
+            auto_update,
+            check_interval_hours,
+            custom_path,
+            cookies_mode,
+            cookies_browser,
+            cookies_path,
+            po_token,
+            extractor_args,
+            custom_args,
+            ffmpeg_path,
+            request_id,
+        )
+    })
+    .await
+    .map_err(|e| format!("yt-dlp worker task failed: {e}"))?
+}
+
+fn ytdlp_resolve_internal(
     app: AppHandle,
     url: String,
     auto_update: Option<bool>,

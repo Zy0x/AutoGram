@@ -49,6 +49,73 @@ fn user_is_premium(user: &grammers_client::peer::User) -> bool {
     }
 }
 
+pub async fn resolve_account_capability_live(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+) -> Result<AccountCapability, TgError> {
+    with_client(sessions_dir, identity, true, |client| {
+        let session = identity.session.clone();
+        Box::pin(async move {
+            if !client
+                .is_authorized()
+                .await
+                .map_err(|error| map_invocation(&error))?
+            {
+                return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+            }
+            let me = client
+                .get_me()
+                .await
+                .map_err(|error| map_invocation(&error))?;
+            let is_premium = user_is_premium(&me);
+            let response = client
+                .invoke(&tl::functions::help::GetAppConfig { hash: 0 })
+                .await
+                .map_err(|error| map_invocation(&error))?;
+            let tl::enums::help::AppConfig::Config(app_config) = response else {
+                return Err(TgError::new(
+                    TgErrorCode::Internal,
+                    "app configuration was unexpectedly not modified",
+                ));
+            };
+            let default_parts =
+                object_number(&app_config.config, "upload_max_fileparts_default")
+                    .unwrap_or(4_000);
+            let premium_parts =
+                object_number(&app_config.config, "upload_max_fileparts_premium")
+                    .unwrap_or(8_000);
+            let default_caption_limit =
+                object_number(&app_config.config, "caption_length_limit_default")
+                    .or_else(|| object_number(&app_config.config, "caption_length_limit"))
+                    .unwrap_or(
+                        crate::core::autogram_core::transfer::FALLBACK_CAPTION_LIMIT,
+                    );
+            let premium_caption_limit =
+                object_number(&app_config.config, "caption_length_limit_premium")
+                    .unwrap_or(default_caption_limit);
+            AccountCapability::from_runtime(
+                session,
+                CapabilitySource::Live,
+                now_ms(),
+                is_premium,
+                if is_premium {
+                    premium_parts
+                } else {
+                    default_parts
+                },
+                MAX_TELEGRAM_PART_SIZE,
+                if is_premium {
+                    premium_caption_limit
+                } else {
+                    default_caption_limit
+                },
+            )
+            .map_err(|error| TgError::new(TgErrorCode::Internal, error))
+        })
+    })
+    .await
+}
+
 pub fn resolve_account_capability_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -61,69 +128,36 @@ pub fn resolve_account_capability_blocking(
         return cached;
     }
 
+    if let Ok(Some(mut any_cached)) = crate::core::autogram_core::transfer::load_any_account_capability::<
+        AccountCapability,
+    >(&identity.session)
+    {
+        any_cached.source = CapabilitySource::Cached;
+        let sess = sessions_dir.to_path_buf();
+        let ident = identity.clone();
+        if let Ok(rt) = runtime() {
+            rt.spawn(async move {
+                if let Ok(cap) = resolve_account_capability_live(&sess, &ident).await {
+                    let _ = crate::core::autogram_core::transfer::persist_account_capability(
+                        &ident.session,
+                        &cap,
+                        cap.expires_at_ms,
+                    );
+                }
+            });
+        }
+        return any_cached;
+    }
+
     let live = runtime().and_then(|runtime| {
         runtime.block_on(async {
-            with_client(sessions_dir, identity, true, |client| {
-                let session = identity.session.clone();
-                Box::pin(async move {
-                    if !client
-                        .is_authorized()
-                        .await
-                        .map_err(|error| map_invocation(&error))?
-                    {
-                        return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
-                    }
-                    let me = client
-                        .get_me()
-                        .await
-                        .map_err(|error| map_invocation(&error))?;
-                    let is_premium = user_is_premium(&me);
-                    let response = client
-                        .invoke(&tl::functions::help::GetAppConfig { hash: 0 })
-                        .await
-                        .map_err(|error| map_invocation(&error))?;
-                    let tl::enums::help::AppConfig::Config(app_config) = response else {
-                        return Err(TgError::new(
-                            TgErrorCode::Internal,
-                            "app configuration was unexpectedly not modified",
-                        ));
-                    };
-                    let default_parts =
-                        object_number(&app_config.config, "upload_max_fileparts_default")
-                            .unwrap_or(4_000);
-                    let premium_parts =
-                        object_number(&app_config.config, "upload_max_fileparts_premium")
-                            .unwrap_or(8_000);
-                    let default_caption_limit =
-                        object_number(&app_config.config, "caption_length_limit_default")
-                            .or_else(|| object_number(&app_config.config, "caption_length_limit"))
-                            .unwrap_or(
-                                crate::core::autogram_core::transfer::FALLBACK_CAPTION_LIMIT,
-                            );
-                    let premium_caption_limit =
-                        object_number(&app_config.config, "caption_length_limit_premium")
-                            .unwrap_or(default_caption_limit);
-                    AccountCapability::from_runtime(
-                        session,
-                        CapabilitySource::Live,
-                        now_ms(),
-                        is_premium,
-                        if is_premium {
-                            premium_parts
-                        } else {
-                            default_parts
-                        },
-                        MAX_TELEGRAM_PART_SIZE,
-                        if is_premium {
-                            premium_caption_limit
-                        } else {
-                            default_caption_limit
-                        },
-                    )
-                    .map_err(|error| TgError::new(TgErrorCode::Internal, error))
-                })
-            })
+            tokio::time::timeout(
+                std::time::Duration::from_millis(300),
+                resolve_account_capability_live(sessions_dir, identity),
+            )
             .await
+            .map_err(|_| TgError::new(TgErrorCode::Timeout, "capability resolution timed out"))
+            .and_then(|r| r)
         })
     });
 
@@ -142,6 +176,19 @@ pub fn resolve_account_capability_blocking(
                 "runtime_capability_fallback",
                 error.user_message(),
             );
+            let sess = sessions_dir.to_path_buf();
+            let ident = identity.clone();
+            if let Ok(rt) = runtime() {
+                rt.spawn(async move {
+                    if let Ok(cap) = resolve_account_capability_live(&sess, &ident).await {
+                        let _ = crate::core::autogram_core::transfer::persist_account_capability(
+                            &ident.session,
+                            &cap,
+                            cap.expires_at_ms,
+                        );
+                    }
+                });
+            }
             AccountCapability::free(&identity.session)
         }
     }

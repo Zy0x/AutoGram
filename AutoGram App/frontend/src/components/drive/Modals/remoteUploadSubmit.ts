@@ -84,7 +84,10 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
                 ? 'original'
                 : 'standard';
 
-          const ok = await submitToDestination(uploadUrls, selectedDest, {
+          // Clean modal handoff: Close RemoteUploadModal immediately so preflight dialog has full focus
+          onClose();
+
+          await submitToDestination(uploadUrls, selectedDest, {
             customFilename: uploadFilenames.length === 1 ? (customFilename.trim() || uploadFilenames[0]) : undefined,
             customFilenames: uploadFilenames,
             sourceSizes: uploadSizes,
@@ -97,9 +100,6 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
             customDiskPath: customDiskPath.trim() || undefined,
             remoteMuxes,
           });
-          if (ok !== false) {
-            onClose();
-          }
         } catch (err: any) {
           setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
         } finally {
@@ -134,33 +134,35 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           customFilename.trim() ||
           getEffectiveFormatFilename(activeFormat, activeResolved);
 
+        const existingThumb = activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl;
         let liveVideoThumb: string | undefined = undefined;
-        try {
-          const activeVideoEl = document.querySelector<HTMLVideoElement>('.td-remote-big-canvas-video, .td-remote-stream-player-col video, .td-remote-media-player video');
-          if (activeVideoEl && activeVideoEl.videoWidth > 0 && activeVideoEl.videoHeight > 0) {
-            const c = document.createElement('canvas');
-            c.width = Math.min(800, activeVideoEl.videoWidth);
-            c.height = Math.round((c.width * activeVideoEl.videoHeight) / activeVideoEl.videoWidth);
-            const ctx = c.getContext('2d');
-            if (ctx) {
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
-              ctx.drawImage(activeVideoEl, 0, 0, c.width, c.height);
-              const url = c.toDataURL('image/jpeg', 0.92);
-              if (url && url.length > 100) {
-                liveVideoThumb = url;
+        if (!existingThumb) {
+          try {
+            const activeVideoEl = document.querySelector<HTMLVideoElement>('.td-remote-big-canvas-video, .td-remote-stream-player-col video, .td-remote-media-player video');
+            if (activeVideoEl && activeVideoEl.videoWidth > 0 && activeVideoEl.videoHeight > 0) {
+              const c = document.createElement('canvas');
+              c.width = Math.min(480, activeVideoEl.videoWidth);
+              c.height = Math.round((c.width * activeVideoEl.videoHeight) / activeVideoEl.videoWidth);
+              const ctx = c.getContext('2d');
+              if (ctx) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'medium';
+                ctx.drawImage(activeVideoEl, 0, 0, c.width, c.height);
+                const url = c.toDataURL('image/jpeg', 0.8);
+                if (url && url.length > 100) {
+                  liveVideoThumb = url;
+                }
               }
             }
+          } catch {
+            /* ignore */
           }
-        } catch {
-          /* ignore */
         }
 
         const uploadSize = activeFormat?.mux?.estimatedSizeBytes || activeFormat?.filesizeBytes;
         const uploadSizes = uploadSize ? [uploadSize] : undefined;
-        const uploadThumbs = (liveVideoThumb || activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl)
-          ? [liveVideoThumb || activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl!]
-          : undefined;
+        const finalThumb = existingThumb || liveVideoThumb;
+        const uploadThumbs = finalThumb ? [finalThumb] : undefined;
         const remoteMuxes: Array<RemoteMuxSpec | null> = [activeFormat?.mux || null];
 
         const effectiveQualityMode =
@@ -176,7 +178,10 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
               ? 'original'
               : 'standard';
 
-        const ok = await submitToDestination(uploadUrls, selectedDest, {
+        // Clean modal handoff: Close RemoteUploadModal immediately so preflight dialog has full focus
+        onClose();
+
+        await submitToDestination(uploadUrls, selectedDest, {
           customFilename: effectiveFilename,
           customFilenames: [effectiveFilename],
           sourceSizes: uploadSizes,
@@ -189,9 +194,6 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           customDiskPath: customDiskPath.trim() || undefined,
           remoteMuxes,
         });
-        if (ok !== false) {
-          onClose();
-        }
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
       } finally {
@@ -231,7 +233,10 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
               ? 'original'
               : 'standard';
 
-        const ok = await submitToDestination(uploadUrls, selectedDest, {
+        // Clean modal handoff: Close RemoteUploadModal immediately so preflight dialog has full focus
+        onClose();
+
+        await submitToDestination(uploadUrls, selectedDest, {
           customFilenames,
           sourceSizes,
           thumbnailUrls,
@@ -243,9 +248,6 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           customDiskPath: customDiskPath.trim() || undefined,
           remoteMuxes,
         });
-        if (ok !== false) {
-          onClose();
-        }
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
       } finally {

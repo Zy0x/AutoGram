@@ -2494,49 +2494,53 @@ fn desktop_write_clipboard(text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn fetch_remote_text_content(
+async fn fetch_remote_text_content(
     url: String,
     user_agent: Option<String>,
     headers: Option<std::collections::HashMap<String, String>>,
 ) -> Result<String, String> {
-    let u_clean = url.trim();
-    if u_clean.is_empty() {
-        return Err("empty URL".into());
-    }
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(std::time::Duration::from_secs(15))
-        .redirects(8)
-        .build();
-
-    let ua = user_agent.unwrap_or_else(|| {
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36".to_string()
-    });
-
-    let mut req = agent
-        .get(u_clean)
-        .set("User-Agent", &ua)
-        .set(
-            "Accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        )
-        .set("Accept-Language", "en-US,en;q=0.9");
-
-    if let Some(h) = headers {
-        for (k, v) in h {
-            req = req.set(&k, &v);
+    tauri::async_runtime::spawn_blocking(move || {
+        let u_clean = url.trim();
+        if u_clean.is_empty() {
+            return Err("empty URL".into());
         }
-    }
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(std::time::Duration::from_secs(10))
+            .timeout_read(std::time::Duration::from_secs(15))
+            .redirects(8)
+            .build();
 
-    let resp = req
-        .call()
-        .map_err(|e| format!("HTTP request failed: {e}"))?;
+        let ua = user_agent.unwrap_or_else(|| {
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36".to_string()
+        });
 
-    let text = resp
-        .into_string()
-        .map_err(|e| format!("read body failed: {e}"))?;
+        let mut req = agent
+            .get(u_clean)
+            .set("User-Agent", &ua)
+            .set(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            )
+            .set("Accept-Language", "en-US,en;q=0.9");
 
-    Ok(text)
+        if let Some(h) = headers {
+            for (k, v) in h {
+                req = req.set(&k, &v);
+            }
+        }
+
+        let resp = req
+            .call()
+            .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+        let text = resp
+            .into_string()
+            .map_err(|e| format!("read body failed: {e}"))?;
+
+        Ok(text)
+    })
+    .await
+    .map_err(|e| format!("fetch text worker task failed: {e}"))?
 }
 
 #[tauri::command]
@@ -2807,131 +2811,139 @@ fn fetch_remote_head_meta(
 }
 
 #[tauri::command]
-fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
-    let u_clean = url.trim();
-    if u_clean.is_empty() {
-        return Err("empty URL".into());
-    }
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(std::time::Duration::from_secs(15))
-        .build();
+async fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let u_clean = url.trim();
+        if u_clean.is_empty() {
+            return Err("empty URL".into());
+        }
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(std::time::Duration::from_secs(10))
+            .timeout_read(std::time::Duration::from_secs(15))
+            .build();
 
-    let is_tiktok_profile = (u_clean.contains("tiktok.com/@") || u_clean.contains("douyin.com/@"))
-        && !u_clean.contains("/video/")
-        && !u_clean.contains("/photo/")
-        && !u_clean.contains("/story/");
+        let is_tiktok_profile = (u_clean.contains("tiktok.com/@") || u_clean.contains("douyin.com/@"))
+            && !u_clean.contains("/video/")
+            && !u_clean.contains("/photo/")
+            && !u_clean.contains("/story/");
 
-    if is_tiktok_profile {
+        if is_tiktok_profile {
+            let resp = agent
+                .get(u_clean)
+                .set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+                .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .set("Accept-Language", "en-US,en;q=0.9")
+                .call()
+                .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+            let html = resp
+                .into_string()
+                .map_err(|e| format!("read body failed: {e}"))?;
+
+            let mut avatar_larger = None;
+            let mut avatar_medium = None;
+            let mut nickname = None;
+            let mut signature = None;
+
+            // 1. Direct key extraction (robust against attribute ordering or minification changes)
+            if let Some(pos) = html.find("\"avatarLarger\":\"") {
+                let start = pos + 16;
+                if let Some(end) = html[start..].find('"') {
+                    let raw = &html[start..start + end];
+                    avatar_larger = Some(
+                        raw.replace("\\u0026", "&")
+                            .replace("\\u002F", "/")
+                            .replace("\\", ""),
+                    );
+                }
+            }
+
+            if let Some(pos) = html.find("\"avatarMedium\":\"") {
+                let start = pos + 16;
+                if let Some(end) = html[start..].find('"') {
+                    let raw = &html[start..start + end];
+                    avatar_medium = Some(
+                        raw.replace("\\u0026", "&")
+                            .replace("\\u002F", "/")
+                            .replace("\\", ""),
+                    );
+                }
+            }
+
+            if let Some(pos) = html.find("\"nickname\":\"") {
+                let start = pos + 12;
+                if let Some(end) = html[start..].find('"') {
+                    let raw = &html[start..start + end];
+                    nickname = Some(
+                        raw.replace("\\u0026", "&")
+                            .replace("\\u002F", "/")
+                            .replace("\\", ""),
+                    );
+                }
+            }
+
+            if let Some(pos) = html.find("\"signature\":\"") {
+                let start = pos + 13;
+                if let Some(end) = html[start..].find('"') {
+                    let raw = &html[start..start + end];
+                    signature = Some(
+                        raw.replace("\\u0026", "&")
+                            .replace("\\u002F", "/")
+                            .replace("\\", ""),
+                    );
+                }
+            }
+
+            return Ok(serde_json::json!({
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "user": {
+                        "nickname": nickname,
+                        "avatarLarger": avatar_larger,
+                        "avatarMedium": avatar_medium,
+                        "signature": signature
+                    }
+                },
+                "html": html
+            }));
+        }
+
+        let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
+            format!(
+                "https://www.tikwm.com/api/?url={}&hd=1",
+                urlencoding::encode(u_clean)
+            )
+        } else {
+            u_clean.to_string()
+        };
+
         let resp = agent
-            .get(u_clean)
-            .set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
-            .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-            .set("Accept-Language", "en-US,en;q=0.9")
+            .get(&api_url)
+            .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/3.5")
             .call()
             .map_err(|e| format!("HTTP request failed: {e}"))?;
 
-        let html = resp
-            .into_string()
-            .map_err(|e| format!("read body failed: {e}"))?;
+        let val = resp
+            .into_json::<serde_json::Value>()
+            .map_err(|e| format!("parse JSON failed: {e}"))?;
 
-        let mut avatar_larger = None;
-        let mut avatar_medium = None;
-        let mut nickname = None;
-        let mut signature = None;
-
-        // 1. Direct key extraction (robust against attribute ordering or minification changes)
-        if let Some(pos) = html.find("\"avatarLarger\":\"") {
-            let start = pos + 16;
-            if let Some(end) = html[start..].find('"') {
-                let raw = &html[start..start + end];
-                avatar_larger = Some(
-                    raw.replace("\\u0026", "&")
-                        .replace("\\u002F", "/")
-                        .replace("\\", ""),
-                );
-            }
-        }
-
-        if let Some(pos) = html.find("\"avatarMedium\":\"") {
-            let start = pos + 16;
-            if let Some(end) = html[start..].find('"') {
-                let raw = &html[start..start + end];
-                avatar_medium = Some(
-                    raw.replace("\\u0026", "&")
-                        .replace("\\u002F", "/")
-                        .replace("\\", ""),
-                );
-            }
-        }
-
-        if let Some(pos) = html.find("\"nickname\":\"") {
-            let start = pos + 12;
-            if let Some(end) = html[start..].find('"') {
-                let raw = &html[start..start + end];
-                nickname = Some(
-                    raw.replace("\\u0026", "&")
-                        .replace("\\u002F", "/")
-                        .replace("\\", ""),
-                );
-            }
-        }
-
-        if let Some(pos) = html.find("\"signature\":\"") {
-            let start = pos + 13;
-            if let Some(end) = html[start..].find('"') {
-                let raw = &html[start..start + end];
-                signature = Some(
-                    raw.replace("\\u0026", "&")
-                        .replace("\\u002F", "/")
-                        .replace("\\", ""),
-                );
-            }
-        }
-
-        return Ok(serde_json::json!({
-            "code": 0,
-            "msg": "success",
-            "data": {
-                "user": {
-                    "nickname": nickname,
-                    "avatarLarger": avatar_larger,
-                    "avatarMedium": avatar_medium,
-                    "signature": signature
-                }
-            },
-            "html": html
-        }));
-    }
-
-    let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
-        format!(
-            "https://www.tikwm.com/api/?url={}&hd=1",
-            urlencoding::encode(u_clean)
-        )
-    } else {
-        u_clean.to_string()
-    };
-
-    let resp = agent
-        .get(&api_url)
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 AutoGram/3.5")
-        .call()
-        .map_err(|e| format!("HTTP request failed: {e}"))?;
-
-    let val = resp
-        .into_json::<serde_json::Value>()
-        .map_err(|e| format!("parse JSON failed: {e}"))?;
-
-    Ok(val)
+        Ok(val)
+    })
+    .await
+    .map_err(|e| format!("fetch metadata worker task failed: {e}"))?
 }
 
 #[tauri::command]
-fn resolve_remote_link_deep(
+async fn resolve_remote_link_deep(
     url: String,
     cursor: Option<core::remote_link_resolver::RemoteLinkDiscoveryCursor>,
 ) -> Result<core::remote_link_resolver::RemoteLinkResolution, String> {
-    core::remote_link_resolver::resolve_remote_link_deep(url, cursor)
+    tauri::async_runtime::spawn_blocking(move || {
+        core::remote_link_resolver::resolve_remote_link_deep(url, cursor)
+    })
+    .await
+    .map_err(|e| format!("deep resolve worker task failed: {e}"))?
 }
 
 #[derive(Clone, Serialize)]

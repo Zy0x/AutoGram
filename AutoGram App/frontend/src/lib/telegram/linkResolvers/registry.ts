@@ -63,14 +63,16 @@ function isVideoFormat(fmt: StreamQualityFormat): boolean {
   );
 }
 
-async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<number | undefined> {
-  if (typeof document === 'undefined') return undefined;
+async function probeVideoDuration(url: string, timeoutMs = 8000, signal?: AbortSignal): Promise<number | undefined> {
+  if (typeof document === 'undefined' || signal?.aborted) return undefined;
 
   // Strategy 1: fetch first 512 KB via Range request → blob URL → video element
   // This bypasses CORS because fetch in Tauri WebView2 uses native HTTP (no CORS policy).
   // A 512 KB prefix is enough for MP4 files with faststart (moov at beginning).
   try {
     const ctrl = new AbortController();
+    const onParentAbort = () => ctrl.abort();
+    if (signal) signal.addEventListener('abort', onParentAbort, { once: true });
     const fetchTimer = setTimeout(() => ctrl.abort(), timeoutMs - 1000);
     let blobUrl: string | undefined;
     try {
@@ -78,16 +80,19 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
         headers: { Range: 'bytes=0-524287' }, // first 512 KB
         signal: ctrl.signal,
       });
-      if (resp.ok || resp.status === 206) {
+      if ((resp.ok || resp.status === 206) && !signal?.aborted) {
         const buf = await resp.arrayBuffer();
-        const blob = new Blob([buf], { type: 'video/mp4' });
-        blobUrl = URL.createObjectURL(blob);
+        if (!signal?.aborted) {
+          const blob = new Blob([buf], { type: 'video/mp4' });
+          blobUrl = URL.createObjectURL(blob);
+        }
       }
     } finally {
       clearTimeout(fetchTimer);
+      if (signal) signal.removeEventListener('abort', onParentAbort);
     }
 
-    if (blobUrl) {
+    if (blobUrl && !signal?.aborted) {
       const dur = await new Promise<number | undefined>((res) => {
         const video = document.createElement('video');
         video.preload = 'metadata';
@@ -97,13 +102,17 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
 
         let done = false;
         const tid = setTimeout(() => finish(undefined), 6000);
+        const onAbort = () => finish(undefined);
+        if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
         const finish = (d?: number) => {
           if (done) return; done = true;
           clearTimeout(tid);
+          if (signal) signal.removeEventListener('abort', onAbort);
           video.pause();
           video.src = '';
           try { video.load(); } catch (_) {}
-          document.body.removeChild(video);
+          try { document.body.removeChild(video); } catch (_) {}
           URL.revokeObjectURL(blobUrl!);
           res(d);
         };
@@ -121,6 +130,8 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
     // fetch failed (CORS, network, abort) — fall through to direct video probe
   }
 
+  if (signal?.aborted) return undefined;
+
   // Strategy 2: direct URL fallback (works if server allows cross-origin video)
   return new Promise<number | undefined>((resolve) => {
     const video = document.createElement('video');
@@ -132,9 +143,13 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
 
     let done = false;
     const tid = setTimeout(() => finish(undefined), timeoutMs);
+    const onAbort = () => finish(undefined);
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
     const finish = (dur?: number) => {
       if (done) return; done = true;
       clearTimeout(tid);
+      if (signal) signal.removeEventListener('abort', onAbort);
       video.src = '';
       try { video.load(); } catch (_) {}
       try { document.body.removeChild(video); } catch (_) {}
@@ -158,7 +173,8 @@ async function probeVideoDuration(url: string, timeoutMs = 10000): Promise<numbe
  * their own API, so HTMLVideoElement probing is skipped entirely for them.
  * This avoids the cost of probing 50+ yt-dlp format URLs (each up to 10 s).
  */
-async function enrichWithDurations(result: ResolvedMediaInfo): Promise<ResolvedMediaInfo> {
+async function enrichWithDurations(result: ResolvedMediaInfo, signal?: AbortSignal): Promise<ResolvedMediaInfo> {
+  if (signal?.aborted) return result;
   const tasks: Promise<void>[] = [];
 
   // Skip video probing for platforms that already supply durationSec from
@@ -172,8 +188,8 @@ async function enrichWithDurations(result: ResolvedMediaInfo): Promise<ResolvedM
     for (const fmt of result.formats) {
       if (isVideoFormat(fmt) && !fmt.durationSec && fmt.directUrl) {
         tasks.push(
-          probeVideoDuration(fmt.directUrl).then((dur) => {
-            if (dur) {
+          probeVideoDuration(fmt.directUrl, 8000, signal).then((dur) => {
+            if (dur && !signal?.aborted) {
               fmt.durationSec = dur;
               if (!result.durationSec) result.durationSec = dur;
             }
@@ -198,8 +214,8 @@ async function enrichWithDurations(result: ResolvedMediaInfo): Promise<ResolvedM
       const fmtRef = fmt; // capture for closure
       const itemRef = item;
       tasks.push(
-        probeVideoDuration(fmtRef.directUrl).then((dur) => {
-          if (dur) {
+        probeVideoDuration(fmtRef.directUrl, 8000, signal).then((dur) => {
+          if (dur && !signal?.aborted) {
             fmtRef.durationSec = dur;
             itemRef.durationSec = dur;
           }
@@ -276,7 +292,7 @@ class LinkResolverRegistry {
           const result = await provider.resolve(cleanUrl, signal, options);
           if (result && result.formats && result.formats.length > 0) {
             const traced = this.withTrace(result, cleanUrl, provider.name, 'provider');
-            const enriched = await enrichWithDurations(traced);
+            const enriched = await enrichWithDurations(traced, signal);
             if (!options?.discoveryCursor) setCachedResult(cleanUrl, enriched);
             return enriched;
           }
@@ -293,7 +309,7 @@ class LinkResolverRegistry {
         const nativeResult = await nativeDeepResolver.resolve(cleanUrl, signal, options);
         if (nativeResult) {
           const traced = this.withTrace(nativeResult, cleanUrl, nativeDeepResolver.name, 'validated');
-          return enrichWithDurations(traced);
+          return enrichWithDurations(traced, signal);
         }
       } catch {
         /* ignore */
@@ -305,7 +321,7 @@ class LinkResolverRegistry {
       const fallbackResult = await directFileResolver.resolve(cleanUrl, signal);
       if (fallbackResult && fallbackResult.formats.length > 0) {
         const traced = this.withTrace(fallbackResult, cleanUrl, directFileResolver.name, 'fallback');
-        return enrichWithDurations(traced);
+        return enrichWithDurations(traced, signal);
       }
     } catch {
       /* ignore */
@@ -331,7 +347,7 @@ class LinkResolverRegistry {
       },
       resolvedAt: Date.now(),
     }, cleanUrl, 'RawUrlFallback', 'fallback');
-    return enrichWithDurations(ultimate);
+    return enrichWithDurations(ultimate, signal);
   }
 
   private withTrace(

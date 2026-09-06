@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const MAX_TELEGRAM_PART_SIZE: u32 = 512 * 1024;
-pub const CAPABILITY_TTL_MS: i64 = 15 * 60 * 1_000;
+pub const CAPABILITY_TTL_MS: i64 = 24 * 60 * 60 * 1_000; // 24 hours (prevents repetitive MTProto capability stalls)
 
 fn default_caption_limit() -> u32 {
     crate::transfer::FALLBACK_CAPTION_LIMIT
