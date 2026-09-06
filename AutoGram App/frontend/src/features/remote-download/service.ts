@@ -28,6 +28,7 @@ export async function startLocalDownloads(requests: LocalDownloadRequest[]): Pro
 export async function refreshLocalDownloads() {
   const jobs = await invoke<LocalDownloadSnapshot[]>('remote_download_list');
   useLocalDownloads.setState({ jobs });
+  return jobs;
 }
 export async function controlLocalDownload(id: string, action: 'pause' | 'resume' | 'cancel') {
   try {

@@ -8,6 +8,7 @@ import './localDownloads.css';
 export function LocalDownloadsPanel() {
   const { t } = useTranslation();
   const { jobs, hidden, error } = useLocalDownloads();
+  const hasActive = jobs.some(j => !isLocalDownloadTerminal(j.state));
   const [minimized, setMinimized] = useState(false);
   const [speed, setSpeed] = useState(0);
   const sample = useRef({ at: performance.now(), bytes: 0 });
@@ -15,14 +16,18 @@ export function LocalDownloadsPanel() {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
-      try { await refreshLocalDownloads(); } catch {
+      let delay = 10000;
+      try {
+        const latest = await refreshLocalDownloads();
+        if (latest.some(j => !isLocalDownloadTerminal(j.state))) delay = 700;
+      } catch {
         // Start reports missing commands explicitly on an old desktop binary.
       }
-      if (!stopped) timer = setTimeout(poll, 700);
+      if (!stopped) timer = setTimeout(poll, delay);
     }
     void poll();
     return () => { stopped = true; clearTimeout(timer); };
-  }, []);
+  }, [hasActive]);
   const bytes = jobs.reduce((n, j) => n + j.downloaded, 0);
   useEffect(() => {
     const now = performance.now();

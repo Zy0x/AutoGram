@@ -6,6 +6,7 @@ import { detectTauriRuntime } from '../../tauri/platform';
 import type { DriveCredentials } from '../driveApi';
 import { withExclusiveTransferSession } from '../driveApi';
 import { resolveDriveEngineLocation } from '../driveApi/driveEngineApi';
+import { pregenerateUploadThumbnails } from '../../media/uploadThumbnailGenerator';
 
 export type QueueItemState =
   | 'pending'
@@ -199,6 +200,14 @@ export async function studioRunUploadDefault(
     request.transferId ||
     `orch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const fullReq: StudioOrchRequest = { ...request, transferId };
+
+  // Pre-generate thumbnails for HEIC/TIFF and image files so Telegram receives crisp 320px document thumbs
+  try {
+    const paths = request.files.map((f) => f.path).filter(Boolean);
+    await pregenerateUploadThumbnails(paths);
+  } catch (err) {
+    console.warn('[studioOrch] thumbnail pregeneration error:', err);
+  }
 
   try {
     const result = await withExclusiveTransferSession(

@@ -28,10 +28,12 @@ export function attachYouTubeMuxCandidates(formats: StreamQualityFormat[]): void
     video.downloadOnly = true;
     // MP4 is a container, not a guarantee of H.264 compatibility. This explicit
     // local conversion retains resolution and creates H.264/AAC with FFmpeg.
-    const nativeH264 = video.ext === 'mp4' && /^(avc|h264)/i.test(video.codec || '');
-    if (!nativeH264 && !formats.some(f => f.id === `${video.id}_mp4_assembled`)) {
+    const nativeH264 = video.ext === 'mp4' && /^(avc|h\.?264)/i.test(video.codec || '');
+    // Do not silently relabel HDR as SDR: that requires a separate tone-map
+    // policy. Native HDR downloads stay intact; compatibility MP4 uses SDR.
+    if (!nativeH264 && !video.isHdr && !formats.some(f => f.id === `${video.id}_mp4_assembled`)) {
       formats.push({ ...video, id: `${video.id}_mp4_assembled`, ext: 'mp4', container: 'mp4',
-        label: `${video.height || video.resolution || ''}p (MP4 · FFmpeg)`,
+        label: `${video.height ? `${video.height}p` : video.resolution || ''} (MP4 · FFmpeg)`,
         codec: 'h264', filesizeBytes: undefined, protocol: 'ffmpeg',
         mux: { ...video.mux, outputExt: 'mp4', transcodeVideo: true, estimatedSizeBytes: undefined },
       });

@@ -772,3 +772,4 @@ VALUES
 ON CONFLICT(component) DO UPDATE SET
     version = MAX(version, excluded.version),
     applied_at = excluded.applied_at;
+-- Local-only HTTP download active jobs are process-local; no SQLite schema migration.

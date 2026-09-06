@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+import { canNudgePlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './preview/video/startupPolicy';
 import React, { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
@@ -2279,23 +2280,11 @@ export function DrivePreviewModal({
         let browserPct = 0;
         let browserHasData = false;
         let browserRunwaySeconds: number | null = null;
-        if (v && Number.isFinite(v.duration) && v.duration > 0) {
-          try {
-            const b = v.buffered;
-            if (b && b.length > 0) {
-              let end = 0;
-              for (let i = 0; i < b.length; i++) {
-                end = Math.max(end, b.end(i));
-                if (b.start(i) <= v.currentTime && v.currentTime <= b.end(i)) {
-                  browserRunwaySeconds = Math.max(0, b.end(i) - v.currentTime);
-                }
-              }
-              browserPct = (100 * end) / v.duration;
-              browserHasData = end > 0.05;
-            }
-          } catch {
-            /* ignore */
-          }
+        if (v) {
+          const playable = measurePlayableBuffer(v);
+          browserRunwaySeconds = playable.runway;
+          browserHasData = playable.hasData;
+          browserPct = playable.percent;
         }
         void observePreviewTraffic(browserRunwaySeconds, !!v && !v.paused).then((traffic) => {
           if (alive && traffic) setPreviewTraffic(traffic);
@@ -2303,7 +2292,7 @@ export function DrivePreviewModal({
         // Player buffer bar reflects browser TimeRanges when video has loaded metadata,
         // so when slow internet occurs, slider dot reaches the buffer bar end before pausing.
         let displayPct = browserHasData ? browserPct : pct;
-        if (st.done || (total > 0 && prefix >= total * 0.99)) {
+        if (isStreamComplete(st, total, prefix)) {
           displayPct = 100;
         }
         if (!Number.isFinite(displayPct) || displayPct < 0) displayPct = 0;
@@ -2328,16 +2317,13 @@ export function DrivePreviewModal({
         }
 
         // Poll faster while not playing; back off only after real playback
-        const healthy =
-          (!!v && !v.paused && browserHasData) ||
-          st.stream_ready === true ||
-          prefix >= 1024 * 1024;
+        const healthy = isPlaybackHealthy(v, browserHasData);
         // Avoid saturating the Tauri command loop while Drive thumbnails and
         // list RPCs are active. This still reacts within one third of a second.
         const wantMs = healthy ? 1000 : 300;
         if (wantMs !== intervalMs) schedule(wantMs);
 
-        if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {
+        if (isStreamComplete(st, total, prefix)) {
           streamMissingHitsRef.current = 0;
           setStreamDone(true);
           setBufferPct(100);
@@ -2503,7 +2489,7 @@ export function DrivePreviewModal({
         }
 
         // Stall Watchdog: Detect Chromium demuxer freeze (video.paused === false but currentTime is stuck)
-        if (v && !v.paused && !v.ended && !v.error) {
+        if (v && canNudgePlayback(v) && !v.error) {
           const cur = v.currentTime || 0;
           if (Math.abs(cur - lastPlayTimeRef.current) > 0.05) {
             lastPlayTimeRef.current = cur;
@@ -3241,7 +3227,7 @@ export function DrivePreviewModal({
   }, [file.id]);
 
   const showVideo = !!activeSrc && isVideo;
-  const showImage = !!activeSrc && isImage;
+  const showImage = !!activeSrc && isImage && !isHeicFile && !isTiffFile;
   const showAudio = !!activeSrc && isAudio;
   const pdfSrc = useMemo(() => {
     if (!isPdf) return null;
@@ -6104,7 +6090,7 @@ export function DrivePreviewModal({
                 </div>
               )}
 
-          {!loading && error && (
+          {!loading && error && !isHeicFile && !isTiffFile && (
             <div className="drive-empty drive-error">
               <p>{error}</p>
               {floodCountdown !== null && floodCountdown > 0 && (
@@ -7309,7 +7295,7 @@ export function DrivePreviewModal({
                 fileName={displayName}
                 className="drive-preview-media drive-preview-image"
                 style={{ transform: needsMediaTransform ? mediaTransform : 'none', transformOrigin: 'center center' }}
-                onLoad={(w, h) => { setMediaWidth(w); setMediaHeight(h); setLoading(false); }}
+                onLoad={(w, h) => { setMediaWidth(w); setMediaHeight(h); setLoading(false); setError(null); }}
                 onError={() => setError(t('drive.decode_error'))}
               />
             </div>

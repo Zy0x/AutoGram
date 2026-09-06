@@ -194,8 +194,8 @@ fn run(request: &DownloadRequest, job: &Job) -> Result<(), String> {
     job.checkpoint()?;
     let size = std::fs::metadata(&output).map_err(|_| "remote_download_disk_error")?.len();
     if size == 0 { return Err("remote_download_empty".into()); }
-    // Hard link is atomic, same volume and fails if the destination exists.
-    // Never rename-overwrite a user's existing file or publish a partial output.
+    // Same-volume atomic publication must fail if the destination exists.
+    // Never overwrite a user's existing file or publish a partial output.
     let destination = root.join(&request.filename);
     let mut snapshot = job.snapshot.lock().unwrap();
     if job.control.load(Ordering::SeqCst) == 2 { return Err("remote_download_cancelled".into()); }

@@ -1465,6 +1465,19 @@ async fn studio_run_orchestrated(
     .map_err(|e| format!("orch join: {e}"))?
 }
 
+#[tauri::command]
+async fn save_upload_thumbnail(
+    source_path: String,
+    jpeg_base64: String,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        core::universal_thumbnail::save_upload_thumbnail_base64(&source_path, &jpeg_base64)
+            .map(|p| p.to_string_lossy().to_string())
+    })
+    .await
+    .map_err(|e| format!("thumbnail join error: {e}"))?
+}
+
 // ── Phase 4 Grammers / dual-path Telegram ops ─────────────────────────────
 
 fn ensure_sessions_dir_env(app: &AppHandle) {
@@ -3139,6 +3152,7 @@ pub fn run() {
             studio_dismiss_transfer,
             studio_clear_transfers,
             studio_run_orchestrated,
+            save_upload_thumbnail,
             tg_backend_status,
             tg_set_backend,
             tg_disconnect_session,

@@ -1442,7 +1442,7 @@ export function RemoteUploadModal({
   }, [isPlayingStream, resolvedMedia]);
 
   const handleToggleFormat = useCallback((fmt: StreamQualityFormat) => {
-    if (fmt.isDownloadable === false && !fmt.directUrl) return;
+    if (!canTransferResolvedFormat(fmt)) return;
     if (selectedFormatId === fmt.id) {
       setSelectedFormatId('');
       setInspection((prev) =>

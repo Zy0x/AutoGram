@@ -1067,7 +1067,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                           const isSubtitleTab = streamContainerFilter === 'subtitle';
                           const isAdvanceTab = streamContainerFilter === 'advance' || streamContainerFilter === 'matrix';
 
-                          const isStreamHls = (s: RawStreamItem) => Boolean(/m3u8|mpd|dash|hls/i.test(`${s.protocol || ''} ${s.directUrl || ''}`));
+                          const isStreamHls = (s: RawStreamItem) => isManifestFormat({ ...s, ext: s.container });
 
                           const filteredRawStreams = rawStreamsList.filter((s) => {
                             if (matrixHideM3u8 && isStreamHls(s)) return false;
@@ -1267,6 +1267,12 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 </div>
                               )}
 
+                              {isAdvanceTab && resolvedMedia.formats.some(f => f.mux?.transcodeVideo) && (
+                                <div className="td-remote-formats-section">
+                                  <p>{t('drive_tools.local_download_mux_hint')}</p>
+                                  <div className="td-remote-quality-grid">{resolvedMedia.formats.filter(f => f.mux?.transcodeVideo).map(renderFormatChip)}</div>
+                                </div>
+                              )}
                               {isAdvanceTab ? (
                                 hasRawMatrix ? (() => {
                                   const rawMp4Videos = filteredRawStreams
@@ -1286,7 +1292,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
                                   const renderMatrixRow = (s: RawStreamItem) => {
-                                    const matchedFmt = resolvedMedia.formats.find((f) => (f.itag && f.itag === s.itag) || f.id === `raw_itag_${s.itag}`) || {
+                                    const matchedFmt = resolvedMedia.formats.find((f) => f.directUrl === s.directUrl && !f.mux?.transcodeVideo) || {
                                       id: `raw_itag_${s.itag}`,
                                       label: `${s.height ? t('drive.remote_format_height', { height: s.height }) : s.type === 'audio' ? t('drive.remote_format_filter_audio_tab') : s.codec} (itag ${s.itag})`,
                                       qualityTier: 'original' as const,
@@ -1294,6 +1300,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                       ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
                                       filesizeBytes: s.filesizeBytes,
                                       directUrl: s.directUrl,
+                                      protocol: s.protocol,
                                       isVideo: s.type === 'video' || s.type === 'muxed',
                                       isAudio: s.type === 'audio',
                                       width: s.width,
@@ -1319,7 +1326,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                       <tr
                                         key={s.itag}
                                         className={`td-remote-matrix-row ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleToggleFormat(matchedFmt)}
+                                        onClick={() => { if (!isStreamHls(s) && s.isDownloadable !== false) handleToggleFormat(matchedFmt); }}
                                         onDoubleClick={(e) => {
                                           e.stopPropagation();
                                           handlePlayFormat(matchedFmt);
@@ -1412,7 +1419,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                           <button
                                             type="button"
                                             className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
-                                            disabled={s.isDownloadable === false && !s.directUrl}
+                                            disabled={s.isDownloadable === false || isStreamHls(s) || !resolvedMedia.formats.some(f => f.id === matchedFmt.id)}
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleToggleFormat(matchedFmt);

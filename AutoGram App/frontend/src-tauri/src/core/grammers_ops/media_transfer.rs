@@ -554,7 +554,17 @@ fn document_mime_type(ext: &str, inferred: &'static str, as_document: bool) -> &
 }
 
 fn upload_thumbnail_path(path: &str) -> Option<PathBuf> {
-    extract_video_thumbnail(path)
+    crate::core::universal_thumbnail::resolve_or_generate_upload_thumbnail(Path::new(path))
+}
+
+fn safe_remove_temp_thumbnail(path: &Path) {
+    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if (filename.ends_with(".thumb.jpg") || filename.ends_with(".thumb.png"))
+        && !path.starts_with(std::env::temp_dir())
+    {
+        return;
+    }
+    let _ = std::fs::remove_file(path);
 }
 
 async fn upload_thumbnail(client: &Client, path: &str) -> Option<Uploaded> {
@@ -570,7 +580,7 @@ async fn upload_thumbnail(client: &Client, path: &str) -> Option<Uploaded> {
             None
         }
     };
-    let _ = std::fs::remove_file(&thumbnail_path);
+    safe_remove_temp_thumbnail(&thumbnail_path);
     upload_result
 }
 
@@ -882,7 +892,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 thumb_raw = Some(thumb_uploaded.raw);
                             }
-                            let _ = std::fs::remove_file(tp);
+                            safe_remove_temp_thumbnail(tp);
                         }
                         let is_nosound = {
                             let analysis = crate::core::autogram_core::transfer::analyze_media(Path::new(path_str));
@@ -939,7 +949,7 @@ pub fn upload_prepared_album_blocking_with_app(
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 thumb_raw = Some(thumb_uploaded.raw);
                             }
-                            let _ = std::fs::remove_file(tp);
+                            safe_remove_temp_thumbnail(tp);
                         }
                         tl::enums::InputMedia::UploadedDocument(tl::types::InputMediaUploadedDocument {
                             nosound_video: false,
@@ -1563,19 +1573,17 @@ fn upload_prepared_album_blocking_with_app_legacy(
                     let im = im.reply_to(reply_to);
                     let final_media = if as_document {
                         let mut thumb_raw = None;
-                        if is_video || is_image || is_audio {
-                            let thumb_path = extract_video_thumbnail(path_str);
-                            if let Some(ref tp) = thumb_path {
-                                if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                    thumb_raw = Some(thumb_uploaded.raw);
-                                    tg_log::info(
-                                        BACKEND,
-                                        "album_doc_thumb_attached",
-                                        format!("i={} thumb={}", i, tp.display()),
-                                    );
-                                }
-                                let _ = std::fs::remove_file(tp);
+                        let thumb_path = upload_thumbnail_path(path_str);
+                        if let Some(ref tp) = thumb_path {
+                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                                thumb_raw = Some(thumb_uploaded.raw);
+                                tg_log::info(
+                                    BACKEND,
+                                    "album_doc_thumb_attached",
+                                    format!("i={} thumb={}", i, tp.display()),
+                                );
                             }
+                            safe_remove_temp_thumbnail(tp);
                         }
                         im.media(tl::types::InputMediaUploadedDocument {
                             nosound_video: false,
@@ -1608,7 +1616,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             h: vid_h as i32,
                         });
                         // Upload & attach thumbnail if available
-                        let thumb_path = extract_video_thumbnail(path_str);
+                        let thumb_path = upload_thumbnail_path(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 video_im = video_im.thumbnail(thumb_uploaded);
@@ -1618,7 +1626,7 @@ fn upload_prepared_album_blocking_with_app_legacy(
                                     format!("i={} thumb={}", i, tp.display()),
                                 );
                             }
-                            let _ = std::fs::remove_file(tp);
+                            safe_remove_temp_thumbnail(tp);
                         }
                         video_im
                     } else if is_audio {
@@ -1629,22 +1637,22 @@ fn upload_prepared_album_blocking_with_app_legacy(
                             title: aud_title,
                             performer: aud_artist,
                         });
-                        let thumb_path = extract_video_thumbnail(path_str);
+                        let thumb_path = upload_thumbnail_path(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 audio_im = audio_im.thumbnail(thumb_uploaded);
                             }
-                            let _ = std::fs::remove_file(tp);
+                            safe_remove_temp_thumbnail(tp);
                         }
                         audio_im
                     } else {
                         let mut thumb_raw = None;
-                        let thumb_path = extract_video_thumbnail(path_str);
+                        let thumb_path = upload_thumbnail_path(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                                 thumb_raw = Some(thumb_uploaded.raw);
                             }
-                            let _ = std::fs::remove_file(tp);
+                            safe_remove_temp_thumbnail(tp);
                         }
                         im.media(tl::types::InputMediaUploadedDocument {
                             nosound_video: false,
@@ -2498,19 +2506,17 @@ pub fn upload_file_blocking_topic_with_app(
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
                     let mut thumb_raw = None;
-                    if is_video || is_image || is_audio {
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                                tg_log::info(
-                                    BACKEND,
-                                    "upload_doc_thumb_attached",
-                                    format!("index={index} thumb={}", tp.display()),
-                                );
-                            }
-                            let _ = std::fs::remove_file(tp);
+                    let thumb_path = upload_thumbnail_path(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            thumb_raw = Some(thumb_uploaded.raw);
+                            tg_log::info(
+                                BACKEND,
+                                "upload_doc_thumb_attached",
+                                format!("index={index} thumb={}", tp.display()),
+                            );
                         }
+                        safe_remove_temp_thumbnail(tp);
                     }
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
@@ -2553,7 +2559,7 @@ pub fn upload_file_blocking_topic_with_app(
                                 format!("index={index} thumb={}", tp.display()),
                             );
                         }
-                        let _ = std::fs::remove_file(tp);
+                        safe_remove_temp_thumbnail(tp);
                     }
                     video_msg
                 } else if is_audio {
@@ -2569,7 +2575,7 @@ pub fn upload_file_blocking_topic_with_app(
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                             audio_msg = audio_msg.thumbnail(thumb_uploaded);
                         }
-                        let _ = std::fs::remove_file(tp);
+                        safe_remove_temp_thumbnail(tp);
                     }
                     audio_msg
                 } else {
@@ -2579,7 +2585,7 @@ pub fn upload_file_blocking_topic_with_app(
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
                             thumb_raw = Some(thumb_uploaded.raw);
                         }
-                        let _ = std::fs::remove_file(tp);
+                        safe_remove_temp_thumbnail(tp);
                     }
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
@@ -2890,13 +2896,9 @@ pub fn upload_file_blocking_topic_with_delivery(
                 }
 
                 msg = if as_document {
-                    let thumb_raw = if is_video || is_image || is_audio {
-                        upload_thumbnail(client, path_str)
-                            .await
-                            .map(|uploaded| uploaded.raw)
-                    } else {
-                        None
-                    };
+                    let thumb_raw = upload_thumbnail(client, path_str)
+                        .await
+                        .map(|uploaded| uploaded.raw);
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
                         force_file: true,
@@ -2949,13 +2951,9 @@ pub fn upload_file_blocking_topic_with_delivery(
                     }
                     audio_msg
                 } else {
-                    let thumb_raw = if is_video || is_image || is_audio {
-                        upload_thumbnail(client, path_str)
-                            .await
-                            .map(|uploaded| uploaded.raw)
-                    } else {
-                        None
-                    };
+                    let thumb_raw = upload_thumbnail(client, path_str)
+                        .await
+                        .map(|uploaded| uploaded.raw);
                     msg.media(tl::types::InputMediaUploadedDocument {
                         nosound_video: false,
                         force_file: true,

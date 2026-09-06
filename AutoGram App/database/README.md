@@ -195,3 +195,6 @@ The active desktop runtime applies the additive Forwarder bridge migrations `020
 - **Online WAL Checkpoint**: `PRAGMA wal_checkpoint(TRUNCATE);` flushes pending write buffers to disk before taking backups.
 - **Integrity Check**: Run `PRAGMA integrity_check;` to verify B-Tree and index consistency.
 - **1-Click SQL Export**: Use **Settings > Data & Storage > Database Backup** to export your full database schema and data as a standalone SQL dump.
+# Local-only remote downloads
+
+The local HTTP download panel keeps active jobs in process memory and does not modify the SQLite schema. Its Pause/Resume state is session-scoped; `remote_transfer_jobs` continues to describe the separate remote transfer recovery engine.

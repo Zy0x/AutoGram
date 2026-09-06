@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 interface HeicTiffViewerProps {
   src: string;        // local file path or blob URL or data URL
@@ -170,7 +171,15 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
 
     (async () => {
       try {
-        const resp = await fetch(src);
+        const fetchTarget =
+          src.startsWith('http://') ||
+          src.startsWith('https://') ||
+          src.startsWith('blob:') ||
+          src.startsWith('data:') ||
+          src.startsWith('asset:')
+            ? src
+            : convertFileSrc(src);
+        const resp = await fetch(fetchTarget);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const buf = await resp.arrayBuffer();
         if (cancelled) return;

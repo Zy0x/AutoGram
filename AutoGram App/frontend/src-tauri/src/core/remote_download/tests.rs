@@ -42,6 +42,8 @@ fn server(data: Arc<Vec<u8>>, mode: &'static str, slow: bool) -> Server {
             };
             let data = data.clone();
             workers.push(std::thread::spawn(move || {
+                // Windows accepted sockets inherit the listener's nonblocking mode.
+                stream.set_nonblocking(false).unwrap();
                 stream.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
                 stream.set_write_timeout(Some(Duration::from_secs(2))).unwrap();
                 let mut request = Vec::new();
@@ -65,6 +67,7 @@ fn server(data: Arc<Vec<u8>>, mode: &'static str, slow: bool) -> Server {
                     if stream.write_all(chunk).is_err() { break; }
                     if slow { std::thread::sleep(Duration::from_millis(10)); }
                 }
+                let _ = stream.shutdown(std::net::Shutdown::Write);
             }));
         }
         for worker in workers { worker.join().unwrap(); }

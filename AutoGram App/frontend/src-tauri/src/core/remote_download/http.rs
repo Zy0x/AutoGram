@@ -49,7 +49,7 @@ fn get(agent: &ureq::Agent, url: &str, range: Option<&str>, validator: Option<&s
         if let Some(validator) = validator { request = request.set("If-Range", validator); }
         let response = request.call().map_err(|e| match e {
             ureq::Error::Status(code, _) => format!("remote_download_http_{code}"),
-            _ => "remote_download_network".into(), // Never expose signed URL in error messages.
+            _ => "remote_download_network".into(), // Never expose signed URLs.
         })?;
         if (300..400).contains(&response.status()) {
             current = parsed.join(response.header("Location").ok_or("remote_download_redirect")?)

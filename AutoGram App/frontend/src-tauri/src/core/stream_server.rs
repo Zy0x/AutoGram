@@ -696,7 +696,7 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             // moov_ready is cached by upsert_entry — no disk scan on every poll.
             // Also treat as ready when tail-fetch task is in progress (MOOV will arrive from end).
             let moov_ready =
-                !is_mp4_entry(&e) || e.done || e.moov_ready_cached || e.moov_tail_fetching;
+                !is_mp4_entry(&e) || e.done || e.moov_ready_cached;
             let stream_ready = e.done || (prefix >= first_play.min(total.max(1)) && moov_ready);
             StreamStatusDto {
                 status: status.into(),
@@ -988,13 +988,13 @@ fn handle_stream(request: Request, sid: &str) {
         let start = rs;
         // bounded_response_end caps to start + 16 MB, honouring an explicit
         // end if it is smaller. Returns an exclusive endpoint.
-        let end_excl = bounded_response_end(start, re, total);
+        let end_excl = super::preview_response_policy::startup_response_end(start, bounded_response_end(start, re, total), !entry.done && is_mp4_entry(&entry));
         let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
         (start, end_incl, 206)
     } else {
         // No Range header: serve first 16 MB as 206 so browsers can
         // immediately follow up with a suffix request when needed.
-        let end_excl = bounded_response_end(0, None, total);
+        let end_excl = super::preview_response_policy::startup_response_end(0, bounded_response_end(0, None, total), !entry.done && is_mp4_entry(&entry));
         let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
         let st = if end_excl >= total { 200 } else { 206 };
         (0, end_incl, st)

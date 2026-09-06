@@ -106,3 +106,12 @@ The **Transfer Manager** oversees all network activity:
 - **Theme & Appearance**: Dark slate modern glassmorphism interface with high-contrast readability.
 - **Language**: Full bilingual support (Bahasa Indonesia & English) with 100% complete localized terminology.
 - **Database Backup & Export**: Export your SQLite transfer history and catalog metadata with 1-click JSON/SQL backups.
+# Local remote downloads and 4K MP4
+
+Choose **Local Disk Only** as the storage destination to download directly to your device, independently of Telegram. The local download panel shows the actual folder and provides Pause, Resume and Cancel for each item, including a single file. Choosing a local processing engine alone does not change a Telegram destination.
+
+Local downloads use the download concurrency setting (1–8 HTTP connections when the source supports ranges). Servers that ignore ranges use one connection. An existing destination file is never overwritten; choose a different filename. Controls and partial progress apply to the current app session, not recovery after an app restart.
+
+YouTube adaptive videos require separate video and audio downloads. **MP4 · FFmpeg** explicitly identifies a locally assembled H.264/AAC output, not an original YouTube HTTPS MP4 URL. SDR compatibility conversion preserves pixel dimensions but re-encodes video and takes additional processing time; its final size is unknown until complete. HDR source downloads remain separate and are not silently converted to SDR. Install FFmpeg and ffprobe and allow space for both inputs and the result. Pausing FFmpeg stops that processing phase; resuming starts the phase again using the already downloaded inputs.
+
+Playlist/manifest links are not offered as direct MP4 downloads. Re-inspect expired or denied source links. Download speed remains subject to source-server throttling, your network and disk throughput.
