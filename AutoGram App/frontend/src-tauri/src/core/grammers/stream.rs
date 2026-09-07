@@ -2069,6 +2069,10 @@ fn start_preview_stream_inner(
 
                 let mut cursor: u64 = 0;
                 let mut pacing = super::stream_pacing::StreamPacing::default();
+                // Startup is latency-critical. Bypass aggregate runway pacing
+                // for the same bounded demand window used after browser Range
+                // requests; all normal data-saver rules resume afterward.
+                pacing.startup(size);
 
                 while !flag.load(Ordering::SeqCst) {
                     let Some(entry) = stream_server::get_entry(&sid) else {

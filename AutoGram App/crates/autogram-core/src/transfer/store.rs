@@ -12,7 +12,7 @@ fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
-fn open() -> Result<Connection, String> {
+pub(crate) fn open() -> Result<Connection, String> {
     let path = crate::storage::resolve_migrator_db();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("create database dir: {e}"))?;
@@ -195,7 +195,80 @@ pub struct UploadLedgerMatch {
     pub payload_class: String,
 }
 
-pub fn find_upload_ledger_match(
+#[derive(Debug, Clone)]
+pub struct LedgerCandidate {
+    pub telegram_message_id: Option<i64>,
+    pub telegram_unique_id: Option<String>,
+    pub prepared_sha256: String,
+    pub filename: String,
+    pub file_size: u64,
+    pub payload_class: String,
+}
+
+pub fn load_upload_ledger_candidates(
+    conn: &rusqlite::Connection,
+    account_id: &str,
+    destination_id: &str,
+    topic_id: Option<i64>,
+    candidate_sizes: &[u64],
+) -> Result<std::collections::HashMap<u64, Vec<LedgerCandidate>>, String> {
+    let mut map: std::collections::HashMap<u64, Vec<LedgerCandidate>> = std::collections::HashMap::new();
+    if candidate_sizes.is_empty() {
+        return Ok(map);
+    }
+    let topic_key = topic_id.unwrap_or(0);
+    let mut unique_sizes: Vec<i64> = candidate_sizes
+        .iter()
+        .copied()
+        .filter(|&s| s > 0)
+        .map(|s| s as i64)
+        .collect();
+    unique_sizes.sort_unstable();
+    unique_sizes.dedup();
+
+    if unique_sizes.is_empty() {
+        return Ok(map);
+    }
+
+    for chunk in unique_sizes.chunks(400) {
+        let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let sql = format!(
+            "SELECT telegram_message_id, telegram_unique_id, prepared_sha256, filename, file_size, payload_class
+             FROM upload_ledger
+             WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND file_size IN ({placeholders})
+             ORDER BY updated_at DESC"
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare ledger candidates: {e}"))?;
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(3 + chunk.len());
+        params.push(&account_id);
+        params.push(&destination_id);
+        params.push(&topic_key);
+        for size in chunk {
+            params.push(size);
+        }
+        let rows = stmt.query_map(rusqlite::params_from_iter(params), |row| {
+            Ok(LedgerCandidate {
+                telegram_message_id: row.get(0)?,
+                telegram_unique_id: row.get(1)?,
+                prepared_sha256: row.get(2)?,
+                filename: row.get(3)?,
+                file_size: row.get::<_, i64>(4)?.max(0) as u64,
+                payload_class: row.get(5)?,
+            })
+        }).map_err(|e| format!("query ledger candidates: {e}"))?;
+
+        for row in rows {
+            if let Ok(cand) = row {
+                map.entry(cand.file_size).or_default().push(cand);
+            }
+        }
+    }
+
+    Ok(map)
+}
+
+pub fn find_upload_ledger_match_with_conn(
+    conn: &rusqlite::Connection,
     account_id: &str,
     destination_id: &str,
     topic_id: Option<i64>,
@@ -203,7 +276,6 @@ pub fn find_upload_ledger_match(
     filename: &str,
     file_size: u64,
 ) -> Result<Option<UploadLedgerMatch>, String> {
-    let conn = open()?;
     let topic_key = topic_id.unwrap_or(0);
     let exact = conn.query_row(
         "SELECT telegram_message_id, telegram_unique_id, filename, file_size, payload_class
@@ -272,6 +344,18 @@ pub fn find_upload_ledger_match(
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(error) => Err(format!("query upload ledger filename: {error}")),
     }
+}
+
+pub fn find_upload_ledger_match(
+    account_id: &str,
+    destination_id: &str,
+    topic_id: Option<i64>,
+    prepared_sha256: &str,
+    filename: &str,
+    file_size: u64,
+) -> Result<Option<UploadLedgerMatch>, String> {
+    let conn = open()?;
+    find_upload_ledger_match_with_conn(&conn, account_id, destination_id, topic_id, prepared_sha256, filename, file_size)
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -1,5 +1,12 @@
 type PlayerState = Pick<HTMLVideoElement, 'currentTime' | 'readyState' | 'paused' | 'seeking' | 'ended'>;
 
+type StartupReadiness = {
+  streamReady?: boolean;
+  moovReady?: boolean;
+  browserHasData: boolean;
+  readyState: number;
+};
+
 /** Tail islands do not provide runway at the current playback position. */
 export function measurePlayableBuffer(video: Pick<HTMLVideoElement, 'buffered' | 'currentTime' | 'duration'>) {
   let end = 0;
@@ -19,6 +26,21 @@ export function measurePlayableBuffer(video: Pick<HTMLVideoElement, 'buffered' |
 
 export function isPlaybackHealthy(video: PlayerState | null, hasData: boolean): boolean {
   return Boolean(video && !video.paused && !video.seeking && video.readyState >= 2 && video.currentTime > 0.05 && hasData);
+}
+
+/**
+ * Startup must not wait for the backend's prefix watermark. Once MP4 metadata
+ * is known, the browser can issue the first Range request and grow the normal
+ * playback buffer itself. The watermark remains useful for pacing/telemetry,
+ * but it is not an admission gate for the first frame.
+ */
+export function canStartPlayback(readiness: StartupReadiness): boolean {
+  return Boolean(
+    readiness.streamReady ||
+    readiness.moovReady ||
+    readiness.browserHasData ||
+    readiness.readyState >= 2
+  );
 }
 
 /** Seeking the same timestamp while demux/decoder initializes restarts startup. */

@@ -88,6 +88,18 @@ fn ffprobe_path() -> Option<PathBuf> {
 
 fn analyze_media_uncached(path: &Path) -> MediaAnalysis {
     let category = classify_media(path);
+    // Non-video files (images, audio, documents, archives, etc.) do NOT require ffprobe process execution.
+    if !matches!(category, MediaCategory::Mp4Video | MediaCategory::OtherVideo) {
+        return MediaAnalysis {
+            schema_version: ANALYSIS_SCHEMA_VERSION,
+            category,
+            format_name: None,
+            duration_seconds: None,
+            streams: Vec::new(),
+            probe_available: true,
+            probe_error: None,
+        };
+    }
     let Some(ffprobe) = ffprobe_path() else {
         return MediaAnalysis {
             schema_version: ANALYSIS_SCHEMA_VERSION,

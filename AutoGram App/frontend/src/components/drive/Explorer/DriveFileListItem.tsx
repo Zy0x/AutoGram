@@ -18,6 +18,8 @@ type Props = {
   onMediaDragPrime?: (file: DriveFile, e: React.PointerEvent) => void;
   /** Prefetch first ~MB so open after scroll/hover is faster */
   onWarmPreview?: () => void;
+  /** Visual highlight flash for newly uploaded/arrived items */
+  recentlyUploaded?: boolean;
 };
 
 export function getDriveFileTypeLabel(file: DriveFile, t: (key: string, opts?: any) => string): string {
@@ -99,6 +101,7 @@ function DriveFileListItemInner({
   onDragEndFile,
   onMediaDragPrime,
   onWarmPreview,
+  recentlyUploaded,
 }: Props) {
   const { t } = useTranslation();
   const clipboard = useDriveClipboard();
@@ -139,8 +142,8 @@ function DriveFileListItemInner({
       data-msg-id={file.id}
       data-drive-file="1"
       className={`td-list-row ${selected ? 'selected' : ''}${isDragSource ? ' is-dragging' : ''}${
-        isCut ? ' is-clipboard-cut' : ''
-      }${isCopy ? ' is-clipboard-copy' : ''}`}
+        recentlyUploaded ? ' is-new-upload' : ''
+      }${isCut ? ' is-clipboard-cut' : ''}${isCopy ? ' is-clipboard-copy' : ''}`}
       onMouseEnter={() => onWarmPreview?.()}
       onPointerEnter={() => onWarmPreview?.()}
       onMouseDown={(e) => {

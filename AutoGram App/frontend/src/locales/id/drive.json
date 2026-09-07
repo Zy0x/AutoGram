@@ -2279,6 +2279,7 @@
   "content_notice_reordered": "Urutan media diperbarui",
   "view_top_action": "Lihat ke Atas",
   "scroll_to_top_title": "Gulir ke berkas paling atas",
+  "dismiss_notice": "Abaikan",
   "sort_partial_badge": "{{loaded}}/{{total}}",
   "sort_partial_badge_single": "{{count}}",
   "sort_complete_badge": "✓ {{count}}",

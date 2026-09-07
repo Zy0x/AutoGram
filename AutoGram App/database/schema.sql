@@ -1,6 +1,6 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- AUTOGRAM CONSOLIDATED MASTER SQLITE DATABASE SCHEMA
--- Version: 5.2.2 (Consolidated Migrations 001 - 022)
+-- Version: 5.2.3 (Consolidated Migrations 001 - 023)
 -- Database Engine: SQLite 3.x (WAL Journaling Mode)
 -- ============================================================================
 
@@ -346,6 +346,43 @@ CREATE TABLE IF NOT EXISTS transfer_events (
     FOREIGN KEY (transfer_id) REFERENCES transfer_runs(transfer_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_transfer_events_transfer ON transfer_events(transfer_id, occurred_at ASC);
+
+CREATE TABLE IF NOT EXISTS upload_ledger (
+    ledger_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id           TEXT NOT NULL,
+    destination_id       TEXT NOT NULL,
+    topic_id             INTEGER NOT NULL DEFAULT 0,
+    telegram_message_id  INTEGER,
+    telegram_unique_id   TEXT,
+    prepared_sha256      TEXT NOT NULL,
+    filename             TEXT NOT NULL,
+    file_size            INTEGER NOT NULL,
+    payload_class        TEXT NOT NULL,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    UNIQUE(account_id, destination_id, topic_id, prepared_sha256)
+);
+CREATE INDEX IF NOT EXISTS idx_upload_ledger_message
+    ON upload_ledger(account_id, destination_id, telegram_message_id);
+CREATE INDEX IF NOT EXISTS idx_upload_ledger_unique_media
+    ON upload_ledger(account_id, destination_id, telegram_unique_id);
+CREATE INDEX IF NOT EXISTS idx_upload_ledger_filename_size
+    ON upload_ledger(account_id, destination_id, filename, file_size);
+CREATE INDEX IF NOT EXISTS idx_upload_ledger_dest_size
+    ON upload_ledger(account_id, destination_id, topic_id, file_size);
+
+CREATE TABLE IF NOT EXISTS album_commits (
+    commit_id            TEXT PRIMARY KEY,
+    transfer_id          TEXT NOT NULL,
+    compatibility_key_json TEXT NOT NULL,
+    ordered_item_indices_json TEXT NOT NULL,
+    state                TEXT NOT NULL CHECK(state IN ('PREPARED','UPLOADING','COMMITTING','UNKNOWN_COMMIT','RECONCILING','COMMITTED','FAILED','REVIEW_REQUIRED')),
+    telegram_message_ids_json TEXT,
+    last_error           TEXT,
+    attempt_count        INTEGER NOT NULL DEFAULT 0,
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL
+);
 
 -- ============================================================================
 -- 5. REMOTE TRANSFERS & RESUMABLE STREAM JOURNAL

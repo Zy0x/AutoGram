@@ -40280,40 +40280,89 @@ button.td-confirm-icon.is-back-btn:active {
 /* ══════════════════════════════════════════════════════════════════════════
    FLOATING NEW ITEMS ABOVE PILL & SORT SCOPE STATUS
    ══════════════════════════════════════════════════════════════════════════ */
-.td-floating-top-pill {
-  position: absolute;
-  top: 48px;
-  left: 50%;
-  transform: translateX(-50%);
+.td-floating-top-pill-anchor {
+  position: sticky;
+  top: 14px;
   z-index: 120;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+}
+
+.td-floating-top-pill {
+  pointer-events: auto;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 5px 8px 5px 7px;
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(56, 189, 248, 0.45);
   border-radius: 9999px;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px rgba(56, 189, 248, 0.22);
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
+  user-select: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   animation: tdPillSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .td-floating-top-pill:hover {
-  transform: translateX(-50%) translateY(-1px) scale(1.02);
+  transform: translateY(-1px) scale(1.02);
   background: rgba(30, 41, 59, 0.98);
   border-color: rgba(56, 189, 248, 0.8);
-  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.35);
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.35);
+}
+
+.td-floating-top-thumbs {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.td-floating-top-thumb-item {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(15, 23, 42, 0.95);
+  margin-left: -6px;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.td-floating-top-thumb-item:first-child {
+  margin-left: 0;
+}
+
+.td-floating-top-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.td-floating-top-thumb-icon {
+  width: 12px;
+  height: 12px;
+  color: #38bdf8;
 }
 
 .td-floating-top-icon {
   color: #38bdf8;
   animation: tdBounceUp 1.2s infinite ease-in-out;
+  flex-shrink: 0;
 }
 
 .td-floating-top-action {
@@ -40323,17 +40372,40 @@ button.td-confirm-icon.is-back-btn:active {
   border-radius: 9999px;
   font-weight: 600;
   font-size: 0.72rem;
+  margin-left: 2px;
+}
+
+.td-floating-top-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  border: none;
+  cursor: pointer;
+  padding: 0;
   margin-left: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.td-floating-top-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  transform: scale(1.1);
 }
 
 @keyframes tdPillSlideDown {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
+    transform: translateY(-10px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -40344,6 +40416,12 @@ button.td-confirm-icon.is-back-btn:active {
   50% {
     transform: translateY(-2px);
   }
+}
+
+.td-list-row.is-new-upload {
+  background: rgba(52, 211, 153, 0.12) !important;
+  border-left: 3px solid #34d399 !important;
+  animation: td-new-upload-in 420ms ease-out both;
 }
 
 /* Sort scope status chip in TopBar */

@@ -1,4 +1,4 @@
-AutoGram Version: v3.9.74
+AutoGram Version: v3.9.75
 
 Current State:
 v3.9.51 Nested Overlay Back Navigation & Cascade Collapse Elimination Architecture:

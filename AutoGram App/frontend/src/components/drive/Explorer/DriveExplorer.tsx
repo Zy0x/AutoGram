@@ -14,6 +14,7 @@ import {
   type DriveViewMode,
   type ViewPerspective,
   formatDriveBytes,
+  canShowDriveThumb,
 } from '../../../lib/telegram/driveTypes';
 import {
   filterAndSortDriveFilesPower,
@@ -21,7 +22,15 @@ import {
 } from '../../../lib/telegram';
 import { formatMediaScanHeaderInfo, type MediaScanState } from '../../../lib/telegram/mediaScanStateMachine';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
-import { isThumbsPaused, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext, getLastCacheClearTimestamp } from '../../../lib/media/thumbBatcher';
+import {
+  isThumbsPaused,
+  primeThumbsFromFileList,
+  requestVisibleThumbs,
+  switchThumbContext,
+  getLastCacheClearTimestamp,
+  getCachedThumb,
+  getCachedSaverThumb,
+} from '../../../lib/media/thumbBatcher';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -34,6 +43,7 @@ import {
 } from '../../../lib/telegram';
 import { DriveFileCard } from './DriveFileCard';
 import { DriveFileListItem } from './DriveFileListItem';
+import { NewMediaFloatingPill, type PreviewThumbItem } from './NewMediaFloatingPill';
 
 type Props = {
   files: DriveFile[];
@@ -462,6 +472,17 @@ export function DriveExplorer({
   // Floating top update indicator and anchor scroll retention
   type ContentNotice = { kind: 'added' | 'updated' | 'removed' | 'reordered'; count: number; targetId: number | null };
   const [contentNotice, setContentNotice] = useState<ContentNotice | null>(null);
+  const [highlightedNewFileIds, setHighlightedNewFileIds] = useState<Set<number>>(new Set());
+  const highlightTimerRef = useRef<number | null>(null);
+
+  const clearHighlightTimer = useCallback(() => {
+    if (highlightTimerRef.current != null) {
+      window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearHighlightTimer(), [clearHighlightTimer]);
   const snapshotOf = useCallback((items: DriveFile[]) => new Map(
     items.map((item) => [
       item.id,
@@ -551,16 +572,37 @@ export function DriveExplorer({
   const handleContentNotice = useCallback(() => {
     const el = parentRef.current;
     if (el) {
-      const targetIndex = contentNotice?.targetId == null
-        ? 0
-        : Math.max(0, displayed.findIndex((item) => item.id === contentNotice.targetId));
-      const top = viewMode === 'list'
-        ? targetIndex * LIST_ROW_H
-        : Math.floor(targetIndex / Math.max(1, cols)) * (rowHeight || 180);
-      el.scrollTo({ top, behavior: 'smooth' });
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (contentNotice?.kind === 'added' && contentNotice.count > 0) {
+      const addedIds = displayed.slice(0, contentNotice.count).map((item) => item.id);
+      if (addedIds.length > 0) {
+        setHighlightedNewFileIds(new Set(addedIds));
+        clearHighlightTimer();
+        highlightTimerRef.current = window.setTimeout(() => {
+          setHighlightedNewFileIds(new Set());
+        }, 2000);
+      }
     }
     setContentNotice(null);
-  }, [cols, contentNotice?.targetId, displayed, rowHeight, viewMode]);
+  }, [clearHighlightTimer, contentNotice, displayed]);
+
+  const previewThumbs: PreviewThumbItem[] = useMemo(() => {
+    if (!contentNotice || contentNotice.kind !== 'added') return [];
+    const count = Math.min(3, contentNotice.count);
+    const newItems = displayed.slice(0, count);
+    return newItems.map((file) => {
+      const inline = file.thumb_data_url || file.thumbDataUrl;
+      const thumbLocator = { peerId: file.peer_id, topicId: file.topic_id };
+      const cached = canShowDriveThumb(file) ? getCachedThumb(folderId, file.id, thumbLocator) : undefined;
+      const saver = (thumbQuality === 'saver' || !cached) ? getCachedSaverThumb(folderId, file.id, creds?.session, thumbLocator) : undefined;
+      return {
+        id: file.id,
+        url: inline || cached || saver || null,
+        name: file.name,
+      };
+    });
+  }, [contentNotice, displayed, folderId, creds?.session, thumbQuality]);
 
   useEffect(() => {
     console.debug('[GRID_DIAG] Explorer Mount', {
@@ -1237,20 +1279,13 @@ export function DriveExplorer({
       )}
 
       {contentNotice && (
-        <button
-          type="button"
-          className="td-floating-top-pill"
+        <NewMediaFloatingPill
+          kind={contentNotice.kind}
+          count={contentNotice.count}
+          previewThumbs={previewThumbs}
           onClick={handleContentNotice}
-          title={t('drive.scroll_to_top_title')}
-        >
-          <ArrowUp size={13} className="td-floating-top-icon" />
-          <span className="td-floating-top-text">
-            {t(`drive.content_notice_${contentNotice.kind}`, { count: contentNotice.count })}
-          </span>
-          <span className="td-floating-top-action">
-            {t('drive.view_top_action')}
-          </span>
-        </button>
+          onDismiss={() => setContentNotice(null)}
+        />
       )}
 
       {!loading && !error && displayed.length === 0 && (
@@ -1535,6 +1570,7 @@ export function DriveExplorer({
                   file={f}
                   selected={selectedSet.has(f.id)}
                   isDragSource={draggingSet.has(f.id)}
+                  recentlyUploaded={highlightedNewFileIds.has(f.id)}
                   onClick={(e) => onSelect(e, f.id)}
                   onDoubleClick={() => onOpen(f)}
                   onContextMenu={(e) => onContextMenu(e, f)}
@@ -1722,6 +1758,7 @@ export function DriveExplorer({
                   rowFiles={rowFiles}
                   selectedSet={selectedSet}
                   draggingSet={draggingSet}
+                  highlightedSet={highlightedNewFileIds}
                   creds={creds}
                   folderId={folderId}
                   renderContextKey={`${activeScrollKey}:${thumbPeerId}:${topicId ?? 'none'}`}
@@ -1755,6 +1792,7 @@ type DriveGridRowProps = {
   rowFiles: DriveFile[];
   selectedSet: Set<number>;
   draggingSet: Set<number>;
+  highlightedSet?: Set<number>;
   creds: DriveCredentials | null;
   folderId: number | null;
   renderContextKey: string;
@@ -1778,6 +1816,7 @@ const DriveGridRow = memo(function DriveGridRow({
   rowFiles,
   selectedSet,
   draggingSet,
+  highlightedSet,
   creds,
   folderId,
   renderContextKey,
@@ -1804,6 +1843,7 @@ const DriveGridRow = memo(function DriveGridRow({
           file={f}
           selected={selectedSet.has(f.id)}
           isDragSource={draggingSet.has(f.id)}
+          recentlyUploaded={highlightedSet?.has(f.id)}
           visible={visible}
           onClick={(e) => onSelect(e, f.id)}
           onDoubleClick={() => onOpen(f)}
@@ -1837,6 +1877,7 @@ const DriveGridRow = memo(function DriveGridRow({
     if (pf.id !== nf.id) return false;
     if (prev.selectedSet.has(pf.id) !== next.selectedSet.has(nf.id)) return false;
     if (prev.draggingSet.has(pf.id) !== next.draggingSet.has(nf.id)) return false;
+    if (Boolean(prev.highlightedSet?.has(pf.id)) !== Boolean(next.highlightedSet?.has(nf.id))) return false;
   }
   return true;
 });

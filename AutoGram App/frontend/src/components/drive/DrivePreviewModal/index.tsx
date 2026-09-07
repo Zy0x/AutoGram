@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import { canNudgePlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './preview/video/startupPolicy';
+import { canNudgePlayback, canStartPlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './preview/video/startupPolicy';
 import React, { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
@@ -2446,11 +2446,12 @@ export function DrivePreviewModal({
         const now = Date.now();
         const isMp4 = file.name.toLowerCase().endsWith('.mp4') || (file.mime_type && file.mime_type.toLowerCase() === 'video/mp4');
         const moovOk = !isMp4 || st.moov_ready === true || st.stream_ready === true;
-        const streamReady =
-          (st.stream_ready === true && moovOk) ||
-          browserHasData ||
-          (!!v && v.readyState >= 2) ||
-          (!!v && Number.isFinite(v.duration) && v.duration > 0 && browserHasData);
+        const streamReady = canStartPlayback({
+          streamReady: st.stream_ready === true && moovOk,
+          moovReady: st.moov_ready === true,
+          browserHasData,
+          readyState: v?.readyState ?? 0,
+        });
         nativeStreamReadyRef.current = st.stream_ready === true;
         if (
           v &&
@@ -6592,7 +6593,7 @@ export function DrivePreviewModal({
                 onPause={() => {
                   setVideoIsPlaying(false);
                   const v = videoRef.current;
-                  if (v && !v.error && !v.ended) {
+                  if (v && !v.error && !v.ended && hasUserPlayRef.current) {
                     userExplicitlyPausedRef.current = true;
                   }
                   captureVideoFrame();

@@ -517,6 +517,7 @@ fn studio_set_transfer_paused(paused: bool, transfer_id: Option<String>) -> bool
 
 #[tauri::command]
 async fn quality_preflight(
+    // High-performance preflight engine with candidate pre-filtering
     request: core::autogram_core::transfer::QualityPreflightRequest,
 ) -> Result<core::autogram_core::transfer::QualityPreflightReport, String> {
     if request.paths.is_empty() || request.paths.len() > 10_000 {
@@ -3088,6 +3089,15 @@ fn take_remote_assisted_candidates(session_id: String) -> Result<Vec<String>, St
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(debug_assertions)]
+    {
+        if std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_err() {
+            std::env::set_var(
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+                "--remote-debugging-port=9230",
+            );
+        }
+    }
     tauri::Builder::default()
         .manage(core::media_index_worker::MediaIndexJobManager::new(
             core::grammers_ops::resolve_sessions_dir(None),

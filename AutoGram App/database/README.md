@@ -1,4 +1,4 @@
-﻿# AutoGram Database Architecture & Data Dictionary Manual
+# AutoGram Database Architecture & Data Dictionary Manual
 
 This document is the definitive technical specification and operational manual for AutoGram's persistent local database layer powered by **SQLite 3.x (WAL Journaling Mode)**.
 
@@ -111,6 +111,18 @@ Oversees large batch uploads and background transfer execution:
 - `state` (TEXT): `queued`, `preparing`, `uploading`, `committing`, `completed`, `failed`, `cancelled`.
 - `phase` (TEXT): Active granular phase (`hashing`, `reencoding`, `upload_bytes`, `send_message`).
 - `bytes_uploaded` (INTEGER): Byte-exact progress counter.
+
+#### `upload_ledger`
+Ledger of uploaded files enabling sub-millisecond duplicate preflight detection and resume mapping:
+- `ledger_id` (INTEGER PK): Incremental row identifier.
+- `account_id` (TEXT): Owner Telegram account ID.
+- `destination_id` (TEXT): Target chat/channel ID.
+- `topic_id` (INTEGER): Target topic ID (defaults to 0).
+- `prepared_sha256` (TEXT): SHA-256 binary hash of the prepared asset.
+- `filename` (TEXT): Normalized filename.
+- `file_size` (INTEGER): Exact byte size of the file.
+- `payload_class` (TEXT): Payload delivery class (`native_visual`, `document_group`, etc.).
+- Indexed by `idx_upload_ledger_dest_size` on `(account_id, destination_id, topic_id, file_size)` for $O(\log N)$ zero-disk-I/O candidate pre-filtering.
 
 ---
 

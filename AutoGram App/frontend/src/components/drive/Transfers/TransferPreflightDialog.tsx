@@ -65,6 +65,26 @@ import type {
 const preflightThumbCache = new Map<string, string>();
 const preflightDurationCache = new Map<string, number>();
 
+// Concurrency limiter for video frame captures (avoids WebView decoder saturation)
+const MAX_CONCURRENT_VIDEO_THUMBS = 2;
+let activeVideoThumbs = 0;
+const videoThumbQueue: Array<() => void> = [];
+
+function pumpVideoThumbQueue() {
+  while (activeVideoThumbs < MAX_CONCURRENT_VIDEO_THUMBS && videoThumbQueue.length > 0) {
+    const next = videoThumbQueue.shift();
+    if (next) {
+      activeVideoThumbs++;
+      next();
+    }
+  }
+}
+
+function releaseVideoThumb() {
+  activeVideoThumbs = Math.max(0, activeVideoThumbs - 1);
+  pumpVideoThumbQueue();
+}
+
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const totalSec = Math.floor(seconds);
@@ -146,109 +166,133 @@ function PreflightSourceThumb({
     }
 
     let active = true;
-    const video = document.createElement('video');
-    video.preload = 'auto';
-    video.muted = true;
-    video.playsInline = true;
-    video.crossOrigin = 'anonymous';
-
+    let acquiredSlot = false;
     let cleanedUp = false;
+    let video: HTMLVideoElement | null = null;
+    let tid: ReturnType<typeof setTimeout> | null = null;
+
     const cleanup = () => {
       if (cleanedUp) return;
       cleanedUp = true;
-      try {
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
-      } catch {
-        /* ignore */
-      }
-    };
-
-    const doCapture = () => {
-      try {
-        if (!active || cleanedUp) return;
-        const vWidth = video.videoWidth;
-        const vHeight = video.videoHeight;
-        if (!vWidth || !vHeight || vWidth <= 0 || vHeight <= 0) return;
-
-        const width = Math.min(480, vWidth);
-        const height = Math.round((width * vHeight) / vWidth);
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(video, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
-          preflightThumbCache.set(rawPath, dataUrl);
-          setCapturedThumb(dataUrl);
-        }
-      } catch (err) {
-        console.warn('[Preflight] Canvas capture error:', err);
-      } finally {
-        cleanup();
-      }
-    };
-
-    const updateDuration = () => {
-      if (!active || cleanedUp) return;
-      const dur = video.duration;
-      if (Number.isFinite(dur) && dur > 0) {
-        preflightDurationCache.set(rawPath, dur);
-        setDuration(dur);
-      }
-    };
-
-    const onLoadedMetadata = () => {
-      if (!active || cleanedUp) return;
-      updateDuration();
-
-      if (!hasCachedThumb) {
-        const dur = video.duration;
-        const targetTime = Number.isFinite(dur) && dur > 0 ? Math.min(1.0, dur > 2 ? 1.0 : dur / 2) : 1.0;
+      if (tid) clearTimeout(tid);
+      if (video) {
         try {
-          video.currentTime = targetTime;
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
         } catch {
-          requestAnimationFrame(doCapture);
+          /* ignore */
         }
-      } else {
-        cleanup();
+      }
+      if (acquiredSlot) {
+        acquiredSlot = false;
+        releaseVideoThumb();
       }
     };
 
-    const onSeeked = () => {
-      if (!active || cleanedUp) return;
-      updateDuration();
-      requestAnimationFrame(doCapture);
+    const runExtraction = () => {
+      if (!active || cleanedUp) {
+        releaseVideoThumb();
+        return;
+      }
+      acquiredSlot = true;
+      video = document.createElement('video');
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+
+      const doCapture = () => {
+        try {
+          if (!active || cleanedUp || !video) return;
+          const vWidth = video.videoWidth;
+          const vHeight = video.videoHeight;
+          if (!vWidth || !vHeight || vWidth <= 0 || vHeight <= 0) return;
+
+          const width = Math.min(480, vWidth);
+          const height = Math.round((width * vHeight) / vWidth);
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(video, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (dataUrl && dataUrl.startsWith('data:image/jpeg') && dataUrl.length > 200) {
+            preflightThumbCache.set(rawPath, dataUrl);
+            setCapturedThumb(dataUrl);
+          }
+        } catch (err) {
+          console.warn('[Preflight] Canvas capture error:', err);
+        } finally {
+          cleanup();
+        }
+      };
+
+      const updateDuration = () => {
+        if (!active || cleanedUp || !video) return;
+        const dur = video.duration;
+        if (Number.isFinite(dur) && dur > 0) {
+          preflightDurationCache.set(rawPath, dur);
+          setDuration(dur);
+        }
+      };
+
+      const onLoadedMetadata = () => {
+        if (!active || cleanedUp || !video) return;
+        updateDuration();
+
+        if (!hasCachedThumb) {
+          const dur = video.duration;
+          const targetTime = Number.isFinite(dur) && dur > 0 ? Math.min(1.0, dur > 2 ? 1.0 : dur / 2) : 1.0;
+          try {
+            video.currentTime = targetTime;
+          } catch {
+            requestAnimationFrame(doCapture);
+          }
+        } else {
+          cleanup();
+        }
+      };
+
+      const onSeeked = () => {
+        if (!active || cleanedUp) return;
+        updateDuration();
+        requestAnimationFrame(doCapture);
+      };
+
+      video.addEventListener('durationchange', updateDuration);
+      video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+      video.addEventListener('loadeddata', updateDuration);
+      video.addEventListener('canplay', updateDuration);
+      video.addEventListener('seeked', onSeeked, { once: true });
+      video.addEventListener('error', cleanup, { once: true });
+
+      video.src = rawPath.startsWith('http://') || rawPath.startsWith('https://')
+        ? rawPath
+        : convertFileSrc(rawPath);
+
+      tid = setTimeout(() => {
+        if (active && !cleanedUp) {
+          if (!hasCachedThumb) doCapture();
+          cleanup();
+        }
+      }, 3000);
     };
 
-    video.addEventListener('durationchange', updateDuration);
-    video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
-    video.addEventListener('loadeddata', updateDuration);
-    video.addEventListener('canplay', updateDuration);
-    video.addEventListener('seeked', onSeeked, { once: true });
-    video.addEventListener('error', cleanup, { once: true });
-
-    video.src = rawPath.startsWith('http://') || rawPath.startsWith('https://')
-      ? rawPath
-      : convertFileSrc(rawPath);
-
-    const tid = setTimeout(() => {
-      if (active && !cleanedUp) {
-        if (!hasCachedThumb) doCapture();
-        cleanup();
-      }
-    }, 3000);
+    if (activeVideoThumbs < MAX_CONCURRENT_VIDEO_THUMBS) {
+      activeVideoThumbs++;
+      runExtraction();
+    } else {
+      videoThumbQueue.push(runExtraction);
+    }
 
     return () => {
       active = false;
-      clearTimeout(tid);
       cleanup();
     };
   }, [initialSource, isVideo, rawPath, capturedThumb, duration]);
@@ -261,6 +305,7 @@ function PreflightSourceThumb({
         <img
           src={effectiveSrc}
           alt={t('drive.preflight_source_thumb_alt')}
+          loading="lazy"
           onError={() => setImgError(true)}
         />
         {isVideo && duration != null && duration > 0 && (

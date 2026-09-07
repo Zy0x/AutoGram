@@ -10,6 +10,12 @@ pub(super) struct StreamPacing {
 }
 
 impl StreamPacing {
+    /// Give a newly-created player a short, unpaced runway. After this window
+    /// is covered, the normal data-saver/runway rules resume unchanged.
+    pub fn startup(&mut self, total_size: u64) {
+        self.demand_bounded(0, total_size);
+    }
+
     pub fn demand(&mut self, offset: u64) {
         self.demand_start = Some(offset);
         self.demand_end = Some(offset.saturating_add(DEMAND_BURST_BYTES));
@@ -114,5 +120,20 @@ mod tests {
         assert_eq!(pacing.delay_ms(&[], 15 * 1024 * 1024, 5 * 1024 * 1024, true, None), None);
         // When data saver is disabled, ahead bytes are not capped
         assert_eq!(pacing.delay_ms(&[], 40 * 1024 * 1024, 5 * 1024 * 1024, false, None), None);
+    }
+
+    #[test]
+    fn startup_burst_bypasses_runway_only_until_initial_window_is_covered() {
+        let mut pacing = StreamPacing::default();
+        pacing.startup(100 * 1024 * 1024);
+
+        assert_eq!(
+            pacing.delay_ms(&[(0, 2 * 1024 * 1024)], 2 * 1024 * 1024, 0, true, Some(350)),
+            None
+        );
+        assert_eq!(
+            pacing.delay_ms(&[(0, 8 * 1024 * 1024)], 8 * 1024 * 1024, 0, true, Some(350)),
+            Some(350)
+        );
     }
 }

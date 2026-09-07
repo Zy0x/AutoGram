@@ -2279,6 +2279,7 @@
   "content_notice_reordered": "Media order updated",
   "view_top_action": "View at Top",
   "scroll_to_top_title": "Scroll to top items",
+  "dismiss_notice": "Dismiss",
   "sort_partial_badge": "{{loaded}}/{{total}}",
   "sort_partial_badge_single": "{{count}}",
   "sort_complete_badge": "✓ {{count}}",

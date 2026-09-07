@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canNudgePlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './startupPolicy';
+import { canNudgePlayback, canStartPlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './startupPolicy';
 describe('progressive preview startup', () => {
   it('does not mistake a high tail buffer for playable startup data', () => {
     const result = measurePlayableBuffer({ currentTime: 0, duration: 100, buffered: { length: 1, start: () => 80, end: () => 100 } });
@@ -20,5 +20,9 @@ describe('progressive preview startup', () => {
     expect(isPlaybackHealthy(player, true)).toBe(false);
     expect(canNudgePlayback({ ...player, currentTime: 1, readyState: 3 })).toBe(true);
     expect(canNudgePlayback({ ...player, currentTime: 1, readyState: 3, seeking: true })).toBe(false);
+  });
+  it('starts when metadata is ready without waiting for the backend prefix watermark', () => {
+    expect(canStartPlayback({ streamReady: false, moovReady: true, browserHasData: false, readyState: 1 })).toBe(true);
+    expect(canStartPlayback({ streamReady: false, moovReady: false, browserHasData: false, readyState: 1 })).toBe(false);
   });
 });
