@@ -49,6 +49,7 @@ type Props = {
   folderId: number | null;
   contextTopicId?: number | null;
   thumbQuality?: string;
+  recentlyUploaded?: boolean;
 };
 
 function DriveFileCardInner({
@@ -71,6 +72,7 @@ function DriveFileCardInner({
   folderId,
   contextTopicId = null,
   thumbQuality,
+  recentlyUploaded: propRecentlyUploaded,
 }: Props) {
   const { t } = useTranslation();
   const canThumb = canShowDriveThumb(file);
@@ -115,6 +117,7 @@ function DriveFileCardInner({
   const [recentlyUploaded, setRecentlyUploaded] = useState(
     () => !!file.recently_uploaded_at && Date.now() - file.recently_uploaded_at < 4_000
   );
+  const isNewUpload = Boolean(propRecentlyUploaded || recentlyUploaded);
 
   const handleLongPress = useCallback(
     (_f: DriveFile, coords: { x: number; y: number }) => {
@@ -371,7 +374,7 @@ function DriveFileCardInner({
       data-topic-id={itemTopicId ?? 'all'}
       className={`td-file-card ${selected ? 'selected' : ''}${isVideo ? ' is-video' : ''}${
         dragging || isDragSource ? ' is-dragging' : ''
-      }${thumb ? ' has-thumb' : ' no-thumb'}${recentlyUploaded ? ' is-new-upload' : ''}${
+      }${thumb ? ' has-thumb' : ' no-thumb'}${isNewUpload ? ' is-new-upload' : ''}${
         isCut ? ' is-clipboard-cut' : ''
       }${isCopy ? ' is-clipboard-copy' : ''}`}
       onMouseEnter={() => onWarmPreview?.()}
