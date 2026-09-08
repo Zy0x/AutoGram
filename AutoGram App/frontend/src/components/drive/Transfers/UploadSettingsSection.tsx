@@ -18,8 +18,8 @@ export function UploadSettingsSection({ activeTab, ctx }: { activeTab: string; c
             <div
               className="td-settings-card"
               style={{
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'linear-gradient(150deg, var(--bg-card, rgba(15, 22, 36, 0.8)) 0%, var(--bg-primary, rgba(8, 12, 22, 0.95)) 100%)',
+                border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
                 borderRadius: '16px',
                 padding: '24px',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
@@ -150,8 +150,8 @@ export function UploadSettingsSection({ activeTab, ctx }: { activeTab: string; c
               className="td-settings-card"
               style={{
                 marginTop: '20px',
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'linear-gradient(150deg, var(--bg-card, rgba(15, 22, 36, 0.8)) 0%, var(--bg-primary, rgba(8, 12, 22, 0.95)) 100%)',
+                border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
                 borderRadius: '16px',
                 padding: '24px',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
@@ -611,8 +611,8 @@ export function UploadSettingsSection({ activeTab, ctx }: { activeTab: string; c
               className="td-settings-card"
               style={{
                 marginTop: '20px',
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'linear-gradient(150deg, var(--bg-card, rgba(15, 22, 36, 0.8)) 0%, var(--bg-primary, rgba(8, 12, 22, 0.95)) 100%)',
+                border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
                 borderRadius: '16px',
                 padding: '24px',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',

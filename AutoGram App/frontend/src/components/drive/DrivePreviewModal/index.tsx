@@ -7008,7 +7008,7 @@ export function DrivePreviewModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: 'linear-gradient(135deg, #1e1b4b, #311042)',
+                  background: 'linear-gradient(135deg, var(--bg-card, #1e1b4b), var(--bg-primary, #311042))',
                   border: '8px solid rgba(255, 255, 255, 0.05)',
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255,255,255,0.05)',
                   overflow: 'hidden',

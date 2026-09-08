@@ -1366,3 +1366,126 @@
   background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
 }
 
+/* ==========================================================================
+   SECTION 16: COMPLETE FORENSIC HARMONIZATION — SETTINGS CARDS, WORKSPACES, OVERLAYS & CONTROLS
+   ========================================================================== */
+
+/* 1. Transfer & Engine Settings Section Cards & Focused Panels */
+[data-palette] .td-settings-card,
+[data-palette] .td-xfer-focused-panel .td-settings-card {
+  background: linear-gradient(150deg, var(--bg-card) 0%, var(--bg-primary) 100%) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-palette] .td-hybrid-hero-presets {
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-primary) 100%) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-hero-preset-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-hero-preset-card:hover {
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-card)) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-hero-preset-card.is-selected {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, var(--bg-card) 100%) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-summary-card,
+[data-palette] .td-hybrid-check-row,
+[data-palette] .td-encoder-tile,
+[data-palette] .td-progressive-child-box,
+[data-palette] .td-slider-row {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-encoder-tile.active,
+[data-palette] .td-encoder-tile:hover {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .td-xfer-workspace-tabs {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* 2. Drag & Drop Ghost Stacks and Overlays */
+[data-palette] .td-drag-ghost,
+[data-palette] .td-drag-ghost-stack {
+  background: linear-gradient(145deg, var(--accent-primary), var(--accent-secondary)) !important;
+  color: var(--text-inverse) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+}
+
+[data-palette] .td-drop-overlay {
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-overlay)) !important;
+  border: 2px dashed var(--accent-primary) !important;
+}
+
+[data-palette] .td-drop-overlay-icon {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+}
+
+/* 3. Media Preview Toolbars, Quality Menus & Duplicate Comparison */
+[data-palette] .drive-quality-menu {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 20px color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .drive-preview-toolbar,
+[data-palette] .drive-preview-toolbar.is-image,
+[data-palette] .drive-preview-toolbar.is-video,
+[data-palette] .drive-preview-toolbar.is-other,
+[data-palette] .drive-preview-toolbar.is-text {
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--accent-primary) 8%) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .drive-preview-dup-sidebar,
+[data-palette] .drive-dup-sidebar-card,
+[data-palette] .drive-dup-bottom-nav {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .drive-dup-badge-a,
+[data-palette] .drive-dup-sidebar-badge-a {
+  background: var(--accent-primary) !important;
+  color: var(--text-inverse) !important;
+}
+
+/* 4. Local Resumable Download Floating Panel */
+[data-palette] .local-download-panel {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 24px color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+[data-palette] .local-download-panel button {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .local-download-panel button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 16%, var(--bg-card)) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .local-download-items progress {
+  accent-color: var(--accent-primary) !important;
+}

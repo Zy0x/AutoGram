@@ -38,7 +38,7 @@ function detectLanguage(filename: string, explicitLang?: string): {
     case 'ts':
     case 'cts':
     case 'mts':
-      return { lang: 'typescript', name: 'TYPESCRIPT', badgeBg: 'rgba(49, 120, 198, 0.2)', badgeColor: '#60a5fa' };
+      return { lang: 'typescript', name: 'TYPESCRIPT', badgeBg: 'color-mix(in srgb, var(--accent-primary, #3178c6) 20%, transparent)', badgeColor: 'var(--accent-primary, #60a5fa)' };
     case 'tsx':
       return { lang: 'tsx', name: 'REACT TSX', badgeBg: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)', badgeColor: 'var(--accent-primary, #38bdf8)' };
     case 'js':
@@ -50,7 +50,7 @@ function detectLanguage(filename: string, explicitLang?: string): {
     case 'py':
     case 'pyw':
     case 'pyi':
-      return { lang: 'python', name: 'PYTHON', badgeBg: 'rgba(55, 118, 171, 0.2)', badgeColor: '#93c5fd' };
+      return { lang: 'python', name: 'PYTHON', badgeBg: 'color-mix(in srgb, var(--accent-primary, #3776ab) 20%, transparent)', badgeColor: 'var(--accent-primary, #93c5fd)' };
     case 'rs':
       return { lang: 'rust', name: 'RUST', badgeBg: 'rgba(222, 165, 132, 0.2)', badgeColor: '#fca5a5' };
     case 'json':
@@ -87,7 +87,7 @@ function detectLanguage(filename: string, explicitLang?: string): {
       return { lang: 'toml', name: 'CONFIG', badgeBg: 'rgba(156, 163, 175, 0.2)', badgeColor: '#e2e8f0' };
     case 'md':
     case 'markdown':
-      return { lang: 'markdown', name: 'MARKDOWN', badgeBg: 'rgba(8, 63, 161, 0.2)', badgeColor: '#93c5fd' };
+      return { lang: 'markdown', name: 'MARKDOWN', badgeBg: 'color-mix(in srgb, var(--accent-primary, #083fa1) 20%, transparent)', badgeColor: 'var(--accent-primary, #93c5fd)' };
     case 'c':
     case 'h':
       return { lang: 'c', name: 'C', badgeBg: 'rgba(243, 75, 125, 0.2)', badgeColor: '#f472b6' };

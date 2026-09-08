@@ -480,9 +480,9 @@
 }
 
 .dzb-search-input:focus {
-  border-color: #6366f1;
-  background: rgba(30, 41, 59, 0.85);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-primary, #6366f1);
+  background: var(--bg-card, rgba(30, 41, 59, 0.85));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #6366f1) 20%, transparent);
 }
 
 .dzb-search-icon {
@@ -616,7 +616,7 @@
 }
 
 .dzb-sort-trigger-btn:focus-visible {
-  border-color: #6366f1;
+  border-color: var(--accent-primary, #6366f1);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
 
@@ -986,7 +986,7 @@
 
 .dzb-btn-load-all-media:hover:not(:disabled) {
   background: rgba(99, 102, 241, 0.28);
-  border-color: #6366f1;
+  border-color: var(--accent-primary, #6366f1);
   color: #ffffff;
   transform: translateY(-1px);
 }
@@ -1052,12 +1052,12 @@
 }
 
 .dzb-grid-card:hover .dzb-grid-card-inner {
-  border-color: #6366f1;
+  border-color: var(--accent-primary, #6366f1);
   box-shadow: 0 0 0 1px #6366f1, 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 .dzb-grid-card.selected .dzb-grid-card-inner {
-  border-color: #6366f1;
+  border-color: var(--accent-primary, #6366f1);
   box-shadow: 0 0 0 1px #6366f1, 0 8px 24px rgba(99, 102, 241, 0.35);
   background: rgba(99, 102, 241, 0.12);
 }
@@ -2126,7 +2126,7 @@
   justify-content: center;
   border-radius: 12px;
   overflow: hidden;
-  background: radial-gradient(circle, #1a2234 0%, #0c101c 100%);
+  background: radial-gradient(circle, var(--bg-card, #1a2234) 0%, var(--bg-primary, #0c101c) 100%);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 

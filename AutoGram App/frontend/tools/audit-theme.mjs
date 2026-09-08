@@ -130,6 +130,18 @@ const TARGET_ROGUE_SELECTORS = [
   'td-col-header',
   'td-col-sort-icon',
   'td-confirm-btn',
+  'td-hybrid-hero-presets',
+  'td-hero-preset-card',
+  'td-summary-card',
+  'td-hybrid-check-row',
+  'td-encoder-tile',
+  'td-drag-ghost',
+  'td-drag-ghost-stack',
+  'td-drop-overlay',
+  'td-drop-overlay-icon',
+  'drive-quality-menu',
+  'drive-preview-toolbar',
+  'local-download-panel',
 ];
 
 const ROGUE_SELECTOR_REGEX = new RegExp(`\\.(${TARGET_ROGUE_SELECTORS.join('|')})`, 'i');

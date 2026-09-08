@@ -619,7 +619,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                   position: 'relative',
                 }}
               >
-                <div style={{ fontSize: '7px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '7px', fontWeight: 700, color: 'var(--text-contrast-dark, #0f172a)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {s.title}
                 </div>
                 <div style={{ fontSize: '5.5px', color: '#64748b', overflow: 'hidden', lineHeight: '1.2' }}>
@@ -657,7 +657,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 maxWidth: '980px',
                 aspectRatio: aspectRatio === '16:9' ? '16/9' : '4/3',
                 background: '#ffffff',
-                color: '#0f172a',
+                color: 'var(--text-contrast-dark, #0f172a)',
                 borderRadius: '6px',
                 boxShadow: '0 12px 40px rgba(0, 0, 0, 0.65)',
                 position: 'relative',
@@ -744,7 +744,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                                   fontStyle: r.italic ? 'italic' : 'normal',
                                   textDecoration: r.underline ? 'underline' : 'none',
                                   fontSize: r.fontSize ? `${Math.max(12, r.fontSize * 0.85)}px` : '15px',
-                                  color: r.color || '#0f172a',
+                                  color: r.color || 'var(--text-contrast-dark, #0f172a)',
                                 }}
                               >
                                 {r.text}
@@ -758,7 +758,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 })
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>{activeSlide.title}</h1>
+                  <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-contrast-dark, #0f172a)' }}>{activeSlide.title}</h1>
                   <p style={{ fontSize: '15px', color: '#334155', whiteSpace: 'pre-wrap' }}>{activeSlide.rawText}</p>
                 </div>
               )}

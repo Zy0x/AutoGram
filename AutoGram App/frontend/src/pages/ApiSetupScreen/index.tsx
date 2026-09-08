@@ -652,7 +652,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       style={{
         minHeight: '100vh',
         width: '100vw',
-        background: 'radial-gradient(ellipse at top, #111827 0%, #060911 100%)',
+        background: 'radial-gradient(ellipse at top, var(--bg-card, #111827) 0%, var(--bg-primary, #060911) 100%)',
         color: '#f8fafc',
         display: 'flex',
         flexDirection: 'column',

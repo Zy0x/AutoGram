@@ -37,7 +37,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at center, #111827 0%, #060911 100%)',
+        background: 'radial-gradient(circle at center, var(--bg-card, #111827) 0%, var(--bg-primary, #060911) 100%)',
         color: '#f8fafc',
         userSelect: 'none',
         transition: 'opacity 0.35s ease, filter 0.35s ease',
