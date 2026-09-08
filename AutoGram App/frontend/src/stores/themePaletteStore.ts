@@ -13,6 +13,18 @@ export type ColorPaletteId =
   | 'anarchy_crimson'
   | 'vintage_amber';
 
+export type ThemeAliasId =
+  | 'crimson_velvet'
+  | 'emerald_glow'
+  | 'cyberpunk_violet'
+  | 'obsidian_slate';
+
+export type ColorSchemeMode = 'dark' | 'light' | 'system';
+export type ResolvedColorScheme = 'dark' | 'light';
+
+export const LS_COLOR_SCHEME_KEY = 'autogram_color_scheme';
+export const COLOR_SCHEME_EVENT = 'autogram:color_scheme_change';
+
 export interface ColorPaletteTokens {
   // Canvas & Panels
   '--bg-main': string;
@@ -80,7 +92,15 @@ export interface ColorPaletteDef {
   descKey?: string;
   isCurated?: boolean;
   tokens: ColorPaletteTokens;
+  tokensLight?: ColorPaletteTokens;
   previewColors: {
+    bg: string;
+    card: string;
+    accent: string;
+    secondary: string;
+    border?: string;
+  };
+  previewColorsLight?: {
     bg: string;
     card: string;
     accent: string;
@@ -203,6 +223,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       secondary: '#06b6d4',
       border: 'rgba(168, 85, 247, 0.25)',
     },
+    previewColorsLight: {
+      bg: '#f8f6ff',
+      card: '#ffffff',
+      accent: '#7e22ce',
+      secondary: '#0284c7',
+      border: '#dfd7fb',
+    },
     tokens: buildTokens({
       bgMain: '#070b14',
       bgCard: '#10192e',
@@ -240,6 +267,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       settingsAccent: '#a855f7',
       modalBg: 'rgba(10, 16, 30, 0.96)',
     }),
+    tokensLight: buildTokens({
+      bgMain: '#f8f6ff',
+      bgCard: '#ffffff',
+      bgDark: '#f8f6ff',
+      bgPanel: '#ffffff',
+      surfaceLight: '#f0ecff',
+      surfaceElevated: '#fcfaff',
+      colorAccent: '#7e22ce',
+      colorSecondary: '#0284c7',
+      primary: '#7e22ce',
+      accent: '#0284c7',
+      glowPrimary: 'rgba(126, 34, 206, 0.25)',
+      colorSecondaryCard: 'rgba(2, 132, 199, 0.10)',
+      colorSecondaryBorder: 'rgba(2, 132, 199, 0.35)',
+      textPrimary: '#180b2d',
+      textSecondary: '#4e3575',
+      badgeBg: 'rgba(126, 34, 206, 0.12)',
+      badgeText: '#7e22ce',
+      statusDot: '#7e22ce',
+      borderColor: '#dfd7fb',
+      inputFocusRing: '#7e22ce',
+      inputBg: '#ffffff',
+      tdBg: '#f8f6ff',
+      tdSurface: '#f0ecff',
+      tdTopbarBg: 'rgba(240, 236, 255, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#fcfaff',
+      tdPrimary: '#7e22ce',
+      tdBorder: '#dfd7fb',
+      tdAccentGold: '#0284c7',
+      fwBg: '#f8f6ff',
+      fwSurface: '#f0ecff',
+      fwPrimary: '#7e22ce',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#7e22ce',
+      modalBg: '#ffffff',
+    }),
   },
 
   emerald_forest: {
@@ -255,6 +319,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       secondary: '#6ee7b7',
       border: 'rgba(16, 185, 129, 0.25)',
     },
+    previewColorsLight: {
+      bg: '#f1fbf5',
+      card: '#ffffff',
+      accent: '#047857',
+      secondary: '#10b981',
+      border: '#cfead9',
+    },
     tokens: buildTokens({
       bgMain: '#040d09',
       bgCard: '#0c2118',
@@ -266,7 +337,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       colorSecondary: '#6ee7b7',
       primary: '#10b981',
       accent: '#6ee7b7',
-      glowPrimary: 'rgba(16, 185, 129, 0.45)',
+      glowPrimary: 'rgba(168, 85, 247, 0.45)',
       colorSecondaryCard: 'rgba(110, 231, 183, 0.15)',
       colorSecondaryBorder: 'rgba(110, 231, 183, 0.35)',
       textPrimary: '#ecfdf5',
@@ -292,6 +363,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       settingsAccent: '#10b981',
       modalBg: 'rgba(7, 24, 17, 0.96)',
     }),
+    tokensLight: buildTokens({
+      bgMain: '#f1fbf5',
+      bgCard: '#ffffff',
+      bgDark: '#f1fbf5',
+      bgPanel: '#ffffff',
+      surfaceLight: '#e7f7ed',
+      surfaceElevated: '#f7fdf9',
+      colorAccent: '#047857',
+      colorSecondary: '#10b981',
+      primary: '#047857',
+      accent: '#10b981',
+      glowPrimary: 'rgba(4, 120, 87, 0.25)',
+      colorSecondaryCard: 'rgba(16, 185, 129, 0.10)',
+      colorSecondaryBorder: 'rgba(16, 185, 129, 0.35)',
+      textPrimary: '#052417',
+      textSecondary: '#24583f',
+      badgeBg: 'rgba(4, 120, 87, 0.12)',
+      badgeText: '#047857',
+      statusDot: '#047857',
+      borderColor: '#cfead9',
+      inputFocusRing: '#047857',
+      inputBg: '#ffffff',
+      tdBg: '#f1fbf5',
+      tdSurface: '#e7f7ed',
+      tdTopbarBg: 'rgba(231, 247, 237, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#f7fdf9',
+      tdPrimary: '#047857',
+      tdBorder: '#cfead9',
+      tdAccentGold: '#10b981',
+      fwBg: '#f1fbf5',
+      fwSurface: '#e7f7ed',
+      fwPrimary: '#047857',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#047857',
+      modalBg: '#ffffff',
+    }),
   },
 
   luxury_gold: {
@@ -306,6 +414,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       accent: '#f59e0b',
       secondary: '#fbbf24',
       border: 'rgba(245, 158, 11, 0.25)',
+    },
+    previewColorsLight: {
+      bg: '#faf7f2',
+      card: '#ffffff',
+      accent: '#b45309',
+      secondary: '#d97706',
+      border: '#e7dfd5',
     },
     tokens: buildTokens({
       bgMain: '#08080a',
@@ -344,6 +459,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       settingsAccent: '#f59e0b',
       modalBg: 'rgba(14, 14, 19, 0.97)',
     }),
+    tokensLight: buildTokens({
+      bgMain: '#faf7f2',
+      bgCard: '#ffffff',
+      bgDark: '#faf7f2',
+      bgPanel: '#ffffff',
+      surfaceLight: '#f4efe6',
+      surfaceElevated: '#fdfbf7',
+      colorAccent: '#b45309',
+      colorSecondary: '#d97706',
+      primary: '#b45309',
+      accent: '#d97706',
+      glowPrimary: 'rgba(180, 83, 9, 0.25)',
+      colorSecondaryCard: 'rgba(217, 119, 6, 0.12)',
+      colorSecondaryBorder: 'rgba(217, 119, 6, 0.35)',
+      textPrimary: '#1c1917',
+      textSecondary: '#57534e',
+      badgeBg: 'rgba(180, 83, 9, 0.12)',
+      badgeText: '#b45309',
+      statusDot: '#b45309',
+      borderColor: '#e7dfd5',
+      inputFocusRing: '#b45309',
+      inputBg: '#ffffff',
+      tdBg: '#faf7f2',
+      tdSurface: '#f4efe6',
+      tdTopbarBg: 'rgba(244, 239, 230, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#fdfbf7',
+      tdPrimary: '#b45309',
+      tdBorder: '#e7dfd5',
+      tdAccentGold: '#d97706',
+      fwBg: '#faf7f2',
+      fwSurface: '#f4efe6',
+      fwPrimary: '#b45309',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#b45309',
+      modalBg: '#ffffff',
+    }),
   },
 
   nord_frost: {
@@ -358,6 +510,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       accent: '#38bdf8',
       secondary: '#2dd4bf',
       border: 'rgba(56, 189, 248, 0.25)',
+    },
+    previewColorsLight: {
+      bg: '#f5f7fb',
+      card: '#ffffff',
+      accent: '#0284c7',
+      secondary: '#0f766e',
+      border: '#cbd5e1',
     },
     tokens: buildTokens({
       bgMain: '#0d131d',
@@ -396,6 +555,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       settingsAccent: '#38bdf8',
       modalBg: 'rgba(16, 24, 38, 0.96)',
     }),
+    tokensLight: buildTokens({
+      bgMain: '#f5f7fb',
+      bgCard: '#ffffff',
+      bgDark: '#f5f7fb',
+      bgPanel: '#ffffff',
+      surfaceLight: '#eaf0f8',
+      surfaceElevated: '#f9fbfe',
+      colorAccent: '#0284c7',
+      colorSecondary: '#0f766e',
+      primary: '#0284c7',
+      accent: '#0f766e',
+      glowPrimary: 'rgba(2, 132, 199, 0.25)',
+      colorSecondaryCard: 'rgba(15, 118, 110, 0.10)',
+      colorSecondaryBorder: 'rgba(15, 118, 110, 0.35)',
+      textPrimary: '#0f172a',
+      textSecondary: '#334155',
+      badgeBg: 'rgba(2, 132, 199, 0.12)',
+      badgeText: '#0284c7',
+      statusDot: '#0284c7',
+      borderColor: '#cbd5e1',
+      inputFocusRing: '#0284c7',
+      inputBg: '#ffffff',
+      tdBg: '#f5f7fb',
+      tdSurface: '#eaf0f8',
+      tdTopbarBg: 'rgba(234, 240, 248, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#f9fbfe',
+      tdPrimary: '#0284c7',
+      tdBorder: '#cbd5e1',
+      tdAccentGold: '#0f766e',
+      fwBg: '#f5f7fb',
+      fwSurface: '#eaf0f8',
+      fwPrimary: '#0284c7',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#0284c7',
+      modalBg: '#ffffff',
+    }),
   },
 
   cyberpunk_matrix: {
@@ -410,6 +606,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       accent: '#10e575',
       secondary: '#00f0ff',
       border: 'rgba(16, 229, 117, 0.25)',
+    },
+    previewColorsLight: {
+      bg: '#f0fdf4',
+      card: '#ffffff',
+      accent: '#15803d',
+      secondary: '#0891b2',
+      border: '#bbf7d0',
     },
     tokens: buildTokens({
       bgMain: '#050807',
@@ -447,6 +650,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       settingsSurface: 'rgba(14, 24, 18, 0.88)',
       settingsAccent: '#10e575',
       modalBg: 'rgba(9, 16, 12, 0.97)',
+    }),
+    tokensLight: buildTokens({
+      bgMain: '#f0fdf4',
+      bgCard: '#ffffff',
+      bgDark: '#f0fdf4',
+      bgPanel: '#ffffff',
+      surfaceLight: '#dcfce7',
+      surfaceElevated: '#f0fdf4',
+      colorAccent: '#15803d',
+      colorSecondary: '#0891b2',
+      primary: '#15803d',
+      accent: '#0891b2',
+      glowPrimary: 'rgba(21, 128, 61, 0.25)',
+      colorSecondaryCard: 'rgba(8, 145, 178, 0.10)',
+      colorSecondaryBorder: 'rgba(8, 145, 178, 0.35)',
+      textPrimary: '#052e16',
+      textSecondary: '#166534',
+      badgeBg: 'rgba(21, 128, 61, 0.12)',
+      badgeText: '#15803d',
+      statusDot: '#15803d',
+      borderColor: '#bbf7d0',
+      inputFocusRing: '#15803d',
+      inputBg: '#ffffff',
+      tdBg: '#f0fdf4',
+      tdSurface: '#dcfce7',
+      tdTopbarBg: 'rgba(220, 252, 231, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#f0fdf4',
+      tdPrimary: '#15803d',
+      tdBorder: '#bbf7d0',
+      tdAccentGold: '#0891b2',
+      fwBg: '#f0fdf4',
+      fwSurface: '#dcfce7',
+      fwPrimary: '#15803d',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#15803d',
+      modalBg: '#ffffff',
     }),
   },
 
@@ -702,6 +942,13 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       secondary: '#ea580c',
       border: '#3d2020',
     },
+    previewColorsLight: {
+      bg: '#fff5f6',
+      card: '#ffffff',
+      accent: '#be123c',
+      secondary: '#e11d48',
+      border: '#f3d5da',
+    },
     tokens: buildTokens({
       bgMain: '#0d0707',
       bgCard: '#1b0f0f',
@@ -725,6 +972,43 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
       tdBg: '#0d0707',
       tdSurface: '#160b0b',
       tdPrimary: '#ef4444',
+    }),
+    tokensLight: buildTokens({
+      bgMain: '#fff5f6',
+      bgCard: '#ffffff',
+      bgDark: '#fff5f6',
+      bgPanel: '#ffffff',
+      surfaceLight: '#fdeef0',
+      surfaceElevated: '#fff8f9',
+      colorAccent: '#be123c',
+      colorSecondary: '#e11d48',
+      primary: '#be123c',
+      accent: '#e11d48',
+      glowPrimary: 'rgba(190, 18, 60, 0.25)',
+      colorSecondaryCard: 'rgba(225, 29, 72, 0.10)',
+      colorSecondaryBorder: 'rgba(225, 29, 72, 0.35)',
+      textPrimary: '#1f090e',
+      textSecondary: '#5c2834',
+      badgeBg: 'rgba(190, 18, 60, 0.12)',
+      badgeText: '#be123c',
+      statusDot: '#be123c',
+      borderColor: '#f3d5da',
+      inputFocusRing: '#be123c',
+      inputBg: '#ffffff',
+      tdBg: '#fff5f6',
+      tdSurface: '#fdeef0',
+      tdTopbarBg: 'rgba(253, 238, 240, 0.92)',
+      tdCardBg: '#ffffff',
+      tdCardHover: '#fff8f9',
+      tdPrimary: '#be123c',
+      tdBorder: '#f3d5da',
+      tdAccentGold: '#e11d48',
+      fwBg: '#fff5f6',
+      fwSurface: '#fdeef0',
+      fwPrimary: '#be123c',
+      settingsSurface: '#ffffff',
+      settingsAccent: '#be123c',
+      modalBg: '#ffffff',
     }),
   },
 
@@ -768,6 +1052,14 @@ export const COLOR_PALETTES: Record<ColorPaletteId, ColorPaletteDef> = {
   },
 };
 
+// Backward-compatibility and curated aliases mapping (without mutating COLOR_PALETTES keys)
+export const THEME_ALIASES: Record<string, ColorPaletteId> = {
+  crimson_velvet: 'anarchy_crimson',
+  emerald_glow: 'emerald_forest',
+  cyberpunk_violet: 'tokyo_midnight',
+  obsidian_slate: 'nord_frost',
+};
+
 export const PALETTES_LIST: ColorPaletteDef[] = Object.values(COLOR_PALETTES);
 
 const LS_KEY = 'autogram_color_palette';
@@ -775,9 +1067,14 @@ const EVENT_NAME = 'autogram:color_palette_change';
 
 export function getColorPalette(): ColorPaletteId {
   try {
-    const val = localStorage.getItem(LS_KEY) as ColorPaletteId;
-    if (val && Object.prototype.hasOwnProperty.call(COLOR_PALETTES, val)) {
-      return val;
+    const val = localStorage.getItem(LS_KEY);
+    if (val && typeof val === 'string') {
+      if (Object.prototype.hasOwnProperty.call(THEME_ALIASES, val)) {
+        return THEME_ALIASES[val];
+      }
+      if (Object.prototype.hasOwnProperty.call(COLOR_PALETTES, val)) {
+        return val as ColorPaletteId;
+      }
     }
   } catch {
     /* ignore */
@@ -785,57 +1082,183 @@ export function getColorPalette(): ColorPaletteId {
   return 'default';
 }
 
-export function applyColorPalette(paletteId: ColorPaletteId): void {
+let currentColorSchemeMode: ColorSchemeMode | null = null;
+let mediaQueryList: MediaQueryList | null = null;
+let mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
+
+export function getColorSchemeMode(): ColorSchemeMode {
+  if (currentColorSchemeMode) return currentColorSchemeMode;
+  try {
+    const stored = localStorage.getItem(LS_COLOR_SCHEME_KEY) as ColorSchemeMode;
+    if (stored === 'dark' || stored === 'light' || stored === 'system') {
+      currentColorSchemeMode = stored;
+      return stored;
+    }
+  } catch {
+    /* ignore */
+  }
+  currentColorSchemeMode = 'dark';
+  return 'dark';
+}
+
+export const getColorScheme = getColorSchemeMode;
+
+export function getResolvedColorScheme(): ResolvedColorScheme {
+  const mode = getColorSchemeMode();
+  if (mode === 'system') {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      try {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } catch {
+        /* ignore */
+      }
+    }
+    return 'dark';
+  }
+  return mode;
+}
+
+function ensureSystemListener(): void {
+  if (typeof window === 'undefined' || !window.matchMedia) return;
+  if (!mediaQueryList) {
+    try {
+      mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQueryListener = (e: MediaQueryListEvent) => {
+        if (getColorSchemeMode() === 'system') {
+          const resolved: ResolvedColorScheme = e.matches ? 'dark' : 'light';
+          applyColorPalette(getColorPalette());
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent(COLOR_SCHEME_EVENT, {
+                detail: { mode: 'system', resolved },
+              })
+            );
+          }
+        }
+      };
+      if (mediaQueryList.addEventListener) {
+        mediaQueryList.addEventListener('change', mediaQueryListener);
+      } else if ((mediaQueryList as any).addListener) {
+        (mediaQueryList as any).addListener(mediaQueryListener);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export function setColorSchemeMode(mode: ColorSchemeMode): void {
+  try {
+    localStorage.setItem(LS_COLOR_SCHEME_KEY, mode);
+  } catch {
+    /* ignore */
+  }
+  currentColorSchemeMode = mode;
+  ensureSystemListener();
+  applyColorPalette(getColorPalette());
+  const resolved = getResolvedColorScheme();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(COLOR_SCHEME_EVENT, { detail: { mode, resolved } })
+    );
+  }
+}
+
+export const setColorScheme = setColorSchemeMode;
+
+export function toggleColorSchemeMode(): ColorSchemeMode {
+  const current = getColorSchemeMode();
+  const next: ColorSchemeMode = current === 'dark' ? 'light' : current === 'light' ? 'system' : 'dark';
+  setColorSchemeMode(next);
+  return next;
+}
+
+export function subscribeColorScheme(
+  callback: (mode: ColorSchemeMode, resolved: ResolvedColorScheme) => void
+): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const handler = (e: Event) => {
+    const custom = e as CustomEvent<{ mode: ColorSchemeMode; resolved: ResolvedColorScheme }>;
+    if (custom?.detail) {
+      callback(custom.detail.mode, custom.detail.resolved);
+    } else {
+      callback(getColorSchemeMode(), getResolvedColorScheme());
+    }
+  };
+  window.addEventListener(COLOR_SCHEME_EVENT, handler);
+  return () => {
+    window.removeEventListener(COLOR_SCHEME_EVENT, handler);
+  };
+}
+
+export function applyColorPalette(paletteId?: ColorPaletteId): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
+  const rawId = paletteId || getColorPalette();
+  const currentId = (rawId && Object.prototype.hasOwnProperty.call(THEME_ALIASES, rawId)
+    ? THEME_ALIASES[rawId]
+    : rawId) as ColorPaletteId;
   const def =
-    paletteId && Object.prototype.hasOwnProperty.call(COLOR_PALETTES, paletteId) && COLOR_PALETTES[paletteId]?.tokens
-      ? COLOR_PALETTES[paletteId]
+    currentId && Object.prototype.hasOwnProperty.call(COLOR_PALETTES, currentId) && COLOR_PALETTES[currentId]?.tokens
+      ? COLOR_PALETTES[currentId]
       : COLOR_PALETTES.default;
 
+  const mode = getColorSchemeMode();
+  const resolved = getResolvedColorScheme();
+
   root.setAttribute('data-palette', def.id);
+  root.setAttribute('data-color-scheme', resolved);
+  root.setAttribute('data-color-scheme-mode', mode);
+  root.style.colorScheme = resolved;
+
+  // Active token set selection
+  const activeTokens = resolved === 'light' && def.tokensLight ? def.tokensLight : def.tokens;
 
   // Set all 44 defined theme tokens on root
-  Object.entries(def.tokens).forEach(([token, val]) => {
+  Object.entries(activeTokens).forEach(([token, val]) => {
     root.style.setProperty(token, val);
   });
 
   // Ensure semantic bridge tokens are explicitly guaranteed on root
-  if (!def.tokens['--accent-primary']) {
-    root.style.setProperty('--accent-primary', def.tokens['--color-accent'] || def.tokens['--primary']);
+  if (!activeTokens['--accent-primary']) {
+    root.style.setProperty('--accent-primary', activeTokens['--color-accent'] || activeTokens['--primary']);
   }
-  if (!def.tokens['--accent-secondary']) {
-    root.style.setProperty('--accent-secondary', def.tokens['--color-secondary'] || def.tokens['--accent']);
+  if (!activeTokens['--accent-secondary']) {
+    root.style.setProperty('--accent-secondary', activeTokens['--color-secondary'] || activeTokens['--accent']);
   }
-  if (!def.tokens['--accent-glow']) {
-    root.style.setProperty('--accent-glow', def.tokens['--glow-primary']);
+  if (!activeTokens['--accent-glow']) {
+    root.style.setProperty('--accent-glow', activeTokens['--glow-primary']);
   }
-  if (!def.tokens['--border-hover']) {
-    root.style.setProperty('--border-hover', def.tokens['--color-secondary-border'] || def.tokens['--border-color']);
+  if (!activeTokens['--border-hover']) {
+    root.style.setProperty('--border-hover', activeTokens['--color-secondary-border'] || activeTokens['--border-color']);
   }
-  if (!def.tokens['--border-default']) {
-    root.style.setProperty('--border-default', def.tokens['--border-color']);
+  if (!activeTokens['--border-default']) {
+    root.style.setProperty('--border-default', activeTokens['--border-color']);
   }
-  if (!def.tokens['--bg-sidebar']) {
-    root.style.setProperty('--bg-sidebar', def.tokens['--td-surface'] || def.tokens['--bg-panel']);
+  if (!activeTokens['--bg-sidebar']) {
+    root.style.setProperty('--bg-sidebar', activeTokens['--td-surface'] || activeTokens['--bg-panel']);
   }
-  if (!def.tokens['--bg-elevated']) {
-    root.style.setProperty('--bg-elevated', def.tokens['--surface-elevated']);
+  if (!activeTokens['--bg-elevated']) {
+    root.style.setProperty('--bg-elevated', activeTokens['--surface-elevated']);
   }
-  if (!def.tokens['--bg-modal']) {
-    root.style.setProperty('--bg-modal', def.tokens['--modal-bg']);
+  if (!activeTokens['--bg-modal']) {
+    root.style.setProperty('--bg-modal', activeTokens['--modal-bg']);
   }
-  if (!def.tokens['--text-inverse']) {
+  if (!activeTokens['--text-inverse']) {
     root.style.setProperty('--text-inverse', '#ffffff');
   }
 }
 
-export function setColorPalette(paletteId: ColorPaletteId): void {
+export function setColorPalette(paletteId: ColorPaletteId | ThemeAliasId | string): void {
+  const canonicalId = (paletteId && Object.prototype.hasOwnProperty.call(THEME_ALIASES, paletteId)
+    ? THEME_ALIASES[paletteId as ThemeAliasId]
+    : paletteId) as ColorPaletteId;
   try {
-    localStorage.setItem(LS_KEY, paletteId);
-    applyColorPalette(paletteId);
+    localStorage.setItem(LS_KEY, canonicalId);
+    applyColorPalette(canonicalId);
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: paletteId }));
+      window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: canonicalId }));
     }
   } catch {
     /* ignore */
@@ -862,9 +1285,13 @@ export function subscribeColorPalette(callback: (paletteId: ColorPaletteId) => v
 // Auto-apply on module import in browser environment
 if (typeof window !== 'undefined') {
   try {
+    ensureSystemListener();
     applyColorPalette(getColorPalette());
     (window as any).setColorPalette = setColorPalette;
     (window as any).applyColorPalette = applyColorPalette;
+    (window as any).setColorSchemeMode = setColorSchemeMode;
+    (window as any).getColorSchemeMode = getColorSchemeMode;
+    (window as any).getResolvedColorScheme = getResolvedColorScheme;
     window.addEventListener(EVENT_NAME, (e: Event) => {
       const custom = e as CustomEvent<ColorPaletteId>;
       if (custom?.detail) {

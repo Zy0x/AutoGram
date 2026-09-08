@@ -306,5 +306,20 @@
   "palette_nord_frost_desc": "Suasana cool slate dengan aksen ice blue dingin dan kontras bersih yang nyaman di mata.",
   "palette_cyberpunk_matrix_name": "Matriks Cyberpunk",
   "palette_cyberpunk_matrix_tag": "Matriks & Kinetik",
-  "palette_cyberpunk_matrix_desc": "Nuansa dark carbon pekat dengan aksen electric lime mint dan gaya terminal futuristik."
+  "palette_cyberpunk_matrix_desc": "Nuansa dark carbon pekat dengan aksen electric lime mint dan gaya terminal futuristik.",
+  "color_scheme_title": "Mode Skema Warna",
+  "color_scheme_desc": "Pilih antara tampilan gelap, terang, atau otomatis mengikuti preferensi sistem di seluruh aplikasi.",
+  "color_scheme_dark": "Gelap",
+  "color_scheme_dark_desc": "Permukaan gelap kontras tinggi yang nyaman di mata pada pencahayaan redup.",
+  "color_scheme_light": "Terang",
+  "color_scheme_light_desc": "Permukaan terang bersih dengan keterbacaan tajam di lingkungan benderang.",
+  "color_scheme_system": "Ikuti Sistem",
+  "color_scheme_system_desc": "Menyesuaikan mode gelap atau terang secara otomatis dengan pengaturan sistem operasi Anda.",
+  "color_scheme_system_active_dark": "Aktif: Gelap",
+  "color_scheme_system_active_light": "Aktif: Terang",
+  "palette_preview_mode_dark": "Varian Gelap",
+  "palette_preview_mode_light": "Varian Terang",
+  "mode_dark": "Gelap",
+  "mode_light": "Terang",
+  "mode_system": "Ikuti Sistem"
 }

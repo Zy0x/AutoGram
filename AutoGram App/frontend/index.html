@@ -9,6 +9,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>AutoGram</title>
+    <script>
+      (function() {
+        try {
+          var mode = localStorage.getItem('autogram_color_scheme') || 'dark';
+          var resolved = mode;
+          if (mode === 'system') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          var palette = localStorage.getItem('autogram_color_palette') || 'default';
+          var root = document.documentElement;
+          root.setAttribute('data-color-scheme', resolved);
+          root.setAttribute('data-color-scheme-mode', mode);
+          root.setAttribute('data-palette', palette);
+          root.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>

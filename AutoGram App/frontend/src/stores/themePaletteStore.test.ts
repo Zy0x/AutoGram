@@ -6,6 +6,13 @@ import {
   setColorPalette,
   applyColorPalette,
   subscribeColorPalette,
+  getColorSchemeMode,
+  getResolvedColorScheme,
+  setColorSchemeMode,
+  toggleColorSchemeMode,
+  subscribeColorScheme,
+  LS_COLOR_SCHEME_KEY,
+  COLOR_SCHEME_EVENT,
   type ColorPaletteId,
   type ColorPaletteTokens,
 } from './themePaletteStore';
@@ -294,5 +301,112 @@ describe('themePaletteStore Architecture & Contracts', () => {
     setColorPalette('solar_flare');
     expect(listener).not.toHaveBeenCalledWith('solar_flare');
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('defaults colorSchemeMode to "dark" and persists mode via setColorSchemeMode', () => {
+    expect(getColorSchemeMode()).toBe('dark');
+    expect(getResolvedColorScheme()).toBe('dark');
+
+    setColorSchemeMode('light');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(LS_COLOR_SCHEME_KEY, 'light');
+    expect(getColorSchemeMode()).toBe('light');
+    expect(getResolvedColorScheme()).toBe('light');
+
+    expect(setAttributeMock).toHaveBeenCalledWith('data-color-scheme', 'light');
+    expect(setAttributeMock).toHaveBeenCalledWith('data-color-scheme-mode', 'light');
+
+    setColorSchemeMode('dark');
+    expect(getColorSchemeMode()).toBe('dark');
+    expect(getResolvedColorScheme()).toBe('dark');
+  });
+
+  it('dynamically resolves system OS preference when in "system" mode', () => {
+    (globalThis as any).window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('dark'),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+
+    expect(COLOR_SCHEME_EVENT).toBe('autogram:color_scheme_change');
+    setColorSchemeMode('system');
+    expect(getColorSchemeMode()).toBe('system');
+    expect(getResolvedColorScheme()).toBe('dark');
+
+    (globalThis as any).window.matchMedia = vi.fn().mockImplementation((_query: string) => ({
+      matches: false, // Light mode OS
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+
+    expect(getResolvedColorScheme()).toBe('light');
+  });
+
+  it('cycles colorSchemeMode cleanly via toggleColorSchemeMode', () => {
+    setColorSchemeMode('dark');
+    expect(toggleColorSchemeMode()).toBe('light');
+    expect(toggleColorSchemeMode()).toBe('system');
+    expect(toggleColorSchemeMode()).toBe('dark');
+  });
+
+  it('subscribes to color scheme changes and notifies listeners', () => {
+    const schemeListener = vi.fn();
+    const unsub = subscribeColorScheme(schemeListener);
+
+    setColorSchemeMode('light');
+    expect(schemeListener).toHaveBeenCalledWith('light', 'light');
+
+    setColorSchemeMode('dark');
+    expect(schemeListener).toHaveBeenCalledWith('dark', 'dark');
+
+    unsub();
+    setColorSchemeMode('light');
+    expect(schemeListener).toHaveBeenCalledTimes(2);
+  });
+
+  it('injects tokensLight when resolved color scheme is light', () => {
+    setColorSchemeMode('light');
+    setPropertyMock.mockClear();
+    applyColorPalette('luxury_gold');
+
+    expect(setAttributeMock).toHaveBeenCalledWith('data-color-scheme', 'light');
+    expect(setAttributeMock).toHaveBeenCalledWith('data-palette', 'luxury_gold');
+
+    // Luxury Gold light primary accent is #b45309 (Royal amber gold)
+    expect(setPropertyMock).toHaveBeenCalledWith('--color-accent', '#b45309');
+    expect(setPropertyMock).toHaveBeenCalledWith('--accent-primary', '#b45309');
+    expect(setPropertyMock).toHaveBeenCalledWith('--bg-main', '#faf7f2');
+    expect(setPropertyMock).toHaveBeenCalledWith('--bg-card', '#ffffff');
+    expect(setPropertyMock).toHaveBeenCalledWith('--text-primary', '#1c1917');
+    expect(setPropertyMock).toHaveBeenCalledWith('--text-secondary', '#57534e');
+  });
+
+  it('verifies that all curated themes provide complete tokensLight and previewColorsLight', () => {
+    const curatedThemes: ColorPaletteId[] = [
+      'luxury_gold',
+      'tokyo_midnight',
+      'emerald_forest',
+      'nord_frost',
+      'anarchy_crimson',
+    ];
+
+    for (const id of curatedThemes) {
+      const palette = COLOR_PALETTES[id];
+      expect(palette).toBeDefined();
+      expect(palette.tokensLight, `tokensLight should exist for ${id}`).toBeDefined();
+      expect(palette.previewColorsLight, `previewColorsLight should exist for ${id}`).toBeDefined();
+
+      if (palette.previewColorsLight) {
+        expect(palette.previewColorsLight.bg).toBeDefined();
+        expect(palette.previewColorsLight.card).toBeDefined();
+        expect(palette.previewColorsLight.accent).toBeDefined();
+      }
+
+      if (palette.tokensLight) {
+        expect(palette.tokensLight['--bg-main']).toBeDefined();
+        expect(palette.tokensLight['--bg-card']).toBeDefined();
+        expect(palette.tokensLight['--text-primary']).toBeDefined();
+        expect(palette.tokensLight['--accent-primary']).toBeDefined();
+      }
+    }
   });
 });

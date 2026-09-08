@@ -1,13 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Palette, Check, Sparkles } from 'lucide-react';
+import { Palette, Check, Sparkles, Sun, Moon, Monitor } from 'lucide-react';
 import {
   PALETTES_LIST,
   getColorPalette,
   setColorPalette,
   subscribeColorPalette,
+  getColorSchemeMode,
+  getResolvedColorScheme,
+  setColorSchemeMode,
+  subscribeColorScheme,
   type ColorPaletteId,
   type ColorPaletteDef,
+  type ColorSchemeMode,
+  type ResolvedColorScheme,
 } from '../../stores/themePaletteStore';
 
 type CategoryFilter = 'all' | 'curated' | 'classic';
@@ -16,11 +22,21 @@ export const ColorPaletteSection: React.FC = () => {
   const { t } = useTranslation();
   const [activePalette, setActivePalette] = useState<ColorPaletteId>(getColorPalette);
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
+  const [colorScheme, setColorSchemeState] = useState<ColorSchemeMode>(getColorSchemeMode);
+  const [resolvedScheme, setResolvedSchemeState] = useState<ResolvedColorScheme>(getResolvedColorScheme);
 
   useEffect(() => {
-    return subscribeColorPalette((newPalette) => {
+    const unsubPalette = subscribeColorPalette((newPalette) => {
       setActivePalette(newPalette);
     });
+    const unsubScheme = subscribeColorScheme((newMode, newResolved) => {
+      setColorSchemeState(newMode);
+      setResolvedSchemeState(newResolved);
+    });
+    return () => {
+      unsubPalette();
+      unsubScheme();
+    };
   }, []);
 
   const handleSelect = (id: ColorPaletteId) => {
@@ -64,6 +80,121 @@ export const ColorPaletteSection: React.FC = () => {
         {t('settings.color_palette_desc')}
       </p>
 
+      {/* COLOR SCHEME MODE SELECTOR (Tri-State: Dark, Light, System) */}
+      <div
+        style={{
+          marginBottom: '20px',
+          padding: '14px 16px',
+          borderRadius: '12px',
+          background: 'var(--bg-card, rgba(15, 23, 42, 0.4))',
+          border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary, #f8fafc)' }}>
+              {t('settings.color_scheme_title')}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
+              {t('settings.color_scheme_desc')}
+            </div>
+          </div>
+          {colorScheme === 'system' && (
+            <span
+              style={{
+                fontSize: '0.72rem',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-primary, #38bdf8)',
+                  boxShadow: '0 0 6px var(--accent-primary, #38bdf8)',
+                }}
+              />
+              {resolvedScheme === 'dark'
+                ? t('settings.color_scheme_system_active_dark')
+                : t('settings.color_scheme_system_active_light')}
+            </span>
+          )}
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label={t('settings.color_scheme_title')}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+            gap: '8px',
+          }}
+        >
+          {[
+            { id: 'dark' as const, labelKey: 'settings.color_scheme_dark', icon: Moon },
+            { id: 'light' as const, labelKey: 'settings.color_scheme_light', icon: Sun },
+            { id: 'system' as const, labelKey: 'settings.color_scheme_system', icon: Monitor },
+          ].map((mode) => {
+            const isCurrent = colorScheme === mode.id;
+            const Icon = mode.icon;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                role="radio"
+                aria-checked={isCurrent}
+                onClick={() => setColorSchemeMode(mode.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  minHeight: '44px',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: isCurrent ? 600 : 500,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.16s ease',
+                  background: isCurrent
+                    ? 'color-mix(in srgb, var(--accent-primary, var(--color-accent, #38bdf8)) 18%, var(--bg-card, rgba(15, 23, 42, 0.6)))'
+                    : 'rgba(255, 255, 255, 0.04)',
+                  color: isCurrent ? 'var(--accent-primary, var(--color-accent, #38bdf8))' : 'var(--text-secondary, #94a3b8)',
+                  border: isCurrent
+                    ? '1.5px solid var(--accent-primary, var(--color-accent, #38bdf8))'
+                    : '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
+                  boxShadow: isCurrent
+                    ? '0 2px 8px color-mix(in srgb, var(--accent-primary, var(--color-accent, #38bdf8)) 25%, transparent)'
+                    : 'none',
+                }}
+              >
+                <Icon size={16} />
+                <span>{t(mode.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* CATEGORY FILTER TABS */}
       <div
         role="tablist"
@@ -100,11 +231,11 @@ export const ColorPaletteSection: React.FC = () => {
                 transition: 'all 0.16s ease',
                 background: isCatActive
                   ? 'var(--accent-primary, var(--color-accent, var(--primary, #38bdf8)))'
-                  : 'rgba(255, 255, 255, 0.05)',
+                  : 'var(--bg-card, rgba(255, 255, 255, 0.05))',
                 color: isCatActive ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
                 border: isCatActive
                   ? '1px solid transparent'
-                  : '1px solid rgba(255, 255, 255, 0.1)',
+                  : '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
                 boxShadow: isCatActive
                   ? '0 2px 8px color-mix(in srgb, var(--accent-primary, var(--color-accent, #38bdf8)) 35%, transparent)'
                   : 'none',
@@ -118,7 +249,7 @@ export const ColorPaletteSection: React.FC = () => {
                   borderRadius: '999px',
                   background: isCatActive
                     ? 'rgba(255, 255, 255, 0.25)'
-                    : 'rgba(255, 255, 255, 0.08)',
+                    : 'var(--border-default, rgba(255, 255, 255, 0.08))',
                   color: isCatActive ? '#ffffff' : 'var(--text-muted, #64748b)',
                 }}
               >
@@ -139,7 +270,10 @@ export const ColorPaletteSection: React.FC = () => {
       >
         {filteredPalettes.map((palette) => {
           const isSelected = activePalette === palette.id;
-          const { bg, card, accent, secondary, border } = palette.previewColors;
+          const preview = (resolvedScheme === 'light' && palette.previewColorsLight)
+            ? palette.previewColorsLight
+            : palette.previewColors;
+          const { bg, card, accent, secondary, border } = preview;
 
           return (
             <button
@@ -159,7 +293,7 @@ export const ColorPaletteSection: React.FC = () => {
                   : 'var(--bg-card, rgba(15, 23, 42, 0.6))',
                 border: isSelected
                   ? `2px solid ${accent}`
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  : '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
                 boxShadow: isSelected
                   ? `0 0 18px ${accent}40, 0 4px 12px rgba(0, 0, 0, 0.4)`
                   : '0 2px 6px rgba(0, 0, 0, 0.2)',
@@ -170,13 +304,13 @@ export const ColorPaletteSection: React.FC = () => {
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.borderColor = 'var(--border-strong, rgba(255, 255, 255, 0.2))';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.borderColor = 'var(--border-default, rgba(255, 255, 255, 0.08))';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }
               }}
@@ -204,7 +338,7 @@ export const ColorPaletteSection: React.FC = () => {
                     style={{
                       fontSize: '0.88rem',
                       fontWeight: 600,
-                      color: isSelected ? '#ffffff' : 'var(--text-primary, #f8fafc)',
+                      color: isSelected && resolvedScheme !== 'light' ? '#ffffff' : 'var(--text-primary, #f8fafc)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -271,7 +405,7 @@ export const ColorPaletteSection: React.FC = () => {
                     margin: 0,
                     fontSize: '0.74rem',
                     lineHeight: 1.4,
-                    color: isSelected
+                    color: isSelected && resolvedScheme !== 'light'
                       ? 'rgba(255, 255, 255, 0.88)'
                       : 'var(--text-secondary, #94a3b8)',
                     display: '-webkit-box',
@@ -372,7 +506,7 @@ export const ColorPaletteSection: React.FC = () => {
                         width: '16px',
                         height: '2px',
                         borderRadius: '1px',
-                        background: 'rgba(255, 255, 255, 0.4)',
+                        background: resolvedScheme === 'light' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.4)',
                       }}
                     />
                     <div
@@ -465,7 +599,7 @@ export const ColorPaletteSection: React.FC = () => {
                   title={t('settings.palette_swatch_border')}
                   style={{
                     flex: 0.9,
-                    background: border || 'rgba(255, 255, 255, 0.15)',
+                    background: border || (resolvedScheme === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.15)'),
                   }}
                 />
               </div>

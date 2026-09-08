@@ -122,5 +122,10 @@
   "how_to_get_step4_desc": "Fill in the App title (e.g. AutoGram) and Short name (e.g. autogram), then click 'Create application'.",
   "how_to_get_step5_title": "5. Copy API ID & API Hash",
   "how_to_get_step5_desc": "Copy your App api_id (number) and App api_hash (32-character string) into the input fields beside.",
-  "how_to_get_tip": "Your credentials are stored securely encrypted on your local device via Encrypted Store."
+  "how_to_get_tip": "Your credentials are stored securely encrypted on your local device via Encrypted Store.",
+  "color_scheme_toggle": "Toggle Color Scheme",
+  "color_scheme_current": "Current mode: {{mode}}",
+  "color_scheme_switch_to_light": "Switch to Light Mode",
+  "color_scheme_switch_to_dark": "Switch to Dark Mode",
+  "color_scheme_switch_to_system": "Switch to System OS Mode"
 }

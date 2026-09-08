@@ -7,7 +7,8 @@
 
 /* ─── 1. CENTRAL TOKEN UNIFICATION & BIDIRECTIONAL BRIDGING ───────────────── */
 :root,
-[data-palette] {
+[data-palette],
+[data-color-scheme="dark"] {
   /* Dynamic Central Theme Token Contract Fallbacks */
   --accent-primary: var(--color-accent, var(--primary, var(--td-primary, #3b82f6)));
   --accent-secondary: var(--color-secondary, var(--accent, var(--td-accent-gold, #06b6d4)));
@@ -31,7 +32,46 @@
   --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
+[data-color-scheme="light"] {
+  --bg-main: #f8fafc;
+  --bg-sidebar: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-elevated: #f8fafc;
+  --bg-modal: #ffffff;
+  --bg-overlay: rgba(15, 23, 42, 0.48);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  --border-default: #e2e8f0;
+  --border-hover: var(--accent-primary, #b45309);
+
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 20px 48px -8px rgba(0, 0, 0, 0.18), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+}
+
+[data-color-scheme="light"] input,
+[data-color-scheme="light"] select,
+[data-color-scheme="light"] textarea,
+[data-color-scheme="light"] .input-field {
+  color-scheme: light !important;
+}
+
 /* ─── 2. TARGETED SEMANTIC SURFACE TRANSITIONS (150ms-250ms) ──────────────── */
+body,
+#root,
+.app-shell,
+.app-content,
+.settings-page,
+.td-page,
+.td-shell,
+.td-sidebar,
+.td-topbar,
+.td-card,
+.td-tools-panel,
+.modal-content,
 .theme-surface,
 .theme-card,
 .theme-card-elevated,
@@ -41,8 +81,6 @@
 .theme-text,
 .glass-panel,
 .glass-card,
-.td-sidebar,
-.td-topbar,
 .td-file-card-inner,
 .ag-forwarder-sidebar,
 .settings-section-palette,
@@ -1488,4 +1526,121 @@
 
 [data-palette] .local-download-items progress {
   accent-color: var(--accent-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   17. DUAL-VARIANT 5-THEME LIGHT MODE TOKENS & READABILITY BRIDGES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Luxury Gold (Light Variant) */
+[data-palette="luxury_gold"][data-color-scheme="light"] {
+  --bg-main: #faf7f2;
+  --bg-sidebar: #f4efe6;
+  --bg-card: #ffffff;
+  --bg-elevated: #fdfbf7;
+  --bg-modal: #ffffff;
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #78716c;
+  --border-default: #e7dfd5;
+  --border-hover: #b45309;
+  --accent-primary: #b45309;
+  --accent-secondary: #d97706;
+  --accent-glow: rgba(180, 83, 9, 0.20);
+}
+
+/* 2. Crimson Velvet (Light Variant) */
+[data-palette="crimson_velvet"][data-color-scheme="light"],
+[data-palette="anarchy_crimson"][data-color-scheme="light"] {
+  --bg-main: #fff5f6;
+  --bg-sidebar: #fdeef0;
+  --bg-card: #ffffff;
+  --bg-elevated: #fff8f9;
+  --bg-modal: #ffffff;
+  --text-primary: #1f090e;
+  --text-secondary: #5c2834;
+  --text-muted: #7a3e4c;
+  --border-default: #f3d5da;
+  --border-hover: #be123c;
+  --accent-primary: #be123c;
+  --accent-secondary: #e11d48;
+  --accent-glow: rgba(190, 18, 60, 0.20);
+}
+
+/* 3. Emerald Glow (Light Variant) */
+[data-palette="emerald_glow"][data-color-scheme="light"],
+[data-palette="emerald_forest"][data-color-scheme="light"] {
+  --bg-main: #f1fbf5;
+  --bg-sidebar: #e7f7ed;
+  --bg-card: #ffffff;
+  --bg-elevated: #f7fdf9;
+  --bg-modal: #ffffff;
+  --text-primary: #052417;
+  --text-secondary: #24583f;
+  --text-muted: #43735c;
+  --border-default: #cfead9;
+  --border-hover: #047857;
+  --accent-primary: #047857;
+  --accent-secondary: #10b981;
+  --accent-glow: rgba(4, 120, 87, 0.20);
+}
+
+/* 4. Cyberpunk Violet (Light Variant) */
+[data-palette="cyberpunk_violet"][data-color-scheme="light"],
+[data-palette="tokyo_midnight"][data-color-scheme="light"] {
+  --bg-main: #f8f6ff;
+  --bg-sidebar: #f0ecff;
+  --bg-card: #ffffff;
+  --bg-elevated: #fcfaff;
+  --bg-modal: #ffffff;
+  --text-primary: #180b2d;
+  --text-secondary: #4e3575;
+  --text-muted: #6f5796;
+  --border-default: #dfd7fb;
+  --border-hover: #7e22ce;
+  --accent-primary: #7e22ce;
+  --accent-secondary: #0284c7;
+  --accent-glow: rgba(126, 34, 206, 0.20);
+}
+
+/* 5. Obsidian Slate (Light Variant) */
+[data-palette="obsidian_slate"][data-color-scheme="light"],
+[data-palette="nord_frost"][data-color-scheme="light"] {
+  --bg-main: #f5f7fb;
+  --bg-sidebar: #eaf0f8;
+  --bg-card: #ffffff;
+  --bg-elevated: #f9fbfe;
+  --bg-modal: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-default: #cbd5e1;
+  --border-hover: #0284c7;
+  --accent-primary: #0284c7;
+  --accent-secondary: #0f766e;
+  --accent-glow: rgba(2, 132, 199, 0.20);
+}
+
+/* ─── LIGHT MODE READABILITY & SEMANTIC BRIDGES ───────────────────────────── */
+
+/* Eliminate hover:text-white failure on light surfaces */
+[data-color-scheme="light"] .hover\:text-white:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Bridge unmapped Tailwind opacity utilities */
+[data-color-scheme="light"] .bg-slate-950\/40,
+[data-color-scheme="light"] .bg-slate-950\/50,
+[data-color-scheme="light"] .bg-slate-950\/60,
+[data-color-scheme="light"] .bg-slate-800\/60 {
+  background-color: var(--bg-card) !important;
+}
+
+/* Bridge DnD Drag-and-Drop Overlay texts */
+[data-color-scheme="light"] .td-drop-overlay-title {
+  color: var(--text-primary) !important;
+}
+
+[data-color-scheme="light"] .td-drop-overlay-hint {
+  color: var(--text-secondary) !important;
 }

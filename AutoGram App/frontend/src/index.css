@@ -1,9 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+html[data-color-scheme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-color-scheme="light"] {
+  color-scheme: light;
+}
+
 html,
 body,
 :root {
-  color-scheme: dark !important;
   /* Color Palette: Deep Dark Glassmorphism (Bridged to active theme tokens) */
   --bg-dark: var(--bg-main, #0e1621);
   --bg-panel: var(--bg-card, rgba(23, 33, 43, 0.65));

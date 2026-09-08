@@ -122,5 +122,10 @@
   "how_to_get_step4_desc": "Isi App title (misal: AutoGram) dan Short name (misal: autogram), lalu klik tombol 'Create application'.",
   "how_to_get_step5_title": "5. Salin API ID & API Hash",
   "how_to_get_step5_desc": "Salin App api_id (angka) dan App api_hash (32 karakter) lalu tempel ke form di samping.",
-  "how_to_get_tip": "API Credentials disimpan secara aman dan terenkripsi pada perangkat lokal Anda via Encrypted Store."
+  "how_to_get_tip": "API Credentials disimpan secara aman dan terenkripsi pada perangkat lokal Anda via Encrypted Store.",
+  "color_scheme_toggle": "Alihkan Skema Warna",
+  "color_scheme_current": "Mode saat ini: {{mode}}",
+  "color_scheme_switch_to_light": "Beralih ke Mode Terang",
+  "color_scheme_switch_to_dark": "Beralih ke Mode Gelap",
+  "color_scheme_switch_to_system": "Beralih ke Mode Sistem OS"
 }

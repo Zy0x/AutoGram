@@ -306,5 +306,20 @@
   "palette_nord_frost_desc": "Cool slate atmosphere with crisp ice blue accents and clean contrast.",
   "palette_cyberpunk_matrix_name": "Cyberpunk Matrix",
   "palette_cyberpunk_matrix_tag": "Matrix & Kinetic",
-  "palette_cyberpunk_matrix_desc": "Dark carbon core with electric lime mint and high-contrast cyber accents."
+  "palette_cyberpunk_matrix_desc": "Dark carbon core with electric lime mint and high-contrast cyber accents.",
+  "color_scheme_title": "Color Scheme Mode",
+  "color_scheme_desc": "Choose between dark, light, or automatic system appearance across the entire application.",
+  "color_scheme_dark": "Dark",
+  "color_scheme_dark_desc": "High-contrast dark surfaces designed for comfort in low-light environments.",
+  "color_scheme_light": "Light",
+  "color_scheme_light_desc": "Clean, crisp light surfaces with optimal readability in bright daylight.",
+  "color_scheme_system": "System OS",
+  "color_scheme_system_desc": "Automatically sync appearance with your operating system display preferences.",
+  "color_scheme_system_active_dark": "Active: Dark",
+  "color_scheme_system_active_light": "Active: Light",
+  "palette_preview_mode_dark": "Dark Variant",
+  "palette_preview_mode_light": "Light Variant",
+  "mode_dark": "Dark",
+  "mode_light": "Light",
+  "mode_system": "System OS"
 }

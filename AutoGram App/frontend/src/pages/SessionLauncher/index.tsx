@@ -35,6 +35,7 @@ import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { bootstrapSecureCredentials, useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 import { useGitHubUpdater } from '../../lib/tauri/githubUpdater';
 import { subscribeColorPalette, getColorPalette } from '../../stores/themePaletteStore';
+import { QuickColorSchemeToggle } from '../../components/common/QuickColorSchemeToggle';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -388,6 +389,8 @@ export function SessionLauncher({
             <Key size={15} />
             <span style={{ whiteSpace: 'nowrap' }}>{t('nav.api_credentials_btn')}</span>
           </button>
+
+          <QuickColorSchemeToggle />
 
           <button
             type="button"

@@ -267,33 +267,54 @@
 
 .settings-page .field-hint {
   max-width: 68ch;
-  color: #a9b7c9;
+  color: var(--text-secondary, #a9b7c9);
   line-height: 1.55;
   text-wrap: pretty;
 }
 
 .settings-page .input-label {
-  color: #bdc8d6;
+  color: var(--text-primary, #bdc8d6);
   font-weight: 600;
 }
 
 .settings-page .input-field {
   min-height: 2.85rem;
-  border-color: var(--settings-border);
+  border-color: var(--border-default, var(--settings-border));
   border-radius: 10px;
-  background-color: rgba(4, 12, 22, 0.72);
-  color-scheme: dark !important;
-  color: #f8fafc;
+  background-color: var(--bg-card, rgba(4, 12, 22, 0.72));
+  color: var(--text-primary, #f8fafc);
+}
+
+[data-color-scheme="dark"] .settings-page .input-field {
+  color-scheme: dark;
+}
+
+[data-color-scheme="light"] .settings-page .input-field {
+  color-scheme: light;
+  background-color: var(--bg-card, #ffffff) !important;
+  color: var(--text-primary, #0f172a) !important;
+  border-color: var(--border-default, #cbd5e1) !important;
 }
 
 .settings-page select.input-field option,
 .settings-page .input-field option {
-  color-scheme: dark !important;
   background-color: var(--bg-card, #0b1520) !important;
-  color: #f8fafc !important;
+  color: var(--text-primary, #f8fafc) !important;
   padding: 10px 14px !important;
   font-size: 0.9rem !important;
   font-weight: 600 !important;
+}
+
+[data-color-scheme="dark"] .settings-page select.input-field option,
+[data-color-scheme="dark"] .settings-page .input-field option {
+  color-scheme: dark;
+}
+
+[data-color-scheme="light"] .settings-page select.input-field option,
+[data-color-scheme="light"] .settings-page .input-field option {
+  color-scheme: light;
+  background-color: var(--bg-card, #ffffff) !important;
+  color: var(--text-primary, #0f172a) !important;
 }
 
 .settings-page select.input-field option:checked,
@@ -301,7 +322,6 @@
 .settings-page select.input-field option:hover,
 .settings-page .input-field option:checked,
 .settings-page .input-field option:selected {
-  color-scheme: dark !important;
   background-color: var(--accent-primary, #0284c7) !important;
   background: var(--accent-primary, #0284c7) !important;
   color: #ffffff !important;
@@ -503,9 +523,9 @@
   margin-top: 0.9rem;
   padding: 0.7rem 0.8rem;
   border-radius: 10px;
-  color: #a9b7c9;
+  color: var(--text-secondary, #a9b7c9);
   font-size: 0.76rem;
-  background: rgba(3, 10, 18, 0.68);
+  background: var(--bg-card, rgba(3, 10, 18, 0.68));
 }
 
 .settings-perf-status svg,
