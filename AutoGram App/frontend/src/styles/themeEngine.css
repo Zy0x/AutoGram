@@ -1079,3 +1079,290 @@
   box-shadow: 0 20px 40px -15px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
 }
 
+/* ==========================================================================
+   SECTION 15: TOTAL UNIVERSAL HARMONIZATION — MODALS, POPOVERS, CONTROLS & TABLES
+   Comprehensive high-specificity overrides for Remote Upload, Storage Details,
+   Transfer Manager, Advanced Filter, Inputs, Tabs, Table Rows & Action Buttons.
+   ========================================================================== */
+
+/* 1. Remote Upload Modal Surfaces, Tabs & Controls */
+[data-palette] .td-confirm-panel.td-remote-upload-panel,
+[data-palette] .td-remote-upload-panel {
+  background: var(--bg-modal) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  box-shadow: 0 32px 80px -15px rgba(0, 0, 0, 0.85),
+              0 0 40px color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+[data-palette] .td-remote-head-icon {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+}
+
+[data-palette] .td-remote-tabs {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-remote-tab.active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-remote-tab.active .td-remote-tab-badge {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+  color: #ffffff !important;
+}
+
+[data-palette] .td-remote-unified-panel,
+[data-palette] .td-remote-triplet-col {
+  background: color-mix(in srgb, var(--bg-card) 75%, transparent) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-remote-triplet-col.col-delivery {
+  border-left: 2px solid var(--accent-secondary) !important;
+}
+
+[data-palette] .td-remote-triplet-col.col-engine,
+[data-palette] .td-remote-triplet-col.col-policy {
+  border-left: 2px solid var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-col-info-btn:hover,
+[data-palette] .td-remote-col-info-btn.active {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-mode-pill,
+[data-palette] .td-remote-engine-pill {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-remote-mode-pill.active,
+[data-palette] .td-remote-engine-pill.active,
+[data-palette] .td-remote-mode-pill.active.auto,
+[data-palette] .td-remote-engine-pill.mode-auto.active,
+[data-palette] .td-remote-engine-pill.mode-storage_local.active {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-remote-engine-badge.storage-local {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-dest-topic {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-dest-change-tag,
+[data-palette] .td-remote-input-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-dest-card:hover {
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-paste-action {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-paste-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 26%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 28%, transparent) !important;
+}
+
+[data-palette] .td-remote-upload-panel .td-remote-url-input,
+[data-palette] .td-remote-upload-panel .td-custom-filename-input,
+[data-palette] .td-remote-upload-panel .td-remote-batch-textarea {
+  background: color-mix(in srgb, var(--bg-card) 65%, transparent) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-remote-url-input:focus,
+[data-palette] .td-custom-filename-input:focus,
+[data-palette] .td-remote-batch-textarea:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-remote-foot {
+  background: color-mix(in srgb, var(--bg-card) 90%, #000) !important;
+  border-top: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-confirm-btn.primary,
+[data-palette] .td-remote-submit-btn,
+[data-palette] .td-tools-btn-apply {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+/* 2. Transfer Manager Floating Panel */
+[data-palette] .tm-panel {
+  background: var(--bg-modal) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 25%, var(--border-default)) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65),
+              0 0 24px color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+[data-palette] .tm-head {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .tm-dir-badge,
+[data-palette] .tm-dir-badge.up {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .tm-dir-badge.down {
+  background: color-mix(in srgb, var(--accent-secondary) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary) 35%, transparent) !important;
+  color: var(--accent-secondary) !important;
+}
+
+[data-palette] .tm-panel.active.up {
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .tm-panel.active.down {
+  border-color: var(--accent-secondary) !important;
+}
+
+/* 3. Storage & Media Details Popover & Info Badge */
+[data-palette] .td-storage-popover-card {
+  background: var(--bg-modal) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-default)) !important;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.85),
+              0 0 28px color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+}
+
+[data-palette] .td-storage-popover-head,
+[data-palette] .td-storage-breakdown-section,
+[data-palette] .td-storage-popover-footer {
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-popover-head-title .td-head-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-storage-metric-box,
+[data-palette] .td-breakdown-pill {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-cat-count,
+[data-palette] .td-popover-close-btn {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-popover-close-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .td-storage-splash-pill:hover {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-storage-info-icon.td-icon-status-syncing {
+  color: var(--accent-primary) !important;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent-primary) 45%, transparent)) !important;
+}
+
+/* 4. Drive Tools / Engine Settings & Advanced Filter */
+[data-palette] .td-tools-panel {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.75),
+              0 0 32px color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-tools-head {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-icon-wrap {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-sidebar {
+  background: color-mix(in srgb, var(--bg-sidebar) 70%, transparent) !important;
+  border-right: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-sidebar-tab.active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .td-tools-input,
+[data-palette] .td-tools-input.td-tools-date {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-input:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+}
+
+[data-palette] .td-tools-card-hint {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .td-tools-active {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-card-check {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+/* 5. Cloud Drives Explorer Table Headers, Sort Indicators & Selection */
+[data-palette] .td-col-header.is-sorted,
+[data-palette] .td-col-sort-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-list-row.selected {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+}
+
