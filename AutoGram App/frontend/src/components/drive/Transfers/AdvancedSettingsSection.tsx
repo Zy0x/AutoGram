@@ -31,15 +31,15 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <SlidersHorizontal size={18} style={{ color: '#38bdf8' }} />
+                  <SlidersHorizontal size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -176,15 +176,15 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <Download size={18} style={{ color: '#38bdf8' }} />
+                  <Download size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -210,7 +210,7 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                     downloadAnchor.remove();
                     triggerCaptionToast('📥 Konfigurasi berhasil diekspor!');
                   }}
-                  style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '8px 16px', fontSize: '12px' }}
+                  style={{ background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)', color: 'var(--accent-primary, #38bdf8)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)', padding: '8px 16px', fontSize: '12px' }}
                 >
                   <Download size={15} />
                   <span>{t('ui.generated.ekspor_konfigurasi_json_51d3bc2')}</span>
@@ -228,21 +228,20 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          try {
-                            const imported = JSON.parse(event.target?.result as string);
-                            if (imported && typeof imported === 'object') {
-                              patch(imported);
-                              triggerCaptionToast('📤 Konfigurasi berhasil diimpor!');
-                            }
-                          } catch {
-                            triggerCaptionToast('❌ Gagal membaca file JSON');
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        try {
+                          const parsed = JSON.parse(event.target?.result as string);
+                          if (parsed && typeof parsed === 'object') {
+                            patch(parsed);
+                            triggerCaptionToast('📤 Konfigurasi berhasil diimpor!');
                           }
-                        };
-                        reader.readAsText(file);
-                      }
+                        } catch {
+                          triggerCaptionToast('⚠️ Gagal membaca berkas JSON!');
+                        }
+                      };
+                      reader.readAsText(file);
                     }}
                   />
                 </label>
@@ -253,10 +252,10 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
             <div
               className="td-settings-card"
               style={{
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '20px',
                 borderRadius: '16px',
-                padding: '24px',
+                background: 'rgba(15, 23, 42, 0.55)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
               }}
             >
@@ -266,15 +265,15 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <Activity size={18} style={{ color: '#38bdf8' }} />
+                  <Activity size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>

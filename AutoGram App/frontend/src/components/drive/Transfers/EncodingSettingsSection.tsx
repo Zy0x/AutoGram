@@ -17,7 +17,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
               <div className="td-encoding-master-header">
                 <div className="td-encoding-master-head-left">
                   <div className="td-master-icon-badge">
-                    <Film size={22} style={{ color: '#38bdf8' }} />
+                    <Film size={22} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                   </div>
                   <div>
                     <div className="td-master-title-flex">
@@ -152,7 +152,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                 {/* SOFTWARE CPU SPEC DETAILS (SHOWS CONDITIONALLY WHEN SOFTWARE MODE IS SELECTED) */}
                 {currentEncoderMode === 'software' && (
                   <div className="td-conditional-box is-cpu-details">
-                    <Cpu size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                    <Cpu size={18} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
                     <div>
                       <div className="td-cpu-title">
                         <strong>{t('ui.generated.prosesor_cpu_aktif_58e1ed6')}</strong>
@@ -189,7 +189,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
               {/* INNER SECTION 2: PILAR 1 — FORMAT GAMBAR NON-STANDAR */}
               <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
                 <div className="td-card-head">
-                  <Image size={18} style={{ color: '#38bdf8' }} />
+                  <Image size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                   <div>
                     <h4>{t('drive.media_pillar_image_title')}</h4>
                     <p>{t('drive.media_pillar_image_desc')}</p>
@@ -290,7 +290,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                               const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
                               patch({ imageTranscodeScope: 'all_incompatible', imageTranscodeFormats: allImgs, imageTranscodeTarget: 'jpeg', albumIncompatImageMode: 'transcode' });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#7dd3fc', cursor: 'pointer' }}
+                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)', color: 'var(--accent-primary, #7dd3fc)', cursor: 'pointer' }}
                           >
                             {t('drive.image_transcode_select_all')}
                           </button>
@@ -341,8 +341,8 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                 gap: '6px',
                                 padding: '5px 8px',
                                 minHeight: '32px',
-                                background: isChecked ? 'rgba(56, 189, 248, 0.16)' : 'rgba(30, 41, 59, 0.4)',
-                                border: isChecked ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(51, 65, 85, 0.4)',
+                                background: isChecked ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent)' : 'rgba(30, 41, 59, 0.4)',
+                                border: isChecked ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent)' : '1px solid rgba(51, 65, 85, 0.4)',
                                 borderRadius: '6px',
                                 cursor: transferActive ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.15s ease',
@@ -368,9 +368,9 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                     albumIncompatImageMode: next.length > 0 ? 'transcode' : 'document',
                                   });
                                 }}
-                                style={{ accentColor: '#38bdf8', cursor: 'pointer' }}
+                                style={{ accentColor: 'var(--accent-primary, #38bdf8)', cursor: 'pointer' }}
                               />
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? '#7dd3fc' : '#94a3b8' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? 'var(--accent-primary, #7dd3fc)' : '#94a3b8' }}>
                                 .{ext.toUpperCase()}
                               </span>
                             </label>
@@ -420,7 +420,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
               {/* INNER SECTION 4: PILAR 3 — FORMAT VIDEO NON-MP4 */}
               <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
                 <div className="td-card-head">
-                  <Film size={18} style={{ color: '#38bdf8' }} />
+                  <Film size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                   <div>
                     <h4>{t('drive.media_pillar_video_title')}</h4>
                     <p>{t('drive.media_pillar_video_desc')}</p>

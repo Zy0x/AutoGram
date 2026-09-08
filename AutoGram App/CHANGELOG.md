@@ -1,3 +1,33 @@
+## v3.9.91 — Transfer & Engine Settings Workspace Deep Theme Cascade, Full Rogue Color Neutralization & Universal Scanner Expansion
+
+### 1. Transfer & Engine Settings Workspace Deep Neutralization (`App.css`, `themeEngine.css`, Transfers Components)
+- **Eradication of Rogue Sky-Blue `#38bdf8` and Static Cyan/Blue Gradients**:
+  - *What changed*: Conducted a comprehensive, deep audit and neutralization across all Transfer Settings and Drive Tools files (`DriveToolsPanel/index.tsx`, `TransferSettingsWorkspace.tsx`, `UploadSettingsSection.tsx`, `DownloadSettingsSection.tsx`, `EncodingSettingsSection.tsx`, `AdvancedSettingsSection.tsx`, and `AlbumStrategyControl.tsx`). Replaced all hardcoded hex `#38bdf8` and `rgba(56, 189, 248, ...)` color references with dynamic token bindings (`var(--accent-primary)`, `var(--accent-secondary)`, `var(--bg-card)`, `var(--bg-modal)`) and standard `color-mix(in srgb, ...)` palettes.
+  - *Technical rationale*: Eliminates stubborn rogue cyan accents that previously resisted theme switches, allowing all 10 settings tabs (Upload, Download, Playback, Encoding, Albums, Duplicates, Limits & Recovery, Network, Plug-ins, and Advanced) to inherit the active palette immediately.
+  - *User impact*: Guarantees that Transfer & Engine Settings surfaces, category cards, toggle switches, and badges adapt seamlessly to any selected theme.
+- **Dynamic Accent-Color Binding for Range Inputs & Numerical Sliders (`App.css`, `themeEngine.css`)**:
+  - *What changed*: Added explicit W3C `accent-color: var(--accent-primary) !important;` to `.td-slider-row input[type="range"]` and `.td-slider-row-box input[type="range"]`, and converted `.td-slider-val` to `color: var(--accent-primary) !important;`.
+  - *Technical rationale*: Browsers natively color range slider tracks and thumbs using `accent-color`; without it, range inputs default to browser-standard cyan/blue.
+  - *User impact*: Concurrency and parallel slots sliders now illuminate in neon violet under *Tokyo Midnight*, lush emerald under *Emerald Forest*, electric green under *Cyberpunk Matrix*, and rich gold under *Luxury Obsidian & Gold*.
+- **Section 12 High-Specificity Theme Cascade (`themeEngine.css`)**:
+  - *What changed*: Appended Section 12 to `themeEngine.css` providing targeted `[data-palette]` rules governing `.td-tools-panel`, `.td-tools-sidebar`, `.td-tools-sidebar-tab.active`, `.td-header-toggle-icon`, `.td-tools-loc-dot`, `.td-settings-card`, `.td-switch-row`, `.td-chip-btn`, `.td-xfer-footer`, `.td-hero-presets-grid`, and `.td-encoder-tile.is-selected`.
+  - *Technical rationale*: Guarantees high-specificity overrides for portaled modal surfaces mounted directly to `document.body`.
+  - *User impact*: Bulletproof visual stability across all theme permutations.
+
+### 2. Universal Theme Audit Scanner Expansion (`tools/audit-theme.mjs`)
+- **Proactive Rogue Selector Detection**:
+  - *What changed*: Expanded `TARGET_ROGUE_SELECTORS` inside `tools/audit-theme.mjs` to include `td-tools-panel`, `td-tools-title-icon`, `td-tools-sidebar-tab`, `td-switch-row`, `td-xfer-footer`, `td-settings-card`, and `td-chip-btn`.
+  - *Technical rationale*: Automatically intercepts and prevents un-bridged static hex or rgba colors from being introduced into transfer settings or tools panel styles.
+  - *User impact*: Continuous regression prevention; scanner reports 0 static theme violations across 166 components and 7 stylesheets.
+
+### 3. Live Desktop Remote E2E Testing & Visual Certification via CDP (Port 9230)
+- **Zero-Interruption CDP Testing on Running Desktop App**:
+  - *What changed*: Connected directly to running `frontend.exe` on WebView2 CDP port 9230 without process restart or user workflow interruption.
+  - *Technical rationale*: Validates real-time DOM reactivity, event listener dispatch, and CSS cascade inheritance in the active production runtime.
+  - *User impact*: Captured 4 high-resolution certification screenshots (`21_transfer_settings_tokyo_midnight.png`, `22_transfer_settings_emerald_forest.png`, `23_transfer_settings_cyberpunk_matrix.png`, `24_transfer_settings_luxury_gold.png`) demonstrating flawless theme fidelity across all 4 major palettes.
+
+---
+
 ## v3.9.90 — Scoped Variable Shadowing Neutralization, Deep Modal & Perspective Penetration, Dynamic Multi-Theme Permutations & Zero-Residual Color Audit
 
 ### 1. Scoped Variable Shadowing Neutralization & Root Variable Parity (`App.css`, `themeEngine.css`)

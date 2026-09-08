@@ -81,6 +81,13 @@ const TARGET_ROGUE_SELECTORS = [
   'ag-forwarder-tab',
   'ag-forwarder-badge',
   'ms-action-chip',
+  'td-tools-panel',
+  'td-tools-title-icon',
+  'td-tools-sidebar-tab',
+  'td-switch-row',
+  'td-xfer-footer',
+  'td-settings-card',
+  'td-chip-btn',
 ];
 
 const ROGUE_SELECTOR_REGEX = new RegExp(`\\.(${TARGET_ROGUE_SELECTORS.join('|')})`, 'i');
@@ -176,13 +183,10 @@ if (totalViolations > 0) {
   console.error('[THEME LEAKAGE DETECTED] The following files contain forbidden static color patterns:');
   for (const [file, items] of violationsByFile.entries()) {
     console.error(`\n  File: ${file} (${items.length} violations)`);
-    items.slice(0, 5).forEach((v) => {
+    items.forEach((v) => {
       console.error(`    Line ${v.line} [${v.reason}]:`);
       console.error(`      ${v.content}`);
     });
-    if (items.length > 5) {
-      console.error(`    ... and ${items.length - 5} more`);
-    }
   }
   process.exit(1);
 } else {

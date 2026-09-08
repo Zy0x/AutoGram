@@ -1396,15 +1396,15 @@ export function TransferSettingsWorkspace({
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <FolderTree size={18} style={{ color: '#38bdf8' }} />
+                  <FolderTree size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -1439,10 +1439,10 @@ export function TransferSettingsWorkspace({
                   />
 
                   {/* ALBUM INCOMPATIBLE MEDIA HANDLING SYNC BANNER */}
-                  <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '12px' }}>
+                  <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div>
-                        <strong style={{ fontSize: '0.85rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <strong style={{ fontSize: '0.85rem', color: 'var(--accent-primary, #38bdf8)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Film size={16} />
                           {t('drive.album_media_hub_sync_title')}
                         </strong>
@@ -1456,10 +1456,10 @@ export function TransferSettingsWorkspace({
                         style={{
                           flexShrink: 0,
                           padding: '6px 12px',
-                          background: 'rgba(56, 189, 248, 0.15)',
-                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)',
                           borderRadius: '8px',
-                          color: '#7dd3fc',
+                          color: 'var(--accent-primary, #7dd3fc)',
                           fontSize: '0.78rem',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -1494,15 +1494,15 @@ export function TransferSettingsWorkspace({
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <CopyCheck size={18} style={{ color: '#38bdf8' }} />
+                  <CopyCheck size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -1583,7 +1583,7 @@ export function TransferSettingsWorkspace({
 
               {/* 3. COLLAPSIBLE TECHNICAL 4-LEVEL DETAILS FOR POWER USERS */}
               <details style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
-                <summary style={{ cursor: 'pointer', color: '#38bdf8', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldAlert size={16} style={{ color: '#10b981' }} />
                   {t('drive.dup_advanced_toggle')}
                 </summary>
@@ -1592,7 +1592,7 @@ export function TransferSettingsWorkspace({
                   {/* LEVEL 1 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_1')}</span>
+                      <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_1')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
                     <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level1_title')}</strong>
@@ -1602,7 +1602,7 @@ export function TransferSettingsWorkspace({
                   {/* LEVEL 2 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_2')}</span>
+                      <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_2')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
                     <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level2_title')}</strong>
@@ -1612,7 +1612,7 @@ export function TransferSettingsWorkspace({
                   {/* LEVEL 3 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_3')}</span>
+                      <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_3')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
                     <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level3_title')}</strong>
@@ -1622,7 +1622,7 @@ export function TransferSettingsWorkspace({
                   {/* LEVEL 4 */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_4')}</span>
+                      <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_4')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
                     <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level4_title')}</strong>
@@ -1676,7 +1676,7 @@ export function TransferSettingsWorkspace({
                   </div>
                   <div className="td-plugin-status-runtime-row">
                     <span>{t('drive_tools.ytdlp_runtime_status')}:</span>
-                    <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : '#38bdf8' }}>
+                    <strong style={{ color: ytdlpStatus?.error ? '#f87171' : ytdlpStatus?.installed ? '#4ade80' : 'var(--accent-primary, #38bdf8)' }}>
                       {ytdlpBusy ? t('drive_tools.ytdlp_runtime_checking') : ytdlpStatus?.error
                         ? t('drive_tools.ytdlp_runtime_error', { error: ytdlpStatus.error })
                         : ytdlpStatus?.installed
@@ -1852,9 +1852,9 @@ export function TransferSettingsWorkspace({
               disabled={!!transferActive}
               title={t('ui.generated.kembalikan_pengaturan_pada_bagian_ini_ke_default_2ce753b')}
               style={{
-                borderColor: 'rgba(56, 189, 248, 0.35)',
-                color: '#38bdf8',
-                background: 'rgba(56, 189, 248, 0.08)',
+                borderColor: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)',
               }}
             >
               <RotateCcw size={13} />

@@ -1114,8 +1114,8 @@ function DupTab({
       <div
         className="td-tools-dup-hero"
         style={{
-          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
-          border: '1px solid rgba(56, 189, 248, 0.18)',
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 10%, transparent) 0%, rgba(15, 23, 42, 0.7) 100%)',
+          border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent)',
           borderRadius: '12px',
           padding: '12px 16px',
           display: 'flex',
@@ -1129,7 +1129,7 @@ function DupTab({
           <div className="td-tools-dup-metrics" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.grup_duplikat_77084e6')}</span>
-              <strong style={{ fontSize: '1.15rem', color: '#38bdf8', fontWeight: 800 }}>{filteredGroups.length}</strong>
+              <strong style={{ fontSize: '1.15rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 800 }}>{filteredGroups.length}</strong>
             </div>
 
             <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
@@ -1213,7 +1213,7 @@ function DupTab({
         {/* PROGRESS BAR & FLOODWAIT INDICATOR */}
         {isScanning && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
               <span>{t('drive.duplicate_shared_index_progress', {
                 processed: scanProgress.processed.toLocaleString('id-ID'),
                 total: scanProgressTotal.toLocaleString('id-ID'),
@@ -1225,7 +1225,7 @@ function DupTab({
                 style={{
                   width: `${scanProgressPct}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)',
+                  background: 'linear-gradient(90deg, var(--accent-primary, #38bdf8) 0%, color-mix(in srgb, var(--accent-secondary, var(--accent-primary, #0284c7)) 75%, #000) 100%)',
                   borderRadius: '3px',
                   transition: 'width 0.2s ease',
                 }}
@@ -1253,7 +1253,7 @@ function DupTab({
               padding: 0,
             }}
           >
-            <Settings2 size={13} style={{ color: '#38bdf8' }} />
+            <Settings2 size={13} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
             <span>{t('ui.generated.pengaturan_modus_deteksi_level_1_4_b3f0a32')}</span>
             {showModeSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
@@ -1298,9 +1298,9 @@ function DupTab({
                   borderRadius: '6px',
                   fontSize: '0.75rem',
                   fontWeight: dupMode === m.id ? 700 : 500,
-                  background: dupMode === m.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  border: dupMode === m.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: dupMode === m.id ? '#38bdf8' : '#cbd5e1',
+                  background: dupMode === m.id ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'rgba(255, 255, 255, 0.04)',
+                  border: dupMode === m.id ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  color: dupMode === m.id ? 'var(--accent-primary, #38bdf8)' : '#cbd5e1',
                   cursor: 'pointer',
                 }}
               >
@@ -1326,7 +1326,7 @@ function DupTab({
               padding: '7px 32px 7px 30px',
               borderRadius: '9px',
               background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
               color: '#f8fafc',
               fontSize: '0.8rem',
               outline: 'none',
@@ -1448,9 +1448,9 @@ function DupTab({
                 gap: '5px',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                color: '#38bdf8',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
                 fontWeight: 700,
                 fontSize: '0.78rem',
                 cursor: 'pointer',
@@ -1504,7 +1504,7 @@ function DupTab({
             padding: '48px 24px',
             textAlign: 'center',
             background: 'rgba(15, 23, 42, 0.4)',
-            border: '1px border-dashed rgba(56, 189, 248, 0.18)',
+            border: '1px border-dashed color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
             borderRadius: '16px',
             margin: 'auto 0',
           }}

@@ -622,3 +622,179 @@
   background: var(--accent-primary) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   12. TRANSFER & ENGINE SETTINGS WORKSPACE & DRIVE TOOLS PANEL DEEP CASCADE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Main Overlay and Modal Container */
+[data-palette] .td-tools-overlay {
+  background: var(--bg-overlay, rgba(2, 6, 14, 0.84)) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified {
+  background: radial-gradient(circle at 50% 10%, var(--bg-card) 0%, var(--bg-main) 100%) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: var(--shadow-modal, 0 24px 64px -16px rgba(0, 0, 0, 0.85)) !important;
+}
+
+/* Header Elements */
+[data-palette] .td-tools-panel.is-unified .td-tools-head {
+  border-bottom-color: var(--border-default) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-title-icon {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 38%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-title-icon svg {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-title-text h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sub {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-header-search-box {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-header-search-box:focus-within {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+}
+
+/* Tools Sidebar & Tabs */
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right-color: var(--border-default) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-header {
+  color: var(--text-muted) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab.active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: inset 3px 0 var(--accent-primary), 0 2px 10px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab.active svg {
+  color: var(--accent-primary) !important;
+}
+
+/* Settings Cards, Subcards & Focused Panels */
+[data-palette] .td-settings-card,
+[data-palette] .td-xfer-focused-panel .td-settings-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-settings-subcard {
+  background: color-mix(in srgb, var(--bg-main) 60%, transparent) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-xfer-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* Switches & Toggles */
+[data-palette] .td-switch-row {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-switch-row input[type="checkbox"]:checked {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent-primary) 80%, #000) 0%,
+    var(--accent-primary) 100%
+  ) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+}
+
+/* Floating Dock & Footer */
+[data-palette] .td-tools-dup-dock,
+[data-palette] .td-xfer-footer {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-xfer-footer button.td-chip-btn:not(.td-chip-primary) {
+  color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+[data-palette] .td-xfer-footer button.td-chip-btn:not(.td-chip-primary):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-xfer-footer button.td-chip-btn.td-chip-primary {
+  background: linear-gradient(135deg,
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-secondary, var(--accent-primary)) 75%, #000) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent) !important;
+  color: var(--text-inverse, #ffffff) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+/* Duplicates Hero Banner & Highlights */
+[data-palette] .td-tools-dup-hero {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent-primary) 10%, transparent) 0%,
+    var(--bg-card) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, transparent) !important;
+}
+
+[data-palette] .td-encoder-tile.is-selected {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+/* Range Sliders, Values & Preset Badges */
+[data-palette] input[type="range"] {
+  accent-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-slider-val {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-hero-preset-card.is-selected {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-preset-badge {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-loc-dot {
+  background: var(--accent-primary) !important;
+  box-shadow: 0 0 6px var(--accent-primary) !important;
+}

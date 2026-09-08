@@ -118,7 +118,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
       <div>
         <div style={{ marginBottom: '10px' }}>
           <label className="td-field-label" style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={16} style={{ color: '#38bdf8' }} />
+            <Layers size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
             {t('drive.album_strategy_title')}
           </label>
           <p className="td-xfer-hint" style={{ marginTop: '2px', fontSize: '0.76rem' }}>
@@ -136,8 +136,8 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               position: 'relative',
               cursor: 'pointer',
               borderRadius: '10px',
-              border: currentStrategy === 'smart_adaptive' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: currentStrategy === 'smart_adaptive' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(15, 23, 42, 0.4)',
+              border: currentStrategy === 'smart_adaptive' ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: currentStrategy === 'smart_adaptive' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)' : 'rgba(15, 23, 42, 0.4)',
               transition: 'all 0.15s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -146,7 +146,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
           >
             {/* Title Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <Sparkles size={16} className="td-tile-icon is-auto" style={{ color: '#38bdf8' }} />
+              <Sparkles size={16} className="td-tile-icon is-auto" style={{ color: 'var(--accent-primary, #38bdf8)' }} />
               <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                 {t('drive.album_strategy_smart')}
               </strong>
@@ -396,19 +396,19 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   style={{
                     background:
                       activeOverlay === 'smart'
-                        ? 'rgba(56, 189, 248, 0.15)'
+                        ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)'
                         : activeOverlay === 'custom'
                         ? 'rgba(168, 85, 247, 0.15)'
                         : 'rgba(245, 158, 11, 0.15)',
                     borderColor:
                       activeOverlay === 'smart'
-                        ? 'rgba(56, 189, 248, 0.35)'
+                        ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)'
                         : activeOverlay === 'custom'
                         ? 'rgba(168, 85, 247, 0.35)'
                         : 'rgba(245, 158, 11, 0.35)',
                   }}
                 >
-                  {activeOverlay === 'smart' && <Sparkles size={18} style={{ color: '#38bdf8' }} />}
+                  {activeOverlay === 'smart' && <Sparkles size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />}
                   {activeOverlay === 'custom' && <Sliders size={18} style={{ color: '#c084fc' }} />}
                   {activeOverlay === 'warning' && <AlertTriangle size={18} style={{ color: '#fbbf24' }} />}
                 </div>
@@ -445,14 +445,14 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   </p>
                   <div
                     style={{
-                      background: 'rgba(56, 189, 248, 0.08)',
-                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                       borderRadius: '10px',
                       padding: '12px 14px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      color: '#38bdf8',
+                      color: 'var(--accent-primary, #38bdf8)',
                       fontSize: '0.78rem',
                       fontWeight: 600,
                     }}

@@ -9709,16 +9709,16 @@ body:has(.app-layout-drive-focus),
 
 /* Primary Action: Pindah / Move */
 .td-topbar-row-2 .td-selection-strip-right .td-chip-btn.primary {
-  background: rgba(14, 165, 233, 0.2);
-  border: 1px solid rgba(56, 189, 248, 0.5);
-  color: #7dd3fc;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 50%, transparent);
+  color: var(--accent-primary, #60a5fa);
   font-weight: 700;
 }
 .td-topbar-row-2 .td-selection-strip-right .td-chip-btn.primary:hover:not(:disabled) {
-  background: rgba(14, 165, 233, 0.36);
-  border-color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 36%, transparent);
+  border-color: var(--accent-primary, #3b82f6);
   color: #f0f9ff;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent);
 }
 
 /* Neutral Action: Download */
@@ -10724,14 +10724,14 @@ body:has(.app-layout-drive-focus),
   cursor: not-allowed;
 }
 .td-chip-btn.primary {
-  background: rgba(14, 165, 233, 0.22);
-  border-color: rgba(56, 189, 248, 0.55);
-  color: #7dd3fc;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 55%, transparent);
+  color: var(--accent-primary, #60a5fa);
   font-weight: 700;
 }
 .td-chip-btn.primary:hover:not(:disabled) {
-  background: rgba(14, 165, 233, 0.38);
-  border-color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 38%, transparent);
+  border-color: var(--accent-primary, #3b82f6);
   color: #e0f2fe;
 }
 .td-chip-btn.danger {
@@ -13285,7 +13285,7 @@ section.docx *,
 .td-slider-val {
   font-size: 0.85rem;
   font-weight: 750;
-  color: #38bdf8;
+  color: var(--accent-primary, #38bdf8);
   min-width: 70px;
 }
 
@@ -13865,7 +13865,7 @@ section.docx *,
 }
 .td-switch-row:hover {
   background: rgba(30, 41, 59, 0.65);
-  border-color: rgba(56, 189, 248, 0.3);
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent);
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
@@ -13911,9 +13911,9 @@ section.docx *,
 }
 
 .td-switch-row input[type="checkbox"]:checked {
-  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  background: var(--accent-primary, #3b82f6);
+  border-color: var(--accent-primary, #3b82f6);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent);
 }
 
 .td-switch-row input[type="checkbox"]:checked::before {
@@ -13922,7 +13922,7 @@ section.docx *,
 }
 
 .td-switch-row input[type="checkbox"]:focus-visible {
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #3b82f6) 60%, transparent);
 }
 
 .td-switch-row input[type="checkbox"]:disabled {
@@ -13950,15 +13950,15 @@ section.docx *,
 
 .td-settings-card input[type="checkbox"]:not(.td-switch-row input[type="checkbox"]):hover,
 .td-xfer-focused-panel input[type="checkbox"]:not(.td-switch-row input[type="checkbox"]):hover {
-  border-color: #38bdf8;
+  border-color: var(--accent-primary, #3b82f6);
   background: rgba(30, 41, 59, 0.8);
 }
 
 .td-settings-card input[type="checkbox"]:not(.td-switch-row input[type="checkbox"]):checked,
 .td-xfer-focused-panel input[type="checkbox"]:not(.td-switch-row input[type="checkbox"]):checked {
-  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  background: var(--accent-primary, #3b82f6);
+  border-color: var(--accent-primary, #3b82f6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent);
 }
 
 .td-settings-card input[type="checkbox"]:not(.td-switch-row input[type="checkbox"]):checked::after,
@@ -14075,6 +14075,7 @@ section.docx *,
 }
 .td-slider-row-box input[type="range"] {
   width: 100%;
+  accent-color: var(--accent-primary, #3b82f6);
 }
 
 .td-slider-value-bar {
@@ -14088,7 +14089,7 @@ section.docx *,
 .td-slider-val {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--accent-primary, #38bdf8);
   letter-spacing: 0.01em;
 }
 
@@ -18663,8 +18664,8 @@ section.docx *,
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 6px #38bdf8;
+  background: var(--accent-primary, #38bdf8);
+  box-shadow: 0 0 6px var(--accent-primary, #38bdf8);
   flex-shrink: 0;
 }
 .td-tools-close {
@@ -18750,11 +18751,11 @@ section.docx *,
 }
 
 .td-tools-sidebar-tab.active {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(37, 99, 235, 0.12) 100%);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent);
+  color: var(--accent-primary, #38bdf8);
   font-weight: 600;
-  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.12);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary, #3b82f6) 12%, transparent);
 }
 
 .td-tools-main {
@@ -19822,12 +19823,12 @@ section.docx *,
   color: #ffffff;
 }
 .td-chip-btn.is-primary {
-  background: #0284c7;
-  border-color: #38bdf8;
+  background: var(--accent-primary, #0284c7);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 80%, #ffffff);
   color: #ffffff;
 }
 .td-chip-btn.is-primary:hover:not(:disabled) {
-  background: #0369a1;
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 85%, #000000);
   color: #ffffff;
 }
 .td-chip-btn.is-danger {
@@ -21311,16 +21312,16 @@ video.drive-zip-img {
 }
 
 .td-tools-panel.is-unified .td-tools-sidebar-tab.active {
-  background: linear-gradient(120deg, rgba(56, 189, 248, 0.17), rgba(99, 102, 241, 0.16));
-  border-color: rgba(125, 211, 252, 0.28);
-  color: #bae6fd;
-  box-shadow: inset 3px 0 #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, transparent);
+  color: var(--accent-primary, #3b82f6);
+  box-shadow: inset 3px 0 var(--accent-primary, #3b82f6);
 }
 
 .td-tools-panel.is-unified .td-tools-main {
   padding: 18px 20px 22px;
   gap: 14px;
-  background: radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.06), transparent 38%);
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent-primary, #3b82f6) 6%, transparent), transparent 38%);
 }
 
 .td-tools-tab-intro {
@@ -21341,9 +21342,9 @@ video.drive-zip-img {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  color: #7dd3fc;
-  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent);
+  color: var(--accent-primary, #3b82f6);
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 12%, transparent);
 }
 
 .td-tools-tab-intro-copy { min-width: 0; }
@@ -21538,7 +21539,7 @@ video.drive-zip-img {
 }
 
 .td-tools-panel.is-unified .td-tools-sidebar-tab:hover {
-  background: rgba(56, 189, 248, 0.08) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 10%, transparent) !important;
   color: #e2e8f0 !important;
 }
 
@@ -21562,10 +21563,10 @@ video.drive-zip-img {
 .td-tools-sidebar.is-collapsed .td-tools-sidebar-divider {
   width: 22px !important;
   height: 2px !important;
-  background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.65), rgba(56, 189, 248, 0.2)) !important;
+  background: linear-gradient(90deg, transparent, var(--accent-primary, #3b82f6), transparent) !important;
   margin: 2px auto 2px auto !important;
   border-radius: 2px !important;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent) !important;
 }
 
 .td-tools-sidebar.is-collapsed .td-tools-sidebar-group {
@@ -21576,15 +21577,15 @@ video.drive-zip-img {
 }
 
 .td-tools-panel.is-unified .td-tools-sidebar-tab.active {
-  background: linear-gradient(120deg, rgba(56, 189, 248, 0.17), rgba(99, 102, 241, 0.16)) !important;
-  border-color: rgba(125, 211, 252, 0.28) !important;
-  color: #bae6fd !important;
-  box-shadow: inset 3px 0 #38bdf8 !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, transparent) !important;
+  color: var(--accent-primary, #3b82f6) !important;
+  box-shadow: inset 3px 0 var(--accent-primary, #3b82f6) !important;
 }
 
 .td-tools-sidebar.is-collapsed .td-tools-sidebar-tab.active {
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.3) !important;
-  border-color: #38bdf8 !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent) !important;
+  border-color: var(--accent-primary, #3b82f6) !important;
 }
 
 /* ==========================================
@@ -21610,19 +21611,19 @@ video.drive-zip-img {
   width: 40px !important;
   height: 40px !important;
   border-radius: 12px !important;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.14) 100%) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-  color: #38bdf8 !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
+  color: var(--accent-primary, #38bdf8) !important;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
   flex-shrink: 0 !important;
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent) !important;
 }
 
 .td-header-sidebar-toggle:hover .td-header-toggle-icon {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(99, 102, 241, 0.25) 100%) !important;
-  border-color: #38bdf8 !important;
-  color: #7dd3fc !important;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.35) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
   transform: translateY(-1px) scale(1.04) !important;
 }
 
@@ -21640,17 +21641,17 @@ video.drive-zip-img {
   width: 18px !important;
   height: 18px !important;
   border-radius: 50% !important;
-  background: #09101a !important;
-  border: 1px solid rgba(56, 189, 248, 0.5) !important;
-  color: #38bdf8 !important;
+  background: var(--bg-card, #09101a) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent) !important;
+  color: var(--accent-primary, #38bdf8) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
   transition: all 0.2s ease !important;
 }
 
 .td-header-sidebar-toggle:hover .td-toggle-arrow-badge {
-  background: #38bdf8 !important;
-  color: #0f172a !important;
-  border-color: #38bdf8 !important;
+  background: var(--accent-primary, #38bdf8) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
   transform: scale(1.15) !important;
 }
 
@@ -21661,9 +21662,9 @@ video.drive-zip-img {
   width: 100% !important;
   max-width: 680px !important;
   background: linear-gradient(145deg, #0d1524 0%, #070c16 100%) !important;
-  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
   border-radius: 20px !important;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75), 0 0 30px rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent) !important;
   overflow: hidden !important;
   animation: tdDrawerModalIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -21695,10 +21696,10 @@ video.drive-zip-img {
   width: 40px !important;
   height: 40px !important;
   border-radius: 12px !important;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.18) 100%) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-  color: #38bdf8 !important;
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
+  color: var(--accent-primary, #38bdf8) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent) !important;
 }
 
 .td-drawer-head-left h4 {
@@ -21730,7 +21731,7 @@ video.drive-zip-img {
   font-size: 0.68rem !important;
   font-weight: 850 !important;
   letter-spacing: 0.12em !important;
-  color: #38bdf8 !important;
+  color: var(--accent-primary, #38bdf8) !important;
   text-transform: uppercase !important;
   margin-bottom: 4px !important;
 }
@@ -21763,16 +21764,16 @@ video.drive-zip-img {
 }
 
 .td-hero-preset-card:hover {
-  background: rgba(56, 189, 248, 0.08) !important;
-  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 8%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 .td-hero-preset-card.is-selected {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 18%, transparent) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent) !important;
 }
 
 .td-hero-card-top {
@@ -21799,8 +21800,8 @@ video.drive-zip-img {
   font-size: 0.65rem !important;
   padding: 2px 6px !important;
   border-radius: 999px !important;
-  background: rgba(56, 189, 248, 0.15) !important;
-  color: #38bdf8 !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent) !important;
+  color: var(--accent-primary, #38bdf8) !important;
   font-weight: 700 !important;
 }
 
@@ -21824,7 +21825,7 @@ video.drive-zip-img {
 }
 
 .td-hero-preset-card:hover .td-select-hint {
-  color: #38bdf8 !important;
+  color: var(--accent-primary, #38bdf8) !important;
 }
 
 .td-hero-card-desc {
@@ -23196,8 +23197,8 @@ input[type="search"]::-webkit-search-decoration {
   width: 46px !important;
   height: 46px !important;
   border-radius: 12px !important;
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -39587,9 +39588,9 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.3) !important;
-  color: #38bdf8 !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 12%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent) !important;
+  color: var(--accent-primary, #3b82f6) !important;
 }
 
 .td-tools-panel.is-unified .td-tools-title-text h2 {
@@ -39671,11 +39672,11 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-tools-panel.is-unified .td-tools-sidebar-tab.active {
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.32) !important;
-  color: #38bdf8 !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
+  color: var(--accent-primary, #3b82f6) !important;
   font-weight: 600 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Main Content Area & Anti-Overlap Bottom Buffer */
@@ -39953,8 +39954,8 @@ button.td-confirm-icon.is-back-btn:active {
   height: min(88vh, 840px) !important;
   max-height: min(88vh, 840px) !important;
   border-radius: 18px !important;
-  background: radial-gradient(circle at 50% 10%, #0d1527 0%, #080c15 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: radial-gradient(circle at 50% 10%, var(--bg-card, #0d1527) 0%, var(--bg-main, #080c15) 100%) !important;
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1)) !important;
   box-shadow: 0 24px 64px -16px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
@@ -40037,8 +40038,8 @@ button.td-confirm-icon.is-back-btn:active {
 .td-xfer-focused-panel .td-settings-card {
   padding: 14px 16px !important;
   border-radius: 12px !important;
-  background: rgba(15, 23, 42, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card, rgba(15, 23, 42, 0.55)) !important;
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08)) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
   gap: 10px !important;
 }
@@ -40076,8 +40077,8 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 8px 12px !important;
   min-height: 40px !important;
   border-radius: 9px !important;
-  background: rgba(15, 23, 42, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--bg-card, rgba(15, 23, 42, 0.4)) 70%, transparent) !important;
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.06)) !important;
   box-sizing: border-box !important;
   user-select: none !important;
 }
@@ -40131,9 +40132,9 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-switch-row input[type="checkbox"]:checked {
-  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #0284c7) 80%, #000) 0%, var(--accent-primary, #38bdf8) 100%) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent) !important;
 }
 
 .td-switch-row input[type="checkbox"]:checked::before {
@@ -40177,10 +40178,10 @@ button.td-confirm-icon.is-back-btn:active {
   margin-top: auto !important;
   padding: 10px 14px !important;
   border-radius: 12px !important;
-  background: rgba(13, 20, 32, 0.94) !important;
+  background: var(--bg-modal, rgba(13, 20, 32, 0.94)) !important;
   backdrop-filter: blur(14px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08)) !important;
+  border-top: 1px solid color-mix(in srgb, var(--border-default, rgba(255, 255, 255, 0.08)) 80%, rgba(255, 255, 255, 0.12)) !important;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6) !important;
   display: flex !important;
   align-items: center !important;
@@ -40303,9 +40304,9 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 0 12px !important;
   font-size: 0.78rem !important;
   font-weight: 500 !important;
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.07) !important;
-  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  color: var(--accent-primary, #38bdf8) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent) !important;
   border-radius: 8px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -40317,10 +40318,10 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-xfer-footer button.td-chip-btn:not(.td-chip-primary):hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.15) !important;
-  border-color: rgba(56, 189, 248, 0.45) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
 }
 
 .td-xfer-footer button.td-chip-btn:not(.td-chip-primary):disabled {
@@ -40335,9 +40336,9 @@ button.td-confirm-icon.is-back-btn:active {
   padding: 0 16px !important;
   font-size: 0.78rem !important;
   font-weight: 600 !important;
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: var(--text-inverse, #ffffff) !important;
+  background: linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, color-mix(in srgb, var(--accent-secondary, #0369a1) 80%, #000) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 45%, transparent) !important;
   border-radius: 8px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -40345,15 +40346,15 @@ button.td-confirm-icon.is-back-btn:active {
   gap: 6px !important;
   cursor: pointer !important;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
   box-sizing: border-box !important;
 }
 
 .td-xfer-footer button.td-chip-btn.td-chip-primary:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
-  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #0284c7) 85%, #fff) 0%, var(--accent-primary, #0284c7) 100%) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 45%, transparent) !important;
 }
 
 /* Mobile & Compact Screen Responsive Layout (<= 600px) */
@@ -41362,9 +41363,9 @@ select.td-modern-select {
 }
 
 .td-ytdlp-chip-presets .td-chip-btn:hover {
-  background: rgba(56, 189, 248, 0.12);
-  border-color: rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent);
+  color: var(--accent-primary, #38bdf8);
   transform: translateY(-1px);
 }
 
