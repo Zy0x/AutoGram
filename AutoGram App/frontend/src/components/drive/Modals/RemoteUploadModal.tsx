@@ -488,6 +488,8 @@ export function RemoteUploadModal({
       setInspection(null);
       setResolvedMedia(null);
       setSelectedFormatId('');
+      setIsPlayingStream(false);
+      setActivePlayableUrl('');
       setDiscoveryLoading(false);
       setAssistedSessionId(null);
       setStreamContainerFilter('all');
@@ -514,6 +516,8 @@ export function RemoteUploadModal({
       inspectAbortRef.current = null;
       lastAppliedInitialUrlRef.current = '';
       lastProbedHandoffRef.current = '';
+      setIsPlayingStream(false);
+      setActivePlayableUrl('');
       setPasscode('');
       setStreamContainerFilter('all');
       setMatrixSearchQuery('');
@@ -662,6 +666,8 @@ export function RemoteUploadModal({
       mimeType: null,
       kind: inferredKind,
     });
+    setIsPlayingStream(false);
+    setActivePlayableUrl('');
 
     const controller = new AbortController();
     activeController = controller;
@@ -676,6 +682,8 @@ export function RemoteUploadModal({
       if (resolved) {
         setResolvedMedia(resolved);
         setSelectedFormatId(resolved.selectedFormatId || resolved.formats[0]?.id || '');
+        setIsPlayingStream(false);
+        setActivePlayableUrl('');
         setActiveSlideIndex(0);
 
         const bestFmt =
@@ -1255,6 +1263,10 @@ export function RemoteUploadModal({
 
   useEffect(() => {
     let isCancelled = false;
+    if (!isPlayingStream) {
+      setActivePlayableUrl('');
+      return;
+    }
     const rawUrl = targetMediaForPlayback?.directUrl;
     if (!rawUrl || targetMediaForPlayback?.isImage) {
       setActivePlayableUrl('');
@@ -1278,7 +1290,7 @@ export function RemoteUploadModal({
     return () => {
       isCancelled = true;
     };
-  }, [targetMediaForPlayback?.directUrl, targetMediaForPlayback?.headers?.Referer]);
+  }, [isPlayingStream, targetMediaForPlayback?.directUrl, targetMediaForPlayback?.headers?.Referer]);
 
   const handleToggleItem = useCallback((itemId: string) => {
     setSelectedMediaItemIds((prev) => {
@@ -1419,12 +1431,8 @@ export function RemoteUploadModal({
 
   const handleSelectFormat = useCallback((fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
-    if (fmt.isStreamable === false || fmt.isImage) {
-      setIsPlayingStream(false);
-      setActivePlayableUrl('');
-    } else if (isPlayingStream && fmt.directUrl) {
-      setActivePlayableUrl('');
-    }
+    setIsPlayingStream(false);
+    setActivePlayableUrl('');
     const newFilename = getEffectiveFormatFilename(fmt, resolvedMedia);
     setInspection((prev) =>
       prev
@@ -1449,10 +1457,12 @@ export function RemoteUploadModal({
         setActiveSlideIndex(photoIdx);
       }
     }
-  }, [isPlayingStream, resolvedMedia]);
+  }, [resolvedMedia]);
 
   const handleToggleFormat = useCallback((fmt: StreamQualityFormat) => {
     if (!canTransferResolvedFormat(fmt)) return;
+    setIsPlayingStream(false);
+    setActivePlayableUrl('');
     if (selectedFormatId === fmt.id) {
       setSelectedFormatId('');
       setInspection((prev) =>
@@ -1470,8 +1480,6 @@ export function RemoteUploadModal({
 
   const handlePlayFormat = useCallback(async (fmt: StreamQualityFormat) => {
     if (fmt.isImage) {
-      setIsPlayingStream(false);
-      setActivePlayableUrl('');
       handleSelectFormat(fmt);
       return;
     }
@@ -1479,8 +1487,6 @@ export function RemoteUploadModal({
     const requestId = ++playRequestRef.current;
     handleSelectFormat(fmt);
     if (fmt.isStreamable === false) {
-      setIsPlayingStream(false);
-      setActivePlayableUrl('');
       return;
     }
     setIsPlayingStream(true);
@@ -1797,7 +1803,7 @@ export function RemoteUploadModal({
             <RemoteUploadSinglePanel ctx={{
               t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,
               resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,
-              selectedFormatId,setSelectedFormatId,activePlayableUrl,isPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,
+              selectedFormatId,setSelectedFormatId,activePlayableUrl,setActivePlayableUrl,isPlayingStream,setIsPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,
               setResolvedMedia,effectiveMediaItems,activeSlideIndex,setActiveSlideIndex,activeTargetExt,activeItemCurrentName,
               isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,
               setItemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,

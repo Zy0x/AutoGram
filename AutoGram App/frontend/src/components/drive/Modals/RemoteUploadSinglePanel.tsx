@@ -3,6 +3,7 @@
 // contract is being finalized. Keep runtime handler wiring explicit in the
 // parent until the shared context type is promoted.
 // @ts-nocheck
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
   Link2, X, Loader2, RefreshCw, Clipboard, ExternalLink, Film, Image as ImageIcon, Music,
   FileText, CheckCircle2, Check, CheckCheck, CheckSquare, Square, XCircle,
@@ -18,7 +19,46 @@ import { kindIcon } from './remoteUploadUiPrimitives';
 import { renderMatrixTable } from './remoteUploadRenderers';
 
 export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
-  const { t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,selectedFormatId,setSelectedFormatId,activePlayableUrl,isPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,setResolvedMedia,effectiveMediaItems,activeSlideIndex,activeTargetExt,activeItemCurrentName,isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,handleToggleItem,handleSelectAllItems,handleDeselectAllItems,filteredAndSortedItems,galleryViewMode,setGalleryViewMode,galleryFilter,setGalleryFilter,gallerySearch,setGallerySearch,gallerySortBy,setGallerySortBy,gallerySortOrder,setGallerySortOrder,itemDurations,setItemDurations,itemResolutions,setItemResolutions,itemSelectedFormats,selectedBytes,streamContainerFilter,setStreamContainerFilter,matrixSearchQuery,setMatrixSearchQuery,matrixHideM3u8,setMatrixHideM3u8,subtitleSearchQuery,setSubtitleSearchQuery,subtitleTypeFilter,setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef} = ctx;
+  const { t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,selectedFormatId,setSelectedFormatId,activePlayableUrl,setActivePlayableUrl,isPlayingStream,setIsPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,setResolvedMedia,effectiveMediaItems,activeSlideIndex,activeTargetExt,activeItemCurrentName,isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,handleToggleItem,handleSelectAllItems,handleDeselectAllItems,filteredAndSortedItems,galleryViewMode,setGalleryViewMode,galleryFilter,setGalleryFilter,gallerySearch,setGallerySearch,gallerySortBy,setGallerySortBy,gallerySortOrder,setGallerySortOrder,itemDurations,setItemDurations,itemResolutions,setItemResolutions,itemSelectedFormats,selectedBytes,streamContainerFilter,setStreamContainerFilter,matrixSearchQuery,setMatrixSearchQuery,matrixHideM3u8,setMatrixHideM3u8,subtitleSearchQuery,setSubtitleSearchQuery,subtitleTypeFilter,setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef} = ctx;
+
+  const formatClickTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  const handleFormatCardClick = useCallback((fmt: StreamQualityFormat) => {
+    const existingTimer = formatClickTimersRef.current.get(fmt.id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      formatClickTimersRef.current.delete(fmt.id);
+      if (!fmt.isImage) {
+        handlePlayFormat(fmt);
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleToggleFormat(fmt);
+      formatClickTimersRef.current.delete(fmt.id);
+    }, 220);
+
+    formatClickTimersRef.current.set(fmt.id, timer);
+  }, [handleToggleFormat, handlePlayFormat]);
+
+  const handleFormatCardDoubleClick = useCallback((fmt: StreamQualityFormat) => {
+    const existingTimer = formatClickTimersRef.current.get(fmt.id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      formatClickTimersRef.current.delete(fmt.id);
+    }
+    if (!fmt.isImage) {
+      handlePlayFormat(fmt);
+    }
+  }, [handlePlayFormat]);
+
+  useEffect(() => {
+    return () => {
+      formatClickTimersRef.current.forEach((t) => clearTimeout(t));
+      formatClickTimersRef.current.clear();
+    };
+  }, []);
   return (
     <>
               {/* SECTION 1: INGESTION CONTROLS (Full-Width 1 Column) */}
@@ -1161,11 +1201,10 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 key={fmt.id}
                                 type="button"
                                 className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
-                                onClick={() => handleToggleFormat(fmt)}
+                                onClick={() => handleFormatCardClick(fmt)}
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
-                                  if (fmt.isImage) return;
-                                  handlePlayFormat(fmt);
+                                  handleFormatCardDoubleClick(fmt);
                                 }}
                                 title={fmt.mux ? t('drive_tools.local_download_mux_hint') : isDownloadOnly
                                   ? t('drive_tools.remote_format_preview_unavailable')
@@ -1245,6 +1284,8 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     className={`td-remote-select-action-btn ${!selectedFormatId ? 'active' : ''}`}
                                     onClick={() => {
                                       setSelectedFormatId('');
+                                      if (typeof setIsPlayingStream === 'function') setIsPlayingStream(false);
+                                      if (typeof setActivePlayableUrl === 'function') setActivePlayableUrl('');
                                       setInspection((prev) =>
                                         prev
                                           ? {
