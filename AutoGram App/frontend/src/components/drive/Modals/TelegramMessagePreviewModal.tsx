@@ -141,12 +141,24 @@ export function TelegramMessagePreviewModal({
   useModalBackHandler(isOpen, onClose, 'telegram-message-preview-modal');
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [exactMessageText, setExactMessageText] = useState<string | null>(null);
   const [messageLoading, setMessageLoading] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const overlayMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCopiedCaption(false);
+      setCopiedLink(false);
+      setCopiedPath(false);
+      setCopiedId(false);
+      setCopiedUrl(null);
+    }
+  }, [isOpen]);
 
   const scopedFolderId = file?.folder_id ?? folderId ?? null;
   const itemPeerId = scopedFolderId != null && scopedFolderId !== 0 ? String(scopedFolderId) : (file?.peer_id || 'me');
@@ -395,9 +407,6 @@ export function TelegramMessagePreviewModal({
 
   const durationStr = formatDuration(file.duration || file.duration_s);
   const fileExt = (file.file_ext || file.name.split('.').pop() || 'FILE').toUpperCase();
-
-  const [copiedPath, setCopiedPath] = useState(false);
-  const [copiedId, setCopiedId] = useState(false);
 
   const accountUserId = creds?.session
     ? getSessionMetadata(creds.session)?.telegramUserId || String(creds.session).replace(/^session_/, '') || '0'

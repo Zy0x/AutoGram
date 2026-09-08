@@ -1291,28 +1291,59 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                             );
                           });
 
-                          const renderFormatChip = (fmt: StreamQualityFormat) => {
+                          const getFormatRowIcon = (fmt: StreamQualityFormat) => {
+                            if (fmt.isAlbumPack) return <Layers size={14} />;
+                            if (fmt.isAudio || fmt.qualityTier === 'audio') return <Music size={14} />;
+                            if (fmt.isImage) {
+                              if (fmt.id.includes('avatar') || fmt.id.includes('profile')) return <Sparkles size={14} />;
+                              return <ImageIcon size={14} />;
+                            }
+                            if (fmt.isSubtitle) return <FileText size={14} />;
+                            return <Film size={14} />;
+                          };
+
+                          const getFormatSubSpecs = (fmt: StreamQualityFormat) => {
+                            const parts: string[] = [];
+                            if (fmt.isVideo) {
+                              if (fmt.height) parts.push(`${Math.round(fmt.height)}p`);
+                              if (fmt.ext) parts.push(fmt.ext.toUpperCase());
+                              if (Number(fmt.fps || 0) >= 50) parts.push(`${fmt.fps}fps`);
+                              if (fmt.isHdr) parts.push('HDR');
+                            } else if (fmt.isAudio || fmt.qualityTier === 'audio') {
+                              const bps = Number(fmt.audioBitrate || fmt.bitrate || 0);
+                              if (bps > 0) parts.push(`${Math.round(bps / 1000)} kbps`);
+                              if (fmt.ext) parts.push(fmt.ext.toUpperCase());
+                            } else if (fmt.isImage) {
+                              if (fmt.width && fmt.height) parts.push(`${fmt.width}×${fmt.height}`);
+                              if (fmt.ext) parts.push(fmt.ext.toUpperCase());
+                            } else if (fmt.isSubtitle) {
+                              if (fmt.ext) parts.push(fmt.ext.toUpperCase());
+                            }
+                            return parts.join(' • ');
+                          };
+
+                          const renderFormatRow = (fmt: StreamQualityFormat) => {
                             const isSelected = selectedFormatId === fmt.id;
                             const isDownloadOnly = fmt.isDownloadable !== false && fmt.isStreamable === false;
-                            const isHdr = fmt.isHdr === true;
-                            const is60fps = Number(fmt.fps || 0) >= 50;
                             let displayBadge = getFormatDisplayBadge(fmt, t);
 
-                            if (isHdr && displayBadge) {
+                            if (fmt.isHdr && displayBadge) {
                               displayBadge = displayBadge.replace(/^HDR\s*[•·-]?\s*/i, '').trim() || undefined;
                             }
-                            if (is60fps && displayBadge) {
+                            if (Number(fmt.fps || 0) >= 50 && displayBadge) {
                               displayBadge = displayBadge.replace(/60FPS\s*[•·-]?\s*/i, '').trim() || undefined;
                             }
                             if (displayBadge && fmt.isVideo && fmt.ext) {
                               displayBadge = displayBadge.replace(new RegExp(`\\s+${fmt.ext}$`, 'i'), '').trim() || undefined;
                             }
 
+                            const subSpecs = getFormatSubSpecs(fmt);
+
                             return (
                               <button
                                 key={fmt.id}
                                 type="button"
-                                className={`td-remote-quality-chip ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
+                                className={`td-remote-format-row ${isSelected ? 'active' : ''} tier-${fmt.qualityTier} ${fmt.isAlbumPack ? 'album-pack' : ''}`}
                                 onClick={() => handleFormatCardClick(fmt)}
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
@@ -1325,36 +1356,42 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     : t('drive.remote_stream_double_click_hint')}
                                 disabled={submitting}
                               >
-                                <div className="td-remote-quality-chip-top">
-                                  <span className="td-remote-quality-chip-title">
-                                    {getFormatDisplayLabel(fmt, resolvedMedia, t)}
-                                  </span>
-                                  <div className="td-remote-quality-chip-top-right">
-                                    {fmt.filesizeBytes ? (
-                                      <span className="td-remote-quality-chip-size">
-                                        ~{formatDriveBytes(fmt.filesizeBytes)}
-                                      </span>
-                                    ) : null}
-                                    {isSelected && <CheckCircle2 size={13} className="td-remote-chip-active-ico" />}
+                                <div className="td-remote-row-left">
+                                  <div className="td-remote-row-icon-box">
+                                    {getFormatRowIcon(fmt)}
+                                  </div>
+                                  <div className="td-remote-row-info">
+                                    <div className="td-remote-row-title">
+                                      {getFormatDisplayLabel(fmt, resolvedMedia, t)}
+                                    </div>
+                                    {(subSpecs || displayBadge || isDownloadOnly) && (
+                                      <div className="td-remote-row-specs">
+                                        {subSpecs && <span>{subSpecs}</span>}
+                                        {displayBadge && (
+                                          <span className={`td-remote-row-tag ${getBadgeModifierClass(displayBadge)}`}>
+                                            {displayBadge}
+                                          </span>
+                                        )}
+                                        {isDownloadOnly && (
+                                          <span className="td-remote-row-tag">
+                                            {t('drive_tools.remote_format_download_only')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="td-remote-quality-chip-meta">
-                                  <div className="td-remote-quality-chip-badges">
-                                    {is60fps && (
-                                      <span className="td-badge-pill fps-60">{t('drive.remote_badge_fps_60')}</span>
-                                    )}
-                                    {isHdr && (
-                                      <span className="td-badge-pill hdr">{t('drive.remote_badge_hdr')}</span>
-                                    )}
-                                    {displayBadge && (
-                                      <span className={`td-remote-quality-chip-badge ${getBadgeModifierClass(displayBadge)}`}>
-                                        {displayBadge}
-                                      </span>
-                                    )}
-                                    {isDownloadOnly && (
-                                      <span className="td-remote-quality-chip-badge">
-                                        {t('drive_tools.remote_format_download_only')}
-                                      </span>
+                                <div className="td-remote-row-right">
+                                  {fmt.filesizeBytes ? (
+                                    <span className="td-remote-row-size">
+                                      ~{formatDriveBytes(fmt.filesizeBytes)}
+                                    </span>
+                                  ) : null}
+                                  <div className="td-remote-row-radio">
+                                    {isSelected ? (
+                                      <CheckCircle2 size={16} className="td-remote-radio-checked" />
+                                    ) : (
+                                      <div className="td-remote-radio-unchecked" />
                                     )}
                                   </div>
                                 </div>
@@ -1372,115 +1409,121 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 </div>
                               )}
 
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-                                <label className="td-input-label" style={{ marginBottom: 0 }}>
-                                  {t('drive.remote_split_select_format_hint')}
-                                </label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <button
-                                    type="button"
-                                    className="td-remote-select-action-btn"
-                                    onClick={() => {
-                                      const bestVideo = curatedGeneralVideos[0] || mp4VideoFmts[0] || webmVideoFmts[0] || resolvedMedia.formats[0];
-                                      if (bestVideo) {
-                                        handleSelectFormat(bestVideo);
-                                      }
-                                    }}
-                                    title={t('drive.remote_select_all_btn')}
-                                  >
-                                    <CheckSquare size={11} />
-                                    <span>{t('drive.remote_select_all_btn')}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`td-remote-select-action-btn ${!selectedFormatId ? 'active' : ''}`}
-                                    onClick={() => {
-                                      setSelectedFormatId('');
-                                      if (typeof setIsPlayingStream === 'function') setIsPlayingStream(false);
-                                      if (typeof setActivePlayableUrl === 'function') setActivePlayableUrl('');
-                                      setInspection((prev) =>
-                                        prev
-                                          ? {
-                                              ...prev,
-                                              size: null,
-                                            }
-                                          : prev
-                                      );
-                                    }}
-                                    title={t('drive.remote_unselect_all_btn')}
-                                  >
-                                    <Square size={11} />
-                                    <span>{t('drive.remote_unselect_all_btn')}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="td-remote-paste-action"
-                                    onClick={() => probeUrl(url.trim(), passcode.trim(), true)}
-                                    disabled={submitting || inspection?.status === 'inspecting'}
-                                    title={t('drive.remote_batch_reinspect_btn')}
-                                  >
-                                    <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
-                                    <span>{t('drive.remote_batch_reinspect_btn')}</span>
-                                  </button>
+                              <div className="td-remote-formats-fixed-head">
+                                <div className="td-remote-formats-top-row">
+                                  <span className="td-remote-formats-hint-text">
+                                    {t('drive.remote_split_select_format_hint')}
+                                  </span>
+                                  <div className="td-remote-formats-actions-group">
+                                    <button
+                                      type="button"
+                                      className="td-remote-action-btn-clean"
+                                      onClick={() => {
+                                        const bestVideo = curatedGeneralVideos[0] || mp4VideoFmts[0] || webmVideoFmts[0] || resolvedMedia.formats[0];
+                                        if (bestVideo) {
+                                          handleSelectFormat(bestVideo);
+                                        }
+                                      }}
+                                      title={t('drive.remote_select_all_btn')}
+                                    >
+                                      <CheckSquare size={11} />
+                                      <span>{t('drive.remote_select_all_btn')}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`td-remote-action-btn-clean ${!selectedFormatId ? 'active' : ''}`}
+                                      onClick={() => {
+                                        setSelectedFormatId('');
+                                        if (typeof setIsPlayingStream === 'function') setIsPlayingStream(false);
+                                        if (typeof setActivePlayableUrl === 'function') setActivePlayableUrl('');
+                                        setInspection((prev) =>
+                                          prev
+                                            ? {
+                                                ...prev,
+                                                size: null,
+                                              }
+                                            : prev
+                                        );
+                                      }}
+                                      title={t('drive.remote_unselect_all_btn')}
+                                    >
+                                      <Square size={11} />
+                                      <span>{t('drive.remote_unselect_all_btn')}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="td-remote-action-btn-clean"
+                                      onClick={() => probeUrl(url.trim(), passcode.trim(), true)}
+                                      disabled={submitting || inspection?.status === 'inspecting'}
+                                      title={t('drive.remote_batch_reinspect_btn')}
+                                    >
+                                      <RefreshCw size={10} className={inspection?.status === 'inspecting' ? 'spin' : ''} />
+                                      <span>{t('drive.remote_batch_reinspect_btn')}</span>
+                                    </button>
+                                  </div>
                                 </div>
+
+                                {hasMultipleFilters && (
+                                  <div className="td-remote-format-filter-bar">
+                                    <button
+                                      type="button"
+                                      className={`td-remote-format-filter-chip ${isGeneralTab ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('general')}
+                                    >
+                                      <span>{t('drive.remote_format_filter_general')}</span>
+                                      <span>({totalGeneralCount})</span>
+                                    </button>
+                                    {hasVideos && (
+                                      <button
+                                        type="button"
+                                        className={`td-remote-format-filter-chip ${isVideoTab ? 'active' : ''}`}
+                                        onClick={() => setStreamContainerFilter('video')}
+                                      >
+                                        <span>{t('drive.remote_format_filter_video_tab')}</span>
+                                        <span>({mp4VideoFmts.length + webmVideoFmts.length})</span>
+                                      </button>
+                                    )}
+                                    {hasAudio && (
+                                      <button
+                                        type="button"
+                                        className={`td-remote-format-filter-chip ${isAudioTab ? 'active' : ''}`}
+                                        onClick={() => setStreamContainerFilter('audio')}
+                                      >
+                                        <span>{t('drive.remote_format_filter_audio_tab')}</span>
+                                        <span>({audioFmts.length})</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className={`td-remote-format-filter-chip ${isSubtitleTab ? 'active' : ''}`}
+                                      onClick={() => setStreamContainerFilter('subtitle')}
+                                    >
+                                      <span>{t('drive.remote_format_filter_subtitle')}</span>
+                                      <span>({subtitleFmts.length})</span>
+                                    </button>
+                                    {hasAdvancedFormats && (
+                                      <button
+                                        type="button"
+                                        className={`td-remote-format-filter-chip matrix-toggle ${isAdvanceTab ? 'active' : ''}`}
+                                        onClick={() => setStreamContainerFilter('advance')}
+                                      >
+                                        <span>{t('drive.remote_format_filter_advance')}</span>
+                                        <span>({hasRawMatrix ? rawStreamsList.length : resolvedMedia.formats.length})</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
-                              {hasMultipleFilters && (
-                                <div className="td-remote-format-filter-bar">
-                                  <button
-                                    type="button"
-                                    className={`td-remote-format-filter-chip ${isGeneralTab ? 'active' : ''}`}
-                                    onClick={() => setStreamContainerFilter('general')}
-                                  >
-                                    <span>{t('drive.remote_format_filter_general')}</span>
-                                    <span>({totalGeneralCount})</span>
-                                  </button>
-                                  {hasVideos && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip ${isVideoTab ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('video')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_video_tab')}</span>
-                                      <span>({mp4VideoFmts.length + webmVideoFmts.length})</span>
-                                    </button>
-
-                                  )}
-                                  {hasAudio && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip ${isAudioTab ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('audio')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_audio_tab')}</span>
-                                      <span>({audioFmts.length})</span>
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    className={`td-remote-format-filter-chip ${isSubtitleTab ? 'active' : ''}`}
-                                    onClick={() => setStreamContainerFilter('subtitle')}
-                                  >
-                                    <span>{t('drive.remote_format_filter_subtitle')}</span>
-                                    <span>({subtitleFmts.length})</span>
-                                  </button>
-                                  {hasAdvancedFormats && (
-                                    <button
-                                      type="button"
-                                      className={`td-remote-format-filter-chip matrix-toggle ${isAdvanceTab ? 'active' : ''}`}
-                                      onClick={() => setStreamContainerFilter('advance')}
-                                    >
-                                      <span>{t('drive.remote_format_filter_advance')}</span>
-                                      <span>({hasRawMatrix ? rawStreamsList.length : resolvedMedia.formats.length})</span>
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                              <div className="td-remote-formats-scroll-body">
 
                               {isAdvanceTab && resolvedMedia.formats.some(f => f.mux?.transcodeVideo) && (
                                 <div className="td-remote-formats-section">
-                                  <p>{t('drive_tools.local_download_mux_hint')}</p>
-                                  <div className="td-remote-quality-grid">{resolvedMedia.formats.filter(f => f.mux?.transcodeVideo).map(renderFormatChip)}</div>
+                                  <div className="td-remote-section-divider">
+                                    <span className="td-remote-section-divider-title">{t('drive_tools.local_download_mux_hint')}</span>
+                                    <div className="td-remote-section-divider-line" />
+                                  </div>
+                                  <div className="td-remote-formats-list">{resolvedMedia.formats.filter(f => f.mux?.transcodeVideo).map(renderFormatRow)}</div>
                                 </div>
                               )}
                                 {isAdvanceTab ? (
@@ -1504,17 +1547,13 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   <div className="td-remote-advanced-format-groups">
                                     {advancedFormatGroups.map((group) => (
                                       <div key={group.key} className="td-remote-formats-section">
-                                        <div className="td-remote-formats-section-header is-general">
-                                          <span className="td-remote-formats-section-title">
-                                            <div className="td-remote-section-icon-box">
-                                              {group.key === 'audio' ? <Music size={12} /> : group.key === 'subtitle' || group.key === 'document' ? <FileText size={12} /> : <Film size={12} />}
-                                            </div>
-                                            <span>{group.label}</span>
-                                          </span>
-                                          <span className="td-remote-formats-section-count">{group.formats.length}</span>
+                                        <div className="td-remote-section-divider">
+                                          <span className="td-remote-section-divider-title">{group.label}</span>
+                                          <span className="td-remote-section-divider-count">{group.formats.length}</span>
+                                          <div className="td-remote-section-divider-line" />
                                         </div>
-                                        <div className="td-remote-quality-grid">
-                                          {group.formats.map(renderFormatChip)}
+                                        <div className="td-remote-formats-list">
+                                          {group.formats.map(renderFormatRow)}
                                         </div>
                                       </div>
                                     ))}
@@ -1524,51 +1563,39 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 <>
                                   {curatedGeneralVideos.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-general">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Film size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_video_streams')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{curatedGeneralVideos.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_video_streams')}</span>
+                                        <span className="td-remote-section-divider-count">{curatedGeneralVideos.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {curatedGeneralVideos.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {curatedGeneralVideos.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
 
                                   {curatedGeneralAudio.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-audio">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Music size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_audio_tracks')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{curatedGeneralAudio.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_audio_tracks')}</span>
+                                        <span className="td-remote-section-divider-count">{curatedGeneralAudio.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {curatedGeneralAudio.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {curatedGeneralAudio.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
 
                                   {curatedGeneralImages.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-general">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Sparkles size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_creator_profile')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{curatedGeneralImages.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_creator_profile')}</span>
+                                        <span className="td-remote-section-divider-count">{curatedGeneralImages.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {curatedGeneralImages.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {curatedGeneralImages.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
@@ -1577,54 +1604,41 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 <>
                                   {mp4VideoFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-mp4">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Film size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_mp4_video')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{mp4VideoFmts.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_mp4_video')}</span>
+                                        <span className="td-remote-section-divider-count">{mp4VideoFmts.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {mp4VideoFmts.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {mp4VideoFmts.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
 
                                   {webmVideoFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-webm">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Film size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_webm_video')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{webmVideoFmts.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_webm_video')}</span>
+                                        <span className="td-remote-section-divider-count">{webmVideoFmts.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {webmVideoFmts.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {webmVideoFmts.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
                                 </>
                               ) : isAudioTab ? (
                                 <>
-
                                   {audioFmts.length > 0 && (
                                     <div className="td-remote-formats-section">
-                                      <div className="td-remote-formats-section-header is-audio">
-                                        <span className="td-remote-formats-section-title">
-                                          <div className="td-remote-section-icon-box">
-                                            <Music size={12} />
-                                          </div>
-                                          <span>{t('drive.remote_section_audio_tracks')}</span>
-                                        </span>
-                                        <span className="td-remote-formats-section-count">{audioFmts.length}</span>
+                                      <div className="td-remote-section-divider">
+                                        <span className="td-remote-section-divider-title">{t('drive.remote_section_audio_tracks')}</span>
+                                        <span className="td-remote-section-divider-count">{audioFmts.length}</span>
+                                        <div className="td-remote-section-divider-line" />
                                       </div>
-                                      <div className="td-remote-quality-grid">
-                                        {audioFmts.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {audioFmts.map(renderFormatRow)}
                                       </div>
                                     </div>
                                   )}
@@ -1632,14 +1646,10 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                               ) : isSubtitleTab ? (
                                 subtitleFmts.length > 0 ? (
                                   <div className="td-remote-formats-section">
-                                    <div className="td-remote-formats-section-header is-subtitle">
-                                      <span className="td-remote-formats-section-title">
-                                        <div className="td-remote-section-icon-box">
-                                          <FileText size={12} />
-                                        </div>
-                                        <span>{t('drive.remote_section_subtitles')}</span>
-                                      </span>
-                                      <span className="td-remote-formats-section-count">{filteredSubtitleFmts.length}</span>
+                                    <div className="td-remote-section-divider">
+                                      <span className="td-remote-section-divider-title">{t('drive.remote_section_subtitles')}</span>
+                                      <span className="td-remote-section-divider-count">{filteredSubtitleFmts.length}</span>
+                                      <div className="td-remote-section-divider-line" />
                                     </div>
 
                                     <div className="td-remote-sub-info-banner">
@@ -1692,7 +1702,6 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                         </>
                                       )}
                                       {hasSrtSubs && (
-
                                         <button
                                           type="button"
                                           className={`td-remote-sub-pill ${subtitleTypeFilter === 'srt' ? 'active' : ''}`}
@@ -1744,8 +1753,8 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                         {t('drive.remote_sub_empty_search')}
                                       </div>
                                     ) : (
-                                      <div className="td-remote-quality-grid">
-                                        {filteredSubtitleFmts.map(renderFormatChip)}
+                                      <div className="td-remote-formats-list">
+                                        {filteredSubtitleFmts.map(renderFormatRow)}
                                       </div>
                                     )}
                                   </div>
@@ -1773,7 +1782,6 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   {!resolvedMedia.discovery.complete && Boolean(resolvedMedia.discovery.cursor) && (
                                     <button
                                       type="button"
-
                                       className="td-btn-secondary"
                                       disabled={discoveryLoading}
                                       onClick={() => void handleLoadMoreDiscovery()}
@@ -1785,59 +1793,30 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   )}
                                 </div>
                               )}
+                              </div>
 
                               {activeFmt && (
-                                <div className="td-remote-selected-spec-card">
-                                  <div className="td-remote-selected-spec-left">
-                                    <div className={`td-remote-selected-spec-icon-box ${activeFmt.isSubtitle ? 'is-sub' : activeFmt.isAudio ? 'is-audio' : 'is-video'}`}>
-                                      {activeFmt.isSubtitle ? <FileText size={16} /> : activeFmt.isAudio ? <Music size={16} /> : <Film size={16} />}
-                                    </div>
-                                    <div className="td-remote-selected-spec-details">
-                                      <div className="td-remote-selected-spec-title-row">
-                                        <span className="td-remote-selected-spec-title">
-                                          {getFormatDisplayLabel(activeFmt, resolvedMedia, t)}
-                                        </span>
-                                        {activeFmt.fps && activeFmt.fps > 30 && (
-                                          <span className="td-remote-spec-pill fps">
-                                            {t('drive.remote_badge_fps_val', { fps: activeFmt.fps })}
-                                          </span>
-                                        )}
-                                        {activeFmt.isHdr === true && (
-                                          <span className="td-remote-spec-pill hdr">{t('drive.remote_badge_hdr')}</span>
-                                        )}
-                                      </div>
-                                      <div className="td-remote-selected-spec-meta">
-                                        <span className="td-remote-spec-meta-item">
-                                          {Number(activeFmt.height || 0) > 0
-                                            ? t('drive.remote_format_height', { height: Math.round(Number(activeFmt.height)) })
-                                            : activeFmt.isAudio && Number(activeFmt.audioBitrate || activeFmt.bitrate || 0) > 0
-                                              ? t('drive.remote_format_bitrate_kbps', { value: Math.round(Number(activeFmt.audioBitrate || activeFmt.bitrate) / 1_000) })
-                                              : t('drive.remote_quality_original')}
-                                        </span>
-                                        <span className="td-remote-spec-dot">•</span>
-                                        <span className="td-remote-spec-meta-item ext">{activeFmt.ext ? `.${activeFmt.ext.toUpperCase()}` : '.MP4'}</span>
-                                        {activeFmt.filesizeBytes ? (
-                                          <>
-                                            <span className="td-remote-spec-dot">•</span>
-                                            <span className="td-remote-spec-meta-item size">~{formatDriveBytes(activeFmt.filesizeBytes)}</span>
-                                          </>
-                                        ) : null}
-                                        {resolvedMedia.chapters && resolvedMedia.chapters.length > 0 ? (
-                                          <>
-                                            <span className="td-remote-spec-dot">•</span>
-                                            <span className="td-remote-spec-meta-item chapters">
-                                              {t('drive.remote_chapters_count', { count: resolvedMedia.chapters.length })}
-                                            </span>
-                                          </>
-                                        ) : null}
-                                      </div>
-                                    </div>
+                                <div className="td-remote-slim-status-bar">
+                                  <div className="td-remote-slim-status-left">
+                                    <span className="td-remote-slim-dot" />
+                                    <span className="td-remote-slim-name">
+                                      {getFormatDisplayLabel(activeFmt, resolvedMedia, t)}
+                                    </span>
+                                    <span className="td-remote-slim-meta">
+                                      {Number(activeFmt.height || 0) > 0
+                                        ? t('drive.remote_format_height', { height: Math.round(Number(activeFmt.height)) })
+                                        : activeFmt.isAudio && Number(activeFmt.audioBitrate || activeFmt.bitrate || 0) > 0
+                                          ? t('drive.remote_format_bitrate_kbps', { value: Math.round(Number(activeFmt.audioBitrate || activeFmt.bitrate) / 1_000) })
+                                          : t('drive.remote_quality_original')}
+                                      {activeFmt.ext ? ` • .${activeFmt.ext.toUpperCase()}` : ''}
+                                      {activeFmt.filesizeBytes ? ` • ~${formatDriveBytes(activeFmt.filesizeBytes)}` : ''}
+                                    </span>
                                   </div>
-                                  <div className="td-remote-selected-spec-right">
+                                  <div className="td-remote-slim-status-right">
                                     {activeFmt.directUrl && (
                                       <button
                                         type="button"
-                                        className={`td-remote-spec-copy-btn ${copiedStreamUrl ? 'copied' : ''}`}
+                                        className="td-remote-slim-copy-btn"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           navigator.clipboard?.writeText(activeFmt.directUrl);
@@ -1846,16 +1825,10 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                         }}
                                         title={t('drive.remote_spec_copy_url_btn')}
                                       >
-                                        {copiedStreamUrl ? <Check size={12} className="copy-icon" /> : <Copy size={12} className="copy-icon" />}
+                                        {copiedStreamUrl ? <Check size={11} /> : <Copy size={11} />}
                                         <span>{copiedStreamUrl ? t('drive.remote_spec_url_copied') : t('drive.remote_spec_copy_url_btn')}</span>
                                       </button>
                                     )}
-                                    <div className="td-remote-stream-status-pill">
-                                      <span className="td-remote-status-glow-dot" />
-                                      <Zap size={11} className="td-remote-status-icon" />
-                                      <span>{activeFmt.isStreamable ? t('drive.remote_spec_direct_ready') : t('drive_tools.remote_format_download_only')}</span>
-
-                                    </div>
                                   </div>
                                 </div>
                               )}
