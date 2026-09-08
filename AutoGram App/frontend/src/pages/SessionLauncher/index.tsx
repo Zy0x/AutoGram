@@ -248,7 +248,7 @@ export function SessionLauncher({
       style={{
         minHeight: '100vh',
         width: '100vw',
-        background: 'var(--bg-main, radial-gradient(ellipse at top, #111827 0%, #060911 100%))',
+        background: 'radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent) 0%, var(--bg-main, #070b14) 75%)',
         color: 'var(--text-primary, #f8fafc)',
         display: 'flex',
         flexDirection: 'column',
@@ -265,8 +265,8 @@ export function SessionLauncher({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
-          background: 'var(--bg-card, rgba(9, 14, 26, 0.7))',
+          borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
+          background: 'color-mix(in srgb, var(--bg-sidebar, #090e1a) 85%, transparent)',
           backdropFilter: 'blur(16px)',
           position: 'sticky',
           top: 0,
@@ -400,14 +400,22 @@ export function SessionLauncher({
               padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
-              color: 'var(--text-secondary, #94a3b8)',
+              background: 'color-mix(in srgb, var(--bg-card, #141a26) 60%, transparent)',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+              color: 'var(--text-primary, #f8fafc)',
               fontSize: '0.82rem',
               fontWeight: 500,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent)';
+              e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-default, rgba(255, 255, 255, 0.1))';
+              e.currentTarget.style.color = 'var(--text-primary, #f8fafc)';
             }}
             title={t('nav.general_settings')}
             aria-label={t('nav.general_settings')}
@@ -512,8 +520,8 @@ export function SessionLauncher({
                 data-session-name={sess.name}
                 style={{
                   borderRadius: '20px',
-                  background: 'var(--bg-card, linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%))',
-                  border: isDefault ? '1.5px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                  background: 'var(--bg-card, rgba(16, 22, 34, 0.85))',
+                  border: isDefault ? '1.5px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
                   boxShadow: isDefault
                     ? '0 20px 40px -15px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent), inset 0 1px rgba(255,255,255,0.1)'
                     : '0 16px 36px -15px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255,255,255,0.05)',

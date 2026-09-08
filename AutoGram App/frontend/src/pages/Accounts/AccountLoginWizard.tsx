@@ -153,7 +153,7 @@ export function AccountLoginWizard({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: loginMethod === 'qr' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
+                      boxShadow: loginMethod === 'qr' ? '0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent)' : 'none',
                       transition: 'all 0.2s ease',
                     }}
                   >
@@ -176,7 +176,7 @@ export function AccountLoginWizard({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: loginMethod === 'phone' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
+                      boxShadow: loginMethod === 'phone' ? '0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent)' : 'none',
                       transition: 'all 0.2s ease',
                     }}
                   >
@@ -199,7 +199,7 @@ export function AccountLoginWizard({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: loginMethod === 'string_session' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none',
+                      boxShadow: loginMethod === 'string_session' ? '0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent)' : 'none',
                       transition: 'all 0.2s ease',
                     }}
                   >

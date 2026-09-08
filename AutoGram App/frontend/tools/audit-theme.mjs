@@ -97,6 +97,18 @@ const TARGET_ROGUE_SELECTORS = [
   'td-db-table-item',
   'td-db-columns-badge',
   'custom-account-select',
+  'td-zip-preflight',
+  'td-zip-cat-btn',
+  'td-zip-cat-check',
+  'td-zip-index-card',
+  'td-zip-options',
+  'startup-option-card',
+  'channel-option-card',
+  'settings-sidebar-nav-item',
+  'settings-switch',
+  'how-to-get-btn',
+  'ag-launcher-session-card',
+  'ag-launcher-header',
 ];
 
 const ROGUE_SELECTOR_REGEX = new RegExp(`\\.(${TARGET_ROGUE_SELECTORS.join('|')})`, 'i');

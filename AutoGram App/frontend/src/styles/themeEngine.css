@@ -910,3 +910,172 @@
   background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
 }
 
+/* ─── 14. TOTAL DEEP BODY, SURFACES, CARDS & UNIVERSAL MODALS CASCADE ────── */
+[data-palette],
+[data-palette] body,
+[data-palette] html,
+[data-palette] #root,
+[data-palette] .app-shell,
+[data-palette] .app-content,
+[data-palette] .ag-launcher-shell,
+[data-palette] .settings-page,
+[data-palette] .td-page,
+[data-palette] .td-shell,
+[data-palette] .ag-forwarder-page {
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Modal Backdrops & Overlays */
+[data-palette] .modal-overlay,
+[data-palette] .td-modal-backdrop,
+[data-palette] .td-zip-preflight-backdrop {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Universal Modal Containers */
+[data-palette] .modal-content,
+[data-palette] .modal-panel,
+[data-palette] .td-zip-preflight,
+[data-palette] .api-card-enter,
+[data-palette] .specific-cache-modal,
+[data-palette] .drive-preview-modal,
+[data-palette] .td-xfer-drawer-modal,
+[data-palette] .dialog-container {
+  background: var(--bg-modal, var(--bg-card)) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.75), 0 0 0 1px var(--border-default) !important;
+}
+
+/* Modal Headers */
+[data-palette] .modal-header,
+[data-palette] .td-zip-preflight-header,
+[data-palette] .drive-preview-header,
+[data-palette] .specific-cache-header {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+/* Modal Footers & Action Bars */
+[data-palette] .modal-footer,
+[data-palette] .td-zip-preflight-actions,
+[data-palette] .drive-preview-footer,
+[data-palette] .specific-cache-footer,
+[data-palette] .td-xfer-footer {
+  background: color-mix(in srgb, var(--bg-card) 90%, #000) !important;
+  border-top: 1px solid var(--border-default) !important;
+}
+
+/* Modal Icons & Badges */
+[data-palette] .td-zip-preflight-icon,
+[data-palette] .api-key-icon,
+[data-palette] .specific-cache-icon {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ZIP Preflight Options & Chips */
+[data-palette] .td-zip-index-card,
+[data-palette] .td-zip-options,
+[data-palette] .td-zip-pre-card {
+  background: color-mix(in srgb, var(--bg-card) 75%, transparent) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-zip-cat-btn,
+[data-palette] .td-zip-category-grid button {
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-zip-cat-btn.is-active,
+[data-palette] .td-zip-category-grid button.is-active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-zip-cat-check,
+[data-palette] .td-zip-cat-btn b,
+[data-palette] .td-zip-category-grid b,
+[data-palette] .td-zip-pre-badge,
+[data-palette] .td-zip-resilience-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-zip-resilience-banner {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+}
+
+[data-palette] .td-zip-btn-start {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+/* Settings Workspace Deep Neutralization */
+[data-palette] .settings-page {
+  background: var(--bg-main) !important;
+}
+
+[data-palette] .settings-card,
+[data-palette] .settings-page .glass-panel.card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .settings-sidebar-nav {
+  background: var(--bg-sidebar) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .settings-sidebar-nav-item.active {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .startup-option-card.is-active,
+[data-palette] .channel-option-card.is-active {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .settings-switch input:checked + .settings-slider {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+}
+
+/* Account Login Wizard & Credentials */
+[data-palette] .ag-launcher-shell {
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-primary) 8%, transparent) 0%, var(--bg-main) 75%) !important;
+}
+
+[data-palette] .ag-launcher-header {
+  background: color-mix(in srgb, var(--bg-sidebar) 85%, transparent) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .ag-launcher-brand > div:first-child {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+[data-palette] .ag-launcher-session-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .ag-launcher-session-card[data-is-default="true"],
+[data-palette] .ag-launcher-session-card.is-default {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 20px 40px -15px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+

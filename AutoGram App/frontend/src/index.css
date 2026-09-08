@@ -5,8 +5,8 @@ body,
 :root {
   color-scheme: dark !important;
   /* Color Palette: Deep Dark Glassmorphism (Bridged to active theme tokens) */
-  --bg-dark: var(--bg-dark, var(--bg-main, #0e1621));
-  --bg-panel: var(--bg-panel, var(--bg-card, rgba(23, 33, 43, 0.65)));
+  --bg-dark: var(--bg-main, #0e1621);
+  --bg-panel: var(--bg-card, rgba(23, 33, 43, 0.65));
   --bg-panel-hover: var(--surface-elevated, rgba(28, 39, 51, 0.8));
   --bg-secondary: var(--td-surface, #17212b);
   --bg-tertiary: rgba(0, 0, 0, 0.35);
@@ -250,8 +250,8 @@ body {
   width: 100%;
   max-width: 100vw;
   background-image: 
-    radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--primary, #ffae00) 15%, transparent), transparent 25%),
-    radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--accent, #2481cc) 15%, transparent), transparent 25%);
+    radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--accent-primary, #ffae00) 12%, transparent), transparent 25%),
+    radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--accent-secondary, #2481cc) 12%, transparent), transparent 25%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -992,7 +992,7 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-content {
-  background: var(--bg-panel);
+  background: var(--bg-modal, var(--bg-panel));
   border: 1px solid var(--border);
   border-radius: 12px 12px 0 0;
   width: min(560px, calc(100vw - 16px)) !important;
@@ -1018,7 +1018,7 @@ input:checked + .toggle-slider:before {
 
 /* Generic modal panel used by RerunModal etc. */
 .modal-panel {
-  background: var(--bg-panel);
+  background: var(--bg-modal, var(--bg-panel));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: min(600px, calc(100vw - 16px)) !important;
@@ -1760,8 +1760,8 @@ html, body {
 }
 
 .guide-step-item:hover {
-  background: rgba(56, 189, 248, 0.07) !important;
-  border-color: rgba(56, 189, 248, 0.25) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 7%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
   transform: translateY(-1px);
 }
 
@@ -1770,8 +1770,8 @@ html, body {
 }
 
 .guide-link-btn:hover {
-  background: rgba(56, 189, 248, 0.25) !important;
-  border-color: rgba(56, 189, 248, 0.5) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent) !important;
   transform: translateY(-1px);
 }
 
@@ -1789,27 +1789,27 @@ html, body {
 }
 
 .how-to-get-btn:hover {
-  background: rgba(56, 189, 248, 0.28) !important;
-  border-color: rgba(56, 189, 248, 0.55) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 28%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 55%, transparent) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent);
 }
 
 @keyframes howToGetGlowPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45), 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.4);
-    background: rgba(56, 189, 248, 0.16);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent), 0 0 10px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0), 0 0 18px rgba(56, 189, 248, 0.6);
-    border-color: rgba(56, 189, 248, 0.85);
-    background: rgba(56, 189, 248, 0.26);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-primary, #38bdf8) 0%, transparent), 0 0 18px color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 85%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 26%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.4);
-    background: rgba(56, 189, 248, 0.16);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #38bdf8) 0%, transparent), 0 0 10px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
   }
 }
 
@@ -1819,19 +1819,19 @@ html, body {
 
 @keyframes guideLinkGlowPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45), 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.4);
-    background: rgba(56, 189, 248, 0.16);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent), 0 0 10px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 5px rgba(56, 189, 248, 0), 0 0 18px rgba(56, 189, 248, 0.6);
-    border-color: rgba(56, 189, 248, 0.9);
-    background: rgba(56, 189, 248, 0.28);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent-primary, #38bdf8) 0%, transparent), 0 0 18px color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 90%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 28%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.4);
-    background: rgba(56, 189, 248, 0.16);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #38bdf8) 0%, transparent), 0 0 10px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
   }
 }
 
