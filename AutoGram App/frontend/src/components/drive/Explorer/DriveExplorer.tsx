@@ -43,7 +43,13 @@ import {
 } from '../../../lib/telegram';
 import { DriveFileCard } from './DriveFileCard';
 import { DriveFileListItem } from './DriveFileListItem';
-import { NewMediaFloatingPill, type PreviewThumbItem } from './NewMediaFloatingPill';
+import {
+  NewMediaFloatingPill,
+  type PreviewThumbItem,
+  calculateVisibleStartIndex,
+  calculateRemainingNewCount,
+  accumulateNewMediaCount,
+} from './NewMediaFloatingPill';
 
 type Props = {
   files: DriveFile[];
@@ -472,6 +478,7 @@ export function DriveExplorer({
   // Floating top update indicator and anchor scroll retention
   type ContentNotice = { kind: 'added' | 'updated' | 'removed' | 'reordered'; count: number; targetId: number | null };
   const [contentNotice, setContentNotice] = useState<ContentNotice | null>(null);
+  const totalNewItemsRef = useRef<number>(0);
   const [highlightedNewFileIds, setHighlightedNewFileIds] = useState<Set<number>>(new Set());
   const highlightTimerRef = useRef<number | null>(null);
 
@@ -498,6 +505,7 @@ export function DriveExplorer({
     if (prevLocationKeyRef.current !== activeScrollKey) {
       prevLocationKeyRef.current = activeScrollKey;
       setContentNotice(null);
+      totalNewItemsRef.current = 0;
       prevDisplayedRef.current = displayed;
       prevSnapshotRef.current = snapshotOf(displayed);
     }
@@ -521,17 +529,18 @@ export function DriveExplorer({
     const scrollTop = el ? el.scrollTop : 0;
     if (scrollTop <= 80) {
       setContentNotice(null);
+      totalNewItemsRef.current = 0;
       return;
     }
 
     if (prevCount > 0 && currentCount > prevCount && prevFirstId !== currentFirstId) {
-      let visibleStartIndex = 0;
-      if (viewMode === 'list') {
-        visibleStartIndex = Math.floor(scrollTop / LIST_ROW_H);
-      } else {
-        const rowIdx = Math.floor(scrollTop / (rowHeight || 180));
-        visibleStartIndex = rowIdx * (cols || 1);
-      }
+      const visibleStartIndex = calculateVisibleStartIndex(
+        scrollTop,
+        viewMode,
+        rowHeight || 180,
+        cols || 1,
+        LIST_ROW_H
+      );
 
       const sliceAbove = displayed.slice(0, visibleStartIndex);
       const prevFirstIndex = sliceAbove.findIndex((f: any) => f.id === prevFirstId);
@@ -545,7 +554,9 @@ export function DriveExplorer({
               : Math.ceil(newAbove / (cols || 1)) * (rowHeight || 180);
           el.scrollTop += shiftPx;
         }
-        setContentNotice({ kind: 'added', count: newAbove, targetId: currentFirstId });
+        const accumulatedTotal = accumulateNewMediaCount(totalNewItemsRef.current, newAbove);
+        totalNewItemsRef.current = accumulatedTotal;
+        setContentNotice({ kind: 'added', count: accumulatedTotal, targetId: currentFirstId });
         return;
       }
     }
@@ -574,8 +585,9 @@ export function DriveExplorer({
     if (el) {
       el.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    if (contentNotice?.kind === 'added' && contentNotice.count > 0) {
-      const addedIds = displayed.slice(0, contentNotice.count).map((item) => item.id);
+    const totalToHighlight = totalNewItemsRef.current || contentNotice?.count || 0;
+    if (contentNotice?.kind === 'added' && totalToHighlight > 0) {
+      const addedIds = displayed.slice(0, totalToHighlight).map((item) => item.id);
       if (addedIds.length > 0) {
         setHighlightedNewFileIds(new Set(addedIds));
         clearHighlightTimer();
@@ -584,6 +596,7 @@ export function DriveExplorer({
         }, 2000);
       }
     }
+    totalNewItemsRef.current = 0;
     setContentNotice(null);
   }, [clearHighlightTimer, contentNotice, displayed]);
 
@@ -753,8 +766,31 @@ export function DriveExplorer({
       onScrollPositionChange(targetKey, lastStableScrollTopRef.current, item ? { itemId: item.id, offset: lastStableScrollTopRef.current - itemTop } : null);
     };
     const onScroll = () => {
-      if (parentRef.current && parentRef.current.scrollTop <= 40) {
-        setContentNotice(null);
+      const el = parentRef.current;
+      if (el) {
+        if (el.scrollTop <= 40) {
+          setContentNotice(null);
+          totalNewItemsRef.current = 0;
+        } else if (totalNewItemsRef.current > 0) {
+          const visibleIdx = calculateVisibleStartIndex(
+            el.scrollTop,
+            viewMode,
+            rowHeight || 180,
+            cols || 1,
+            LIST_ROW_H
+          );
+          const remaining = calculateRemainingNewCount(totalNewItemsRef.current, visibleIdx);
+          if (remaining <= 0) {
+            setContentNotice(null);
+            totalNewItemsRef.current = 0;
+          } else {
+            setContentNotice((prev) =>
+              prev && prev.kind === 'added' && prev.count === remaining
+                ? prev
+                : { kind: 'added', count: remaining, targetId: displayed[0]?.id ?? null }
+            );
+          }
+        }
       }
       if (saveTimer != null) window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(save, 180);
@@ -1284,7 +1320,10 @@ export function DriveExplorer({
           count={contentNotice.count}
           previewThumbs={previewThumbs}
           onClick={handleContentNotice}
-          onDismiss={() => setContentNotice(null)}
+          onDismiss={() => {
+            totalNewItemsRef.current = 0;
+            setContentNotice(null);
+          }}
         />
       )}
 

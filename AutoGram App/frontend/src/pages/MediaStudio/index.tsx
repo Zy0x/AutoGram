@@ -5216,7 +5216,7 @@ function MediaDriveDesktop({
    * Uses the same live-sync reconcile path (no loading spinner, no thumb-pause,
    * no selection reset). Throttled to one concurrent fetch at a time.
    */
-  const uploadSoftRefresh = useCallback(async (force = false) => {
+  const uploadSoftRefresh = useCallback(async (force = false, expectedCount?: number) => {
     if (!creds || uploadRefreshLockRef.current) return;
     if (!force && isTransferJobActive()) return;
     uploadRefreshLockRef.current = true;
@@ -5227,7 +5227,8 @@ function MediaDriveDesktop({
     const hasMoreBefore = filesHasMore;
     try {
       const perf = getDrivePerfProfile();
-      const pageSize = perf.tier === 'low' ? 8 : perf.tier === 'mid' ? 12 : 16;
+      const basePageSize = perf.tier === 'low' ? 8 : perf.tier === 'mid' ? 12 : 16;
+      const pageSize = Math.max(basePageSize, Math.min(250, (expectedCount || 0) + 4));
       const res = await driveListFiles(creds, peerId, {
         pageSize,
         topicId: tid,
@@ -5301,8 +5302,10 @@ function MediaDriveDesktop({
     if (!creds) return;
     const ids = [...transferDoneIdsRef.current];
     transferDoneIdsRef.current = [];
+    const transferCount = transferRef.current?.items?.length || 0;
+    const expectedCount = Math.max(ids.length, transferCount);
     // 1. Refresh file list to include newly uploaded entries
-    void uploadSoftRefresh(true);
+    void uploadSoftRefresh(true, expectedCount);
     // 2. Notify broadcast so other subscribers (e.g. DriveFileCard) know
     if (ids.length > 0) {
       notifyTransferBatchDone(ids, peerId, thumbLocationOptions);
@@ -6074,7 +6077,8 @@ function MediaDriveDesktop({
         scheduleTransferHide();
         // A little delay then refresh files + sidebar (no full reset — lightweight paths)
         setTimeout(() => {
-          void uploadSoftRefresh();
+          const totalTaskItems = task.names?.length || 0;
+          void uploadSoftRefresh(true, totalTaskItems);
           void softRefreshSidebar();
         }, 800);
       } else {

@@ -61,4 +61,56 @@ describe('NewMediaFloatingPill - Micro-thumb & Notice Helpers', () => {
     expect(getNoticeKey('removed')).toBe('drive.content_notice_removed');
     expect(getNoticeKey('reordered')).toBe('drive.content_notice_reordered');
   });
+
+  it('calculates visibleStartIndex accurately in both list and grid modes', async () => {
+    const { calculateVisibleStartIndex } = await import('./NewMediaFloatingPill');
+
+    // List mode: rowHeight = 44
+    expect(calculateVisibleStartIndex(0, 'list', 180, 6, 44)).toBe(0);
+    expect(calculateVisibleStartIndex(44, 'list', 180, 6, 44)).toBe(1);
+    expect(calculateVisibleStartIndex(440, 'list', 180, 6, 44)).toBe(10);
+
+    // Grid mode: cols = 6, rowHeight = 200
+    expect(calculateVisibleStartIndex(0, 'grid', 200, 6)).toBe(0);
+    expect(calculateVisibleStartIndex(199, 'grid', 200, 6)).toBe(0);
+    expect(calculateVisibleStartIndex(200, 'grid', 200, 6)).toBe(6); // 1 row down = 6 items
+    expect(calculateVisibleStartIndex(600, 'grid', 200, 6)).toBe(18); // 3 rows down = 18 items
+  });
+
+  it('decrements remaining unseen items dynamically as user scrolls up into new items', async () => {
+    const { calculateRemainingNewCount } = await import('./NewMediaFloatingPill');
+    const totalNew = 58;
+
+    // Below new items: all 58 remain unseen
+    expect(calculateRemainingNewCount(totalNew, 120)).toBe(58);
+    expect(calculateRemainingNewCount(totalNew, 58)).toBe(58);
+
+    // Scrolled up into new items: count decrements smoothly
+    expect(calculateRemainingNewCount(totalNew, 50)).toBe(50);
+    expect(calculateRemainingNewCount(totalNew, 36)).toBe(36);
+    expect(calculateRemainingNewCount(totalNew, 12)).toBe(12);
+    expect(calculateRemainingNewCount(totalNew, 6)).toBe(6);
+    expect(calculateRemainingNewCount(totalNew, 1)).toBe(1);
+
+    // Reached the top: 0 remaining (pill auto-dismisses)
+    expect(calculateRemainingNewCount(totalNew, 0)).toBe(0);
+    expect(calculateRemainingNewCount(totalNew, -5)).toBe(0);
+    expect(calculateRemainingNewCount(0, 50)).toBe(0);
+  });
+
+  it('accumulates multiple upload batches smoothly', async () => {
+    const { accumulateNewMediaCount } = await import('./NewMediaFloatingPill');
+
+    // 8 uploads initially
+    let currentUnread = 8;
+
+    // Another batch of 10 completes
+    currentUnread = accumulateNewMediaCount(currentUnread, 10);
+    expect(currentUnread).toBe(18);
+
+    // User scrolled up halfway, remaining is 10, then 40 more uploads arrive
+    currentUnread = 10;
+    currentUnread = accumulateNewMediaCount(currentUnread, 40);
+    expect(currentUnread).toBe(50);
+  });
 });

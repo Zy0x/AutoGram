@@ -100,3 +100,47 @@ export const NewMediaFloatingPill: React.FC<NewMediaFloatingPillProps> = memo(({
 });
 
 NewMediaFloatingPill.displayName = 'NewMediaFloatingPill';
+
+/**
+ * Calculates the index of the first visible item in the scroll container.
+ */
+export function calculateVisibleStartIndex(
+  scrollTop: number,
+  viewMode: 'grid' | 'list',
+  rowHeight: number,
+  cols: number,
+  listRowHeight = 44
+): number {
+  const top = Math.max(0, scrollTop);
+  if (viewMode === 'list') {
+    return Math.floor(top / Math.max(1, listRowHeight));
+  }
+  const safeCols = Math.max(1, cols);
+  const safeRowH = Math.max(1, rowHeight);
+  const rowIdx = Math.floor(top / safeRowH);
+  return rowIdx * safeCols;
+}
+
+/**
+ * Calculates remaining unseen new items above the current visible position.
+ * When user is below the new items, returns totalNewCount.
+ * As user scrolls up into the new items, count decreases dynamically per row/item.
+ * When user reaches the top (visibleStartIndex <= 0), returns 0.
+ */
+export function calculateRemainingNewCount(
+  totalNewCount: number,
+  visibleStartIndex: number
+): number {
+  if (totalNewCount <= 0 || visibleStartIndex <= 0) return 0;
+  return Math.min(totalNewCount, visibleStartIndex);
+}
+
+/**
+ * Seamlessly accumulates newly arrived uploads with remaining unseen items.
+ */
+export function accumulateNewMediaCount(
+  currentRemaining: number,
+  newlyArrivedCount: number
+): number {
+  return Math.max(0, currentRemaining) + Math.max(0, newlyArrivedCount);
+}
