@@ -1256,7 +1256,7 @@ export function RemoteUploadModal({
   useEffect(() => {
     let isCancelled = false;
     const rawUrl = targetMediaForPlayback?.directUrl;
-    if (!rawUrl) {
+    if (!rawUrl || targetMediaForPlayback?.isImage) {
       setActivePlayableUrl('');
       return;
     }
@@ -1419,7 +1419,7 @@ export function RemoteUploadModal({
 
   const handleSelectFormat = useCallback((fmt: StreamQualityFormat) => {
     setSelectedFormatId(fmt.id);
-    if (fmt.isStreamable === false) {
+    if (fmt.isStreamable === false || fmt.isImage) {
       setIsPlayingStream(false);
       setActivePlayableUrl('');
     } else if (isPlayingStream && fmt.directUrl) {
@@ -1469,6 +1469,12 @@ export function RemoteUploadModal({
   }, [selectedFormatId, handleSelectFormat]);
 
   const handlePlayFormat = useCallback(async (fmt: StreamQualityFormat) => {
+    if (fmt.isImage) {
+      setIsPlayingStream(false);
+      setActivePlayableUrl('');
+      handleSelectFormat(fmt);
+      return;
+    }
     if (fmt.isDownloadable === false && fmt.isStreamable !== true) return;
     const requestId = ++playRequestRef.current;
     handleSelectFormat(fmt);

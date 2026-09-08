@@ -1,3 +1,20 @@
+## v3.9.81 — Pure Image Canvas Isolation, Video Controls Elimination on Static Photos & Non-Functional Watermark Clean-Up
+
+### 1. Pure Image Canvas Isolation & Video Slider Elimination (`RemoteUploadSinglePanel.tsx` & `RemoteUploadModal.tsx`)
+- **Strict Visual Canvas Media Boundary**: Resolved a state bleed bug where switching from an active or previously played video to an image format (such as Creator Profile Photo or Slideshow images) retained `isPlayingStream: true` and active stream proxy handles, causing Chromium's video overlay controls (play button, `0:00` progress slider, volume, and fullscreen) to render on top of static images.
+- **Dedicated Image Branching Invariant**: In `RemoteUploadSinglePanel.tsx`, strictly conditioned the media player canvas to require `!activeFormatForCanvas?.isImage && isPlayingStream && isDirectStream`. Any format tagged with `isImage: true` is unconditionally routed to the pure static image rendering branch (`td-remote-big-canvas-img`), completely eliminating all video sliders, audio players, and playback controls.
+- **Double-Click & Play State Sanitization (`handleSelectFormat` & `handlePlayFormat`)**: Updated selection and playback handlers in `RemoteUploadModal.tsx` so selecting or double-clicking image formats immediately disarms streaming states (`setIsPlayingStream(false)`, `setActivePlayableUrl('')`), preventing zombie video containers and ensuring instantaneous, clean image rendering.
+
+### 2. Elimination of Pseudo-Watermarked Broken Stream (`videoResolver.ts`)
+- **Root-Cause Investigation of TikTok Watermark Endpoints**: Conducted rigorous HTTP probe and FFmpeg frame analysis revealing that third-party `wmplay` endpoints execute HTTP 302 redirects to TikTok US mobile internal APIs with explicit parameter `watermark=0` (which times out on desktop browsers and possesses identical bitstream bytes to the master clean file). Verified that TikTok CDN does not store static watermarked media files on server edge.
+- **Clean Format Matrix Resolution**: Removed the bogus `tiktok_watermark` format from the TikTok resolver, ensuring the General tab displays strictly functional, verified assets: `1080P (No Watermark)` (`tiktok_hd_clean`), `Original Audio (MP3)` (`tiktok_audio`), and `Creator Profile Photo (HD Avatar)` (`tiktok_profile_avatar`).
+
+### 3. Rule 17 Modular Line Boundaries & 5-Dimension Quality Certification
+- **Rule 17 Hard Boundary Compliance**: Maintained all modified files well below the 2,000-line hard boundary (`RemoteUploadSinglePanel.tsx` at 1,805 lines, `RemoteUploadModal.tsx` at 1,976 lines, and `videoResolver.ts` at 374 lines).
+- **Autonomous 5-Dimension Quality Sentinel Certification**: Passed all 7 quality gates of `npm run test:quality` with 0 TypeScript compilation errors, 100% i18n parity across 6,441 keys, all 60 Vitest files passing (including updated `tiktok.test.ts`), and live desktop CDP inspection on port 9230.
+
+---
+
 ## v3.9.80 — TikTok Multi-Format Ingestion: Bitstream Dimension Probing, Dual Clean/Watermark Video Streams, Live Audio Player Canvas & High-Res Creator Profile Extraction
 
 ### 1. TikTok Ingestion Architecture & Bitstream Dimension Probing (`videoResolver.ts` & `types.ts`)

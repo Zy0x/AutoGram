@@ -225,9 +225,7 @@ describe('TikTok Link Resolver & Audio Integrity Engine', () => {
 
       // Verify resolution calculation for portrait video (min of width and height)
       const effectiveHeight = Math.min(mockData.width, mockData.height);
-      expect(effectiveHeight).toBe(1080);
       expect(`${effectiveHeight}P (No Watermark)`).toBe('1080P (No Watermark)');
-      expect(`${effectiveHeight}P (Watermarked)`).toBe('1080P (Watermarked)');
     });
   });
 

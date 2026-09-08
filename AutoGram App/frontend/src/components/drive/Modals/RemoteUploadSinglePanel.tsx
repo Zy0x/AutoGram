@@ -174,6 +174,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                         const activeFormatForCanvas = resolvedMedia?.formats?.find((f) => f.id === selectedFormatId) || resolvedMedia?.formats?.[0];
                         const isDirectStream = Boolean(
                           activePlayableUrl &&
+                          !activeFormatForCanvas?.isImage &&
                           activeFormatForCanvas?.isStreamable !== false &&
                           !activePlayableUrl.includes('youtube.com/watch') &&
                           !activePlayableUrl.includes('youtu.be/')
@@ -181,7 +182,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
 
                         return (
                           <div className="td-remote-big-canvas-wrap">
-                            {isPlayingStream && isDirectStream ? (
+                            {!activeFormatForCanvas?.isImage && isPlayingStream && isDirectStream ? (
                               activeFormatForCanvas?.isAudio ? (
                                 <div className="td-remote-big-canvas-inner td-remote-single-audio-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'radial-gradient(circle at center, rgba(30,41,59,0.95), rgba(15,23,42,0.98))', height: '100%', minHeight: '260px' }}>
                                   <div style={{ position: 'relative', width: 140, height: 140, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', marginBottom: 16 }}>
@@ -1163,6 +1164,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 onClick={() => handleToggleFormat(fmt)}
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
+                                  if (fmt.isImage) return;
                                   handlePlayFormat(fmt);
                                 }}
                                 title={fmt.mux ? t('drive_tools.local_download_mux_hint') : isDownloadOnly

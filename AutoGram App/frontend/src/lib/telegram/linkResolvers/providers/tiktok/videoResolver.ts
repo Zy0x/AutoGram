@@ -184,31 +184,6 @@ export async function resolveTikTokVideo(
             customFilename: `${title}.mp4`,
           });
         }
-
-        // Standard watermarked video if distinct
-        if (data.wmplay && data.wmplay !== data.play && data.wmplay !== data.hdplay) {
-          const wmUrl = data.wmplay.startsWith('http') ? data.wmplay : `https://www.tikwm.com${data.wmplay}`;
-          const wmSize = positiveNumber(data.wm_size) || primarySize;
-          formats.push({
-            id: 'tiktok_watermark',
-            label: `${effectiveHeight}P (Watermarked)`,
-            qualityTier: tier,
-            resolution: `${effectiveHeight}p`,
-            ext: 'mp4',
-            width: realWidth,
-            height: realHeight || effectiveHeight,
-            fps: measuredFps,
-            filesizeBytes: wmSize,
-            directUrl: wmUrl,
-            isVideo: true,
-            isCleanNoWatermark: false,
-            isDownloadable: true,
-            isStreamable: true,
-            badge: 'WATERMARK',
-            customTitle: `${title} (Watermark)`,
-            customFilename: `${title} (Watermark).mp4`,
-          });
-        }
       }
 
       // C. AUDIO STREAM (Standalone track extraction with bitrate & status)
