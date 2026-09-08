@@ -844,6 +844,7 @@ function MediaDriveDesktop({
     destinationId: string;
     topicId: number | null;
     remoteEngineMode?: RemoteEngineMode;
+    storagePolicy?: StorageLocalPolicy;
   } | null>(null);
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
@@ -981,6 +982,7 @@ function MediaDriveDesktop({
       const enriched: QualityPreflightReport = {
         ...updated,
         remoteEngineMode: req.remoteEngineMode || nextSettings.remoteEngineMode || 'auto',
+        storagePolicy: req.storagePolicy || 'telegram',
         items: updated.items.map((item, idx) => ({
           ...item,
           sourceName: (req.customFilenames && req.customFilenames[idx]) ? req.customFilenames[idx] : item.sourceName,
@@ -6961,6 +6963,7 @@ function MediaDriveDesktop({
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
         remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+        storagePolicy: opts?.storagePolicy || 'telegram',
       };
       const report = await runQualityPreflight({
         session: creds.session,
@@ -6991,6 +6994,7 @@ function MediaDriveDesktop({
       const enrichedReport: QualityPreflightReport = {
         ...report,
         remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+        storagePolicy: opts?.storagePolicy || 'telegram',
         items: report.items.map((item, idx) => ({
           ...item,
           sourceName: (names && names[idx]) ? names[idx] : item.sourceName,

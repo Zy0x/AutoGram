@@ -54,12 +54,14 @@ import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
 } from '../../../lib/transfer/preflightDuplicateDecision';
-import type {
-  PreflightReviewDecision,
-  QualityPreflightDuplicateMatch,
-  QualityPreflightItem,
-  QualityPreflightReport,
-  TransferDuplicateChoice,
+import {
+  isPreflightItemOversize,
+  getPreflightOversizeCount,
+  type PreflightReviewDecision,
+  type QualityPreflightDuplicateMatch,
+  type QualityPreflightItem,
+  type QualityPreflightReport,
+  type TransferDuplicateChoice,
 } from '../../../lib/transfer/qualityPreflight';
 
 const preflightThumbCache = new Map<string, string>();
@@ -715,7 +717,7 @@ export function TransferPreflightDialog({
   const [activePopover, setActivePopover] = useState<
     'transform' | 'clean' | 'album' | 'duplicate' | 'rollback' | 'caption' | 'modes_summary' | null
   >(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'queue' | 'skip' | 'duplicate'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'queue' | 'skip' | 'duplicate' | 'oversize'>('all');
   const [isConfirming, setIsConfirming] = useState(false);
   const [isReevaluating, setIsReevaluating] = useState(false);
 
@@ -740,6 +742,10 @@ export function TransferPreflightDialog({
 
   const duplicateCount = useMemo(
     () => report?.items.filter((item) => item.duplicateMatch).length || 0,
+    [report]
+  );
+  const oversizeCount = useMemo(
+    () => (report ? getPreflightOversizeCount(report) : 0),
     [report]
   );
   const skippedCount = useMemo(
@@ -800,6 +806,9 @@ export function TransferPreflightDialog({
     }
     if (activeFilter === 'duplicate') {
       return report.items.filter((item) => !!item.duplicateMatch);
+    }
+    if (activeFilter === 'oversize') {
+      return report.items.filter((item) => isPreflightItemOversize(item, report));
     }
     return report.items;
   }, [report, activeFilter, choices]);
@@ -958,6 +967,21 @@ export function TransferPreflightDialog({
                 <span className="td-preflight-pill-count">{duplicateCount}</span>
               </button>
             )}
+            {oversizeCount > 0 && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'oversize'}
+                aria-pressed={activeFilter === 'oversize'}
+                className={`td-preflight-stat-pill is-oversize is-filter ${activeFilter === 'oversize' ? 'is-active' : ''}`}
+                onClick={() => setActiveFilter((prev) => (prev === 'oversize' ? 'all' : 'oversize'))}
+                title={t('drive.preflight_filter_oversize', { count: oversizeCount })}
+              >
+                <AlertTriangle size={11} aria-hidden />
+                <span>{t('drive.preflight_filter_oversize_label')}</span>
+                <span className="td-preflight-pill-count">{oversizeCount}</span>
+              </button>
+            )}
           </div>
           <div className="td-preflight-limit">
             <span>{t('drive.preflight_limit', { value: formatDriveBytes(report.effectiveMaxBytes) })}</span>
@@ -1065,7 +1089,55 @@ export function TransferPreflightDialog({
           );
         })()}
 
-        {duplicateCount === 0 ? (
+        {oversizeCount > 0 && (
+          <div
+            className="td-preflight-banner is-oversize"
+            role="status"
+            style={{
+              background: 'rgba(245, 158, 11, 0.12)',
+              borderColor: 'rgba(245, 158, 11, 0.35)',
+              marginBottom: '10px',
+            }}
+          >
+            <div className="td-preflight-banner-left">
+              <div
+                className="td-preflight-banner-icon"
+                style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' }}
+              >
+                <AlertTriangle size={14} aria-hidden />
+              </div>
+              <span className="td-preflight-banner-text" style={{ color: '#fef3c7' }}>
+                {t('drive.preflight_oversize_banner', {
+                  count: oversizeCount,
+                  limit: formatDriveBytes(report.effectiveMaxBytes),
+                })}
+              </span>
+            </div>
+            <div className="td-preflight-banner-actions">
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  className="td-banner-pill-btn"
+                  style={{
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#fbbf24',
+                    borderColor: 'rgba(245, 158, 11, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  onClick={() => onOpenSettings('limits_recovery')}
+                  title={t('drive.preflight_oversize_action_hint')}
+                >
+                  <Settings size={12} aria-hidden />
+                  <span>{t('drive.preflight_oversize_banner_btn')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {duplicateCount === 0 && oversizeCount === 0 ? (
           <div className="td-preflight-banner is-clean" role="status">
             <div className="td-preflight-banner-left">
               <div className="td-preflight-banner-icon">
@@ -1101,7 +1173,7 @@ export function TransferPreflightDialog({
               <Info size={12} aria-hidden />
             </button>
           </div>
-        ) : (
+        ) : duplicateCount > 0 ? (
           <div className="td-preflight-banner is-duplicate" role="status">
             <div className="td-preflight-banner-left">
               <div className="td-preflight-banner-icon">
@@ -1129,7 +1201,7 @@ export function TransferPreflightDialog({
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
         {report.engineMode === 'safe_rollback' && (
           <div className="td-preflight-banner is-warning" role="status">
@@ -1571,6 +1643,18 @@ export function TransferPreflightDialog({
                             <X size={11} aria-hidden />
                             <span>{t('drive.preflight_badge_skipped')}</span>
                           </span>
+                        ) : isPreflightItemOversize(item, report) ? (
+                          <span
+                            className="td-preflight-status-badge is-oversize"
+                            style={{
+                              background: 'rgba(245, 158, 11, 0.18)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.4)',
+                            }}
+                          >
+                            <AlertTriangle size={11} aria-hidden />
+                            <span>{t('drive.preflight_badge_oversize', { limit: formatDriveBytes(report.effectiveMaxBytes) })}</span>
+                          </span>
                         ) : (
                           <span className="td-preflight-status-badge is-ready">
                             <CheckCircle2 size={11} aria-hidden />
@@ -1643,6 +1727,32 @@ export function TransferPreflightDialog({
                     </button>
                   </div>
                 </div>
+
+                {/* Oversize warning callout if file exceeds cloud limit */}
+                {isPreflightItemOversize(item, report) && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.78rem',
+                      color: '#fde68a',
+                    }}
+                  >
+                    <AlertTriangle size={14} style={{ color: '#fbbf24', flexShrink: 0 }} aria-hidden />
+                    <span>
+                      {t('drive.preflight_oversize_detail_warning', {
+                        size: formatDriveBytes(item.sourceSize),
+                        limit: formatDriveBytes(report.effectiveMaxBytes),
+                      })}
+                    </span>
+                  </div>
+                )}
 
                 {/* Duplicate comparison grid if item is duplicate */}
                 {duplicate && (

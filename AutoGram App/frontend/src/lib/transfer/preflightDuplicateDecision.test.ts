@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { QualityPreflightReport } from './qualityPreflight';
+import {
+  type QualityPreflightReport,
+  isPreflightItemOversize,
+  getPreflightOversizeCount,
+} from './qualityPreflight';
 import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
@@ -71,5 +75,56 @@ describe('transfer preflight duplicate decisions', () => {
       skippedPaths: ['probable.jpg'],
       forceUploadPaths: ['exact.jpg'],
     });
+  });
+});
+
+describe('transfer preflight oversize detection', () => {
+  it('identifies oversize items when transferring to Telegram cloud', () => {
+    const rep = report();
+    rep.effectiveMaxBytes = 2_097_152_000; // ~2 GB
+    rep.storagePolicy = 'telegram';
+    const bigItem = {
+      ...rep.items[0],
+      sourcePath: 'movie_4k.mkv',
+      sourceName: 'movie_4k.mkv',
+      sourceSize: 3_000_000_000, // 3 GB > 2 GB
+    };
+    rep.items.push(bigItem);
+
+    expect(isPreflightItemOversize(bigItem, rep)).toBe(true);
+    expect(isPreflightItemOversize(rep.items[0], rep)).toBe(false);
+    expect(getPreflightOversizeCount(rep)).toBe(1);
+  });
+
+  it('bypasses oversize limits when destination is local custom_disk', () => {
+    const rep = report();
+    rep.effectiveMaxBytes = 2_097_152_000;
+    rep.storagePolicy = 'custom_disk'; // Local disk only
+    const bigItem = {
+      ...rep.items[0],
+      sourcePath: 'movie_4k.mkv',
+      sourceName: 'movie_4k.mkv',
+      sourceSize: 3_000_000_000,
+    };
+    rep.items.push(bigItem);
+
+    expect(isPreflightItemOversize(bigItem, rep)).toBe(false);
+    expect(getPreflightOversizeCount(rep)).toBe(0);
+  });
+
+  it('enforces oversize limits when destination is disk_and_telegram', () => {
+    const rep = report();
+    rep.effectiveMaxBytes = 2_097_152_000;
+    rep.storagePolicy = 'disk_and_telegram';
+    const bigItem = {
+      ...rep.items[0],
+      sourcePath: 'huge_archive.zip',
+      sourceName: 'huge_archive.zip',
+      sourceSize: 5_000_000_000,
+    };
+    rep.items.push(bigItem);
+
+    expect(isPreflightItemOversize(bigItem, rep)).toBe(true);
+    expect(getPreflightOversizeCount(rep)).toBe(1);
   });
 });

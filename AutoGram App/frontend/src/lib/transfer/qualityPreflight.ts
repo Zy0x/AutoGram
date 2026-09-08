@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { RemoteEngineMode } from '../telegram/driveTypes';
+import type { StorageLocalPolicy } from '../telegram/driveTransferSettings';
 
 export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode' | 'convert_webp_png';
 export type PreflightPayload = 'native_visual' | 'document_group' | 'audio_group' | 'original_document_batch' | 'split_part_batch';
@@ -51,6 +52,7 @@ export interface QualityPreflightReport {
   albumGridSize: number;
   plannedAlbumSizes: number[];
   remoteEngineMode?: RemoteEngineMode;
+  storagePolicy?: StorageLocalPolicy;
 }
 
 export interface QualityPreflightRequest {
@@ -90,4 +92,18 @@ export interface PreflightReviewDecision {
 
 export function runQualityPreflight(request: QualityPreflightRequest): Promise<QualityPreflightReport> {
   return invoke<QualityPreflightReport>('quality_preflight', { request });
+}
+
+export function isPreflightItemOversize(
+  item: QualityPreflightItem,
+  report: QualityPreflightReport
+): boolean {
+  const isCloud = (report.storagePolicy || 'telegram') !== 'custom_disk';
+  return isCloud && (report.effectiveMaxBytes || 0) > 0 && item.sourceSize > report.effectiveMaxBytes;
+}
+
+export function getPreflightOversizeCount(report: QualityPreflightReport): number {
+  const isCloud = (report.storagePolicy || 'telegram') !== 'custom_disk';
+  if (!isCloud || !report.effectiveMaxBytes) return 0;
+  return report.items.filter((it) => it.sourceSize > report.effectiveMaxBytes).length;
 }
