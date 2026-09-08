@@ -435,3 +435,190 @@
   border-color: var(--border-default) !important;
   color: var(--text-primary) !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   9. CLOUD DRIVES PAGE, SHELL, TOPBAR & PERSPECTIVE SWITCHER
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-palette] .td-page,
+[data-palette] .td-shell,
+[data-palette] main.td-page,
+[data-palette] .td-topbar {
+  --td-primary: var(--accent-primary) !important;
+  --td-accent: var(--accent-secondary) !important;
+  --td-accent-gold: var(--accent-secondary) !important;
+  --td-bg: var(--bg-main) !important;
+  --td-surface: var(--bg-sidebar) !important;
+  --td-surface-2: var(--bg-card) !important;
+  --td-card-bg: var(--bg-card) !important;
+  --td-card-hover: var(--surface-light, rgba(255, 255, 255, 0.06)) !important;
+  --td-border: var(--border-default) !important;
+  --td-hover: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  --td-active-bg: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  --td-active-fg: var(--accent-primary) !important;
+  --td-active-border: color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+}
+
+[data-palette] .td-perspective-switcher {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 10px color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .td-perspective-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-perspective-btn:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+[data-palette] .td-perspective-btn.active {
+  background: linear-gradient(135deg,
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-secondary, var(--accent-primary)) 75%, #000) 100%
+  ) !important;
+  color: var(--text-inverse, #ffffff) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+}
+
+[data-palette] .td-quick-item.active {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%,
+    color-mix(in srgb, var(--accent-secondary) 12%, transparent) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+}
+
+[data-palette] .td-quick-item.active .td-folder-label,
+[data-palette] .td-quick-item.active svg {
+  color: var(--accent-primary) !important;
+}
+
+/* Sidebar action buttons */
+[data-palette] .td-btn-new-folder,
+[data-palette] .td-sidebar .td-btn-new-folder,
+[data-palette] .td-sidebar-action-split-row .td-btn-new-folder {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 38%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-btn-new-folder:hover,
+[data-palette] .td-sidebar .td-btn-new-folder:hover,
+[data-palette] .td-sidebar-action-split-row .td-btn-new-folder:hover {
+  background: color-mix(in srgb, var(--accent-primary) 26%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+[data-palette] .td-sidebar-action-split-row .td-sidebar-search-btn:hover {
+  background: linear-gradient(135deg,
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-secondary) 80%, #000) 100%
+  ) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-inverse, #ffffff) !important;
+}
+
+[data-palette] .td-location-search-inline {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--bg-card) 90%, #000) !important;
+}
+
+[data-palette] .td-topic-nav-btn {
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--accent-primary)) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-topic-nav-btn:hover {
+  background: linear-gradient(135deg,
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-secondary) 80%, #000) 100%
+  ) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-inverse, #ffffff) !important;
+}
+
+/* Primary buttons & Topbar CTA */
+[data-palette] .td-btn-primary,
+[data-palette] .td-topbar .td-btn-primary {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-btn-primary:hover:not(:disabled),
+[data-palette] .td-topbar .td-btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+/* Icon buttons & filter pills */
+[data-palette] .td-icon-btn.active,
+[data-palette] .td-topbar .td-icon-btn.active,
+[data-palette] .td-pill.active,
+[data-palette] .td-topbar .td-pill.active,
+[data-palette] .td-thumb-pill.active {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   10. MODALS, OVERLAYS & PREVIEWS DEEP CASCADE
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-palette] .drive-preview-modal {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: var(--shadow-modal) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .drive-preview-header,
+[data-palette] .drive-preview-toolbar,
+[data-palette] .drive-preview-footer,
+[data-palette] .drive-preview-nav,
+[data-palette] .drive-preview-info {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .drive-preview-close:hover {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   11. SETTINGS PAGE & ACCOUNT MANAGEMENT
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-palette] .settings-page,
+[data-palette] .settings-card,
+[data-palette] .settings-surface {
+  --settings-accent: var(--accent-primary) !important;
+  --settings-accent-strong: color-mix(in srgb, var(--accent-primary) 85%, #000) !important;
+  --settings-surface: var(--bg-card) !important;
+  --settings-surface-raised: var(--bg-elevated) !important;
+  --settings-border: var(--border-default) !important;
+  --settings-border-strong: color-mix(in srgb, var(--accent-primary) 42%, transparent) !important;
+}
+
+[data-palette] .settings-nav-btn.is-active,
+[data-palette] .settings-tier-option.is-selected {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .settings-tier-option.is-selected .settings-tier-radio {
+  border-color: var(--accent-primary) !important;
+  background: var(--accent-primary) !important;
+}
+

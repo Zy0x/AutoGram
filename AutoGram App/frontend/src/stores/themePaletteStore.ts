@@ -863,6 +863,14 @@ export function subscribeColorPalette(callback: (paletteId: ColorPaletteId) => v
 if (typeof window !== 'undefined') {
   try {
     applyColorPalette(getColorPalette());
+    (window as any).setColorPalette = setColorPalette;
+    (window as any).applyColorPalette = applyColorPalette;
+    window.addEventListener(EVENT_NAME, (e: Event) => {
+      const custom = e as CustomEvent<ColorPaletteId>;
+      if (custom?.detail) {
+        applyColorPalette(custom.detail);
+      }
+    });
   } catch {
     /* ignore */
   }
