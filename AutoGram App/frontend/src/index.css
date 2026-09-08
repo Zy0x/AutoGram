@@ -4,31 +4,31 @@ html,
 body,
 :root {
   color-scheme: dark !important;
-  /* Color Palette: Deep Dark Glassmorphism (Aligned with Media Studio) */
-  --bg-dark: #0e1621;
-  --bg-panel: rgba(23, 33, 43, 0.65);
-  --bg-panel-hover: rgba(28, 39, 51, 0.8);
-  --bg-secondary: #17212b;
+  /* Color Palette: Deep Dark Glassmorphism (Bridged to active theme tokens) */
+  --bg-dark: var(--bg-dark, var(--bg-main, #0e1621));
+  --bg-panel: var(--bg-panel, var(--bg-card, rgba(23, 33, 43, 0.65)));
+  --bg-panel-hover: var(--surface-elevated, rgba(28, 39, 51, 0.8));
+  --bg-secondary: var(--td-surface, #17212b);
   --bg-tertiary: rgba(0, 0, 0, 0.35);
-  --surface-light: #1c2733;
+  --surface-light: var(--surface-light, #1c2733);
   
-  --primary: #ffae00; /* Gold */
-  --primary-hover: #e09900;
+  --primary: var(--primary, var(--color-accent, #ffae00));
+  --primary-hover: var(--color-accent, #e09900);
   
-  --accent: #2481cc; /* Blue */
+  --accent: var(--accent, var(--color-secondary, #2481cc));
   
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
   
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-main: var(--text-primary, #f8fafc);
+  --text-muted: var(--text-secondary, #94a3b8);
   --text-dark: #1e293b;
-  --text-secondary: #94a3b8;
+  --text-secondary: var(--text-secondary, #94a3b8);
   
-  --border: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.08);
-  --border-highlight: rgba(255, 255, 255, 0.15);
+  --border: var(--border-color, rgba(255, 255, 255, 0.08));
+  --border-light: var(--border-color, rgba(255, 255, 255, 0.08));
+  --border-highlight: var(--input-focus-ring, rgba(255, 255, 255, 0.15));
   
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -250,8 +250,8 @@ body {
   width: 100%;
   max-width: 100vw;
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(255, 174, 0, 0.15), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(36, 129, 204, 0.15), transparent 25%);
+    radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--primary, #ffae00) 15%, transparent), transparent 25%),
+    radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--accent, #2481cc) 15%, transparent), transparent 25%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -642,17 +642,19 @@ select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: #0b1520 !important;
+  background-color: var(--bg-card, #0b1520) !important;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
   background-size: 16px !important;
   padding-right: 40px !important;
-  color: #f8fafc !important;
+  color: var(--text-primary, #f8fafc) !important;
 }
 
-.input-field:focus {
-  border-color: var(--primary);
+.input-field:focus,
+.input:focus {
+  border-color: var(--input-focus-ring, var(--color-accent, var(--primary)));
+  box-shadow: 0 0 0 1px var(--input-focus-ring, var(--color-accent, var(--primary)));
 }
 
 .input-field option,
@@ -660,8 +662,8 @@ select option,
 select.input-field option,
 optgroup option {
   color-scheme: dark !important;
-  background-color: #0b1520 !important;
-  color: #f8fafc !important;
+  background-color: var(--bg-card, #0b1520) !important;
+  color: var(--text-primary, #f8fafc) !important;
   padding: 10px 14px !important;
   font-size: 0.92rem !important;
   font-weight: 600 !important;

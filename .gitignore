@@ -216,5 +216,6 @@ AutoGram App/plugins/**/*.tar*
 AutoGram App/plugins/**/*.7z
 plugins/**/bin/
 plugins/**/runtime/
+ORIGINAL_REQUEST.md
 
 

@@ -1,4 +1,4 @@
-AutoGram Version: v3.9.86
+AutoGram Version: v3.9.87
 
 Current State:
 v3.9.83 TikTok Power Suite: Original Music Metadata & Cover Art Extraction, Interactive Photo Slideshow Carousel, Automatic Telegram Cloud Caption Sync & High-Speed Mobile Shortlink Normalization:

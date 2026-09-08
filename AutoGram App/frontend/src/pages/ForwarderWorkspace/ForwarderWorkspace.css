@@ -2,14 +2,14 @@
    language used by Cloud Drives. This stylesheet is intentionally scoped to
    the Forwarder workspace so Media Studio transfer controls are unaffected. */
 .ag-forwarder-shell {
-  --fw-bg: #0e1621;
-  --fw-surface: #17212b;
-  --fw-surface-raised: #1c2733;
-  --fw-primary: #ffae00;
-  --fw-accent: #2481cc;
-  --fw-text: #f8fafc;
-  --fw-subtle: #8e9fb3;
-  --fw-border: rgba(255, 255, 255, 0.1);
+  --fw-bg: var(--fw-bg, var(--bg-main, #0e1621));
+  --fw-surface: var(--fw-surface, var(--bg-card, #17212b));
+  --fw-surface-raised: var(--surface-light, #1c2733);
+  --fw-primary: var(--primary, var(--color-accent, #ffae00));
+  --fw-accent: var(--accent, var(--color-secondary, #2481cc));
+  --fw-text: var(--text-primary, #f8fafc);
+  --fw-subtle: var(--text-secondary, #8e9fb3);
+  --fw-border: var(--border-color, rgba(255, 255, 255, 0.1));
   color: var(--fw-text);
   background: var(--fw-bg);
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -59,7 +59,7 @@
   min-height: 0;
   padding: 0;
   border-right: 1px solid var(--fw-border);
-  background: #0d1527;
+  background: var(--fw-surface, var(--td-surface, #0d1527));
   overflow: hidden;
   transition: width 180ms ease, transform 180ms ease;
 }

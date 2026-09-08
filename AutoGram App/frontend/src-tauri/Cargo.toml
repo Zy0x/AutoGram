@@ -1,6 +1,6 @@
 [package]
 name = "frontend"
-version = "3.9.86"
+version = "3.9.87"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -54,6 +54,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 ureq = { version = "2", default-features = false, features = ["tls", "json"] }
 urlencoding = "2.1"
 url = "2"
+scraper = "0.24"
+regex = "1"
 
 [features]
 default = ["grammers"]

@@ -11,8 +11,6 @@ pub(super) fn validate_url(raw: &str) -> Result<(), String> {
 }
 
 fn public_ip(ip: IpAddr) -> bool {
-    #[cfg(test)]
-    if ip.is_loopback() { return true; }
     match ip {
         IpAddr::V4(v) => !v.is_private() && !v.is_loopback() && !v.is_link_local() && !v.is_broadcast()
             && !v.is_unspecified() && !v.is_multicast() && v.octets()[0] != 0
@@ -22,19 +20,53 @@ fn public_ip(ip: IpAddr) -> bool {
     }
 }
 
+/// Validate the source separately from download targets: even test fixtures must
+/// not permit private Referers. Preserve path/query; never retain credentials.
+pub(super) fn sanitize_referer(raw: &str) -> Result<String, String> {
+    let invalid = "remote_download_invalid_url";
+    // URL parsing strips tabs/newlines: reject them before parsing a header value.
+    if raw.chars().any(char::is_control) { return Err(invalid.into()); }
+    let mut parsed = url::Url::parse(raw.trim()).map_err(|_| invalid)?;
+    if !matches!(parsed.scheme(), "http" | "https") { return Err(invalid.into()); }
+    parsed.set_username("").map_err(|_| invalid)?;
+    parsed.set_password(None).map_err(|_| invalid)?;
+    parsed.set_fragment(None);
+    match parsed.host().ok_or(invalid)? {
+        url::Host::Ipv4(ip) if public_ip(ip.into()) => {},
+        url::Host::Ipv6(ip) if public_ip(ip.into()) => {},
+        url::Host::Domain(host) => {
+            if host == "localhost" || host.ends_with(".localhost") || host.ends_with(".local") {
+                return Err(invalid.into());
+            }
+            // Fail closed on unresolved or mixed public/private DNS answers.
+            let addresses: Vec<_> = (host, parsed.port_or_known_default().ok_or(invalid)?)
+                .to_socket_addrs().map_err(|_| invalid)?.collect();
+            if addresses.is_empty() || addresses.iter().any(|a| !public_ip(a.ip())) {
+                return Err(invalid.into());
+            }
+        },
+        _ => return Err(invalid.into()),
+    }
+    Ok(parsed.to_string())
+}
+
 fn agent() -> ureq::Agent {
     ureq::AgentBuilder::new().redirects(0)
         .timeout_connect(Duration::from_secs(5)).timeout_read(Duration::from_secs(3))
         .timeout_write(Duration::from_secs(3))
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/132.0.0.0 Safari/537.36")
         .resolver(|host: &str| -> std::io::Result<Vec<SocketAddr>> {
-            let addresses: Vec<_> = host.to_socket_addrs()?.filter(|a| public_ip(a.ip())).collect();
+            let addresses: Vec<_> = host.to_socket_addrs()?.filter(|a| {
+                #[cfg(test)]
+                if a.ip().is_loopback() { return true; }
+                public_ip(a.ip())
+            }).collect();
             if addresses.is_empty() { return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "public DNS required")); }
             Ok(addresses)
         }).build()
 }
 
-fn get(agent: &ureq::Agent, url: &str, range: Option<&str>, validator: Option<&str>, job: &Job) -> Result<ureq::Response, String> {
+fn get(agent: &ureq::Agent, url: &str, range: Option<&str>, validator: Option<&str>, job: &Job, source_referer: Option<&str>) -> Result<ureq::Response, String> {
     let mut current = url.to_string();
     for _ in 0..6 {
         job.checkpoint()?;
@@ -44,7 +76,10 @@ fn get(agent: &ureq::Agent, url: &str, range: Option<&str>, validator: Option<&s
         let referer = if host == "googlevideo.com" || host.ends_with(".googlevideo.com") { "https://www.youtube.com/".into() }
             else if host.ends_with("tiktokcdn.com") || host.ends_with("tiktok.com") { "https://www.tiktok.com/".into() }
             else { format!("{}/", parsed.origin().ascii_serialization()) };
-        let mut request = agent.get(&current).set("Accept-Encoding", "identity").set("Referer", &referer);
+        // Only this validated source header is propagated, including redirects
+        // and range retries. No browser cookies or authorization are imported.
+        let mut request = agent.get(&current).set("Accept-Encoding", "identity")
+            .set("Referer", source_referer.unwrap_or(&referer));
         if let Some(range) = range { request = request.set("Range", range); }
         if let Some(validator) = validator { request = request.set("If-Range", validator); }
         let response = request.call().map_err(|e| match e {
@@ -78,9 +113,11 @@ fn reject_wrapper(response: &ureq::Response) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn download(url: &str, output: &Path, connections: usize, job: &Job) -> Result<(), String> {
+pub(super) fn download(url: &str, output: &Path, connections: usize, job: &Job, referer: Option<&str>) -> Result<(), String> {
+    let referer = referer.map(sanitize_referer).transpose()?;
+    let referer = referer.as_deref();
     let agent = agent();
-    let probe = get(&agent, url, Some("bytes=0-0"), None, job)?;
+    let probe = get(&agent, url, Some("bytes=0-0"), None, job, referer)?;
     reject_wrapper(&probe)?;
     let ranged = probe.status() == 206;
     let total = if ranged {
@@ -141,7 +178,7 @@ pub(super) fn download(url: &str, output: &Path, connections: usize, job: &Job) 
                             job.checkpoint()?;
                             if failed.load(Ordering::Relaxed) { return Ok(()); }
                             let part = (|| {
-                                let response = get(agent, url, Some(&format!("bytes={offset}-{end}")), validator, job)?;
+                                let response = get(agent, url, Some(&format!("bytes={offset}-{end}")), validator, job, referer)?;
                                 reject_wrapper(&response)?;
                                 if response.status() != 206 || range_tuple(response.header("Content-Range").unwrap_or("")) != Some((offset, end, total)) {
                                     return Err("remote_download_range".into());

@@ -34,6 +34,7 @@ import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 
 import { bootstrapSecureCredentials, useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 import { useGitHubUpdater } from '../../lib/tauri/githubUpdater';
+import { subscribeColorPalette, getColorPalette } from '../../stores/themePaletteStore';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -78,6 +79,11 @@ export function SessionLauncher({
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
   const activeRefreshesRef = useRef(0);
+  const [, setCurrentPalette] = useState(getColorPalette);
+
+  useEffect(() => {
+    return subscribeColorPalette((p) => setCurrentPalette(p));
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -242,8 +248,8 @@ export function SessionLauncher({
       style={{
         minHeight: '100vh',
         width: '100vw',
-        background: 'radial-gradient(ellipse at top, #111827 0%, #060911 100%)',
-        color: '#f8fafc',
+        background: 'var(--bg-main, radial-gradient(ellipse at top, #111827 0%, #060911 100%))',
+        color: 'var(--text-primary, #f8fafc)',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
@@ -259,8 +265,8 @@ export function SessionLauncher({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(9, 14, 26, 0.7)',
+          borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+          background: 'var(--bg-card, rgba(9, 14, 26, 0.7))',
           backdropFilter: 'blur(16px)',
           position: 'sticky',
           top: 0,
@@ -284,10 +290,10 @@ export function SessionLauncher({
             <Zap size={20} style={{ color: '#ffffff' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '38px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+            <h2 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               {t('nav.launcher_brand')}
             </h2>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, lineHeight: 1.15, display: 'block', marginTop: '2px' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 500, lineHeight: 1.15, display: 'block', marginTop: '2px' }}>
               {t('nav.launcher_engine')}
             </span>
           </div>
@@ -335,9 +341,9 @@ export function SessionLauncher({
               padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
+              background: 'var(--badge-bg, rgba(56, 189, 248, 0.12))',
+              border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.3))',
+              color: 'var(--color-accent, #38bdf8)',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -371,9 +377,9 @@ export function SessionLauncher({
               ...(hasApiError
                 ? {}
                 : {
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    color: '#38bdf8',
+                    background: 'var(--badge-bg, rgba(56, 189, 248, 0.12))',
+                    border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.3))',
+                    color: 'var(--color-accent, #38bdf8)',
                   }),
             }}
             title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
@@ -395,8 +401,8 @@ export function SessionLauncher({
               height: '36px',
               borderRadius: '10px',
               background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
+              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+              color: 'var(--text-secondary, #94a3b8)',
               fontSize: '0.82rem',
               fontWeight: 500,
               cursor: 'pointer',
@@ -415,10 +421,10 @@ export function SessionLauncher({
       {/* HERO SECTION */}
       <main className="ag-launcher-main" style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
         <div className="ag-launcher-hero" style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em', color: 'var(--text-primary, #f8fafc)' }}>
             {t('nav.launcher_title')}
           </h1>
-          <p style={{ fontSize: '0.92rem', color: '#94a3b8', margin: 0, maxWidth: '620px', marginInline: 'auto', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #94a3b8)', margin: 0, maxWidth: '620px', marginInline: 'auto', lineHeight: 1.5 }}>
             {t('nav.launcher_subtitle')}
           </p>
         </div>
@@ -506,10 +512,10 @@ export function SessionLauncher({
                 data-session-name={sess.name}
                 style={{
                   borderRadius: '20px',
-                  background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%)',
-                  border: isDefault ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--bg-card, linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%))',
+                  border: isDefault ? '1.5px solid var(--color-accent, #38bdf8)' : '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
                   boxShadow: isDefault
-                    ? '0 20px 40px -15px rgba(56, 189, 248, 0.25), inset 0 1px rgba(255,255,255,0.1)'
+                    ? '0 20px 40px -15px var(--badge-bg, rgba(56, 189, 248, 0.25)), inset 0 1px rgba(255,255,255,0.1)'
                     : '0 16px 36px -15px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255,255,255,0.05)',
                   padding: '24px',
                   display: 'flex',
@@ -562,11 +568,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#38bdf8',
-                            color: '#38bdf8',
+                            backgroundColor: 'var(--color-accent, #38bdf8)',
+                            color: 'var(--color-accent, #38bdf8)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--color-accent, #38bdf8)', fontWeight: 600 }}>
                           {t('nav.connection_checking')}
                         </span>
                       </>
@@ -610,11 +616,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#10b981',
-                            color: '#10b981',
+                            backgroundColor: 'var(--status-dot, #10b981)',
+                            color: 'var(--status-dot, #10b981)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#34d399', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--status-dot, #34d399)', fontWeight: 600 }}>
                           {t('nav.connection_strong', { latency: sess.latencyMs || 15 })}
                         </span>
                       </>
@@ -632,9 +638,9 @@ export function SessionLauncher({
                         gap: '5px',
                         padding: isDefault ? '3px 10px' : '3px 6px',
                         borderRadius: '10px',
-                        background: isDefault ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-                        border: isDefault ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
-                        color: isDefault ? '#38bdf8' : '#64748b',
+                        background: isDefault ? 'var(--badge-bg, rgba(56, 189, 248, 0.12))' : 'transparent',
+                        border: isDefault ? '1px solid var(--color-accent, rgba(56, 189, 248, 0.35))' : '1px solid transparent',
+                        color: isDefault ? 'var(--badge-text, #38bdf8)' : 'var(--text-secondary, #64748b)',
                         fontSize: '0.73rem',
                         fontWeight: isDefault ? 600 : 500,
                         cursor: 'pointer',
@@ -643,37 +649,37 @@ export function SessionLauncher({
                       onMouseEnter={(e) => {
                         const starIcon = e.currentTarget.querySelector('svg');
                         if (isDefault) {
-                          e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
-                          e.currentTarget.style.borderColor = '#38bdf8';
-                          e.currentTarget.style.color = '#e0f2fe';
-                          e.currentTarget.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.35)';
+                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.22))';
+                          e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
+                          e.currentTarget.style.color = 'var(--text-primary, #e0f2fe)';
+                          e.currentTarget.style.boxShadow = '0 0 12px var(--color-accent, rgba(56, 189, 248, 0.35))';
                           if (starIcon) starIcon.style.transform = 'rotate(15deg) scale(1.15)';
                         } else {
-                          e.currentTarget.style.color = '#38bdf8';
-                          e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)';
-                          e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.2)';
+                          e.currentTarget.style.color = 'var(--color-accent, #38bdf8)';
+                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.08))';
+                          e.currentTarget.style.borderColor = 'var(--border-color, rgba(56, 189, 248, 0.2))';
                           if (starIcon) starIcon.style.transform = 'rotate(15deg)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         const starIcon = e.currentTarget.querySelector('svg');
                         if (isDefault) {
-                          e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-                          e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
-                          e.currentTarget.style.color = '#38bdf8';
+                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.12))';
+                          e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.35))';
+                          e.currentTarget.style.color = 'var(--badge-text, #38bdf8)';
                           e.currentTarget.style.boxShadow = 'none';
                           if (starIcon) starIcon.style.transform = 'rotate(0deg) scale(1)';
                         } else {
                           e.currentTarget.style.background = 'transparent';
                           e.currentTarget.style.borderColor = 'transparent';
-                          e.currentTarget.style.color = '#64748b';
+                          e.currentTarget.style.color = 'var(--text-secondary, #64748b)';
                           if (starIcon) starIcon.style.transform = 'rotate(0deg)';
                         }
                       }}
                     >
                       <Star
                         size={12}
-                        fill={isDefault ? '#38bdf8' : 'none'}
+                        fill={isDefault ? 'var(--badge-text, #38bdf8)' : 'none'}
                         style={{ transition: 'transform 0.18s ease, fill 0.18s ease, color 0.18s ease' }}
                       />
                       <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
@@ -831,14 +837,14 @@ export function SessionLauncher({
                       borderRadius: '16px',
                       background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       border: showAvatar
-                        ? '1.5px solid rgba(56, 189, 248, 0.5)'
-                        : '1px solid rgba(255,255,255,0.12)',
+                        ? '1.5px solid var(--color-accent, rgba(56, 189, 248, 0.5))'
+                        : '1px solid var(--border-color, rgba(255,255,255,0.12))',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '1.3rem',
                       fontWeight: 700,
-                      color: '#38bdf8',
+                      color: 'var(--color-accent, #38bdf8)',
                       overflow: 'hidden',
                       flexShrink: 0,
                       cursor: showAvatar ? 'pointer' : 'default',
@@ -848,14 +854,14 @@ export function SessionLauncher({
                     onMouseEnter={(e) => {
                       if (showAvatar) {
                         e.currentTarget.style.transform = 'scale(1.06)';
-                        e.currentTarget.style.borderColor = '#38bdf8';
-                        e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.4)';
+                        e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
+                        e.currentTarget.style.boxShadow = '0 0 16px var(--color-accent, rgba(56, 189, 248, 0.4))';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (showAvatar) {
                         e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                        e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.5))';
                         e.currentTarget.style.boxShadow = 'none';
                       }
                     }}
@@ -898,7 +904,7 @@ export function SessionLauncher({
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          color: '#ffffff',
+                          color: 'var(--text-primary, #ffffff)',
                           letterSpacing: '-0.01em',
                         }}
                       >
@@ -924,7 +930,7 @@ export function SessionLauncher({
                     <span
                       style={{
                         fontSize: '0.73rem',
-                        color: 'rgba(255,255,255,0.42)',
+                        color: 'var(--text-secondary, rgba(255,255,255,0.42))',
                         lineHeight: 1.4,
                         display: 'block',
                         overflow: 'hidden',
@@ -950,7 +956,7 @@ export function SessionLauncher({
                   </div>
                 </div>
 
-                <hr style={{ border: 0, borderTop: '1px solid rgba(255,255,255,0.06)', margin: 0 }} />
+                <hr style={{ border: 0, borderTop: '1px solid var(--border-color, rgba(255,255,255,0.06))', margin: 0 }} />
 
                 {sess.status === 'expired' || sess.status === 'unauthorized' ? (
                   <div
@@ -1001,9 +1007,9 @@ export function SessionLauncher({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '14px',
-                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(3, 105, 161, 0.22) 100%)',
-                        border: '1px solid rgba(56, 189, 248, 0.35)',
-                        color: '#bae6fd',
+                        background: 'var(--badge-bg, linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(3, 105, 161, 0.22) 100%))',
+                        border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.35))',
+                        color: 'var(--text-primary, #bae6fd)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -1014,21 +1020,21 @@ export function SessionLauncher({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.borderColor = '#38bdf8';
-                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(56, 189, 248, 0.25)';
+                        e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
+                        e.currentTarget.style.boxShadow = '0 8px 20px var(--badge-bg, rgba(56, 189, 248, 0.25))';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+                        e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.35))';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <Folder size={22} style={{ color: '#38bdf8' }} />
+                      <Folder size={22} style={{ color: 'var(--color-accent, #38bdf8)' }} />
                       <div>
-                        <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                        <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('nav.open_drives')}
                         </strong>
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.drives_workspace_desc')}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)' }}>{t('nav.drives_workspace_desc')}</span>
                       </div>
                     </button>
 
@@ -1039,9 +1045,9 @@ export function SessionLauncher({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '14px',
-                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(180, 83, 9, 0.22) 100%)',
-                        border: '1px solid rgba(245, 158, 11, 0.35)',
-                        color: '#fde68a',
+                        background: 'var(--color-secondary-card, linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(180, 83, 9, 0.22) 100%))',
+                        border: '1px solid var(--color-secondary-border, rgba(245, 158, 11, 0.35))',
+                        color: 'var(--color-secondary, #fde68a)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -1052,21 +1058,21 @@ export function SessionLauncher({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.borderColor = '#fbbf24';
-                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.25)';
+                        e.currentTarget.style.borderColor = 'var(--color-secondary, #fbbf24)';
+                        e.currentTarget.style.boxShadow = '0 8px 20px var(--color-secondary-card, rgba(245, 158, 11, 0.25))';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+                        e.currentTarget.style.borderColor = 'var(--color-secondary-border, rgba(245, 158, 11, 0.35))';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <ArrowRightLeft size={22} style={{ color: '#fbbf24' }} />
+                      <ArrowRightLeft size={22} style={{ color: 'var(--color-secondary, #fbbf24)' }} />
                       <div>
-                        <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                        <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('nav.open_forwarder')}
                         </strong>
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.forwarder_workspace_desc')}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)' }}>{t('nav.forwarder_workspace_desc')}</span>
                       </div>
                     </button>
                   </div>

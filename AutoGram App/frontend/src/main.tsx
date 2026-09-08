@@ -5,6 +5,8 @@ import "./index.css";
 import "./i18n";
 // One app-lifetime GC loop for bounded caches, object URLs and Rust WAL/memory.
 import "./lib/utils/garbageCollector";
+// Initialize active theme color palette tokens on DOM root
+import "./stores/themePaletteStore";
 
 /** WebView2 / Edge PDF viewer injects scripts that throw TypeError on `.plugins`
  *  (Chrome extension API). Not our code — swallow to avoid red noise + hard-close. */

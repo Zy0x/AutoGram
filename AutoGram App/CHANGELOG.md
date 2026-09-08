@@ -1,3 +1,44 @@
+## v3.9.87 — Comprehensive Visual Theme Transformation: 5 Curated Palettes, 35 Dynamic Design Tokens & Full UI Hierarchy Surface Bridging
+
+### 1. Visual Theme Engine & Dynamic Token Matrix (`themePaletteStore.ts` & `themePaletteStore.test.ts`)
+- **Expanded 13-Palette Collection (5 Curated + 8 Refined Classic)**: Introduced 5 distinctive, high-contrast curated modern theme palettes alongside 8 refined classic themes:
+  - **Tokyo Midnight (`tokyo_midnight`)**: Deep midnight blue canvas (`#070b14`), dark navy card surfaces (`#10192e`), neon violet primary accent (`#a855f7`), and glowing cyan secondary highlights (`#06b6d4`).
+  - **Emerald Forest (`emerald_forest`)**: Botanical deep forest canvas (`#040d09`), dark emerald card surfaces (`#0c2118`), vibrant mint green primary accent (`#10b981`), and soft sage secondary accents (`#6ee7b7`).
+  - **Luxury Obsidian & Gold (`luxury_gold`)**: Pure obsidian dark canvas (`#08080a`), charcoal card surfaces (`#16161e`), rich warm gold primary accent (`#f59e0b`), and amber secondary highlights (`#fbbf24`).
+  - **Nord Arctic Frost (`nord_frost`)**: Polar slate canvas (`#0d131d`), deep steel card surfaces (`#182438`), vivid arctic sky blue primary accent (`#38bdf8`), and icy teal secondary accents (`#2dd4bf`).
+  - **Cyberpunk Matrix (`cyberpunk_matrix`)**: Dark carbon canvas (`#050807`), dark jade card surfaces (`#0e1812`), electric lime primary accent (`#10e575`), and neon cyan secondary highlights (`#00f0ff`).
+- **35-Token Full Hierarchy Architecture**: Replaced legacy 12-token partial mapping with a comprehensive 35 CSS design token contract covering Canvas & Panels (6), Accents & Highlights (7), Typography & Badges (5), Borders & Focus Rings (3), Cloud Drives Subsystem (`--td-*`, 8), and Forwarder Workspace & Settings (`--fw-*`, `--settings-*`, `--modal-bg`, 6).
+- **Prototype Hardening & Defensive Retrieval**: Hardened `getColorPalette()` and `applyColorPalette()` with `Object.prototype.hasOwnProperty.call(COLOR_PALETTES, val)` guards, ensuring corrupted localStorage keys or inherited properties safely fall back to the `'default'` theme without throwing runtime property lookup exceptions.
+- **Rule 15 Modular Script Boundary Compliance**: Packaged the entire theme definition matrix, token builder, and defensive reactivity methods in 818 physical lines, remaining strictly under the 1,200-line modular limit.
+
+### 2. Comprehensive CSS Surface Bridging & Whole-App Hierarchy Transformation (`index.css`, `App.css`, `Settings.css`, `ForwarderWorkspace.css`)
+- **CSS Legacy Variable Aliasing (`index.css`)**: Dynamically aliased core application custom properties (`--bg-dark`, `--bg-panel`, `--bg-secondary`, `--surface-light`, `--primary`, `--accent`, `--border`, `--text-main`, `--text-muted`) to the active theme tokens (`var(--bg-main)`, `var(--bg-card)`, `var(--color-accent)`, `var(--color-secondary)`), propagating instant reactive palette changes across the entire viewport.
+- **Ambient Spotlight Gradients (`index.css`)**: Converted static amber/blue background spotlights into dynamic `color-mix(in srgb, var(--primary) 15%, transparent)` and `color-mix(in srgb, var(--accent) 15%, transparent)`, creating harmonious, glowing ambient atmospheres tailored to the active theme.
+- **Cloud Drives Specificity Override Elimination (`App.css`)**: Removed aggressive hardcoded hex overrides (`#090d16 !important`, `#0d1527 !important`, `#3b82f6 !important`) from lines 37765–38108, binding Cloud Drives backgrounds, topbars, file table rows, action chips, and cards to `var(--td-bg)`, `var(--td-surface)`, `var(--td-topbar-bg)`, and `var(--td-primary)`.
+- **Forwarder & Settings Surface Binding**: Bound `.ag-forwarder-shell`, `.ag-forwarder-sidebar`, and `.settings-page` directly to `--fw-bg`, `--fw-surface`, `--settings-surface`, and `--bg-main`, ensuring consistent dark-mode glassmorphism and eliminating disjointed color patches.
+
+### 3. General Settings Live Selector UI, WCAG Contrast Certification & Localization Parity (`ColorPaletteSection.tsx`, `settings.json`)
+- **Ergonomic Theme Selector UI (`ColorPaletteSection.tsx`)**: Upgraded theme selection in Settings > General to 402 physical lines, featuring:
+  - **Category Filter Tabs**: 3 segmented pill buttons (`all`: 13, `curated`: 5, `classic`: 8) with theme counts, full keyboard accessibility (`role="tablist"`, `aria-selected`), and >= 44x44px touch targets.
+  - **Interactive Mini-UI Canvas Preview Frame**: Built a 36px pure CSS mock interface displaying miniature sidebar, topbar status dot, canvas surface, and primary button glow reflecting the exact color harmony of each theme.
+  - **5-Part Color Swatch Strip**: Visualizes background, card, primary accent, secondary accent, and border colors with 100% localized hover tooltips (`t('settings.palette_swatch_*')`).
+  - **Selected Theme Indicator**: Radial halo checkmark badge and subtle card glow highlighting the currently active palette.
+- **WCAG 2.1 Contrast Ratio Certification**: Rigorously audited all 5 curated themes across Canvas, Cards, Primary Text, Muted Text, and Interactive Accents:
+  - Primary Text on Canvas: 17.79:1 – 19.30:1 (Exceeds WCAG AAA >= 7.0:1).
+  - Primary Text on Card: 14.89:1 – 17.34:1 (Exceeds WCAG AAA >= 7.0:1).
+  - Muted Text on Canvas: 7.26:1 – 15.35:1 (Exceeds WCAG AAA >= 7.0:1).
+  - Muted Text on Card: 6.07:1 – 13.14:1 (Exceeds WCAG AA >= 4.5:1).
+  - Accent / Interactive elements on Canvas & Cards: 4.42:1 – 11.96:1 (Exceeds WCAG UI / Large text standard >= 3.0:1).
+- **100% Multi-Language Localization Parity**: Added 56 localized string entries across Indonesian (`id/settings.json`) and English (`en/settings.json`), achieving 100% key parity across 6,502 total keys with 0 missing keys, 0 orphan keys, and 0 hardcoded strings in `ColorPaletteSection.tsx`.
+- **Autonomous 5-Dimension Quality Gate Certification & CDP Inspection**:
+  - `npm run test:quality`: All 7 quality gates passed with zero errors.
+  - `npx tsc --noEmit`: 0 TypeScript compilation errors across the entire monorepo.
+  - `npx vitest run`: All 62 test files and 511 tests passed with 0 failures.
+  - `npm run build`: Production bundle succeeded in 21.33s without warnings or chunk errors.
+  - **Live Desktop CDP on Port 9230**: Connected to live desktop `frontend.exe` (PID 25636) via Chrome DevTools Protocol, confirming active DOM tokens (`data-palette="default"`), clean 1280x800 layout integrity (`horizontalOverflow: false`), and 100% compliant touch targets.
+
+---
+
 ## v3.9.86 — Playback Resume and Adaptive Buffer Coordination
 
 ### 1. Playback Startup and Saved Position

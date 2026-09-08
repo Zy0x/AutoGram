@@ -1,20 +1,20 @@
 :root {
-  --settings-accent: #38bdf8;
-  --settings-accent-strong: #0ea5e9;
-  --settings-surface: rgba(15, 24, 36, 0.88);
-  --settings-surface-raised: rgba(21, 33, 47, 0.92);
-  --settings-border: rgba(148, 163, 184, 0.16);
-  --settings-border-strong: rgba(56, 189, 248, 0.42);
+  --settings-accent: var(--color-accent, #38bdf8);
+  --settings-accent-strong: color-mix(in srgb, var(--color-accent, #38bdf8) 85%, #000);
+  --settings-surface: var(--bg-card, rgba(15, 24, 36, 0.88));
+  --settings-surface-raised: var(--surface-light, rgba(21, 33, 47, 0.92));
+  --settings-border: var(--border-color, rgba(148, 163, 184, 0.16));
+  --settings-border-strong: color-mix(in srgb, var(--color-accent, #38bdf8) 42%, transparent);
   --settings-radius: 16px;
 }
 
 .settings-page {
-  --settings-accent: #38bdf8;
-  --settings-accent-strong: #0ea5e9;
-  --settings-surface: rgba(15, 24, 36, 0.88);
-  --settings-surface-raised: rgba(21, 33, 47, 0.92);
-  --settings-border: rgba(148, 163, 184, 0.16);
-  --settings-border-strong: rgba(56, 189, 248, 0.42);
+  --settings-accent: var(--color-accent, #38bdf8);
+  --settings-accent-strong: color-mix(in srgb, var(--color-accent, #38bdf8) 85%, #000);
+  --settings-surface: var(--bg-card, rgba(15, 24, 36, 0.88));
+  --settings-surface-raised: var(--surface-light, rgba(21, 33, 47, 0.92));
+  --settings-border: var(--border-color, rgba(148, 163, 184, 0.16));
+  --settings-border-strong: color-mix(in srgb, var(--color-accent, #38bdf8) 42%, transparent);
   --settings-radius: 16px;
   width: min(100%, 94rem);
   margin-inline: auto;
@@ -25,7 +25,7 @@
 }
 
 .app-content:has(> .settings-page) {
-  background: #0b1520;
+  background: var(--bg-main, #0b1520);
 }
 
 /* Fallback: if settings page is rendered directly without app-content parent */

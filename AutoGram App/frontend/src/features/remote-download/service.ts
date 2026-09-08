@@ -4,6 +4,9 @@ import type { RemoteMuxSpec } from '../../lib/telegram/linkResolvers';
 
 export interface LocalDownloadRequest {
   url: string; filename: string; directory: string; connections: number; mux?: RemoteMuxSpec | null;
+  /** Public source-page URL; native code validates it and strips userinfo/fragment.
+   * Omit to retain the downloader's existing provider/origin Referer defaults. */
+  referer?: string;
 }
 export interface LocalDownloadSnapshot {
   id: string; filename: string; directory: string;

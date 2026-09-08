@@ -61,6 +61,7 @@ import { useGitHubUpdater, CURRENT_APP_VERSION } from '../../lib/tauri/githubUpd
 import { useMouseBackNavigation } from '../../lib/platform/mouseBackGesture';
 import { CustomAccountSelect } from './CustomAccountSelect';
 import { StorageSettingsSection } from './StorageSettingsSection';
+import { ColorPaletteSection } from './ColorPaletteSection';
 
 interface SettingsProps {
   onBackToLauncher?: () => void;
@@ -1151,6 +1152,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   </div>
                 </div>
               </div>
+
+              <ColorPaletteSection />
 
               <div className="glass-panel card settings-section-debug" style={{ marginTop: '16px' }}>
                 <div className="card-header">

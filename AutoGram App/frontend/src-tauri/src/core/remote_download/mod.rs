@@ -28,6 +28,9 @@ pub struct DownloadRequest {
     pub directory: String,
     pub connections: Option<usize>,
     pub mux: Option<MuxSpec>,
+    /// Optional public source page, sanitized before admission; never an auth header map.
+    #[serde(default)]
+    pub referer: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -83,12 +86,13 @@ fn validate_filename(name: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn remote_download_start(requests: Vec<DownloadRequest>) -> Result<Vec<Snapshot>, String> {
+pub async fn remote_download_start(mut requests: Vec<DownloadRequest>) -> Result<Vec<Snapshot>, String> {
     // Validate the entire batch before launching any network work.
     if requests.is_empty() || requests.len() > 100 { return Err("remote_download_invalid_batch".into()); }
-    for request in &requests {
+    for request in &mut requests {
         validate_filename(&request.filename)?;
         http::validate_url(&request.url)?;
+        request.referer = request.referer.as_deref().map(http::sanitize_referer).transpose()?;
         let directory = Path::new(&request.directory);
         if !directory.is_absolute() || !directory.is_dir() { return Err("remote_download_invalid_directory".into()); }
         if directory.join(&request.filename).exists() { return Err("remote_download_exists".into()); }
@@ -180,15 +184,15 @@ fn run(request: &DownloadRequest, job: &Job) -> Result<(), String> {
     let output = if let Some(spec) = &request.mux {
         let video = scratch.0.join("video.part");
         let audio = scratch.0.join("audio.part");
-        http::download(&spec.video_url, &video, connections, job)?;
-        http::download(&spec.audio_url, &audio, connections, job)?;
+        http::download(&spec.video_url, &video, connections, job, request.referer.as_deref())?;
+        http::download(&spec.audio_url, &audio, connections, job, request.referer.as_deref())?;
         job.phase("mux");
         let output = scratch.0.join(format!("output.{}", spec.output_ext));
         mux::assemble(&video, &audio, &output, spec, job)?;
         output
     } else {
         let output = scratch.0.join("download.part");
-        http::download(&request.url, &output, connections, job)?;
+        http::download(&request.url, &output, connections, job, request.referer.as_deref())?;
         output
     };
     job.checkpoint()?;
