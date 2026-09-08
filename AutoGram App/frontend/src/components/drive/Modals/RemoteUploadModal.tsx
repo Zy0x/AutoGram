@@ -130,6 +130,9 @@ function getFormatDisplayBadge(fmt: StreamQualityFormat, t: any): string | undef
   if (fmt.isCleanNoWatermark) {
     return t('drive.remote_clean_no_watermark');
   }
+  if (fmt.badge === 'WATERMARK' || fmt.isCleanNoWatermark === false) {
+    return t('drive.remote_watermarked_badge');
+  }
   if (fmt.badge === 'remote_web_page') {
     return t('drive.remote_web_page_badge');
   }

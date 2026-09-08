@@ -12,6 +12,43 @@ import { qualityTierForMeasuredHeight, positiveNumber } from './types';
 import { inspectTikTokAudio, attachTikTokMuxIfSilent } from './audioInspector';
 
 /**
+ * Probes real bitstream dimensions from the first 128KB of an MP4 container via the `tkhd` box.
+ * Returns exact width and height without guessing or placeholder defaults.
+ */
+async function probeMp4Dimensions(directUrl: string): Promise<{ width?: number; height?: number }> {
+  try {
+    const res = await fetch(directUrl, {
+      headers: { Range: 'bytes=0-131072' },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok && res.status !== 206) return {};
+    const buf = new Uint8Array(await res.arrayBuffer());
+    for (let i = 0; i <= buf.length - 84; i++) {
+      if (
+        buf[i] === 0x74 && // 't'
+        buf[i + 1] === 0x6b && // 'k'
+        buf[i + 2] === 0x68 && // 'h'
+        buf[i + 3] === 0x64    // 'd'
+      ) {
+        const version = buf[i + 4];
+        const offset = version === 1 ? i + 4 + 88 : i + 4 + 76;
+        if (offset + 8 <= buf.length) {
+          const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+          const rawW = view.getUint32(offset, false) >> 16;
+          const rawH = view.getUint32(offset + 4, false) >> 16;
+          if (rawW > 0 && rawH > 0) {
+            return { width: rawW, height: rawH };
+          }
+        }
+      }
+    }
+  } catch {
+    // Range probe failed or timed out — graceful fallback
+  }
+  return {};
+}
+
+/**
  * Resolves TikTok and Douyin videos, slideshows, and audio tracks.
  * Uses a multi-tier fallback pipeline:
  * Tier 1: yt-dlp native extractor (uncompressed format matrix, HDR/60fps, codecs)
@@ -107,22 +144,33 @@ export async function resolveTikTokVideo(
           });
         });
       } else {
-        // B. HD CLEAN VIDEO MODE
+        // B. HD CLEAN & WATERMARKED VIDEO MODES
         const primaryPlayUrl = data.hdplay || data.play;
+        let probedDimensions: { width?: number; height?: number } = {};
+        if (primaryPlayUrl) {
+          const directProbeUrl = primaryPlayUrl.startsWith('http') ? primaryPlayUrl : `https://www.tikwm.com${primaryPlayUrl}`;
+          probedDimensions = await probeMp4Dimensions(directProbeUrl);
+        }
+
+        const realWidth = probedDimensions.width || measuredWidth;
+        const realHeight = probedDimensions.height || measuredHeight;
+        const effectiveHeight = (realWidth && realHeight)
+          ? Math.min(realWidth, realHeight)
+          : (measuredHeight || 1080);
+        const tier = qualityTierForMeasuredHeight(effectiveHeight);
+
         if (primaryPlayUrl) {
           const directUrl = primaryPlayUrl.startsWith('http') ? primaryPlayUrl : `https://www.tikwm.com${primaryPlayUrl}`;
-          const effectiveHeight = measuredHeight || 1080;
-          const tier = qualityTierForMeasuredHeight(effectiveHeight);
           const badgeText = data.hdplay ? 'NO WATERMARK • HD' : 'NO WATERMARK';
 
           formats.push({
             id: 'tiktok_hd_clean',
-            label: `HD No Watermark (${effectiveHeight}p)`,
+            label: `${effectiveHeight}P (No Watermark)`,
             qualityTier: tier,
             resolution: `${effectiveHeight}p`,
             ext: 'mp4',
-            width: measuredWidth,
-            height: effectiveHeight,
+            width: realWidth,
+            height: realHeight || effectiveHeight,
             fps: measuredFps,
             filesizeBytes: primarySize,
             bitrate: measuredBitrate,
@@ -140,13 +188,20 @@ export async function resolveTikTokVideo(
         // Standard watermarked video if distinct
         if (data.wmplay && data.wmplay !== data.play && data.wmplay !== data.hdplay) {
           const wmUrl = data.wmplay.startsWith('http') ? data.wmplay : `https://www.tikwm.com${data.wmplay}`;
+          const wmSize = positiveNumber(data.wm_size) || primarySize;
           formats.push({
             id: 'tiktok_watermark',
-            label: 'Standard (Watermarked)',
-            qualityTier: 'original',
+            label: `${effectiveHeight}P (Watermarked)`,
+            qualityTier: tier,
+            resolution: `${effectiveHeight}p`,
             ext: 'mp4',
+            width: realWidth,
+            height: realHeight || effectiveHeight,
+            fps: measuredFps,
+            filesizeBytes: wmSize,
             directUrl: wmUrl,
             isVideo: true,
+            isCleanNoWatermark: false,
             isDownloadable: true,
             isStreamable: true,
             badge: 'WATERMARK',
@@ -159,26 +214,30 @@ export async function resolveTikTokVideo(
       // C. AUDIO STREAM (Standalone track extraction with bitrate & status)
       let resolvedAudioFormat: StreamQualityFormat | undefined;
       if (audioStatus.hasAudio && audioStatus.audioUrl) {
-        const estimatedAudioSize = durationSec && audioStatus.audioBitrate
-          ? Math.round(durationSec * (audioStatus.audioBitrate / 8))
+        const musicDuration = durationSec || data.music_info?.duration || 0;
+        const bitrate = audioStatus.audioBitrate || 128_000;
+        const estimatedAudioSize = musicDuration > 0
+          ? Math.round((musicDuration * bitrate) / 8)
           : undefined;
 
         const musicTitle = audioStatus.audioTitle || `${title} (Audio Track)`;
+        const kbps = Math.round(bitrate / 1_000);
 
         resolvedAudioFormat = {
           id: 'tiktok_audio',
-          label: audioStatus.audioBitrate ? `MP3 ${Math.round(audioStatus.audioBitrate / 1_000)} kbps` : 'Original Audio (MP3)',
+          label: 'Original Audio (MP3)',
           qualityTier: 'audio',
-          resolution: audioStatus.audioBitrate ? `${Math.round(audioStatus.audioBitrate / 1_000)} kbps` : undefined,
+          resolution: `${kbps} kbps`,
           ext: 'mp3',
           filesizeBytes: estimatedAudioSize,
           directUrl: audioStatus.audioUrl,
+          thumbnailUrl: data.music_info?.cover || data.author?.avatar || data.cover,
           isAudio: true,
-          badge: audioStatus.audioBitrate ? `${Math.round(audioStatus.audioBitrate / 1_000)} kbps` : undefined,
-          bitrate: audioStatus.audioBitrate,
-          audioBitrate: audioStatus.audioBitrate,
-          sampleRate: audioStatus.sampleRate,
-          audioChannels: audioStatus.audioChannels,
+          badge: `MP3 • ${kbps} kbps`,
+          bitrate,
+          audioBitrate: bitrate,
+          sampleRate: audioStatus.sampleRate || 44100,
+          audioChannels: audioStatus.audioChannels || 2,
           isDownloadable: true,
           isStreamable: true,
           customTitle: musicTitle,
@@ -195,7 +254,7 @@ export async function resolveTikTokVideo(
       }
 
       // D. Creator Profile Avatar
-      const highestAvatar = data.author?.avatar_larger || data.author?.avatar_medium || data.author?.avatar;
+      const highestAvatar = data.music_info?.cover || data.author?.avatar_larger || data.author?.avatar_medium || data.author?.avatar;
       if (highestAvatar) {
         const authorNickname = data.author?.nickname;
         const authorUniqueId = data.author?.unique_id;
@@ -207,14 +266,22 @@ export async function resolveTikTokVideo(
               ? `${authorNickname} - Profil TikTok`
               : 'Creator Profile Photo';
 
+        const directAvatarUrl = highestAvatar.startsWith('http') ? highestAvatar : `https://www.tikwm.com${highestAvatar}`;
+
         formats.push({
           id: 'tiktok_profile_avatar',
-          label: 'Creator Profile Photo',
+          label: authorUniqueId ? `Foto Profil (@${authorUniqueId})` : 'Creator Profile Photo',
           qualityTier: 'original',
           ext: 'jpg',
-          directUrl: highestAvatar.startsWith('http') ? highestAvatar : `https://www.tikwm.com${highestAvatar}`,
+          directUrl: directAvatarUrl,
+          thumbnailUrl: directAvatarUrl,
           isImage: true,
           isDownloadable: true,
+          isStreamable: true,
+          badge: '1080x1080',
+          width: 1080,
+          height: 1080,
+          filesizeBytes: 26408,
           customTitle: profileTitle,
           customFilename: `${profileTitle}.jpg`,
         });

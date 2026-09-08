@@ -18,6 +18,7 @@ export interface TikTokMusicInfo {
   original?: boolean;
   duration?: number;
   album?: string;
+  cover?: string;
   bitrate?: number;
   bit_rate?: number;
   sample_rate?: number;

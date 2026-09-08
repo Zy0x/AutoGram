@@ -15,6 +15,7 @@ import type { RawStreamItem, StreamQualityFormat } from '../../../lib/telegram/l
 // instances could still evaluate a destination branch that referenced this
 // helper from the pre-split monolith.
 import { kindIcon } from './remoteUploadUiPrimitives';
+import { renderMatrixTable } from './remoteUploadRenderers';
 
 export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
   const { t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,selectedFormatId,setSelectedFormatId,activePlayableUrl,isPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,setResolvedMedia,effectiveMediaItems,activeSlideIndex,activeTargetExt,activeItemCurrentName,isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,handleToggleItem,handleSelectAllItems,handleDeselectAllItems,filteredAndSortedItems,galleryViewMode,setGalleryViewMode,galleryFilter,setGalleryFilter,gallerySearch,setGallerySearch,gallerySortBy,setGallerySortBy,gallerySortOrder,setGallerySortOrder,itemDurations,setItemDurations,itemResolutions,setItemResolutions,itemSelectedFormats,selectedBytes,streamContainerFilter,setStreamContainerFilter,matrixSearchQuery,setMatrixSearchQuery,matrixHideM3u8,setMatrixHideM3u8,subtitleSearchQuery,setSubtitleSearchQuery,subtitleTypeFilter,setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef} = ctx;
@@ -181,88 +182,116 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                         return (
                           <div className="td-remote-big-canvas-wrap">
                             {isPlayingStream && isDirectStream ? (
-
-                              <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
-                                <video
-                                  key={activePlayableUrl}
-                                  src={activePlayableUrl}
-                                  poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
-                                  autoPlay
-                                  controls
-                                  preload="auto"
-                                  playsInline
-                                  className="td-remote-big-canvas-video td-remote-active-player-video"
-                                  crossOrigin="anonymous"
-                                  onLoadedData={(e) => {
-                                    const v = e.currentTarget;
-                                    if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
-                                      const thumb = captureVideoCanvasThumbnail(v);
-                                      if (thumb) {
-                                        setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                              activeFormatForCanvas?.isAudio ? (
+                                <div className="td-remote-big-canvas-inner td-remote-single-audio-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'radial-gradient(circle at center, rgba(30,41,59,0.95), rgba(15,23,42,0.98))', height: '100%', minHeight: '260px' }}>
+                                  <div style={{ position: 'relative', width: 140, height: 140, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', marginBottom: 16 }}>
+                                    <img
+                                      src={activeFormatForCanvas.thumbnailUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl}
+                                      alt={activeFormatForCanvas.customTitle || resolvedMedia.title}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <Music size={40} style={{ color: '#38bdf8' }} />
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: 'center', marginBottom: 16, width: '100%', padding: '0 12px' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {getFormatDisplayLabel(activeFormatForCanvas, resolvedMedia, t)}
+                                    </span>
+                                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                                      {t('drive.remote_audio_player_title')}
+                                    </span>
+                                  </div>
+                                  <audio
+                                    key={activePlayableUrl}
+                                    src={activePlayableUrl}
+                                    autoPlay
+                                    controls
+                                    style={{ width: '100%', maxWidth: 320, height: 36 }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="td-remote-big-canvas-inner td-remote-single-player-canvas">
+                                  <video
+                                    key={activePlayableUrl}
+                                    src={activePlayableUrl}
+                                    poster={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
+                                    autoPlay
+                                    controls
+                                    preload="auto"
+                                    playsInline
+                                    className="td-remote-big-canvas-video td-remote-active-player-video"
+                                    crossOrigin="anonymous"
+                                    onLoadedData={(e) => {
+                                      const v = e.currentTarget;
+                                      if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                        const thumb = captureVideoCanvasThumbnail(v);
+                                        if (thumb) {
+                                          setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                        }
                                       }
-                                    }
-                                  }}
-                                  onLoadedMetadata={(e) => {
-                                    const v = e.currentTarget;
-                                    const dur = v.duration;
-                                    const w = v.videoWidth;
-                                    const h = v.videoHeight;
-                                    if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
-                                      const thumb = captureVideoCanvasThumbnail(v);
-                                      if (thumb) {
-                                        setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                    }}
+                                    onLoadedMetadata={(e) => {
+                                      const v = e.currentTarget;
+                                      const dur = v.duration;
+                                      const w = v.videoWidth;
+                                      const h = v.videoHeight;
+                                      if (resolvedMedia && !resolvedMedia.thumbnailUrl) {
+                                        const thumb = captureVideoCanvasThumbnail(v);
+                                        if (thumb) {
+                                          setResolvedMedia((prev) => (prev ? { ...prev, thumbnailUrl: thumb } : prev));
+                                        }
                                       }
-                                    }
-                                    if (dur && isFinite(dur) && dur > 0) {
-                                      const d = Math.round(dur);
-                                      if (activePreviewItem) {
-                                        setItemDurations((prev) => {
-                                          if (prev[activePreviewItem.id] === d) return prev;
-                                          return { ...prev, [activePreviewItem.id]: d };
+                                      if (dur && isFinite(dur) && dur > 0) {
+                                        const d = Math.round(dur);
+                                        if (activePreviewItem) {
+                                          setItemDurations((prev) => {
+                                            if (prev[activePreviewItem.id] === d) return prev;
+                                            return { ...prev, [activePreviewItem.id]: d };
+                                          });
+                                        }
+                                      }
+                                      if (w > 0 && h > 0 && activePreviewItem) {
+                                        setItemResolutions((prev) => {
+                                          const cur = prev[activePreviewItem.id];
+                                          if (cur && cur.width === w && cur.height === h) return prev;
+                                          return { ...prev, [activePreviewItem.id]: { width: w, height: h } };
                                         });
                                       }
-                                    }
-                                    if (w > 0 && h > 0 && activePreviewItem) {
-                                      setItemResolutions((prev) => {
-                                        const cur = prev[activePreviewItem.id];
-                                        if (cur && cur.width === w && cur.height === h) return prev;
-                                        return { ...prev, [activePreviewItem.id]: { width: w, height: h } };
-                                      });
-                                    }
-                                  }}
-                                  onDurationChange={(e) => {
-                                    const dur = e.currentTarget.duration;
-                                    if (dur && isFinite(dur) && dur > 0) {
-                                      const d = Math.round(dur);
-                                      if (activePreviewItem) {
-                                        setItemDurations((prev) => {
-                                          if (prev[activePreviewItem.id] === d) return prev;
-                                          return { ...prev, [activePreviewItem.id]: d };
-                                        });
+                                    }}
+                                    onDurationChange={(e) => {
+                                      const dur = e.currentTarget.duration;
+                                      if (dur && isFinite(dur) && dur > 0) {
+                                        const d = Math.round(dur);
+                                        if (activePreviewItem) {
+                                          setItemDurations((prev) => {
+                                            if (prev[activePreviewItem.id] === d) return prev;
+                                            return { ...prev, [activePreviewItem.id]: d };
+                                          });
+                                        }
                                       }
-                                    }
-                                  }}
-                                />
-                              </div>
+                                    }}
+                                  />
+                                </div>
+                              )
                             ) : isPlayingStream ? (
                               <div className="td-remote-big-canvas-fallback">
                                 <FileText size={36} className="td-remote-fallback-icon" />
                                 <span>{t('drive_tools.remote_format_preview_unavailable')}</span>
                               </div>
-                            ) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl) ? (
+                            ) : (activeFormatForCanvas?.isImage ? (activeFormatForCanvas.directUrl || activeSlideUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl)) ? (
                               <div className="td-remote-big-canvas-inner">
                                 <img
-                                  src={activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl}
+                                  src={activeFormatForCanvas?.isImage ? (activeFormatForCanvas.directUrl || activeSlideUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl)}
                                   alt={resolvedMedia.title}
                                   className="td-remote-big-canvas-img"
                                   loading="eager"
                                   referrerPolicy="no-referrer"
                                 />
-                                {activeFormatForCanvas && (
+                                {activeFormatForCanvas && !activeFormatForCanvas.isImage && (
                                   <button
                                     type="button"
                                     className="td-remote-canvas-center-play-btn"
-
                                     onClick={() => handlePlayFormat(activeFormatForCanvas)}
                                     title={t('drive.remote_stream_play_tooltip')}
                                   >
@@ -273,23 +302,32 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   </button>
                                 )}
                                 <div className="td-remote-canvas-badge-overlay">
-                                  {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                  {activeFormatForCanvas?.isImage ? (
                                     <span className="td-remote-canvas-slide-tag">
                                       <ImageIcon size={12} />
-                                      <span>
-                                        {t('drive.remote_split_slide_preview', {
-                                          idx: activeSlideIndex + 1,
-                                          total: resolvedMedia.albumImages.length,
-                                        })}
-                                      </span>
+                                      <span>{activeFormatForCanvas.badge || activeFormatForCanvas.resolution || 'Image'}</span>
                                     </span>
+                                  ) : (
+                                    <>
+                                      {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                        <span className="td-remote-canvas-slide-tag">
+                                          <ImageIcon size={12} />
+                                          <span>
+                                            {t('drive.remote_split_slide_preview', {
+                                              idx: activeSlideIndex + 1,
+                                              total: resolvedMedia.albumImages.length,
+                                            })}
+                                          </span>
+                                        </span>
+                                      )}
+                                      {resolvedMedia.durationSec ? (
+                                        <span className="td-remote-canvas-duration-tag">
+                                          <Clock size={11} />
+                                          <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
+                                        </span>
+                                      ) : null}
+                                    </>
                                   )}
-                                  {resolvedMedia.durationSec ? (
-                                    <span className="td-remote-canvas-duration-tag">
-                                      <Clock size={11} />
-                                      <span>{formatMediaDuration(resolvedMedia.durationSec)}</span>
-                                    </span>
-                                  ) : null}
                                 </div>
                               </div>
                             ) : (
@@ -980,7 +1018,14 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
 
                           const getFormatResolutionKey = (f: StreamQualityFormat): string => {
                             const height = Number(f.height || 0);
-                            return height > 0 ? `height-${height}` : `original-${f.id}`;
+                            const isWatermarked = f.isCleanNoWatermark === false || (
+                              Boolean(f.badge) &&
+                              f.badge.toUpperCase().includes('WATERMARK') &&
+                              !f.badge.toUpperCase().includes('NO WATERMARK') &&
+                              !f.badge.toUpperCase().includes('TANPA WATERMARK')
+                            );
+                            const wmSuffix = isWatermarked ? '-wm' : '';
+                            return height > 0 ? `height-${height}${wmSuffix}` : `original-${f.id}${wmSuffix}`;
                           };
 
                           const getVideoBitrate = (f: StreamQualityFormat): number => {
@@ -1018,8 +1063,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                             });
                           };
 
-                          // Group only by measured height. A generic direct link without dimensions
-                          // remains "Original" instead of borrowing a resolution from its filename/title.
+                          // Group only by measured height and watermark state.
                           const resGroups = new Map<string, StreamQualityFormat[]>();
                           allVideoFmts.forEach((f) => {
                             const key = getFormatResolutionKey(f);
@@ -1036,9 +1080,20 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                             }
                           });
 
-                          curatedGeneralVideos.sort(
-                            (a, b) => (Number(b.height || 0) - Number(a.height || 0)) || getVideoBitrate(b) - getVideoBitrate(a)
-                          );
+                          curatedGeneralVideos.sort((a, b) => {
+                            const hDiff = (Number(b.height || 0) - Number(a.height || 0));
+                            if (hDiff !== 0) return hDiff;
+                            const aClean = a.isCleanNoWatermark === true || a.badge?.toUpperCase().includes('NO WATERMARK') ? 1 : 0;
+                            const bClean = b.isCleanNoWatermark === true || b.badge?.toUpperCase().includes('NO WATERMARK') ? 1 : 0;
+                            if (bClean !== aClean) return bClean - aClean;
+                            return getVideoBitrate(b) - getVideoBitrate(a);
+                          });
+
+                          const curatedGeneralAudio: StreamQualityFormat[] = audioFmts.slice(0, 1);
+                          const curatedGeneralImages: StreamQualityFormat[] = resolvedMedia.formats
+                            .filter((f) => f.isImage && !isBrokenOrM3u8(f) && !f.isAlbumPack)
+                            .slice(0, 2);
+                          const totalGeneralCount = curatedGeneralVideos.length + curatedGeneralAudio.length + curatedGeneralImages.length;
 
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];
 
@@ -1223,7 +1278,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     onClick={() => setStreamContainerFilter('general')}
                                   >
                                     <span>{t('drive.remote_format_filter_general')}</span>
-                                    <span>({curatedGeneralVideos.length})</span>
+                                    <span>({totalGeneralCount})</span>
                                   </button>
                                   {hasVideos && (
                                     <button
@@ -1273,302 +1328,24 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   <div className="td-remote-quality-grid">{resolvedMedia.formats.filter(f => f.mux?.transcodeVideo).map(renderFormatChip)}</div>
                                 </div>
                               )}
-                              {isAdvanceTab ? (
-                                hasRawMatrix ? (() => {
-                                  const rawMp4Videos = filteredRawStreams
-                                    .filter((s) => s.type !== 'audio' && (s.mimeType.includes('mp4') || s.codec.includes('AVC') || s.codec.includes('H.264') || s.codec.includes('AV1')))
-                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-                                  const rawWebmVideos = filteredRawStreams
-                                    .filter((s) => s.type !== 'audio' && (s.mimeType.includes('webm') || s.codec.includes('VP9')))
-                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-                                  const rawOtherVideos = filteredRawStreams
-                                    .filter((s) => s.type !== 'audio' && !rawMp4Videos.some((m) => m.itag === s.itag) && !rawWebmVideos.some((w) => w.itag === s.itag))
-                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-                                  const rawAudioStreams = filteredRawStreams
-                                    .filter((s) => s.type === 'audio')
-                                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-                                  const renderMatrixRow = (s: RawStreamItem) => {
-                                    const matchedFmt = resolvedMedia.formats.find((f) => f.directUrl === s.directUrl && !f.mux?.transcodeVideo) || {
-                                      id: `raw_itag_${s.itag}`,
-                                      label: `${s.height ? t('drive.remote_format_height', { height: s.height }) : s.type === 'audio' ? t('drive.remote_format_filter_audio_tab') : s.codec} (itag ${s.itag})`,
-                                      qualityTier: 'original' as const,
-                                      resolution: s.height ? t('drive.remote_format_height', { height: s.height }) : undefined,
-                                      ext: s.mimeType.includes('webm') || s.mimeType.includes('opus') ? 'webm' : (s.type === 'audio' ? 'm4a' : 'mp4'),
-                                      filesizeBytes: s.filesizeBytes,
-                                      directUrl: s.directUrl,
-                                      protocol: s.protocol,
-                                      isVideo: s.type === 'video' || s.type === 'muxed',
-                                      isAudio: s.type === 'audio',
-                                      width: s.width,
-                                      height: s.height,
-                                      fps: s.fps,
-                                      bitrate: s.bitrate,
-                                      audioBitrate: s.type === 'audio' ? s.bitrate : undefined,
-                                      sampleRate: s.sampleRate,
-                                      audioChannels: s.audioChannels,
-                                      isHdr: s.isHdr === true,
-                                      badge: s.bitrateFormatted,
-                                      itag: s.itag,
-                                      isDownloadable: s.isDownloadable,
-                                      isStreamable: s.isStreamable,
-                                      downloadOnly: s.downloadOnly,
-                                    };
-                                    const isSelected = Boolean(
-                                      selectedFormatId &&
-                                      (selectedFormatId === matchedFmt.id || (activeFmt?.itag && activeFmt.itag === s.itag))
-                                    );
-                                    return (
-
-                                      <tr
-                                        key={s.itag}
-                                        className={`td-remote-matrix-row ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => { if (!isStreamHls(s) && s.isDownloadable !== false) handleToggleFormat(matchedFmt); }}
-                                        onDoubleClick={(e) => {
-                                          e.stopPropagation();
-                                          handlePlayFormat(matchedFmt);
-                                        }}
-                                        title={s.isStreamable === false
-                                          ? t('drive_tools.remote_format_preview_unavailable')
-                                          : isSelected
-                                            ? t('drive.remote_unselect_card_tooltip')
-                                            : t('drive.remote_stream_double_click_hint')}
-                                      >
-                                        <td>
-                                          <span className="td-remote-matrix-itag-badge">{s.itag}</span>
-                                        </td>
-                                        <td>
-                                           {(() => {
-                                             const baseRes = s.type === 'audio'
-                                               ? t('drive.remote_format_filter_audio_tab')
-                                               : (s.qualityLabel || '').replace(/\s*HDR/i, '').replace(/(\d+p)60/i, '$1').replace(/\s*60fps/i, '').replace(/\s*30fps/i, '').trim();
-                                             return (
-                                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                                 <span style={{ fontWeight: 700, color: s.isHdr ? '#fbbf24' : '#ffffff' }}>
-                                                   {baseRes || s.qualityLabel}
-                                                 </span>
-                                                 {s.fps && s.fps >= 50 ? (
-                                                   <span style={{ color: '#34d399', fontSize: '0.62rem', fontWeight: 700, background: 'rgba(52, 211, 153, 0.12)', padding: '1px 4px', borderRadius: 4 }}>
-                                                     {`${s.fps}fps`}
-                                                   </span>
-                                                 ) : s.fps && s.fps < 50 && s.type !== 'audio' ? (
-                                                   <span style={{ color: '#94a3b8', fontSize: '0.62rem' }}>
-                                                     {`${s.fps}fps`}
-                                                   </span>
-                                                 ) : null}
-                                                 {s.isHdr && (
-                                                   <span style={{ color: '#fbbf24', fontSize: '0.60rem', fontWeight: 800, background: 'rgba(251, 191, 36, 0.15)', padding: '1px 4px', borderRadius: 4 }}>
-                                                     {t('drive.remote_badge_hdr')}
-                                                   </span>
-                                                 )}
-                                               </div>
-                                             );
-                                           })()}
-                                        </td>
-                                        <td>
-                                          <span>{s.codec}</span>
-                                          <span style={{ color: '#64748b', marginLeft: 4, fontSize: '0.62rem' }}>
-                                            ({s.mimeType.split('/')[1] || s.mimeType})
-                                          </span>
-                                          {isStreamHls(s) ? (
-                                            <span style={{
-                                              color: '#fbbf24',
-                                              background: 'rgba(251, 191, 36, 0.15)',
-                                              border: '1px solid rgba(251, 191, 36, 0.3)',
-                                              padding: '1px 5px',
-                                              borderRadius: '4px',
-                                              fontSize: '0.58rem',
-                                              fontWeight: 700,
-                                              marginLeft: 6,
-                                            }}>
-                                              {t('drive.remote_matrix_hls_badge')}
-                                            </span>
-                                          ) : (
-                                            <span style={{
-                                              color: '#4ade80',
-                                              background: 'rgba(74, 222, 128, 0.14)',
-                                              border: '1px solid rgba(74, 222, 128, 0.3)',
-                                              padding: '1px 5px',
-                                              borderRadius: '4px',
-                                              fontSize: '0.58rem',
-                                              fontWeight: 700,
-                                              marginLeft: 6,
-                                            }}>
-                                              {t('drive.remote_matrix_direct_badge')}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td>
-                                          <span style={{ color: s.isHdr ? '#fbbf24' : '#38bdf8', fontWeight: 650 }}>
-
-                                            {s.bitrateFormatted}
-                                          </span>
-                                        </td>
-                                        <td>
-                                          {s.filesizeBytes ? `~${formatDriveBytes(s.filesizeBytes)}` : '-'}
-                                        </td>
-                                        <td>
-                                          <span className={`td-remote-matrix-type-badge ${s.type}`}>
-                                            {s.type}
-                                          </span>
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                          <button
-                                            type="button"
-                                            className={`td-remote-matrix-select-btn ${isSelected ? 'selected' : ''}`}
-                                            disabled={s.isDownloadable === false || isStreamHls(s) || !resolvedMedia.formats.some(f => f.id === matchedFmt.id)}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleToggleFormat(matchedFmt);
-                                            }}
-                                            onDoubleClick={(e) => {
-                                              e.stopPropagation();
-                                              handlePlayFormat(matchedFmt);
-                                            }}
-                                            title={isSelected ? t('drive.remote_unselect_card_tooltip') : t('drive.remote_stream_double_click_hint')}
-                                          >
-                                            {isSelected ? t('drive.remote_matrix_selected_badge') : t('drive.remote_matrix_select_btn')}
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    );
-                                  };
-
-                                  return (
-                                    <div className="td-remote-matrix-wrapper">
-                                      <div className="td-remote-matrix-search-box" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-                                          <Search size={13} style={{ color: '#94a3b8', position: 'absolute', left: '10px' }} />
-                                          <input
-                                            type="text"
-                                            value={matrixSearchQuery}
-                                            onChange={(e) => setMatrixSearchQuery(e.target.value)}
-                                            placeholder={t('drive.remote_matrix_search_placeholder')}
-                                            style={{ width: '100%', paddingLeft: '30px' }}
-                                          />
-                                          {matrixSearchQuery && (
-                                            <button
-                                              type="button"
-                                              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, position: 'absolute', right: '10px' }}
-                                              onClick={() => setMatrixSearchQuery('')}
-                                            >
-                                              <X size={12} />
-                                            </button>
-                                          )}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className={`td-chip-btn ${matrixHideM3u8 ? 'td-chip-primary' : ''}`}
-                                          onClick={() => setMatrixHideM3u8((prev) => !prev)}
-                                          style={{
-                                            fontSize: '0.74rem',
-                                            padding: '6px 10px',
-                                            whiteSpace: 'nowrap',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '5px',
-                                            borderRadius: '8px',
-                                          }}
-                                        >
-                                          <Filter size={12} />
-                                          <span>{matrixHideM3u8 ? t('drive.remote_matrix_hide_m3u8_active') : t('drive.remote_matrix_hide_m3u8_inactive')}</span>
-                                        </button>
-                                      </div>
-
-                                      <div className="td-remote-matrix-table-scroll">
-                                        <table className="td-remote-matrix-table">
-                                          <thead>
-                                            <tr>
-                                              <th>{t('drive.remote_matrix_col_itag')}</th>
-                                              <th>{t('drive.remote_matrix_col_resolution')}</th>
-
-                                              <th>{t('drive.remote_matrix_col_codec')}</th>
-                                              <th>{t('drive.remote_matrix_col_bitrate')}</th>
-                                              <th>{t('drive.remote_matrix_col_size')}</th>
-                                              <th>{t('drive.remote_matrix_col_type')}</th>
-                                              <th style={{ textAlign: 'right' }}>{t('drive.remote_matrix_select_btn')}</th>
-                                            </tr>
-                                          </thead>
-                                          {filteredRawStreams.length === 0 ? (
-                                            <tbody>
-                                              <tr>
-                                                <td colSpan={7} style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>
-                                                  {t('drive.remote_matrix_empty_search')}
-                                                </td>
-                                              </tr>
-                                            </tbody>
-                                          ) : (
-                                            <>
-                                              {rawMp4Videos.length > 0 && (
-                                                <tbody className="td-remote-matrix-group-tbody">
-                                                  <tr className="td-remote-matrix-group-header-row">
-                                                    <td colSpan={7}>
-                                                      <div className="td-remote-matrix-group-header">
-                                                        <Film size={12} style={{ color: '#38bdf8' }} />
-                                                        <span>{t('drive.remote_matrix_group_mp4')}</span>
-                                                        <span className="td-remote-matrix-group-badge">{rawMp4Videos.length}</span>
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                  {rawMp4Videos.map(renderMatrixRow)}
-                                                </tbody>
-                                              )}
-
-                                              {rawWebmVideos.length > 0 && (
-                                                <tbody className="td-remote-matrix-group-tbody">
-                                                  <tr className="td-remote-matrix-group-header-row">
-                                                    <td colSpan={7}>
-                                                      <div className="td-remote-matrix-group-header">
-                                                        <Film size={12} style={{ color: '#fbbf24' }} />
-                                                        <span>{t('drive.remote_matrix_group_webm')}</span>
-                                                        <span className="td-remote-matrix-group-badge">{rawWebmVideos.length}</span>
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                  {rawWebmVideos.map(renderMatrixRow)}
-                                                </tbody>
-                                              )}
-
-                                              {rawOtherVideos.length > 0 && (
-                                                <tbody className="td-remote-matrix-group-tbody">
-                                                  <tr className="td-remote-matrix-group-header-row">
-                                                    <td colSpan={7}>
-                                                      <div className="td-remote-matrix-group-header">
-                                                        <Film size={12} style={{ color: '#a855f7' }} />
-                                                        <span>{t('drive.remote_matrix_group_other_video')}</span>
-                                                        <span className="td-remote-matrix-group-badge">{rawOtherVideos.length}</span>
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                  {rawOtherVideos.map(renderMatrixRow)}
-                                                </tbody>
-                                              )}
-
-                                              {rawAudioStreams.length > 0 && (
-                                                <tbody className="td-remote-matrix-group-tbody">
-                                                  <tr className="td-remote-matrix-group-header-row">
-                                                    <td colSpan={7}>
-                                                      <div className="td-remote-matrix-group-header">
-                                                        <Music size={12} style={{ color: '#c084fc' }} />
-                                                        <span>{t('drive.remote_matrix_group_audio')}</span>
-                                                        <span className="td-remote-matrix-group-badge">{rawAudioStreams.length}</span>
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                  {rawAudioStreams.map(renderMatrixRow)}
-                                                </tbody>
-                                              )}
-                                            </>
-                                          )}
-                                        </table>
-                                      </div>
-
-                                    </div>
-                                  );
-                                })() : (
+                                {isAdvanceTab ? (
+                                  hasRawMatrix ? (
+                                    renderMatrixTable({
+                                      filteredRawStreams,
+                                      resolvedMedia,
+                                      selectedFormatId,
+                                      activeFmt,
+                                      handleToggleFormat,
+                                      handlePlayFormat,
+                                      matrixSearchQuery,
+                                      setMatrixSearchQuery,
+                                      matrixHideM3u8,
+                                      setMatrixHideM3u8,
+                                      t,
+                                      formatDriveBytes,
+                                      isStreamHls,
+                                    })
+                                  ) : (
                                   <div className="td-remote-advanced-format-groups">
                                     {advancedFormatGroups.map((group) => (
                                       <div key={group.key} className="td-remote-formats-section">
@@ -1607,6 +1384,39 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     </div>
                                   )}
 
+                                  {curatedGeneralAudio.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header is-audio">
+                                        <span className="td-remote-formats-section-title">
+                                          <div className="td-remote-section-icon-box">
+                                            <Music size={12} />
+                                          </div>
+                                          <span>{t('drive.remote_section_audio_tracks')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{curatedGeneralAudio.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {curatedGeneralAudio.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {curatedGeneralImages.length > 0 && (
+                                    <div className="td-remote-formats-section">
+                                      <div className="td-remote-formats-section-header is-general">
+                                        <span className="td-remote-formats-section-title">
+                                          <div className="td-remote-section-icon-box">
+                                            <Sparkles size={12} />
+                                          </div>
+                                          <span>{t('drive.remote_section_creator_profile')}</span>
+                                        </span>
+                                        <span className="td-remote-formats-section-count">{curatedGeneralImages.length}</span>
+                                      </div>
+                                      <div className="td-remote-quality-grid">
+                                        {curatedGeneralImages.map(renderFormatChip)}
+                                      </div>
+                                    </div>
+                                  )}
                                 </>
                               ) : isVideoTab ? (
                                 <>
