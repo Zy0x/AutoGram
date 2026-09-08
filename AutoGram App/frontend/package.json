@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.9.85",
+  "version": "3.9.86",
   "type": "module",
   "scripts": {
     "version:sync": "node tools/sync-version.mjs",

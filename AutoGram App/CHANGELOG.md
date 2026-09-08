@@ -1,3 +1,16 @@
+## v3.9.86 — Playback Resume and Adaptive Buffer Coordination
+
+### 1. Playback Startup and Saved Position
+- `DrivePreviewModal` restores the saved timestamp before publishing buffer measurements, and retries if metadata is not ready. This avoids pacing the resumed video using data buffered at its beginning.
+- Playback startup distinguishes a play request from actual playback, respects explicit pauses, and limits muted retries to autoplay-policy rejection so interrupted seeks do not trigger competing playback attempts.
+
+### 2. Adaptive Buffer and History Integrity
+- `preview/video/playbackResume` measures only the buffered range containing the current position. An isolated range near the end no longer counts as a complete file or supplies an invented runway to Data Saver; existing native buffer limits remain unchanged.
+- Playback history is not overwritten while a saved position is pending or a seek is in progress, preserving the user's last viewing position during initialization.
+
+### 3. Regression Coverage and Compatibility
+- Dedicated regression cases cover sparse buffers, resume retry, seek suppression, normal runway measurements and history protection. Existing settings and translation keys are unchanged.
+
 ## v3.9.85 — Remote Upload Format Selector Minimalist Overhaul: Zero-Truncation Ergonomic Format Rows, Anti-Slop Visual Simplification, Fixed Toolbar Navigation & Slim Status Bar
 
 ### 1. Minimalist Format List Architecture & Truncation Elimination (`RemoteUploadSinglePanel.tsx` & `App.css`)

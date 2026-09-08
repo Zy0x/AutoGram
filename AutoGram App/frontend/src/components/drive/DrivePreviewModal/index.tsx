@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+import { playbackObservation, restorePlaybackPosition, canPersistPlayback } from './preview/video/playbackResume';
 import { canNudgePlayback, canStartPlayback, isPlaybackHealthy, isStreamComplete, measurePlayableBuffer } from './preview/video/startupPolicy';
 import React, { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -1583,7 +1584,7 @@ export function DrivePreviewModal({
   const persistPlaybackPosition = useCallback((force = false) => {
     if (!rememberPlaybackPosition || !creds.session) return;
     const player = videoRef.current;
-    if (!player || player.ended || !Number.isFinite(player.currentTime) || !Number.isFinite(player.duration)) return;
+    if (!player || !canPersistPlayback(player, resumeAtRef.current)) return;
     const now = Date.now();
     if (!force && now - lastPlaybackPersistedAtRef.current < 5_000) return;
     savePlaybackPosition(localStorage, creds.session, playbackIdentity, player.currentTime, player.duration, now);
@@ -2106,6 +2107,7 @@ export function DrivePreviewModal({
     liveStreamIdRef.current = null;
     lastSeekKickRef.current = 0;
     hasUserPlayRef.current = false;
+    void observePreviewTraffic(null, false);
     if (customSource) {
       setLoading(!!customSource.loading);
       setError(customSource.error ?? null);
@@ -2811,7 +2813,7 @@ export function DrivePreviewModal({
 
   const handlePause = useCallback(() => {
     // Never suspend Telegram fill before the user/autoplay has actually played.
-    if (!hasUserPlayRef.current) return;
+    if (!hasUserPlayRef.current || videoRef.current?.seeking || resumeAtRef.current > 0) return;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -2820,7 +2822,6 @@ export function DrivePreviewModal({
   }, [streamUrl, streamId, getStreamBaseUrl]);
 
   const handlePlay = useCallback(() => {
-    hasUserPlayRef.current = true;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -4131,39 +4132,7 @@ export function DrivePreviewModal({
 
   const publishBrowserTraffic = () => {
     const player = videoRef.current;
-    let runwaySeconds: number | null = null;
-    let observation: NonNullable<TrafficSnapshot['previewObservation']> = 'not_observable';
-    if (player) {
-      if (!Number.isFinite(player.duration) || player.duration <= 0) {
-        observation = 'waiting_metadata';
-      } else {
-        try {
-          let maxBufferEnd = 0;
-          for (let index = 0; index < player.buffered.length; index += 1) {
-            const start = player.buffered.start(index);
-            const end = player.buffered.end(index);
-            maxBufferEnd = Math.max(maxBufferEnd, end);
-            if (start <= player.currentTime && player.currentTime <= end) {
-              runwaySeconds = Math.max(0, end - player.currentTime);
-              observation = 'measured';
-            }
-          }
-          const isFullyBuffered = streamDone || (player.duration > 0 && maxBufferEnd >= player.duration * 0.99);
-          if (isFullyBuffered) {
-            observation = 'complete';
-            if (runwaySeconds == null) {
-              runwaySeconds = Math.max(0, player.duration - player.currentTime);
-            }
-          } else if (runwaySeconds == null) {
-            observation = player.paused ? 'idle' : 'not_observable';
-          } else if (player.paused) {
-            observation = 'idle';
-          }
-        } catch {
-          observation = 'not_observable';
-        }
-      }
-    }
+    const { runway: runwaySeconds, observation } = playbackObservation(player, streamDone);
     const fallback: TrafficSnapshot = {
       upload: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
       download: { goodputBps: 0, activeWorkers: 0, configuredCeiling: 0 },
@@ -4175,7 +4144,7 @@ export function DrivePreviewModal({
     void observePreviewTraffic(runwaySeconds, Boolean(player && !player.paused && !player.ended)).then((native) => {
       setPreviewTraffic((prev) => ({
         ...(native || prev || fallback),
-        previewRunwaySeconds: runwaySeconds ?? native?.previewRunwaySeconds ?? prev?.previewRunwaySeconds ?? null,
+        previewRunwaySeconds: runwaySeconds,
         previewObservation: observation,
         governorReason: native?.governorReason || prev?.governorReason || (observation === 'complete' ? 'playback_buffer_complete' : observation),
       }));
@@ -4188,22 +4157,7 @@ export function DrivePreviewModal({
       publishBrowserTraffic();
       return;
     }
-    let end = 0;
-    try {
-      for (let i = 0; i < v.buffered.length; i++) {
-        if (v.buffered.start(i) <= v.currentTime && v.currentTime <= v.buffered.end(i)) {
-          end = v.buffered.end(i);
-          break;
-        }
-      }
-      if (end === 0 && v.buffered.length > 0) {
-        end = v.buffered.end(v.buffered.length - 1);
-      }
-    } catch {
-      /* ignore */
-    }
-    const pct = Math.min(100, Math.max(0, (end / v.duration) * 100));
-    setVideoBufferedPercent(pct);
+    setVideoBufferedPercent(Math.min(100, Math.max(0, measurePlayableBuffer(v).percent)));
     publishBrowserTraffic();
   };
 
@@ -6398,7 +6352,9 @@ export function DrivePreviewModal({
                 }}
                 onLoadedMetadata={() => {
                   const v = videoRef.current;
-                  const t = resumeAtRef.current;
+                  restorePlaybackPosition(v, resumeAtRef, () => {
+                    void observePreviewTraffic(null, false);
+                  }, ignoreSeekEventsRef, userSeekPendingRef);
                   if (v) {
                     console.debug('[STREAM_DIAG][MODAL]', {
                       event: 'loadedmetadata',
@@ -6422,25 +6378,16 @@ export function DrivePreviewModal({
                     readyState: v?.readyState ?? 0,
                     durationSeconds: typeof v?.duration === 'number' && Number.isFinite(v.duration) ? v.duration : null,
                   });
-                  if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
-                    try {
-                      ignoreSeekEventsRef.current += 1;
-                      userSeekPendingRef.current = false;
-                      v.currentTime = t;
-                    } catch {
-                      ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
-                    }
-                  }
-                  resumeAtRef.current = 0;
                   setLoading(false);
-                  if (v && (v.paused || !hasUserPlayRef.current) && !v.ended) {
+                  if (v && (v.paused || !hasUserPlayRef.current) && !v.ended && !userExplicitlyPausedRef.current && resumeAtRef.current === 0) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
                       userExplicitlyPausedRef.current = false;
                       setHasVideoFrame(true);
                       setPlayerHint(null);
                       setLoading(false);
-                    }).catch(() => {
+                    }).catch((error: unknown) => {
+                      if (!(error instanceof DOMException) || error.name !== 'NotAllowedError' || userExplicitlyPausedRef.current) return;
                       v.muted = true;
                       setMuted(true);
                       void v.play().then(() => {
@@ -6455,6 +6402,9 @@ export function DrivePreviewModal({
                 }}
                 onLoadedData={() => {
                   const v = videoRef.current;
+                  restorePlaybackPosition(v, resumeAtRef, () => {
+                    void observePreviewTraffic(null, false);
+                  }, ignoreSeekEventsRef, userSeekPendingRef);
                   if (v) {
                     console.debug('[STREAM_DIAG][MODAL]', {
                       event: 'loadeddata',
@@ -6479,10 +6429,11 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   captureVideoFrame();
-                  if (v && v.paused && !v.ended) {
+                  if (v && v.paused && !v.ended && !userExplicitlyPausedRef.current && resumeAtRef.current === 0) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
-                    }).catch(() => {
+                    }).catch((error: unknown) => {
+                      if (!(error instanceof DOMException) || error.name !== 'NotAllowedError' || userExplicitlyPausedRef.current) return;
                       v.muted = true;
                       setMuted(true);
                       void v.play().then(() => {
@@ -6493,6 +6444,9 @@ export function DrivePreviewModal({
                 }}
                 onCanPlay={() => {
                   const v = videoRef.current;
+                  restorePlaybackPosition(v, resumeAtRef, () => {
+                    void observePreviewTraffic(null, false);
+                  }, ignoreSeekEventsRef, userSeekPendingRef);
                   if (v) {
                     console.debug('[STREAM_DIAG][MODAL]', {
                       event: 'canplay',
@@ -6517,10 +6471,11 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   captureVideoFrame();
-                  if (v && v.paused && !v.ended) {
+                  if (v && v.paused && !v.ended && !userExplicitlyPausedRef.current && resumeAtRef.current === 0) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
-                    }).catch(() => {
+                    }).catch((error: unknown) => {
+                      if (!(error instanceof DOMException) || error.name !== 'NotAllowedError' || userExplicitlyPausedRef.current) return;
                       v.muted = true;
                       setMuted(true);
                       void v.play().then(() => {
@@ -6593,7 +6548,7 @@ export function DrivePreviewModal({
                 onPause={() => {
                   setVideoIsPlaying(false);
                   const v = videoRef.current;
-                  if (v && !v.error && !v.ended && hasUserPlayRef.current) {
+                  if (v && !v.error && !v.ended && !v.seeking && resumeAtRef.current === 0 && hasUserPlayRef.current) {
                     userExplicitlyPausedRef.current = true;
                   }
                   captureVideoFrame();
@@ -6602,6 +6557,7 @@ export function DrivePreviewModal({
                 }}
                 onPlaying={() => {
                   appendPreviewDiagnostic('player', 'playing', { currentTimeSeconds: videoRef.current?.currentTime ?? 0 });
+                  hasUserPlayRef.current = true;
                   setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
@@ -7124,31 +7080,25 @@ export function DrivePreviewModal({
                 }}
                 onLoadedMetadata={() => {
                   const v = videoRef.current;
-                  const t = resumeAtRef.current;
                   if (v) {
                     v.playbackRate = playbackRate;
                     v.muted = muted;
                     v.loop = loopVideo;
                   }
-                  if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
-                    try {
-                      ignoreSeekEventsRef.current += 1;
-                      userSeekPendingRef.current = false;
-                      v.currentTime = t;
-                    } catch {
-                      ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
-                    }
-                  }
-                  resumeAtRef.current = 0;
+                  restorePlaybackPosition(v, resumeAtRef, () => {
+                    void observePreviewTraffic(null, false);
+                  }, ignoreSeekEventsRef, userSeekPendingRef);
                   setLoading(false);
                 }}
                 onLoadedData={() => {
                   setHasVideoFrame(true);
+                  restorePlaybackPosition(videoRef.current, resumeAtRef, () => { void observePreviewTraffic(null, false); }, ignoreSeekEventsRef, userSeekPendingRef);
                   setLoading(false);
                   captureVideoFrame();
                 }}
                 onCanPlay={() => {
                   setHasVideoFrame(true);
+                  restorePlaybackPosition(videoRef.current, resumeAtRef, () => { void observePreviewTraffic(null, false); }, ignoreSeekEventsRef, userSeekPendingRef);
                   setLoading(false);
                   captureVideoFrame();
                 }}
@@ -7195,6 +7145,7 @@ export function DrivePreviewModal({
                 }}
                 onPlaying={() => {
                   setHasVideoFrame(true);
+                  hasUserPlayRef.current = true;
                   setLoading(false);
                   handlePlay();
                   captureVideoFrame();
