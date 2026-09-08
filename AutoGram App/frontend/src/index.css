@@ -189,9 +189,9 @@ button.td-topic-pill.is-drop-over {
 }
 
 .td-sidebar-tab-btn.active {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.45);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent);
+  color: var(--accent-primary, #38bdf8);
   font-weight: 750;
 }
 
@@ -220,8 +220,8 @@ button.td-sidebar-tab-btn.is-drop-over {
   color: inherit;
 }
 .td-sidebar-tab-btn.active .td-tab-badge {
-  background: rgba(56, 189, 248, 0.3);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent);
+  color: var(--accent-primary, #38bdf8);
 }
 
 /* Label text inside buttons also non-selectable (nested spans) */

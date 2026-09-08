@@ -60,6 +60,17 @@ export interface ColorPaletteTokens {
   '--settings-surface': string;
   '--settings-accent': string;
   '--modal-bg': string;
+
+  // Semantic Bridge Tokens (Central Theme Contract)
+  '--accent-primary': string;
+  '--accent-secondary': string;
+  '--accent-glow': string;
+  '--border-hover': string;
+  '--border-default': string;
+  '--bg-sidebar': string;
+  '--bg-elevated': string;
+  '--bg-modal': string;
+  '--text-inverse': string;
 }
 
 export interface ColorPaletteDef {
@@ -163,6 +174,17 @@ function buildTokens(p: PaletteTokenParams): ColorPaletteTokens {
     '--settings-surface': p.settingsSurface ?? p.bgCard,
     '--settings-accent': p.settingsAccent ?? primary,
     '--modal-bg': p.modalBg ?? `color-mix(in srgb, ${tdSurface} 95%, #000)`,
+
+    // Semantic Bridge Tokens (Central Theme Contract)
+    '--accent-primary': primary,
+    '--accent-secondary': accent,
+    '--accent-glow': p.glowPrimary ?? `color-mix(in srgb, ${primary} 35%, transparent)`,
+    '--border-hover': p.colorSecondaryBorder ?? p.borderColor,
+    '--border-default': p.borderColor,
+    '--bg-sidebar': tdSurface,
+    '--bg-elevated': p.surfaceElevated,
+    '--bg-modal': p.modalBg ?? `color-mix(in srgb, ${tdSurface} 95%, #000)`,
+    '--text-inverse': '#ffffff',
   };
 }
 
@@ -773,10 +795,39 @@ export function applyColorPalette(paletteId: ColorPaletteId): void {
 
   root.setAttribute('data-palette', def.id);
 
-  // Set all 35 defined theme tokens on root
+  // Set all 44 defined theme tokens on root
   Object.entries(def.tokens).forEach(([token, val]) => {
     root.style.setProperty(token, val);
   });
+
+  // Ensure semantic bridge tokens are explicitly guaranteed on root
+  if (!def.tokens['--accent-primary']) {
+    root.style.setProperty('--accent-primary', def.tokens['--color-accent'] || def.tokens['--primary']);
+  }
+  if (!def.tokens['--accent-secondary']) {
+    root.style.setProperty('--accent-secondary', def.tokens['--color-secondary'] || def.tokens['--accent']);
+  }
+  if (!def.tokens['--accent-glow']) {
+    root.style.setProperty('--accent-glow', def.tokens['--glow-primary']);
+  }
+  if (!def.tokens['--border-hover']) {
+    root.style.setProperty('--border-hover', def.tokens['--color-secondary-border'] || def.tokens['--border-color']);
+  }
+  if (!def.tokens['--border-default']) {
+    root.style.setProperty('--border-default', def.tokens['--border-color']);
+  }
+  if (!def.tokens['--bg-sidebar']) {
+    root.style.setProperty('--bg-sidebar', def.tokens['--td-surface'] || def.tokens['--bg-panel']);
+  }
+  if (!def.tokens['--bg-elevated']) {
+    root.style.setProperty('--bg-elevated', def.tokens['--surface-elevated']);
+  }
+  if (!def.tokens['--bg-modal']) {
+    root.style.setProperty('--bg-modal', def.tokens['--modal-bg']);
+  }
+  if (!def.tokens['--text-inverse']) {
+    root.style.setProperty('--text-inverse', '#ffffff');
+  }
 }
 
 export function setColorPalette(paletteId: ColorPaletteId): void {

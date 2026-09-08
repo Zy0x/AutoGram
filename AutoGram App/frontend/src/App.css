@@ -1768,7 +1768,7 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 174, 0, 0.25), rgba(36, 129, 204, 0.25));
+  background: linear-gradient(135deg, var(--accent-primary, rgba(255, 174, 0, 0.25)), var(--accent-secondary, rgba(36, 129, 204, 0.25)));
   color: var(--td-primary);
   flex-shrink: 0;
 }
@@ -7270,12 +7270,12 @@ video.drive-preview-media {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.td-tag-badge.tg-media { background: rgba(14, 165, 233, 0.92); color: #ffffff; }
-.td-tag-badge.tg-file { background: rgba(168, 85, 247, 0.92); color: #ffffff; }
-.td-tag-badge.tg-link { background: rgba(34, 197, 94, 0.92); color: #ffffff; }
-.td-tag-badge.tg-gif { background: rgba(236, 72, 153, 0.92); color: #ffffff; }
-.td-tag-badge.tg-audio { background: rgba(249, 115, 22, 0.92); color: #ffffff; }
-.td-tag-badge.drive-fmt { background: rgba(15, 23, 42, 0.92); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.45); }
+.td-tag-badge.tg-media { background: color-mix(in srgb, var(--accent-primary, #0ea5e9) 85%, transparent); color: #ffffff; border: 1px solid color-mix(in srgb, var(--accent-primary, #0ea5e9) 35%, transparent); }
+.td-tag-badge.tg-file { background: color-mix(in srgb, var(--accent-secondary, #a855f7) 85%, transparent); color: #ffffff; border: 1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 35%, transparent); }
+.td-tag-badge.tg-link { background: color-mix(in srgb, var(--accent-primary, #22c55e) 85%, transparent); color: #ffffff; }
+.td-tag-badge.tg-gif { background: color-mix(in srgb, var(--accent-secondary, #ec4899) 85%, transparent); color: #ffffff; }
+.td-tag-badge.tg-audio { background: color-mix(in srgb, var(--accent-primary, #f97316) 85%, transparent); color: #ffffff; }
+.td-tag-badge.drive-fmt { background: rgba(15, 23, 42, 0.92); color: var(--accent-primary, #f59e0b); border: 1px solid color-mix(in srgb, var(--accent-primary, #f59e0b) 45%, transparent); }
 .td-menu-btn {
   display: none;
 }
@@ -7669,7 +7669,7 @@ body:has(.app-layout-drive-focus),
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(255, 174, 0, 0.28), rgba(36, 129, 204, 0.22));
+  background: linear-gradient(135deg, var(--accent-primary, rgba(255, 174, 0, 0.28)), var(--accent-secondary, rgba(36, 129, 204, 0.22)));
   color: var(--td-primary);
 }
 .td-sidebar-logo-dot {
@@ -21454,12 +21454,12 @@ video.drive-zip-img {
   width: 36px !important;
   height: 36px !important;
   border-radius: 11px !important;
-  background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%) !important;
+  background: linear-gradient(135deg, var(--accent-primary, #38bdf8) 0%, var(--accent-secondary, #6366f1) 100%) !important;
   color: #0f172a !important;
   font-weight: 900 !important;
   font-size: 0.85rem !important;
   letter-spacing: 0.02em !important;
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 4px 14px var(--accent-glow, rgba(56, 189, 248, 0.35)) !important;
   flex-shrink: 0 !important;
 }
 
@@ -24934,16 +24934,16 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 .td-sidebar-tab-btn:hover {
-  background: rgba(59, 130, 246, 0.12) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 12%, transparent) !important;
   color: #f8fafc !important;
 }
 
 .td-sidebar-tab-btn.is-active {
   color: #ffffff !important;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(99, 102, 241, 0.2) 100%) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #6366f1) 20%, transparent) 100%) !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent) !important;
+  box-shadow: 0 2px 8px var(--accent-glow, color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent)) !important;
 }
 
 .td-sidebar-tab-btn.is-active::after {
@@ -24954,18 +24954,18 @@ input[type="search"]::-webkit-search-decoration {
   right: 14%;
   height: 2px;
   border-radius: 2px;
-  background: #3b82f6 !important;
-  box-shadow: 0 0 8px #3b82f6 !important;
+  background: var(--accent-primary, #3b82f6) !important;
+  box-shadow: 0 0 8px var(--accent-glow, #3b82f6) !important;
 }
 
 .td-sidebar-tab-btn .td-tab-badge {
-  background: rgba(59, 130, 246, 0.22) !important;
-  color: #60a5fa !important;
-  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 22%, transparent) !important;
+  color: var(--accent-primary, #60a5fa) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent) !important;
 }
 
 .td-sidebar-tab-btn.is-active .td-tab-badge {
-  background: #3b82f6 !important;
+  background: var(--accent-primary, #3b82f6) !important;
   color: #ffffff !important;
   border: none !important;
 }
@@ -24978,14 +24978,14 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 .td-quick-item:hover {
-  background: rgba(59, 130, 246, 0.1) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 10%, transparent) !important;
 }
 
 .td-quick-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.12) 100%) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #2563eb) 12%, transparent) 100%) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(59, 130, 246, 0.35) !important;
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent) !important;
+  box-shadow: 0 2px 10px var(--accent-glow, color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent)) !important;
 }
 
 .td-quick-item.active .td-folder-label {
@@ -26524,9 +26524,9 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 .ag-forwarder-tab.is-active {
-  border-color: rgba(99, 102, 241, 0.42);
-  color: #a5b4fc;
-  background: rgba(99, 102, 241, 0.18);
+  border-color: color-mix(in srgb, var(--accent-primary, #6366f1) 42%, transparent);
+  color: var(--accent-primary, #a5b4fc);
+  background: color-mix(in srgb, var(--accent-primary, #6366f1) 18%, transparent);
   font-weight: 700;
 }
 
@@ -34960,9 +34960,9 @@ button.td-confirm-icon.is-back-btn:active {
     min-height: 38px !important;
     flex: 0 0 38px !important;
     border-radius: 10px !important;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    background: linear-gradient(135deg, var(--accent-primary, #3b82f6) 0%, var(--accent-secondary, #1d4ed8) 100%) !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+    box-shadow: 0 2px 10px var(--accent-glow, rgba(37, 99, 235, 0.35)) !important;
     margin: 0 !important;
     padding: 0 !important;
     position: relative !important;
@@ -36436,9 +36436,9 @@ button.td-confirm-icon.is-back-btn:active {
   min-height: 38px !important;
   flex: 0 0 38px !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6) 0%, var(--accent-secondary, #1d4ed8) 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 2px 10px var(--accent-glow, rgba(37, 99, 235, 0.35)) !important;
   margin: 0 !important;
   padding: 0 !important;
   position: relative !important;
@@ -37078,12 +37078,12 @@ button.td-confirm-icon.is-back-btn:active {
   min-height: 36px !important;
   max-height: 36px !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6) 0%, var(--accent-secondary, #1d4ed8) 100%) !important;
   color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(37, 99, 235, 0.35)) !important;
   position: relative !important;
 }
 
@@ -37387,12 +37387,12 @@ button.td-confirm-icon.is-back-btn:active {
   min-height: 36px !important;
   max-height: 36px !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, var(--accent-primary, #3b82f6) 0%, var(--accent-secondary, #1d4ed8) 100%) !important;
   color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(37, 99, 235, 0.35)) !important;
   position: relative !important;
   margin: 0 auto !important;
 }
@@ -37859,20 +37859,20 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-sidebar-tab-btn.is-active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.15) 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.5) !important;
-  color: #60a5fa !important;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #2563eb) 15%, transparent) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 50%, transparent) !important;
+  color: var(--accent-primary, #60a5fa) !important;
+  box-shadow: 0 0 12px var(--accent-glow, color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent)) !important;
 }
 
 .td-sidebar-tab-btn .td-tab-badge {
-  background: rgba(59, 130, 246, 0.25) !important;
-  color: #93c5fd !important;
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  background: color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent) !important;
+  color: var(--accent-primary, #93c5fd) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent) !important;
 }
 
 .td-sidebar-tab-btn.is-active .td-tab-badge {
-  background: #3b82f6 !important;
+  background: var(--accent-primary, #3b82f6) !important;
   color: #ffffff !important;
   border: none !important;
 }
@@ -37893,14 +37893,14 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-folder-row.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.45) !important;
-  color: #60a5fa !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent) 0%, color-mix(in srgb, var(--accent-secondary, #2563eb) 10%, transparent) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, transparent) !important;
+  color: var(--accent-primary, #60a5fa) !important;
+  box-shadow: 0 0 10px var(--accent-glow, color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent)) !important;
 }
 
 .td-folder-row.active .td-folder-label {
-  color: #60a5fa !important;
+  color: var(--accent-primary, #60a5fa) !important;
   font-weight: 600 !important;
 }
 
@@ -40737,26 +40737,26 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-sort-scope-chip.is-partial {
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent);
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .td-sort-scope-chip.is-partial:hover {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: rgba(56, 189, 248, 0.6);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent);
   color: #f8fafc;
 }
 
 .td-sort-scope-icon {
-  color: #38bdf8;
+  color: var(--accent-primary, #38bdf8);
 }
 
 .td-sort-scope-btn-label {
-  background: rgba(56, 189, 248, 0.22);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 22%, transparent);
+  color: var(--accent-primary, #38bdf8);
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
@@ -40776,12 +40776,12 @@ button.td-confirm-icon.is-back-btn:active {
   background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(56, 189, 248, 0.42);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 42%, transparent);
   color: #f1f5f9;
   font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 14px rgba(56, 189, 248, 0.16);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 14px color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   cursor: default;
@@ -40799,7 +40799,7 @@ button.td-confirm-icon.is-back-btn:active {
   left: 0;
   bottom: 0;
   border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(56, 189, 248, 0.38), rgba(99, 102, 241, 0.45));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 38%, transparent), color-mix(in srgb, var(--accent-secondary, #6366f1) 45%, transparent));
   pointer-events: none;
   transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1;
@@ -40828,7 +40828,7 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-sort-scope-status-icon {
-  color: #38bdf8;
+  color: var(--accent-primary, #38bdf8);
   flex-shrink: 0;
 }
 
@@ -40847,9 +40847,9 @@ button.td-confirm-icon.is-back-btn:active {
 .td-sort-scope-speed {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--accent-primary, #38bdf8);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent);
   padding: 1px 5px;
   border-radius: 4px;
   letter-spacing: 0.02em;

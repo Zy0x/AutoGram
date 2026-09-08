@@ -177,9 +177,19 @@ describe('themePaletteStore Architecture & Contracts', () => {
       '--settings-surface',
       '--settings-accent',
       '--modal-bg',
+      // Semantic Bridge Tokens (9)
+      '--accent-primary',
+      '--accent-secondary',
+      '--accent-glow',
+      '--border-hover',
+      '--border-default',
+      '--bg-sidebar',
+      '--bg-elevated',
+      '--bg-modal',
+      '--text-inverse',
     ];
 
-    expect(requiredTokenKeys.length).toBe(35);
+    expect(requiredTokenKeys.length).toBe(44);
 
     for (const palette of PALETTES_LIST) {
       expect(palette.nameKey).toMatch(/^settings\.palette_/);
@@ -237,7 +247,7 @@ describe('themePaletteStore Architecture & Contracts', () => {
     expect(getColorPalette()).toBe('emerald_forest');
   });
 
-  it('applies all 35 CSS tokens and data-palette attribute to document.documentElement', () => {
+  it('applies all 44 CSS tokens and data-palette attribute to document.documentElement', () => {
     applyColorPalette('luxury_gold');
 
     expect(setAttributeMock).toHaveBeenCalledWith('data-palette', 'luxury_gold');
@@ -248,21 +258,25 @@ describe('themePaletteStore Architecture & Contracts', () => {
     expect(setPropertyMock).toHaveBeenCalledWith('--fw-bg', '#08080a');
     expect(setPropertyMock).toHaveBeenCalledWith('--settings-surface', expect.any(String));
     expect(setPropertyMock).toHaveBeenCalledWith('--modal-bg', expect.any(String));
+    expect(setPropertyMock).toHaveBeenCalledWith('--accent-primary', '#f59e0b');
+    expect(setPropertyMock).toHaveBeenCalledWith('--accent-secondary', '#fbbf24');
+    expect(setPropertyMock).toHaveBeenCalledWith('--border-default', 'rgba(245, 158, 11, 0.22)');
+    expect(setPropertyMock).toHaveBeenCalledWith('--text-inverse', '#ffffff');
 
-    // Verify all 35 tokens were set
-    expect(setPropertyMock.mock.calls.length).toBe(35);
+    // Verify all 44 tokens were set
+    expect(setPropertyMock.mock.calls.length).toBe(44);
   });
 
   it('falls back to "default" palette when invalid or prototype paletteId is passed to applyColorPalette', () => {
     applyColorPalette('non_existent_palette' as any);
     expect(setAttributeMock).toHaveBeenCalledWith('data-palette', 'default');
-    expect(setPropertyMock.mock.calls.length).toBe(35);
+    expect(setPropertyMock.mock.calls.length).toBe(44);
 
     setPropertyMock.mockClear();
     setAttributeMock.mockClear();
     applyColorPalette('toString' as any);
     expect(setAttributeMock).toHaveBeenCalledWith('data-palette', 'default');
-    expect(setPropertyMock.mock.calls.length).toBe(35);
+    expect(setPropertyMock.mock.calls.length).toBe(44);
   });
 
   it('subscribes to palette changes and fires listener on setColorPalette', () => {
