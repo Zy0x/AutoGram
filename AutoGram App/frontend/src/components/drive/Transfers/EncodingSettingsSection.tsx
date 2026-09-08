@@ -504,7 +504,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                               const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
                               patch({ videoTranscodeScope: 'all_non_mp4', videoTranscodeFormats: allFormats });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#93c5fd', cursor: 'pointer' }}
+                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent)', color: 'var(--accent-primary, #93c5fd)', cursor: 'pointer' }}
                           >
                             {t('drive.video_transcode_select_all')}
                           </button>
@@ -551,8 +551,8 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                 gap: '6px',
                                 padding: '5px 8px',
                                 minHeight: '32px',
-                                background: isChecked ? 'rgba(59, 130, 246, 0.16)' : 'rgba(30, 41, 59, 0.4)',
-                                border: isChecked ? '1px solid rgba(59, 130, 246, 0.45)' : '1px solid rgba(51, 65, 85, 0.4)',
+                                background: isChecked ? 'color-mix(in srgb, var(--accent-primary, #3b82f6) 16%, transparent)' : 'rgba(30, 41, 59, 0.4)',
+                                border: isChecked ? '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, transparent)' : '1px solid rgba(51, 65, 85, 0.4)',
                                 borderRadius: '6px',
                                 cursor: transferActive ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.15s ease',
@@ -576,9 +576,9 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                     videoTranscodeFormats: next,
                                   });
                                 }}
-                                style={{ accentColor: '#3b82f6', cursor: 'pointer' }}
+                                style={{ accentColor: 'var(--accent-primary, #3b82f6)', cursor: 'pointer' }}
                               />
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? '#93c5fd' : '#94a3b8' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? 'var(--accent-primary, #93c5fd)' : '#94a3b8' }}>
                                 .{ext.toUpperCase()}
                               </span>
                             </label>

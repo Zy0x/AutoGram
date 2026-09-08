@@ -1047,8 +1047,8 @@ export function TransferPreflightDialog({
             <div
               className="td-preflight-banner"
               style={{
-                background: partition.isSafe ? 'rgba(56, 189, 248, 0.1)' : 'rgba(245, 158, 11, 0.12)',
-                border: partition.isSafe ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
+                background: partition.isSafe ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : 'rgba(245, 158, 11, 0.12)',
+                border: partition.isSafe ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)' : '1px solid rgba(245, 158, 11, 0.35)',
                 color: '#f8fafc',
                 padding: '10px 14px',
                 borderRadius: '8px',
@@ -1061,7 +1061,7 @@ export function TransferPreflightDialog({
               role="status"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={14} style={{ color: partition.isSafe ? '#38bdf8' : '#f59e0b', flexShrink: 0 }} />
+                <Sparkles size={14} style={{ color: partition.isSafe ? 'var(--accent-primary, #38bdf8)' : '#f59e0b', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
                   {t('drive.album_preflight_plan_summary', {
                     count: eligibleItems.length,

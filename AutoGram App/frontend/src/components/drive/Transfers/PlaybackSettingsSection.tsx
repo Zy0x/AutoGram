@@ -21,15 +21,15 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                       width: '34px',
                       height: '34px',
                       borderRadius: '10px',
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    <PlaySquare size={18} style={{ color: '#38bdf8' }} />
+                    <PlaySquare size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                   </div>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>

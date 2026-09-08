@@ -2999,7 +2999,7 @@ export function DrivePreviewModal({
       return { background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.35)' };
     }
     if (isMarkdownFile) {
-      return { background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.35)' };
+      return { background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)', color: 'var(--accent-primary, #38bdf8)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)' };
     }
     if (isSpreadsheetFile) {
       return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.35)' };
@@ -4586,9 +4586,9 @@ export function DrivePreviewModal({
                           borderRadius: '6px',
                           border: 'none',
                           cursor: 'pointer',
-                          background: activeInspectorTab === 'preview' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                          color: activeInspectorTab === 'preview' ? '#38bdf8' : '#94a3b8',
-                          boxShadow: activeInspectorTab === 'preview' ? '0 0 0 1px rgba(56, 189, 248, 0.4)' : 'none',
+                          background: activeInspectorTab === 'preview' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'transparent',
+                          color: activeInspectorTab === 'preview' ? 'var(--accent-primary, #38bdf8)' : '#94a3b8',
+                          boxShadow: activeInspectorTab === 'preview' ? '0 0 0 1px color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)' : 'none',
                           transition: 'all 150ms ease',
                         }}
                       >
@@ -4615,9 +4615,9 @@ export function DrivePreviewModal({
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
-                          background: activeInspectorTab !== 'preview' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                          color: activeInspectorTab !== 'preview' ? '#38bdf8' : '#94a3b8',
-                          boxShadow: activeInspectorTab !== 'preview' ? '0 0 0 1px rgba(56, 189, 248, 0.4)' : 'none',
+                          background: activeInspectorTab !== 'preview' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'transparent',
+                          color: activeInspectorTab !== 'preview' ? 'var(--accent-primary, #38bdf8)' : '#94a3b8',
+                          boxShadow: activeInspectorTab !== 'preview' ? '0 0 0 1px color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)' : 'none',
                           transition: 'all 150ms ease',
                         }}
                         title={t('drive.tab_preview_more')}
@@ -5174,8 +5174,8 @@ export function DrivePreviewModal({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: activeInspectorTab === 'ai' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                  color: activeInspectorTab === 'ai' ? '#38bdf8' : '#e2e8f0',
+                  background: activeInspectorTab === 'ai' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                  color: activeInspectorTab === 'ai' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -5200,8 +5200,8 @@ export function DrivePreviewModal({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: activeInspectorTab === 'metadata' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                  color: activeInspectorTab === 'metadata' ? '#38bdf8' : '#e2e8f0',
+                  background: activeInspectorTab === 'metadata' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                  color: activeInspectorTab === 'metadata' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -5226,8 +5226,8 @@ export function DrivePreviewModal({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: activeInspectorTab === 'hex' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                  color: activeInspectorTab === 'hex' ? '#38bdf8' : '#e2e8f0',
+                  background: activeInspectorTab === 'hex' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                  color: activeInspectorTab === 'hex' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -5253,8 +5253,8 @@ export function DrivePreviewModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: activeInspectorTab === 'tree' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                    color: activeInspectorTab === 'tree' ? '#38bdf8' : '#e2e8f0',
+                    background: activeInspectorTab === 'tree' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                    color: activeInspectorTab === 'tree' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                     border: 'none',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -5281,8 +5281,8 @@ export function DrivePreviewModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: activeInspectorTab === 'font' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                    color: activeInspectorTab === 'font' ? '#38bdf8' : '#e2e8f0',
+                    background: activeInspectorTab === 'font' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                    color: activeInspectorTab === 'font' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                     border: 'none',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -5309,8 +5309,8 @@ export function DrivePreviewModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: activeInspectorTab === 'db' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                    color: activeInspectorTab === 'db' ? '#38bdf8' : '#e2e8f0',
+                    background: activeInspectorTab === 'db' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                    color: activeInspectorTab === 'db' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                     border: 'none',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -5337,8 +5337,8 @@ export function DrivePreviewModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: activeInspectorTab === 'code' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                    color: activeInspectorTab === 'code' ? '#38bdf8' : '#e2e8f0',
+                    background: activeInspectorTab === 'code' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
+                    color: activeInspectorTab === 'code' ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                     border: 'none',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -5993,7 +5993,7 @@ export function DrivePreviewModal({
                         style={{
                           color:
                             customSource.kind === 'video'
-                              ? '#38bdf8'
+                              ? 'var(--accent-primary, #38bdf8)'
                               : customSource.kind === 'audio'
                               ? '#34d399'
                               : customSource.kind === 'image'
@@ -6735,7 +6735,7 @@ export function DrivePreviewModal({
                         void handleQualityChange(fullQ);
                       }}
                       style={{
-                        background: '#2563eb',
+                        background: 'var(--accent-primary, #2563eb)',
                         color: 'white',
                         border: 'none',
                         padding: '6px 12px',
@@ -6745,8 +6745,8 @@ export function DrivePreviewModal({
                         cursor: 'pointer',
                         transition: 'background 0.2s',
                       }}
-                      onMouseOver={(e) => (e.currentTarget.style.background = '#1d4ed8')}
-                      onMouseOut={(e) => (e.currentTarget.style.background = '#2563eb')}
+                      onMouseOver={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary, #2563eb) 85%, black)')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = 'var(--accent-primary, #2563eb)')}
                     >
                       {t('ui.generated.transcode_penuh_4571d15')}
                     </button>

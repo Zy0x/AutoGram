@@ -49,7 +49,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
         </span>
         <ChevronDown
           size={16}
-          color="#38bdf8"
+          color="var(--accent-primary, #38bdf8)"
           className="chevron-icon"
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -70,9 +70,9 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
             right: 0,
             zIndex: 9999,
             background: '#0b1520',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
+            border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
             borderRadius: '12px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.15)',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
             maxHeight: '240px',
             overflowY: 'auto',
             padding: '6px',
@@ -107,7 +107,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
                       {displayName}
                     </span>
                     {isInactive && (
@@ -132,7 +132,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
                     {subtitleText}
                   </span>
                 </div>
-                {isSelected && <Check size={16} color="#38bdf8" style={{ flexShrink: 0 }} />}
+                {isSelected && <Check size={16} color="var(--accent-primary, #38bdf8)" style={{ flexShrink: 0 }} />}
               </div>
             );
           })}

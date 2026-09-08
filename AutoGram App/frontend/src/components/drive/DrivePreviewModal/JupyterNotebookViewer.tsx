@@ -101,7 +101,7 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
               >
                 {/* Code Header Bar */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#38bdf8', fontWeight: 600 }}>
+                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
                     In [{cell.execution_count != null ? cell.execution_count : ' '}]:
                   </span>
                   <button

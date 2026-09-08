@@ -66,10 +66,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 <div
                   className="settings-custom-cache-panel"
                   style={{
-                    background: 'rgba(56, 189, 248, 0.04)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 4%, transparent)',
                     padding: '14px 16px',
                     borderRadius: '10px',
-                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
@@ -77,7 +77,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Folder size={18} style={{ color: '#38bdf8' }} />
+                      <Folder size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                       <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
                         {t('settings.custom_cache_location_title')}
                       </strong>
@@ -94,9 +94,9 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          borderColor: 'rgba(56, 189, 248, 0.35)',
-                          background: 'rgba(56, 189, 248, 0.12)',
-                          color: '#38bdf8',
+                          borderColor: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                          color: 'var(--accent-primary, #38bdf8)',
                         }}
                       >
                         <Folder size={14} />
@@ -158,7 +158,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                       border: '1px solid rgba(255, 255, 255, 0.05)',
                       fontFamily: 'monospace',
                       fontSize: '0.78rem',
-                      color: customCacheInfo?.customPath ? '#38bdf8' : '#94a3b8',
+                      color: customCacheInfo?.customPath ? 'var(--accent-primary, #38bdf8)' : '#94a3b8',
                       wordBreak: 'break-all',
                     }}
                   >
@@ -207,11 +207,11 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         style={{
                           fontSize: '1rem',
                           fontWeight: 700,
-                          color: '#38bdf8',
+                          color: 'var(--accent-primary, #38bdf8)',
                           padding: '4px 12px',
                           borderRadius: '8px',
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                         }}
                       >
                         {formattedSize}
@@ -231,8 +231,8 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     >
                       <div
                         style={{
-                          background: 'rgba(56, 189, 248, 0.06)',
-                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
                           borderRadius: '8px',
                           padding: '8px 12px',
                           display: 'flex',
@@ -243,7 +243,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           📦 {t('settings.cache_breakdown_download')}
                         </span>
-                        <strong style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 600 }}>
+                        <strong style={{ fontSize: '0.9rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
                           {formatBytes(cacheBreakdown.cacheBytes)}
                         </strong>
                       </div>
@@ -421,7 +421,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                               transform,
                               fontSize: '0.68rem',
                               fontWeight: isSelected ? 700 : 500,
-                              color: isSelected ? '#38bdf8' : '#64748b',
+                              color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#64748b',
                               transition: 'all 0.15s ease',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap',
@@ -439,8 +439,8 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 {isCustomModalOpen && (
                   <div
                     style={{
-                      background: 'rgba(56, 189, 248, 0.06)',
-                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                       borderRadius: '10px',
                       padding: '12px 14px',
                       marginTop: '8px',
@@ -496,9 +496,9 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                       type="button"
                       onClick={handleSaveCustomLimit}
                       style={{
-                        background: 'rgba(56, 189, 248, 0.2)',
-                        border: '1px solid rgba(56, 189, 248, 0.4)',
-                        color: '#38bdf8',
+                        background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)',
+                        color: 'var(--accent-primary, #38bdf8)',
                         borderRadius: '6px',
                         padding: '6px 12px',
                         fontSize: '0.78rem',
@@ -540,7 +540,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                   }}
                 >
                   <span>{t('ui.generated.ruang_disk_tersedia_a123b45')}</span>
-                  <strong style={{ color: '#38bdf8' }}>{formatBytes(freeDiskBytes)}</strong>
+                  <strong style={{ color: 'var(--accent-primary, #38bdf8)' }}>{formatBytes(freeDiskBytes)}</strong>
                 </div>
               )}
 
@@ -684,7 +684,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                             ? 'linear-gradient(90deg, #f97316, #ef4444)'
                             : cacheSize / (cacheLimitMB * 1024 * 1024) > 0.75
                             ? 'linear-gradient(90deg, #eab308, #f97316)'
-                            : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                            : 'linear-gradient(90deg, var(--accent-primary, #3b82f6), var(--accent-secondary, #06b6d4))',
                         borderRadius: '4px',
                         transition: 'width 0.3s ease',
                       }}
@@ -745,9 +745,9 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  borderColor: 'rgba(56, 189, 248, 0.35)',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  color: '#38bdf8',
+                  borderColor: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                  background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                  color: 'var(--accent-primary, #38bdf8)',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                   minHeight: '2.7rem',

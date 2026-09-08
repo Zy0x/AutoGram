@@ -798,3 +798,115 @@
   background: var(--accent-primary) !important;
   box-shadow: 0 0 6px var(--accent-primary) !important;
 }
+
+/* ─── 13. UNIVERSAL DEEP SUBSYSTEMS & MODALS CASCADE ─────────────────────── */
+/* Remote Upload Modal & Stream Matrix */
+[data-palette] .td-remote-sub-info-banner,
+[data-palette] .td-remote-triplet-popover-item,
+[data-palette] .td-remote-matrix-table,
+[data-palette] .td-remote-matrix-group-header {
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, transparent) !important;
+}
+
+[data-palette] .td-remote-triplet-popover-key {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-matrix-group-header svg {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-remote-matrix-row:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+/* Preflight & Conflict Resolution Modals */
+[data-palette] .td-preflight-banner {
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-preflight-banner svg {
+  color: var(--accent-primary) !important;
+}
+
+/* Media Preview Inspection Tabs & Navigation Pills */
+[data-palette] .td-preview-tab-pill.is-active,
+[data-palette] button.td-preview-tab-pill[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+}
+
+[data-palette] .td-dropdown-item.is-active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* AI & DB Inspector Cascades */
+[data-palette] .td-ai-complexity-badge.is-medium {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-ai-bullet {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-db-table-item.is-active {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-db-columns-badge {
+  color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+/* Telegram Message & Action Modals */
+[data-palette] .tg-msg-action-btn.is-accent {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+[data-palette] .tg-action-grid button.is-active {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .tg-action-field textarea:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .tg-action-footer button.primary {
+  border-color: var(--accent-primary) !important;
+  background: var(--accent-primary) !important;
+  color: var(--text-inverse, #ffffff) !important;
+}
+
+/* Specific Cache Modal & Disk Management */
+[data-palette] .specific-cache-card,
+[data-palette] .td-cache-manage-box {
+  border-color: color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .specific-cache-active-tab {
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Custom Account Select Dropdowns */
+[data-palette] .custom-account-select-trigger.is-open {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+}
+
+[data-palette] .custom-account-select-option.is-selected {
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+}
+

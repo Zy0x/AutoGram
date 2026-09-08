@@ -40,13 +40,13 @@ function detectLanguage(filename: string, explicitLang?: string): {
     case 'mts':
       return { lang: 'typescript', name: 'TYPESCRIPT', badgeBg: 'rgba(49, 120, 198, 0.2)', badgeColor: '#60a5fa' };
     case 'tsx':
-      return { lang: 'tsx', name: 'REACT TSX', badgeBg: 'rgba(56, 189, 248, 0.2)', badgeColor: '#38bdf8' };
+      return { lang: 'tsx', name: 'REACT TSX', badgeBg: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)', badgeColor: 'var(--accent-primary, #38bdf8)' };
     case 'js':
     case 'cjs':
     case 'mjs':
       return { lang: 'javascript', name: 'JAVASCRIPT', badgeBg: 'rgba(247, 223, 30, 0.18)', badgeColor: '#fde047' };
     case 'jsx':
-      return { lang: 'jsx', name: 'REACT JSX', badgeBg: 'rgba(56, 189, 248, 0.2)', badgeColor: '#38bdf8' };
+      return { lang: 'jsx', name: 'REACT JSX', badgeBg: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)', badgeColor: 'var(--accent-primary, #38bdf8)' };
     case 'py':
     case 'pyw':
     case 'pyi':
@@ -109,7 +109,7 @@ function detectLanguage(filename: string, explicitLang?: string): {
       return { lang: 'ruby', name: 'RUBY', badgeBg: 'rgba(112, 21, 22, 0.2)', badgeColor: '#f87171' };
     case 'xml':
     case 'svg':
-      return { lang: 'xml', name: 'XML', badgeBg: 'rgba(0, 96, 172, 0.2)', badgeColor: '#38bdf8' };
+      return { lang: 'xml', name: 'XML', badgeBg: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)', badgeColor: 'var(--accent-primary, #38bdf8)' };
     default:
       return { lang: 'plaintext', name: ext.toUpperCase() || 'TXT', badgeBg: 'rgba(255, 255, 255, 0.08)', badgeColor: '#e2e8f0' };
   }
@@ -391,7 +391,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
             right: '16px',
             zIndex: 10,
             background: 'rgba(15, 23, 42, 0.95)',
-            border: '1px solid rgba(56, 189, 248, 0.4)',
+            border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)',
             borderRadius: '8px',
             padding: '4px 8px',
             display: 'flex',
@@ -400,7 +400,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
             boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
           }}
         >
-          <Search size={13} className="text-sky-400" />
+          <Search size={13} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
           <input
             type="text"
             value={searchQuery}

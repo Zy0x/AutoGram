@@ -1034,7 +1034,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                   width: '18px',
                                   height: '18px',
                                   borderRadius: '50%',
-                                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6)',
+                                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6, var(--accent-primary, #3b82f6))',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1227,7 +1227,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         padding: '10px 12px',
                         borderRadius: '8px',
                         border: 'none',
-                        background: loginMethod === 'qr' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+                        background: loginMethod === 'qr' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
                         color: loginMethod === 'qr' ? '#ffffff' : '#94a3b8',
                         fontWeight: '600',
                         fontSize: '0.85rem',
@@ -1250,7 +1250,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         padding: '10px 12px',
                         borderRadius: '8px',
                         border: 'none',
-                        background: loginMethod === 'phone' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+                        background: loginMethod === 'phone' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
                         color: loginMethod === 'phone' ? '#ffffff' : '#94a3b8',
                         fontWeight: '600',
                         fontSize: '0.85rem',
@@ -1273,7 +1273,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         padding: '10px 12px',
                         borderRadius: '8px',
                         border: 'none',
-                        background: loginMethod === 'string_session' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+                        background: loginMethod === 'string_session' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
                         color: loginMethod === 'string_session' ? '#ffffff' : '#94a3b8',
                         fontWeight: '600',
                         fontSize: '0.85rem',
@@ -1308,10 +1308,10 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
                           {/* THEME-AUDIT-EXCEPTION: QR code container strictly requires #ffffff background for optical scanner camera readability */}
-                          <div style={{ background: '#ffffff', padding: '10px', borderRadius: '14px', boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 16px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div style={{ background: '#ffffff', padding: '10px', borderRadius: '14px', boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '165px', height: '165px', display: 'block', borderRadius: '4px' }} />
                             {qrExpiresIn > 0 ? (
-                              <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(2, 132, 199, 0.1)' }}>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--accent-primary, #0284c7)', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'color-mix(in srgb, var(--accent-primary, #0284c7) 10%, transparent)' }}>
                                 {t('accounts.valid_for', { seconds: qrExpiresIn })}
                               </span>
                             ) : (
@@ -1341,12 +1341,12 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Smartphone size={15} style={{ color: '#38bdf8' }} />
+                              <Smartphone size={15} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                               <span
                                 style={{
                                   fontSize: '0.72rem',
                                   fontWeight: 700,
-                                  color: '#38bdf8',
+                                  color: 'var(--accent-primary, #38bdf8)',
                                   letterSpacing: '0.05em',
                                   textTransform: 'uppercase',
                                 }}
@@ -1379,9 +1379,9 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                       width: '20px',
                                       height: '20px',
                                       borderRadius: '50%',
-                                      background: 'rgba(56, 189, 248, 0.15)',
-                                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                                      color: '#38bdf8',
+                                      background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                                      border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                                      color: 'var(--accent-primary, #38bdf8)',
                                       fontSize: '0.7rem',
                                       fontWeight: 700,
                                       display: 'flex',
@@ -1468,14 +1468,14 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                           gap: '8px',
                           padding: '10px 12px',
                           borderRadius: '10px',
-                          background: 'rgba(56, 189, 248, 0.06)',
-                          border: '1px solid rgba(56, 189, 248, 0.15)',
+                          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
                           fontSize: '0.78rem',
                           color: '#94a3b8',
                           lineHeight: 1.4,
                         }}
                       >
-                        <Sparkles size={16} style={{ color: '#38bdf8', flexShrink: 0, marginTop: '2px' }} />
+                        <Sparkles size={16} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0, marginTop: '2px' }} />
                         <span>{t('accounts.string_session_desc')}</span>
                       </div>
 
@@ -1505,11 +1505,11 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       gap: '10px',
                       padding: '12px 16px',
                       borderRadius: '12px',
-                      background: 'rgba(56, 189, 248, 0.08)',
-                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
                     }}
                   >
-                    <Send size={20} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                    <Send size={20} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
                     <span style={{ fontSize: '0.85rem', color: '#e2e8f0', lineHeight: 1.4 }}>
                       {t('accounts.code_delivery_info')}
                     </span>
@@ -1556,7 +1556,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#38bdf8',
+                          color: 'var(--accent-primary, #38bdf8)',
                           fontSize: '0.85rem',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -1666,7 +1666,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                         gap: '5px',
                         transition: 'color 0.2s',
                       }}
-                      onMouseOver={(e) => (e.currentTarget.style.color = '#38bdf8')}
+                      onMouseOver={(e) => (e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)')}
                       onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
                     >
                       <HelpCircle size={14} /> {t('accounts.forgot_password_btn')}
@@ -1693,11 +1693,11 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     width: '36px',
                     height: '36px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.15)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#38bdf8',
+                    color: 'var(--accent-primary, #38bdf8)',
                   }}
                 >
                   <ShieldAlert size={20} />

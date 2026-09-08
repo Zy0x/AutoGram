@@ -47,25 +47,25 @@ export function ConfirmModal({
   const iconMap = {
     danger: <Trash2 size={22} color="#ef4444" />,
     warning: <AlertTriangle size={22} color="#f59e0b" />,
-    info: <Info size={22} color="#3b82f6" />,
+    info: <Info size={22} color="var(--accent-primary, #3b82f6)" />,
   };
 
   const badgeBgMap = {
     danger: 'rgba(239, 68, 68, 0.15)',
     warning: 'rgba(245, 158, 11, 0.15)',
-    info: 'rgba(59, 130, 246, 0.15)',
+    info: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent)',
   };
 
   const badgeBorderMap = {
     danger: 'rgba(239, 68, 68, 0.3)',
     warning: 'rgba(245, 158, 11, 0.3)',
-    info: 'rgba(59, 130, 246, 0.3)',
+    info: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 30%, transparent)',
   };
 
   const btnConfirmBgMap = {
     danger: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     warning: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    info: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    info: 'linear-gradient(135deg, var(--accent-primary, #3b82f6) 0%, var(--accent-secondary, #2563eb) 100%)',
   };
 
   return (

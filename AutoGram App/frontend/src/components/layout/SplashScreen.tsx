@@ -61,7 +61,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
             width: '120px',
             height: '120px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(99, 102, 241, 0) 70%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent) 0%, rgba(99, 102, 241, 0) 70%)',
             filter: 'blur(20px)',
             animation: 'agPulseGlow 2s infinite ease-in-out',
           }}
@@ -71,11 +71,11 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
             width: '84px',
             height: '84px',
             borderRadius: '24px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+            background: 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #4f46e5) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 20px 40px -10px rgba(56, 189, 248, 0.5), inset 0 1px rgba(255,255,255,0.3)',
+            boxShadow: '0 20px 40px -10px color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent), inset 0 1px rgba(255,255,255,0.3)',
             position: 'relative',
             zIndex: 2,
           }}
@@ -113,7 +113,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
             fontWeight: 600,
           }}
         >
-          <Sparkles size={13} style={{ color: '#38bdf8' }} />
+          <Sparkles size={13} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
           <span>{t('ui.generated.telegram_migration_cloud_storage_engine_1675ccb')}</span>
         </div>
       </div>
@@ -132,7 +132,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
         <div
           style={{
             height: '100%',
-            background: 'linear-gradient(90deg, #38bdf8 0%, #6366f1 100%)',
+            background: 'linear-gradient(90deg, var(--accent-primary, #38bdf8) 0%, var(--accent-secondary, #6366f1) 100%)',
             borderRadius: '2px',
             animation: 'agSplashProgress 1.4s ease-out forwards',
           }}

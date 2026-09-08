@@ -213,7 +213,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 setCustomCaption(resolvedMedia.rawCaption);
                               }
                             }}
-                            style={{ cursor: 'pointer', accentColor: '#38bdf8', width: 15, height: 15 }}
+                            style={{ cursor: 'pointer', accentColor: 'var(--accent-primary, #38bdf8)', width: 15, height: 15 }}
                           />
                           <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
                             {t('drive.remote_tiktok_include_caption', { defaultValue: 'Sertakan Caption Asli TikTok' })}
@@ -284,7 +284,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
                                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      <Music size={40} style={{ color: '#38bdf8' }} />
+                                      <Music size={40} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                                     </div>
                                   </div>
                                   <div style={{ textAlign: 'center', marginBottom: 16, width: '100%', padding: '0 12px' }}>
@@ -1773,7 +1773,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
 
                               {resolvedMedia.discovery && (
                                 <div className="td-remote-sub-info-banner" style={{ marginTop: 12 }}>
-                                  <Info size={13} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                                  <Info size={13} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
                                   <span>
                                     {resolvedMedia.discovery.complete
                                       ? t('drive.remote_discovery_complete')

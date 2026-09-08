@@ -560,9 +560,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
           width: '100%',
           maxWidth: '720px',
           background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.96) 0%, rgba(10, 15, 30, 0.98) 100%)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
+          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
           borderRadius: '20px',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.12)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -586,12 +586,12 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 width: '38px',
                 height: '38px',
                 borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.14)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38bdf8',
+                color: 'var(--accent-primary, #38bdf8)',
               }}
             >
               <SlidersHorizontal size={20} />
@@ -652,9 +652,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
               gap: '8px',
               cursor: 'pointer',
               transition: 'all 0.18s ease',
-              border: activeTab === 'system' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
-              background: activeTab === 'system' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-              color: activeTab === 'system' ? '#38bdf8' : '#94a3b8',
+              border: activeTab === 'system' ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)' : '1px solid transparent',
+              background: activeTab === 'system' ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)' : 'transparent',
+              color: activeTab === 'system' ? 'var(--accent-primary, #38bdf8)' : '#94a3b8',
             }}
           >
             <HardDrive size={15} />
@@ -719,7 +719,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   style={{
                     fontSize: '0.78rem',
                     fontWeight: 700,
-                    color: '#38bdf8',
+                    color: 'var(--accent-primary, #38bdf8)',
                     marginBottom: '10px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
@@ -788,7 +788,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                        <FolderTree size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                         <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                           {t('ui.generated.cache_pohon_sidebar_semua_akun_f345a67')}
                         </strong>
@@ -803,9 +803,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       disabled={!hasGlobalSidebar || clearingItem === 'sidebar_global'}
                       style={getBtnStyle(
                         hasGlobalSidebar,
-                        '#38bdf8',
-                        'rgba(56, 189, 248, 0.15)',
-                        '1px solid rgba(56, 189, 248, 0.3)'
+                        'var(--accent-primary, #38bdf8)',
+                        'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                        '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
                       )}
                     >
                       <Trash2 size={13} />
@@ -1119,7 +1119,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <Image size={16} style={{ color: '#38bdf8' }} />
+                        <Image size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                         <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                           {t('ui.generated.cache_thumbnail_pratinjau_f901ab2')}
                         </strong>
@@ -1135,9 +1135,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       disabled={clearingItem === 'thumbs'}
                       style={getBtnStyle(
                         true,
-                        '#38bdf8',
-                        'rgba(56, 189, 248, 0.15)',
-                        '1px solid rgba(56, 189, 248, 0.3)'
+                        'var(--accent-primary, #38bdf8)',
+                        'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                        '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
                       )}
                     >
                       <RotateCcw size={13} />
@@ -1287,7 +1287,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <HardDrive size={16} style={{ color: '#38bdf8' }} />
+                        <HardDrive size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                         <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                           {t('settings.cache_media_db_title')}
                         </strong>
@@ -1303,9 +1303,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       disabled={clearingItem === 'media_db'}
                       style={getBtnStyle(
                         true,
-                        '#38bdf8',
-                        'rgba(56, 189, 248, 0.15)',
-                        '1px solid rgba(56, 189, 248, 0.3)'
+                        'var(--accent-primary, #38bdf8)',
+                        'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                        '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
                       )}
                     >
                       <Trash2 size={13} />
@@ -1477,12 +1477,12 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                            <FolderTree size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                             <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                               {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
                             </strong>
                           </div>
-                          <span style={{ fontSize: '0.72rem', color: hasSessionSidebar ? '#38bdf8' : '#64748b', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionSidebar ? 'var(--accent-primary, #38bdf8)' : '#64748b', fontWeight: 600 }}>
                             {sessionBuckets.sidebar.length} {t('ui.generated.entri_terdeteksi_c123d45')}
                           </span>
                         </div>
@@ -1496,9 +1496,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         disabled={!hasSessionSidebar}
                         style={getBtnStyle(
                           hasSessionSidebar,
-                          '#38bdf8',
-                          'rgba(56, 189, 248, 0.15)',
-                          '1px solid rgba(56, 189, 248, 0.3)'
+                          'var(--accent-primary, #38bdf8)',
+                          'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                          '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
                         )}
                       >
                         <Trash2 size={13} />
@@ -1717,7 +1717,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <HardDrive size={16} style={{ color: '#38bdf8' }} />
+                          <HardDrive size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                           <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                             {t('settings.cache_session_media_db_title')}
                           </strong>
@@ -1732,9 +1732,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         disabled={!selectedSession || clearingItem === 'session_media_db'}
                         style={getBtnStyle(
                           !!selectedSession,
-                          '#38bdf8',
-                          'rgba(56, 189, 248, 0.15)',
-                          '1px solid rgba(56, 189, 248, 0.3)'
+                          'var(--accent-primary, #38bdf8)',
+                          'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                          '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
                         )}
                       >
                         <Trash2 size={13} />

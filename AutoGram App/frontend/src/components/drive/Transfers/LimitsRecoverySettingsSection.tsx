@@ -20,15 +20,15 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <HardDriveUpload size={18} style={{ color: '#38bdf8' }} />
+                  <HardDriveUpload size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
@@ -176,7 +176,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                       <label className="td-field-label" style={{ margin: 0 }}>
                         {t('drive.oversize_pool_label')}
                       </label>
-                      <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
                         {t('ui.generated.hanya_akun_berlangganan_telegram_premium_limit_4_be2f015')}
                       </span>
                     </div>
@@ -276,9 +276,9 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '6px',
-                                  background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.04)',
-                                  border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
-                                  color: isSelected ? '#38bdf8' : '#e2e8f0',
+                                  background: isSelected ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'rgba(255,255,255,0.04)',
+                                  border: isSelected ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255,255,255,0.1)',
+                                  color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
                                   padding: '6px 12px',
                                   borderRadius: '20px',
                                   fontSize: '12px',
@@ -288,10 +288,10 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                 }}
                               >
                                 <span>💎</span>
-                                <strong style={{ color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                                <strong style={{ color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
                                   {cleanLabel}
                                 </strong>
-                                <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                                <span style={{ fontSize: '10px', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)', color: 'var(--accent-primary, #38bdf8)', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
                                   {t('ui.generated.premium_4gb_9f5be98')}
                                 </span>
                               </button>

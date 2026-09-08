@@ -1245,7 +1245,7 @@ export function SidebarView({ ctx }: SidebarViewProps) {
                       className={`td-type-dropdown-item ${chatTypeFilter === 'user' ? 'is-selected' : ''}`}
                       onClick={() => { setChatTypeFilter('user'); setTypeFilterMenuOpen(false); }}
                     >
-                      <User size={14} style={{ color: '#38bdf8' }} />
+                      <User size={14} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                       <span>{t('drive.filter_private')}</span>
                       {chatTypeFilter === 'user' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>

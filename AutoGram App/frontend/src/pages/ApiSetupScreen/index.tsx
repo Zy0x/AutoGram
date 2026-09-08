@@ -134,10 +134,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
         height: 'fit-content',
         alignSelf: 'center',
         background: 'linear-gradient(150deg, rgba(16, 26, 44, 0.98) 0%, rgba(10, 16, 30, 0.98) 100%)',
-        border: '1px solid rgba(56, 189, 248, 0.3)',
+        border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
         borderRadius: '20px',
         padding: '20px 22px',
-        boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 32px rgba(56, 189, 248, 0.16)',
+        boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 32px color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent)',
         backdropFilter: 'blur(16px)',
         display: 'flex',
         flexDirection: 'column',
@@ -155,14 +155,14 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               width: '34px',
               height: '34px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.1) 100%)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) 0%, rgba(14, 165, 233, 0.1) 100%)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38bdf8',
+              color: 'var(--accent-primary, #38bdf8)',
               flexShrink: 0,
-              boxShadow: '0 0 16px rgba(56, 189, 248, 0.2)',
+              boxShadow: '0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
             }}
           >
             <BookOpen size={17} />
@@ -185,9 +185,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               gap: '4px',
               padding: '4px 10px',
               borderRadius: '7px',
-              background: 'rgba(56, 189, 248, 0.16)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              color: '#38bdf8',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+              color: 'var(--accent-primary, #38bdf8)',
               fontSize: '0.74rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -227,35 +227,35 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       {/* STEPS LIST */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
         <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+          <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step1_title')}
           </strong>
           <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step1_desc')}</span>
         </div>
 
         <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+          <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step2_title')}
           </strong>
           <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step2_desc')}</span>
         </div>
 
         <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+          <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step3_title')}
           </strong>
           <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step3_desc')}</span>
         </div>
 
         <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+          <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step4_title')}
           </strong>
           <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step4_desc')}</span>
         </div>
 
         <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+          <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step5_title')}
           </strong>
           <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step5_desc')}</span>
@@ -267,8 +267,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
         style={{
           padding: '6px 10px',
           borderRadius: '8px',
-          background: 'rgba(56, 189, 248, 0.08)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
+          background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
           fontSize: '0.72rem',
           color: '#cbd5e1',
           display: 'flex',
@@ -276,7 +276,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           gap: '6px',
         }}
       >
-        <ShieldCheck size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
+        <ShieldCheck size={14} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
         <span>{t('nav.how_to_get_tip')}</span>
       </div>
     </div>
@@ -337,7 +337,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '20px',
             padding: '22px 24px',
-            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.15)',
+            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
             backdropFilter: 'blur(16px)',
             display: 'flex',
             flexDirection: 'column',
@@ -381,13 +381,13 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 width: '40px',
                 height: '40px',
                 borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                color: '#38bdf8',
+                color: 'var(--accent-primary, #38bdf8)',
               }}
             >
               <KeyRound size={20} />
@@ -407,8 +407,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             style={{
               padding: '8px 12px',
               borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.06)',
-              border: '1px solid rgba(56, 189, 248, 0.18)',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)',
               fontSize: '0.76rem',
               color: '#cbd5e1',
               display: 'flex',
@@ -418,7 +418,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={15} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <ShieldCheck size={15} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
               <span>{t('nav.api_setup_guide_title')}</span>
             </div>
 
@@ -444,12 +444,12 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 background: error
                   ? 'rgba(239, 68, 68, 0.22)'
                   : showGuide
-                  ? 'rgba(56, 189, 248, 0.3)'
-                  : 'rgba(56, 189, 248, 0.15)',
+                  ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)'
+                  : 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
                 border: error
                   ? '1px solid rgba(248, 113, 113, 0.7)'
-                  : '1px solid rgba(56, 189, 248, 0.38)',
-                color: error ? '#fca5a5' : '#38bdf8',
+                  : '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 38%, transparent)',
+                color: error ? '#fca5a5' : 'var(--accent-primary, #38bdf8)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -596,10 +596,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 padding: '10px',
                 borderRadius: '10px',
                 background: saving
-                  ? 'rgba(56, 189, 248, 0.2)'
-                  : 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
-                border: saving ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
-                color: saving ? '#38bdf8' : '#ffffff',
+                  ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)'
+                  : 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #4f46e5) 100%)',
+                border: saving ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)' : 'none',
+                color: saving ? 'var(--accent-primary, #38bdf8)' : '#ffffff',
                 fontSize: '0.88rem',
                 fontWeight: 700,
                 cursor: saving ? 'wait' : 'pointer',
@@ -607,7 +607,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: saving ? 'none' : '0 4px 14px rgba(56, 189, 248, 0.25)',
+                boxShadow: saving ? 'none' : '0 4px 14px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                 transition: 'all 0.18s ease',
               }}
             >
@@ -688,7 +688,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '20px',
             padding: '24px 28px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
             backdropFilter: 'blur(16px)',
             display: 'flex',
             flexDirection: 'column',
@@ -728,13 +728,13 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 width: '42px',
                 height: '42px',
                 borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                color: '#38bdf8',
+                color: 'var(--accent-primary, #38bdf8)',
               }}
             >
               <KeyRound size={22} />
@@ -754,8 +754,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             style={{
               padding: '10px 14px',
               borderRadius: '12px',
-              background: 'rgba(56, 189, 248, 0.06)',
-              border: '1px solid rgba(56, 189, 248, 0.18)',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)',
               fontSize: '0.78rem',
               color: '#cbd5e1',
               display: 'flex',
@@ -765,7 +765,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <ShieldCheck size={16} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
               <span>{t('nav.api_setup_guide_title')}</span>
             </div>
 
@@ -782,9 +782,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 gap: '5px',
                 padding: '5px 11px',
                 borderRadius: '7px',
-                background: showGuide ? 'rgba(56, 189, 248, 0.3)' : 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                color: '#38bdf8',
+                background: showGuide ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -891,7 +891,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 marginTop: '6px',
                 padding: '12px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                background: 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #4f46e5) 100%)',
                 border: 'none',
                 color: '#ffffff',
                 fontSize: '0.92rem',
@@ -901,7 +901,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 8px 20px rgba(56, 189, 248, 0.3)',
+                boxShadow: '0 8px 20px color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
                 transition: 'all 0.18s ease',
               }}
             >

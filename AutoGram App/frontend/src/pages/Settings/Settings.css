@@ -763,7 +763,7 @@
   padding: 10px 14px;
   border-radius: 10px;
   background: #0b1520;
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid var(--border-color, color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   color: #f8fafc;
   font-size: 0.85rem;
@@ -774,8 +774,8 @@
 
 .custom-account-select-trigger:hover {
   background: rgba(14, 25, 38, 0.95);
-  border-color: rgba(56, 189, 248, 0.55);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 14px rgba(56, 189, 248, 0.2);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 55%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 14px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
 }
 
 .custom-account-select-trigger:hover .chevron-icon {
@@ -783,8 +783,8 @@
 }
 
 .custom-account-select-trigger.is-open {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-color: var(--accent-primary, #38bdf8);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent), 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Custom Account Select Option Items Hover */
@@ -801,12 +801,12 @@
 }
 
 .custom-account-select-option:hover {
-  background: rgba(56, 189, 248, 0.12) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .custom-account-select-option.is-selected {
-  background: rgba(56, 189, 248, 0.18) !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent) !important;
 }
 
 .settings-action-row .btn {

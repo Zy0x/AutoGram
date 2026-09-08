@@ -115,7 +115,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
               </span>
             </div>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#38bdf8' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--accent-primary, #38bdf8)' }}>
                 <Zap size={10} /> {t('drive.remote_mode_auto')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -136,7 +136,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
         {type === 'engine' && (
           <>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#38bdf8' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--accent-primary, #38bdf8)' }}>
                 <Zap size={10} /> {t('drive_tools.remote_engine_auto')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -165,7 +165,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
         {type === 'policy' && (
           <>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#38bdf8' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--accent-primary, #38bdf8)' }}>
                 <Zap size={10} /> {t('drive_tools.remote_policy_telegram')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -599,7 +599,7 @@ export function renderMatrixTable({
           )}
         </td>
         <td>
-          <span style={{ color: s.isHdr ? '#fbbf24' : '#38bdf8', fontWeight: 650 }}>
+          <span style={{ color: s.isHdr ? '#fbbf24' : 'var(--accent-primary, #38bdf8)', fontWeight: 650 }}>
             {s.bitrateFormatted}
           </span>
         </td>
@@ -702,7 +702,7 @@ export function renderMatrixTable({
                   <tr className="td-remote-matrix-group-header-row">
                     <td colSpan={7}>
                       <div className="td-remote-matrix-group-header">
-                        <Film size={12} style={{ color: '#38bdf8' }} />
+                        <Film size={12} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                         <span>{t('drive.remote_matrix_group_mp4')}</span>
                         <span className="td-remote-matrix-group-badge">{rawMp4Videos.length}</span>
                       </div>

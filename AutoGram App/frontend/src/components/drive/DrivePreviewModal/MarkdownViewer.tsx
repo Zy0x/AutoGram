@@ -31,7 +31,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
             <thead>
               <tr style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
                 {headers.map((h, i) => (
-                  <th key={i} style={{ padding: '8px 12px', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#38bdf8', fontWeight: 600 }}>
+                  <th key={i} style={{ padding: '8px 12px', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
                     {h}
                   </th>
                 ))}
@@ -120,7 +120,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
       } else if (line.startsWith('> ')) {
         // Blockquote
         elements.push(
-          <blockquote key={i} style={{ margin: '12px 0', padding: '8px 16px', borderLeft: '3px solid #38bdf8', background: 'rgba(56, 189, 248, 0.08)', color: '#bae6fd', borderRadius: '0 6px 6px 0', fontSize: '13px' }}>
+          <blockquote key={i} style={{ margin: '12px 0', padding: '8px 16px', borderLeft: '3px solid var(--accent-primary, #38bdf8)', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)', color: 'var(--text-primary, #bae6fd)', borderRadius: '0 6px 6px 0', fontSize: '13px' }}>
             {line.slice(2)}
           </blockquote>
         );
@@ -129,7 +129,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         const checked = line.startsWith('- [x] ') || line.startsWith('- [X] ');
         elements.push(
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0', fontSize: '13.5px', color: checked ? '#94a3b8' : '#f8fafc' }}>
-            <input type="checkbox" checked={checked} readOnly style={{ accentColor: '#38bdf8' }} />
+            <input type="checkbox" checked={checked} readOnly style={{ accentColor: 'var(--accent-primary, #38bdf8)' }} />
             <span style={{ textDecoration: checked ? 'line-through' : 'none' }}>{line.slice(6)}</span>
           </div>
         );
@@ -137,7 +137,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         // Bullet list
         elements.push(
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: '#e2e8f0' }}>
-            <span style={{ color: '#38bdf8', lineHeight: '1.4' }}>•</span>
+            <span style={{ color: 'var(--accent-primary, #38bdf8)', lineHeight: '1.4' }}>•</span>
             <span style={{ flex: 1, lineHeight: '1.5' }}>{line.slice(2)}</span>
           </div>
         );
@@ -146,7 +146,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         const match = line.match(/^(\d+\.)\s(.*)$/);
         elements.push(
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: '#e2e8f0' }}>
-            <span style={{ color: '#38bdf8', fontWeight: 600, minWidth: '18px' }}>{match ? match[1] : '1.'}</span>
+            <span style={{ color: 'var(--accent-primary, #38bdf8)', fontWeight: 600, minWidth: '18px' }}>{match ? match[1] : '1.'}</span>
             <span style={{ flex: 1, lineHeight: '1.5' }}>{match ? match[2] : line}</span>
           </div>
         );

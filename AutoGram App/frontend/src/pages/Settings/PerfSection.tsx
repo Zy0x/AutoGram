@@ -170,7 +170,7 @@ export const PerfSection = memo(function PerfSection() {
       {/* REAL ACCURATE PHYSICAL HARDWARE TELEMETRY BADGES */}
       <div className="settings-perf-status" role="status">
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Cpu size={15} strokeWidth={2} style={{ color: '#38bdf8' }} aria-hidden />
+          <Cpu size={15} strokeWidth={2} style={{ color: 'var(--accent-primary, #38bdf8)' }} aria-hidden />
           <span>{t('settings.perf_status_active')}</span>
           <strong style={{ color: '#ffffff' }}>
             {tier === 'low'
@@ -190,8 +190,8 @@ export const PerfSection = memo(function PerfSection() {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
               color: '#bae6fd',
               fontSize: '0.72rem',
               fontWeight: 600,
@@ -201,7 +201,7 @@ export const PerfSection = memo(function PerfSection() {
               whiteSpace: 'nowrap',
             }}
           >
-            <Cpu size={12} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            <Cpu size={12} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cpuName}</span>
           </span>
 
@@ -237,14 +237,14 @@ export const PerfSection = memo(function PerfSection() {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: profile.fastNet ? 'rgba(56, 189, 248, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-              border: profile.fastNet ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid rgba(245, 158, 11, 0.25)',
+              background: profile.fastNet ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)' : 'rgba(245, 158, 11, 0.08)',
+              border: profile.fastNet ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : '1px solid rgba(245, 158, 11, 0.25)',
               color: profile.fastNet ? '#9bdcfb' : '#fde68a',
               fontSize: '0.72rem',
               fontWeight: 600,
             }}
           >
-            <Wifi size={12} style={{ color: profile.fastNet ? '#38bdf8' : '#f59e0b', flexShrink: 0 }} />
+            <Wifi size={12} style={{ color: profile.fastNet ? 'var(--accent-primary, #38bdf8)' : '#f59e0b', flexShrink: 0 }} />
             <span>{profile.fastNet ? t('settings.perf_fast_net') : t('settings.perf_saver_net')}</span>
           </span>
 
@@ -323,9 +323,9 @@ export const PerfSection = memo(function PerfSection() {
               gap: '7px',
               padding: '7px 14px',
               borderRadius: '8px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+              color: 'var(--accent-primary, #38bdf8)',
               fontSize: '0.78rem',
               fontWeight: 600,
               cursor: clearingRam ? 'not-allowed' : 'pointer',

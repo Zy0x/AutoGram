@@ -279,11 +279,11 @@ export function SessionLauncher({
               width: '38px',
               height: '38px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+              background: 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #4f46e5) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+              boxShadow: '0 4px 12px color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
               flexShrink: 0,
             }}
           >
@@ -341,9 +341,9 @@ export function SessionLauncher({
               padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
-              background: 'var(--badge-bg, rgba(56, 189, 248, 0.12))',
-              border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.3))',
-              color: 'var(--color-accent, #38bdf8)',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+              color: 'var(--accent-primary, #38bdf8)',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -377,9 +377,9 @@ export function SessionLauncher({
               ...(hasApiError
                 ? {}
                 : {
-                    background: 'var(--badge-bg, rgba(56, 189, 248, 0.12))',
-                    border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.3))',
-                    color: 'var(--color-accent, #38bdf8)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                    color: 'var(--accent-primary, #38bdf8)',
                   }),
             }}
             title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
@@ -513,9 +513,9 @@ export function SessionLauncher({
                 style={{
                   borderRadius: '20px',
                   background: 'var(--bg-card, linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%))',
-                  border: isDefault ? '1.5px solid var(--color-accent, #38bdf8)' : '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                  border: isDefault ? '1.5px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
                   boxShadow: isDefault
-                    ? '0 20px 40px -15px var(--badge-bg, rgba(56, 189, 248, 0.25)), inset 0 1px rgba(255,255,255,0.1)'
+                    ? '0 20px 40px -15px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent), inset 0 1px rgba(255,255,255,0.1)'
                     : '0 16px 36px -15px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255,255,255,0.05)',
                   padding: '24px',
                   display: 'flex',
@@ -568,11 +568,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: 'var(--color-accent, #38bdf8)',
-                            color: 'var(--color-accent, #38bdf8)',
+                            backgroundColor: 'var(--accent-primary, #38bdf8)',
+                            color: 'var(--accent-primary, #38bdf8)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: 'var(--color-accent, #38bdf8)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
                           {t('nav.connection_checking')}
                         </span>
                       </>
@@ -638,9 +638,9 @@ export function SessionLauncher({
                         gap: '5px',
                         padding: isDefault ? '3px 10px' : '3px 6px',
                         borderRadius: '10px',
-                        background: isDefault ? 'var(--badge-bg, rgba(56, 189, 248, 0.12))' : 'transparent',
-                        border: isDefault ? '1px solid var(--color-accent, rgba(56, 189, 248, 0.35))' : '1px solid transparent',
-                        color: isDefault ? 'var(--badge-text, #38bdf8)' : 'var(--text-secondary, #64748b)',
+                        background: isDefault ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)' : 'transparent',
+                        border: isDefault ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)' : '1px solid transparent',
+                        color: isDefault ? 'var(--accent-primary, #38bdf8)' : 'var(--text-secondary, #64748b)',
                         fontSize: '0.73rem',
                         fontWeight: isDefault ? 600 : 500,
                         cursor: 'pointer',
@@ -649,24 +649,24 @@ export function SessionLauncher({
                       onMouseEnter={(e) => {
                         const starIcon = e.currentTarget.querySelector('svg');
                         if (isDefault) {
-                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.22))';
-                          e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
+                          e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 22%, transparent)';
+                          e.currentTarget.style.borderColor = 'var(--accent-primary, #38bdf8)';
                           e.currentTarget.style.color = 'var(--text-primary, #e0f2fe)';
-                          e.currentTarget.style.boxShadow = '0 0 12px var(--color-accent, rgba(56, 189, 248, 0.35))';
+                          e.currentTarget.style.boxShadow = '0 0 12px color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)';
                           if (starIcon) starIcon.style.transform = 'rotate(15deg) scale(1.15)';
                         } else {
-                          e.currentTarget.style.color = 'var(--color-accent, #38bdf8)';
-                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.08))';
-                          e.currentTarget.style.borderColor = 'var(--border-color, rgba(56, 189, 248, 0.2))';
+                          e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)';
+                          e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)';
+                          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)';
                           if (starIcon) starIcon.style.transform = 'rotate(15deg)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         const starIcon = e.currentTarget.querySelector('svg');
                         if (isDefault) {
-                          e.currentTarget.style.background = 'var(--badge-bg, rgba(56, 189, 248, 0.12))';
-                          e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.35))';
-                          e.currentTarget.style.color = 'var(--badge-text, #38bdf8)';
+                          e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)';
+                          e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)';
+                          e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)';
                           e.currentTarget.style.boxShadow = 'none';
                           if (starIcon) starIcon.style.transform = 'rotate(0deg) scale(1)';
                         } else {
@@ -679,7 +679,7 @@ export function SessionLauncher({
                     >
                       <Star
                         size={12}
-                        fill={isDefault ? 'var(--badge-text, #38bdf8)' : 'none'}
+                        fill={isDefault ? 'var(--accent-primary, #38bdf8)' : 'none'}
                         style={{ transition: 'transform 0.18s ease, fill 0.18s ease, color 0.18s ease' }}
                       />
                       <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
@@ -764,15 +764,15 @@ export function SessionLauncher({
                               textAlign: 'left',
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)';
-                              e.currentTarget.style.color = '#38bdf8';
+                              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)';
+                              e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = 'transparent';
                               e.currentTarget.style.color = '#e2e8f0';
                             }}
                           >
-                            <Pencil size={14} style={{ color: '#38bdf8' }} />
+                            <Pencil size={14} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                             {t('nav.menu_edit_account')}
                           </button>
 
@@ -837,14 +837,14 @@ export function SessionLauncher({
                       borderRadius: '16px',
                       background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                       border: showAvatar
-                        ? '1.5px solid var(--color-accent, rgba(56, 189, 248, 0.5))'
+                        ? '1.5px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent)'
                         : '1px solid var(--border-color, rgba(255,255,255,0.12))',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '1.3rem',
                       fontWeight: 700,
-                      color: 'var(--color-accent, #38bdf8)',
+                      color: 'var(--accent-primary, #38bdf8)',
                       overflow: 'hidden',
                       flexShrink: 0,
                       cursor: showAvatar ? 'pointer' : 'default',
@@ -854,14 +854,14 @@ export function SessionLauncher({
                     onMouseEnter={(e) => {
                       if (showAvatar) {
                         e.currentTarget.style.transform = 'scale(1.06)';
-                        e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
-                        e.currentTarget.style.boxShadow = '0 0 16px var(--color-accent, rgba(56, 189, 248, 0.4))';
+                        e.currentTarget.style.borderColor = 'var(--accent-primary, #38bdf8)';
+                        e.currentTarget.style.boxShadow = '0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (showAvatar) {
                         e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.5))';
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent)';
                         e.currentTarget.style.boxShadow = 'none';
                       }
                     }}
@@ -1007,8 +1007,8 @@ export function SessionLauncher({
                       style={{
                         padding: '14px 16px',
                         borderRadius: '14px',
-                        background: 'var(--badge-bg, linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(3, 105, 161, 0.22) 100%))',
-                        border: '1px solid var(--color-accent, rgba(56, 189, 248, 0.35))',
+                        background: 'var(--badge-bg, linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent) 0%, color-mix(in srgb, var(--accent-primary, #38bdf8) 22%, transparent) 100%))',
+                        border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                         color: 'var(--text-primary, #bae6fd)',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1020,16 +1020,16 @@ export function SessionLauncher({
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.borderColor = 'var(--color-accent, #38bdf8)';
-                        e.currentTarget.style.boxShadow = '0 8px 20px var(--badge-bg, rgba(56, 189, 248, 0.25))';
+                        e.currentTarget.style.borderColor = 'var(--accent-primary, #38bdf8)';
+                        e.currentTarget.style.boxShadow = '0 8px 20px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.borderColor = 'var(--color-accent, rgba(56, 189, 248, 0.35))';
+                        e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      <Folder size={22} style={{ color: 'var(--color-accent, #38bdf8)' }} />
+                      <Folder size={22} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                       <div>
                         <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('nav.open_drives')}
@@ -1111,7 +1111,7 @@ export function SessionLauncher({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.25)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1147,8 +1147,8 @@ export function SessionLauncher({
                 maxHeight: '80vw',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                border: '3px solid rgba(56, 189, 248, 0.6)',
-                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(56, 189, 248, 0.3)',
+                border: '3px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent)',
+                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
                 marginBottom: '20px',
                 background: '#0f172a',
               }}
@@ -1191,10 +1191,10 @@ export function SessionLauncher({
               width: '100%',
               maxWidth: '420px',
               background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 100%)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
               borderRadius: '20px',
               padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
               display: 'flex',
               flexDirection: 'column',
               gap: '18px',
@@ -1203,7 +1203,7 @@ export function SessionLauncher({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Pencil size={20} style={{ color: '#38bdf8' }} />
+                <Pencil size={20} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
                     {t('nav.modal_edit_title')}
@@ -1277,7 +1277,7 @@ export function SessionLauncher({
                 style={{
                   padding: '8px 18px',
                   borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  background: 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #2563eb) 100%)',
                   border: 'none',
                   color: '#ffffff',
                   fontSize: '0.82rem',
@@ -1623,14 +1623,14 @@ export function SessionLauncher({
                 gap: '8px',
                 padding: '4px 12px',
                 borderRadius: '8px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                color: '#38bdf8',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
                 fontSize: '0.78rem',
                 fontWeight: 600,
               }}
             >
-              <Loader2 size={13} className="animate-spin" style={{ color: '#38bdf8' }} />
+              <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent-primary, #38bdf8)' }} />
               <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
             </span>
           ) : updateStatus === 'readyToInstall' ? (
@@ -1674,19 +1674,19 @@ export function SessionLauncher({
                 gap: '8px',
                 padding: '4px 12px',
                 borderRadius: '8px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                color: '#38bdf8',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
                 fontSize: '0.78rem',
                 fontWeight: 600,
               }}
             >
-              <Loader2 size={13} className="animate-spin" style={{ color: '#38bdf8' }} />
+              <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent-primary, #38bdf8)' }} />
               <span>{t('nav.updater_installing')}</span>
             </span>
           ) : updateStatus === 'checking' ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
-              <Loader2 size={12} className="animate-spin" style={{ color: '#38bdf8' }} />
+              <Loader2 size={12} className="animate-spin" style={{ color: 'var(--accent-primary, #38bdf8)' }} />
               {t('nav.updater_checking')}
             </span>
           ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (

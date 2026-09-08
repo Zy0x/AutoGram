@@ -182,9 +182,9 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
         <span
           style={{
             fontWeight: 700,
-            color: '#38bdf8',
+            color: 'var(--accent-primary, #38bdf8)',
             minWidth: '38px',
-            background: 'rgba(56, 189, 248, 0.1)',
+            background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
             padding: '2px 6px',
             borderRadius: '4px',
             textAlign: 'center',
@@ -296,7 +296,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             </thead>
             <tbody>
               {filteredData.map((row, rowIdx) => (
-                <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'rgba(56, 189, 248, 0.08)' : rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
+                <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
                   <td style={{ padding: '5px 10px', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', textAlign: 'center', fontWeight: 600, background: 'var(--bg-sidebar, var(--bg-card))', position: 'sticky', left: 0, zIndex: 5 }}>
                     {rowIdx + 1}
                   </td>
@@ -316,9 +316,9 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
                         }}
                         style={{
                           padding: '5px 14px',
-                          border: isSelected ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.06)',
+                          border: isSelected ? '2px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255,255,255,0.06)',
                           color: isSelected ? '#ffffff' : '#e2e8f0',
-                          background: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                          background: isSelected ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
                           whiteSpace: 'nowrap',
                           cursor: 'cell',
                           userSelect: 'text',

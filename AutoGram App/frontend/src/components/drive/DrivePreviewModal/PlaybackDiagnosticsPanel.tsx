@@ -41,7 +41,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
         zIndex: 99,
         backgroundColor: 'rgba(15, 23, 42, 0.92)',
         backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(56, 189, 248, 0.3)',
+        border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
         borderRadius: '10px',
         padding: '14px 16px',
         color: '#f8fafc',
@@ -61,7 +61,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
           paddingBottom: '6px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#38bdf8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: 'var(--accent-primary, #38bdf8)' }}>
           <Activity size={14} />
           <span>{t('drive.diag_title')}</span>
         </div>
@@ -89,7 +89,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Film size={13} style={{ color: '#38bdf8' }} />
+          <Film size={13} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
           <span style={{ color: '#94a3b8' }}>{t('ui.generated.gpu_021a8fa')}</span>
           <span style={{ color: '#f1f5f9' }}>{telemetry.gpuAdapterName}</span>
         </div>
@@ -129,7 +129,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
         >
           <div>
             <div style={{ color: '#64748b', fontSize: '10px' }}>{t('ui.generated.render_fps_61ba33b')}</div>
-            <div style={{ color: '#38bdf8', fontSize: '15px', fontWeight: 'bold' }}>
+            <div style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '15px', fontWeight: 'bold' }}>
               {telemetry.renderedFps} <span style={{ fontSize: '10px', color: '#94a3b8' }}>/ {telemetry.sourceFps}</span>
             </div>
           </div>

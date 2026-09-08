@@ -88,6 +88,15 @@ const TARGET_ROGUE_SELECTORS = [
   'td-xfer-footer',
   'td-settings-card',
   'td-chip-btn',
+  'td-remote-sub-info-banner',
+  'td-remote-triplet-popover-item',
+  'td-preflight-banner',
+  'td-preview-tab-pill',
+  'td-ai-complexity-badge',
+  'td-ai-bullet',
+  'td-db-table-item',
+  'td-db-columns-badge',
+  'custom-account-select',
 ];
 
 const ROGUE_SELECTOR_REGEX = new RegExp(`\\.(${TARGET_ROGUE_SELECTORS.join('|')})`, 'i');

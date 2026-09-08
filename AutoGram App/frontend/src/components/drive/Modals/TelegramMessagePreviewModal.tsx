@@ -883,9 +883,9 @@ export function TelegramMessagePreviewModal({
               type="button"
               className="tg-msg-action-btn is-accent"
               style={{
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
+                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                color: 'var(--accent-primary, #38bdf8)',
+                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
                 fontWeight: 600,
               }}
               onClick={() => onPreviewMedia(file)}
