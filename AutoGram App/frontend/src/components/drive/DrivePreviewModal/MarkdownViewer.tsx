@@ -58,7 +58,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
     const flushCodeBlock = (key: string) => {
       if (codeBlockLines.length === 0) return;
       elements.push(
-        <div key={key} style={{ margin: '14px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', background: '#090d16' }}>
+        <div key={key} style={{ margin: '14px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-default)', background: 'var(--bg-main)' }}>
           {codeBlockLang && (
             <div style={{ padding: '4px 12px', background: 'rgba(255, 255, 255, 0.04)', fontSize: '11px', color: '#94a3b8', fontWeight: 600, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
               {codeBlockLang.toUpperCase()}
@@ -178,7 +178,7 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-modal, var(--bg-card))', color: 'var(--text-primary)', overflow: 'hidden' }}>
       {/* Rendered Content Canvas */}
       <div
         style={{

@@ -5446,7 +5446,7 @@ export function DrivePreviewModal({
           ) : (
             <>
               {duplicateContext && currentDupGroup && isSplitCompareMode ? (
-            <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
+            <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text-primary)' }} className="font-sans">
               {splitNotice && <div className="drive-preview-split-notice" role="status">{splitNotice}</div>}
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
               <div
@@ -5561,7 +5561,7 @@ export function DrivePreviewModal({
                                 });
                                 if (activeSplitSlot !== 'A') setActiveSplitSlot('A');
                               }}
-                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
+                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg-card)', borderRadius: '8px', margin: '8px 0' }}
                             >
                               {(() => {
                                 const transformStrA = `translate3d(${slotATransform.pan.x}px, ${slotATransform.pan.y}px, 0px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
@@ -5763,7 +5763,7 @@ export function DrivePreviewModal({
                                 });
                                 if (activeSplitSlot !== 'B') setActiveSplitSlot('B');
                               }}
-                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
+                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg-card)', borderRadius: '8px', margin: '8px 0' }}
                             >
                               {(() => {
                                 const transformStrB = `translate3d(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px, 0px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
@@ -5937,7 +5937,7 @@ export function DrivePreviewModal({
 
                   {/* SIDEPANEL FOOTER: GROUP NAV + HINT */}
                   <div className="drive-preview-dup-sidebar-footer" style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px', marginTop: 'auto' }}>
-                    <div className="drive-dup-bottom-nav" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', padding: '6px 8px', background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', boxSizing: 'border-box' }}>
+                    <div className="drive-dup-bottom-nav" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', padding: '6px 8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', boxSizing: 'border-box' }}>
                       <button
                         type="button"
                         className="drive-dup-nav-btn"

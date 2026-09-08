@@ -85,7 +85,7 @@ export function DownloadSettingsSection({ activeTab, ctx }: { activeTab: string;
                   value={draft.downloadConflictPolicy || 'ask'}
                   disabled={!!transferActive}
                   onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
-                  style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '10px', background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#f8fafc' }}
+                  style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '10px', background: 'var(--input-bg, var(--bg-card))', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
                 >
                   <option value="ask">{t('ui.generated.tanyakan_sebelum_mengunduh_3820b14')}</option>
                   <option value="rename">{t('ui.generated.ganti_nama_otomatis_tambah_angka_a0d1700')}</option>

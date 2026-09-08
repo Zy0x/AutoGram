@@ -1388,7 +1388,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                       type="button"
                       className="btn btn-secondary"
                       disabled
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: '#0284c7', color: '#38bdf8' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: 'var(--accent-primary, #0284c7)', color: 'var(--accent-primary, #38bdf8)' }}
                     >
                       <Loader2 size={14} className="animate-spin" />
                       <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
@@ -1398,7 +1398,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                       type="button"
                       className="btn btn-primary"
                       onClick={() => void installUpdate()}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', background: 'linear-gradient(135deg, var(--status-dot, #10b981) 0%, #059669 100%)' }}
                     >
                       <CheckCircle size={14} />
                       <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>

@@ -280,11 +280,28 @@ try {
 }
 
 // ============================================================================
+// 8. GATE 8: DEEP UNIVERSAL THEME TOKEN & LEAKAGE GATE
+// ============================================================================
+logHeader('8. DEEP UNIVERSAL THEME & TOKEN LEAKAGE GATE');
+try {
+  const auditScript = path.join(import.meta.dirname, 'audit-theme.mjs');
+  if (fs.existsSync(auditScript)) {
+    execSync(`node "${auditScript}"`, { cwd: root, stdio: 'pipe' });
+    logPass('Theme Architecture', 'Zero unannotated static color leakage detected across all components.');
+  } else {
+    logWarn('Theme Architecture', 'audit-theme.mjs not found.');
+  }
+} catch (e) {
+  logFail('Theme Architecture', e.stdout?.toString() || e.stderr?.toString() || e.message);
+  allPassed = false;
+}
+
+// ============================================================================
 // FINAL CERTIFICATION SUMMARY
 // ============================================================================
 console.log(`\n${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}`);
 if (allPassed) {
-  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 7 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 8 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
   console.log(`${colors.bright}${colors.green}  AutoGram is certified production-ready, regress-free, and safe.${colors.reset}`);
   console.log(`${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}\n`);
   process.exit(0);

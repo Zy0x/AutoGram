@@ -1,0 +1,196 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   AUTOGRAM DEEP UNIVERSAL THEME ENGINE & SEMANTIC BRIDGING (v3.9.88)
+   Complies with Central Token Contract (R1.1, R1.2), Targeted Transitions (R3),
+   and Recursive Hierarchy Penetration (R2).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* R1.1 & R1.2: Central Theme Token Contract Fallbacks */
+:root {
+  --bg-main: var(--bg-canvas, #090d16);
+  --bg-sidebar: var(--td-surface, #0d1527);
+  --bg-card: rgba(22, 32, 54, 0.65);
+  --bg-elevated: rgba(30, 41, 59, 0.90);
+  --bg-modal: rgba(15, 24, 39, 0.96);
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(56, 189, 248, 0.45);
+
+  --accent-primary: #3b82f6;
+  --accent-secondary: #06b6d4;
+
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* R3: Targeted Semantic Transitions (Strictly no universal * selector) */
+.theme-surface,
+.theme-card,
+.theme-card-elevated,
+.theme-modal,
+.theme-overlay,
+.theme-border,
+.theme-text,
+.glass-panel,
+.glass-card,
+.td-sidebar,
+.td-topbar,
+.td-file-card-inner,
+.ag-forwarder-sidebar,
+.settings-section-palette {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Semantic Theme Classes */
+.theme-canvas {
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-surface {
+  background-color: var(--bg-sidebar) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-card {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-card-elevated {
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-modal {
+  background-color: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: var(--shadow-modal) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-overlay {
+  background-color: var(--bg-overlay) !important;
+}
+
+.theme-border {
+  border-color: var(--border-default) !important;
+}
+
+.theme-border-hover:hover {
+  border-color: var(--border-hover) !important;
+}
+
+.theme-text {
+  color: var(--text-primary) !important;
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.theme-text-muted {
+  color: var(--text-muted) !important;
+}
+
+.theme-accent {
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIVERSAL TAILWIND SEMANTIC MAPPING (RECURSIVE DEEP HIERARCHY BRIDGING)
+   Automatically captures nested overlays, modal interiors, and tools.
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-palette] .bg-slate-950,
+[data-palette] .bg-gray-950,
+[data-palette] .bg-zinc-950,
+[data-palette] .bg-slate-900\/90,
+[data-palette] .bg-slate-900\/95 {
+  background-color: var(--bg-main) !important;
+}
+
+[data-palette] .bg-slate-900,
+[data-palette] .bg-gray-900,
+[data-palette] .bg-zinc-900 {
+  background-color: var(--bg-card) !important;
+}
+
+[data-palette] .bg-slate-900\/70,
+[data-palette] .bg-slate-900\/80,
+[data-palette] .bg-slate-900\/60 {
+  background-color: var(--bg-modal, var(--bg-card)) !important;
+}
+
+[data-palette] .bg-slate-850,
+[data-palette] .bg-slate-800,
+[data-palette] .bg-gray-800,
+[data-palette] .bg-zinc-800 {
+  background-color: var(--bg-elevated, var(--surface-light)) !important;
+}
+
+[data-palette] .border-slate-800,
+[data-palette] .border-slate-700,
+[data-palette] .border-slate-800\/80,
+[data-palette] .border-gray-800,
+[data-palette] .border-zinc-800 {
+  border-color: var(--border-default, var(--border-color)) !important;
+}
+
+[data-palette] .border-slate-600,
+[data-palette] .border-slate-500 {
+  border-color: var(--border-hover, var(--input-focus-ring)) !important;
+}
+
+[data-palette] .text-slate-100,
+[data-palette] .text-slate-50,
+[data-palette] .text-gray-100,
+[data-palette] .text-zinc-100 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .text-slate-200,
+[data-palette] .text-slate-300,
+[data-palette] .text-slate-400,
+[data-palette] .text-gray-300,
+[data-palette] .text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .text-slate-500,
+[data-palette] .text-slate-600,
+[data-palette] .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DEEP MODAL & PLAYER ADOPTION (SECTION-IN-SECTION, OVERLAY-IN-OVERLAY)
+   ══════════════════════════════════════════════════════════════════════════ */
+[data-palette] .modal-overlay,
+[data-palette] .fixed.inset-0.bg-black\/70,
+[data-palette] .fixed.inset-0.bg-black\/80 {
+  background-color: var(--bg-overlay) !important;
+  backdrop-filter: blur(8px);
+}
+
+[data-palette] .modal-content,
+[data-palette] .modal-panel,
+[data-palette] .dialog-content {
+  background-color: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .media-preview-header,
+[data-palette] .media-player-toolbar,
+[data-palette] .media-player-controls {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}

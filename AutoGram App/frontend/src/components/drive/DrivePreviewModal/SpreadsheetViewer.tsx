@@ -92,7 +92,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-modal, var(--bg-card))', color: 'var(--text-primary)', overflow: 'hidden' }}>
       {/* Top Toolbar */}
       <div
         style={{
@@ -100,8 +100,8 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 16px',
-          background: 'rgba(15, 23, 42, 0.92)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-card)',
+          borderBottom: '1px solid var(--border-default)',
           gap: '12px',
           flexShrink: 0,
         }}
@@ -251,7 +251,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
       )}
 
       {/* Main Grid View */}
-      <div style={{ flex: 1, overflow: 'auto', background: '#090d16', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-main)', position: 'relative' }}>
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', color: '#94a3b8' }}>
             <Loader2 size={32} className="spin text-emerald-400" />
@@ -285,10 +285,10 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             }}
           >
             <thead>
-              <tr style={{ background: '#0f172a', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
-                <th style={{ padding: '6px 10px', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', width: '44px', textAlign: 'center', position: 'sticky', left: 0, zIndex: 12, background: '#0f172a' }}>#</th>
+              <tr style={{ background: 'var(--bg-elevated, var(--bg-card))', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                <th style={{ padding: '6px 10px', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', width: '44px', textAlign: 'center', position: 'sticky', left: 0, zIndex: 12, background: 'var(--bg-elevated, var(--bg-card))' }}>#</th>
                 {(filteredData[0] || []).map((_, idx) => (
-                  <th key={idx} style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.08)', color: '#38bdf8', fontWeight: 600, minWidth: '80px', background: '#0f172a' }}>
+                  <th key={idx} style={{ padding: '6px 14px', border: '1px solid var(--border-default)', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600, minWidth: '80px', background: 'var(--bg-elevated, var(--bg-card))' }}>
                     {String.fromCharCode(65 + (idx % 26))}{idx >= 26 ? Math.floor(idx / 26) : ''}
                   </th>
                 ))}
@@ -297,7 +297,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             <tbody>
               {filteredData.map((row, rowIdx) => (
                 <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'rgba(56, 189, 248, 0.08)' : rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
-                  <td style={{ padding: '5px 10px', border: '1px solid rgba(255,255,255,0.06)', color: '#64748b', textAlign: 'center', fontWeight: 600, background: '#0d1117', position: 'sticky', left: 0, zIndex: 5 }}>
+                  <td style={{ padding: '5px 10px', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', textAlign: 'center', fontWeight: 600, background: 'var(--bg-sidebar, var(--bg-card))', position: 'sticky', left: 0, zIndex: 5 }}>
                     {rowIdx + 1}
                   </td>
                   {row.map((cell, colIdx) => {

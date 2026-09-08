@@ -773,6 +773,7 @@ export function applyColorPalette(paletteId: ColorPaletteId): void {
 
   root.setAttribute('data-palette', def.id);
 
+  // Set all 35 defined theme tokens on root
   Object.entries(def.tokens).forEach(([token, val]) => {
     root.style.setProperty(token, val);
   });

@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.9.87",
+  "version": "3.9.88",
   "type": "module",
   "scripts": {
     "version:sync": "node tools/sync-version.mjs",
@@ -15,6 +15,7 @@
     "test:locale": "node tools/locale-audit.mjs",
     "test:quality": "node tools/quality-sentinel.mjs",
     "quality": "node tools/quality-sentinel.mjs",
+    "audit:theme": "node tools/audit-theme.mjs",
     "test:watch": "vitest",
     "pretauri": "node tools/sync-version.mjs",
     "tauri": "tauri"

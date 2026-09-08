@@ -224,6 +224,7 @@ export function AccountLoginWizard({
                       )
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
+                        {/* THEME-AUDIT-EXCEPTION: QR code container strictly requires #ffffff background for optical scanner camera readability */}
                         <div style={{ background: '#ffffff', padding: '10px', borderRadius: '14px', boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 16px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '165px', height: '165px', display: 'block', borderRadius: '4px' }} />
                           {qrExpiresIn > 0 ? (

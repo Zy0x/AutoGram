@@ -172,7 +172,7 @@ export const DriveListSkeleton: React.FC<{ count?: number }> = ({ count = 10 }) 
 export const ZipCatalogSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) => {
   const items = Array.from({ length: count });
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: '#13151b', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-default)' }}>
       {items.map((_, i) => (
         <div key={i} className="skeleton-shimmer" style={{ height: '24px', borderRadius: '6px' }} />
       ))}
@@ -182,7 +182,7 @@ export const ZipCatalogSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) 
 
 export const MediaPreviewSkeleton: React.FC = () => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '380px', background: '#13151b', borderRadius: '16px', padding: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '380px', background: 'var(--bg-card)', borderRadius: '16px', padding: '16px' }}>
       <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
     </div>
   );

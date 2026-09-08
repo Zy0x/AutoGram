@@ -170,9 +170,9 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0e17', color: '#f8fafc', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', color: 'var(--text-primary)', overflow: 'hidden' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: '#0e1422', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BookOpen size={17} className="text-cyan-400" />
           <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
@@ -220,7 +220,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
         {/* TOC Sidebar */}
         {showToc && (
-          <div style={{ width: '220px', background: '#0b0f19', borderRight: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 8px', overflowY: 'auto', flexShrink: 0 }}>
+          <div style={{ width: '220px', background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 8px', overflowY: 'auto', flexShrink: 0 }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '0 6px 6px' }}>Daftar Bab:</span>
             {chapters.map((ch, idx) => (
               <button
@@ -252,7 +252,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
       </div>
 
       {/* Bottom Chapter Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '8px 16px', background: '#0e1422', borderTop: '1px solid rgba(255, 255, 255, 0.08)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '8px 16px', background: 'var(--bg-card)', borderTop: '1px solid var(--border-default)', flexShrink: 0 }}>
         <button
           type="button"
           disabled={currentChapterIdx === 0}

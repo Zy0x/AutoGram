@@ -128,7 +128,7 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
   }, []);
 
   return (
-    <div className="autogram-docx-viewer-wrap" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflow: 'hidden' }}>
+    <div className="autogram-docx-viewer-wrap" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-modal, var(--bg-card))', color: 'var(--text-primary)', overflow: 'hidden' }}>
 
       <div
         style={{
@@ -139,7 +139,7 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
           flexDirection: 'column',
           alignItems: 'center',
           padding: '24px',
-          background: '#090d16',
+          background: 'var(--bg-main)',
         }}
       >
         {loading && (
@@ -158,7 +158,7 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
               <button
                 type="button"
                 onClick={onOpenSystem}
-                style={{ marginTop: '8px', padding: '6px 14px', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                style={{ marginTop: '8px', padding: '6px 14px', borderRadius: '8px', background: 'var(--accent-primary, var(--primary))', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
               >
                 Buka di Microsoft Word
               </button>

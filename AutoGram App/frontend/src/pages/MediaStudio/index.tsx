@@ -10923,7 +10923,7 @@ function MediaDriveDesktop({
                 <button
                   type="button"
                   className="td-chip-btn"
-                  style={{ background: '#d97706', color: '#fff', border: 'none' }}
+                  style={{ background: 'var(--warning, #d97706)', color: 'var(--text-main, #fff)', border: 'none' }}
                   onClick={handleResumeQueue}
                 >
                   {t('ui.generated.lanjutkan_5bcbc79')}

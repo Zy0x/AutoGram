@@ -54,7 +54,7 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0f19', color: '#f8fafc', overflowY: 'auto', padding: '20px' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-modal, var(--bg-card))', color: 'var(--text-primary)', overflowY: 'auto', padding: '20px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '20px' }}>
         <BookOpen size={18} className="text-amber-400" />
