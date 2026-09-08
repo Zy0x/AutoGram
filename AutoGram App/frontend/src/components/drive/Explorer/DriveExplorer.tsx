@@ -1496,15 +1496,15 @@ export function DriveExplorer({
                             gap: 8,
                             padding: '8px 20px',
                             borderRadius: 20,
-                            background: 'rgba(59, 130, 246, 0.15)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            color: '#60a5fa',
+                            background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                            border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                            color: 'var(--accent-primary, #60a5fa)',
                             fontSize: '13px',
                             fontWeight: 500,
                             backdropFilter: 'blur(8px)',
                           }}
                         >
-                          <Loader2 size={16} className="spin text-blue-400" />
+                          <Loader2 size={16} className="spin" style={{ color: "var(--accent-primary, #60a5fa)" }} />
                           <span>{t('drive.loading_more')}</span>
                         </div>
                       );
@@ -1668,15 +1668,15 @@ export function DriveExplorer({
                             gap: 8,
                             padding: '10px 22px',
                             borderRadius: 20,
-                            background: 'rgba(59, 130, 246, 0.15)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            color: '#60a5fa',
+                            background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+                            border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                            color: 'var(--accent-primary, #60a5fa)',
                             fontSize: '13px',
                             fontWeight: 500,
                             backdropFilter: 'blur(8px)',
                           }}
                         >
-                          <Loader2 size={16} className="spin text-blue-400" />
+                          <Loader2 size={16} className="spin" style={{ color: "var(--accent-primary, #60a5fa)" }} />
                           <span>{t('drive.loading_more')}</span>
                         </div>
                       );

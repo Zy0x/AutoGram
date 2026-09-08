@@ -181,7 +181,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               cursor: 'pointer',
               borderRadius: '10px',
               border: currentStrategy === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: currentStrategy === 'custom' ? 'rgba(168, 85, 247, 0.08)' : 'rgba(15, 23, 42, 0.4)',
+              background: currentStrategy === 'custom' ? 'rgba(168, 85, 247, 0.08)' : 'var(--bg-card, rgba(15, 23, 42, 0.4))',
               transition: 'all 0.15s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -221,7 +221,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
       {currentStrategy === 'custom' && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.65)',
+            background: 'var(--bg-card, rgba(15, 23, 42, 0.65))',
             border: '1px solid rgba(168, 85, 247, 0.3)',
             borderRadius: '12px',
             padding: '14px',

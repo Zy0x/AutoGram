@@ -238,7 +238,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                               fontSize: '0.8rem',
                               lineHeight: 1.4,
                               color: '#f1f5f9',
-                              background: 'rgba(15, 23, 42, 0.6)',
+                              background: 'var(--bg-card, rgba(15, 23, 42, 0.6))',
                               border: (customCaption?.length || 0) > 1024 ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
                               borderRadius: 8,
                               resize: 'vertical',
@@ -276,7 +276,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                           <div className="td-remote-big-canvas-wrap">
                             {!activeFormatForCanvas?.isImage && isPlayingStream && isDirectStream ? (
                               activeFormatForCanvas?.isAudio ? (
-                                <div className="td-remote-big-canvas-inner td-remote-single-audio-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'radial-gradient(circle at center, rgba(30,41,59,0.95), rgba(15,23,42,0.98))', height: '100%', minHeight: '260px' }}>
+                                <div className="td-remote-big-canvas-inner td-remote-single-audio-canvas" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'radial-gradient(circle at center, var(--bg-card, rgba(30,41,59,0.95)), var(--bg-primary, rgba(15,23,42,0.98)))', height: '100%', minHeight: '260px' }}>
                                   <div style={{ position: 'relative', width: 140, height: 140, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', marginBottom: 16 }}>
                                     <img
                                       src={activeFormatForCanvas.thumbnailUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl}

@@ -69,7 +69,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
             left: 0,
             right: 0,
             zIndex: 9999,
-            background: '#0b1520',
+            background: 'var(--bg-card, #0b1520)',
             border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
             borderRadius: '12px',
             boxShadow: '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',

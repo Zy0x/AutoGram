@@ -8,5 +8,5 @@
 .local-download-items article { border-top: 1px solid #334155; padding: 12px 0; display: grid; gap: 6px; }
 .local-download-items strong, .local-download-items small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .local-download-items span { font-size: 12px; }
-.local-download-items progress { width: 100%; accent-color: #38bdf8; }
+.local-download-items progress { width: 100%; accent-color: var(--accent-primary, #38bdf8); }
 .local-download-actions { display: flex; gap: 8px; }

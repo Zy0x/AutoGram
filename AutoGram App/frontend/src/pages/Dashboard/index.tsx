@@ -47,7 +47,7 @@ export function Dashboard({ onNavigate }: Props) {
 
       <section className="dash-pillars" aria-label={t("dashboard.main_workflow")}>
         <article className="dash-pillar glass-panel card">
-          <div className="dash-pillar-icon" style={{ background: 'rgba(59,130,246,0.15)' }}>
+          <div className="dash-pillar-icon" style={{ background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent)' }}>
             <ArrowRightLeft size={28} color="var(--primary)" aria-hidden />
           </div>
           <h3 className="dash-pillar-title">{t('dashboard.forwarder_card_title')}</h3>

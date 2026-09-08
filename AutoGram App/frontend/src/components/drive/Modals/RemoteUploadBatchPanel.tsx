@@ -46,7 +46,7 @@ export function RemoteUploadBatchPanel({ ctx }: { ctx: Record<string, any> }) {
                   </div>
                   <div className="td-remote-batch-quality-bar">
                     <div className="td-remote-batch-quality-label">
-                      <SlidersHorizontal size={13} style={{ color: '#38bdf8' }} />
+                      <SlidersHorizontal size={13} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                       <span>{t('drive.remote_batch_quality_label')}</span>
                     </div>
                     <div className="td-remote-batch-quality-select-wrap">

@@ -463,7 +463,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         placeholder={t('ui.generated.contoh_75_a123f45')}
                         style={{
                           flex: 1,
-                          background: 'rgba(15, 23, 42, 0.8)',
+                          background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
                           border: '1px solid rgba(255, 255, 255, 0.15)',
                           borderRadius: '6px',
                           padding: '6px 10px',
@@ -476,7 +476,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         value={customUnit}
                         onChange={(e) => setCustomUnit(e.target.value as 'MB' | 'GB')}
                         style={{
-                          background: 'rgba(15, 23, 42, 0.8)',
+                          background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
                           border: '1px solid rgba(255, 255, 255, 0.15)',
                           borderRadius: '6px',
                           padding: '6px 10px',

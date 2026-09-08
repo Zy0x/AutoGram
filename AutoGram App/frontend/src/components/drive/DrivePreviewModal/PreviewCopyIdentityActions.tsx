@@ -251,7 +251,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   bottom: menuPos.bottom !== undefined ? menuPos.bottom : 'auto',
                   left: menuPos.left,
                   width: menuPos.width,
-                  background: 'rgba(15, 23, 42, 0.98)',
+                  background: 'var(--bg-card, rgba(15, 23, 42, 0.98))',
                   backdropFilter: 'blur(20px)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
                   borderRadius: '8px',

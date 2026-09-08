@@ -1160,13 +1160,13 @@ function DupTab({
                   gap: '6px',
                   padding: '8px 16px',
                   borderRadius: '9px',
-                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                  background: 'linear-gradient(135deg, var(--accent-primary, #0ea5e9) 0%, var(--accent-secondary, #0284c7) 100%)',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 700,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
-                  boxShadow: '0 3px 12px rgba(14, 165, 233, 0.35)',
+                  boxShadow: '0 3px 12px color-mix(in srgb, var(--accent-primary, #0ea5e9) 35%, transparent)',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -1220,7 +1220,7 @@ function DupTab({
               })}</span>
               <span>{scanProgressPct}%</span>
             </div>
-            <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'var(--bg-card, rgba(15, 23, 42, 0.8))', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${scanProgressPct}%`,
@@ -1325,7 +1325,7 @@ function DupTab({
               width: '100%',
               padding: '7px 32px 7px 30px',
               borderRadius: '9px',
-              background: 'rgba(15, 23, 42, 0.8)',
+              background: 'var(--bg-card, rgba(15, 23, 42, 0.8))',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
               color: '#f8fafc',
               fontSize: '0.8rem',
@@ -1375,7 +1375,7 @@ function DupTab({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '3px',
-              background: 'rgba(15, 23, 42, 0.7)',
+              background: 'var(--bg-card, rgba(15, 23, 42, 0.7))',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '10px',
               padding: '3px',
@@ -1406,12 +1406,12 @@ function DupTab({
                     fontSize: '0.78rem',
                     fontWeight: isActive ? 700 : 500,
                     background: isActive
-                      ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
+                      ? 'linear-gradient(135deg, var(--accent-primary, #0ea5e9) 0%, var(--accent-secondary, #0284c7) 100%)'
                       : 'transparent',
                     border: 'none',
                     color: isActive ? '#ffffff' : '#94a3b8',
                     cursor: 'pointer',
-                    boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.35)' : 'none',
+                    boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--accent-primary, #0ea5e9) 35%, transparent)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1503,7 +1503,7 @@ function DupTab({
             justifyContent: 'center',
             padding: '48px 24px',
             textAlign: 'center',
-            background: 'rgba(15, 23, 42, 0.4)',
+            background: 'var(--bg-card, rgba(15, 23, 42, 0.4))',
             border: '1px border-dashed color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
             borderRadius: '16px',
             margin: 'auto 0',
@@ -1658,7 +1658,7 @@ function DupTab({
           position: 'sticky',
           bottom: 0,
           zIndex: 10,
-          background: 'rgba(15, 23, 42, 0.95)',
+          background: 'var(--bg-card, rgba(15, 23, 42, 0.95))',
           backdropFilter: 'blur(12px)',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           padding: '10px 14px',

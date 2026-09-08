@@ -57,7 +57,7 @@ export const JsonTreeViewer: React.FC<Props> = ({
             top: '8px',
             right: '16px',
             zIndex: 10,
-            background: 'rgba(15, 23, 42, 0.95)',
+            background: 'var(--bg-card, rgba(15, 23, 42, 0.95))',
             border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)',
             borderRadius: '8px',
             padding: '4px 8px',

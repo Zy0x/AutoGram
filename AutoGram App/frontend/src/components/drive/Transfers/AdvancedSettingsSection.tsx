@@ -254,7 +254,7 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
               style={{
                 padding: '20px',
                 borderRadius: '16px',
-                background: 'rgba(15, 23, 42, 0.55)',
+                background: 'var(--bg-card, rgba(15, 23, 42, 0.55))',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
               }}

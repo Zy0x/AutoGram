@@ -39,7 +39,7 @@ export const PlaybackDiagnosticsPanel: React.FC<PlaybackDiagnosticsPanelProps> =
         top: '16px',
         right: '16px',
         zIndex: 99,
-        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+        backgroundColor: 'var(--bg-card, rgba(15, 23, 42, 0.92))',
         backdropFilter: 'blur(8px)',
         border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
         borderRadius: '10px',

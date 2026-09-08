@@ -559,7 +559,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         style={{
           width: '100%',
           maxWidth: '720px',
-          background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.96) 0%, rgba(10, 15, 30, 0.98) 100%)',
+          background: 'linear-gradient(160deg, var(--bg-card, rgba(15, 23, 42, 0.96)) 0%, var(--bg-primary, rgba(10, 15, 30, 0.98)) 100%)',
           border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
           borderRadius: '20px',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
@@ -870,7 +870,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <Users size={16} style={{ color: '#60a5fa' }} />
+                        <Users size={16} style={{ color: 'var(--accent-primary, #60a5fa)' }} />
                         <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                           {t('ui.generated.metadata_peer_channel_semua_akun_d901e23')}
                         </strong>
@@ -885,9 +885,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       disabled={!hasGlobalPeer || clearingItem === 'peer_global'}
                       style={getBtnStyle(
                         hasGlobalPeer,
-                        '#60a5fa',
-                        'rgba(96, 165, 250, 0.15)',
-                        '1px solid rgba(96, 165, 250, 0.3)'
+                        'var(--accent-primary, #60a5fa)',
+                        'color-mix(in srgb, var(--accent-primary, #60a5fa) 15%, transparent)',
+                        '1px solid color-mix(in srgb, var(--accent-primary, #60a5fa) 30%, transparent)'
                       )}
                     >
                       <Trash2 size={13} />
@@ -1386,7 +1386,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       width: '100%',
                       padding: '10px 14px',
                       borderRadius: '10px',
-                      background: '#0f172a',
+                      background: 'var(--bg-card, #0f172a)',
                       border: '1px solid rgba(168, 85, 247, 0.4)',
                       color: '#f8fafc',
                       fontSize: '0.85rem',
@@ -1401,7 +1401,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         key={s.name}
                         value={s.name}
                         style={{
-                          backgroundColor: '#0b1520',
+                          backgroundColor: 'var(--bg-primary, #0b1520)',
                           color: '#f8fafc',
                           padding: '10px 14px',
                           fontWeight: 600,
@@ -1565,12 +1565,12 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Users size={16} style={{ color: '#60a5fa' }} />
+                            <Users size={16} style={{ color: 'var(--accent-primary, #60a5fa)' }} />
                             <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                               {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
                             </strong>
                           </div>
-                          <span style={{ fontSize: '0.72rem', color: hasSessionPeer ? '#60a5fa' : '#64748b', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionPeer ? 'var(--accent-primary, #60a5fa)' : '#64748b', fontWeight: 600 }}>
                             {sessionBuckets.peer.length} {t('ui.generated.entri_terdeteksi_c123d45')}
                           </span>
                         </div>
@@ -1584,9 +1584,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         disabled={!hasSessionPeer}
                         style={getBtnStyle(
                           hasSessionPeer,
-                          '#60a5fa',
-                          'rgba(96, 165, 250, 0.15)',
-                          '1px solid rgba(96, 165, 240, 0.3)'
+                          'var(--accent-primary, #60a5fa)',
+                          'color-mix(in srgb, var(--accent-primary, #60a5fa) 15%, transparent)',
+                          '1px solid color-mix(in srgb, var(--accent-primary, #60a5fa) 30%, transparent)'
                         )}
                       >
                         <Trash2 size={13} />

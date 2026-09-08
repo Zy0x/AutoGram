@@ -923,8 +923,8 @@ export function SidebarView({ ctx }: SidebarViewProps) {
                         if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
                         if (kindBadge === 'Private Chat') return { ...base, background: 'rgba(148,163,184,0.13)', border: '1px solid rgba(148,163,184,0.4)', color: '#cbd5e1' };
                         if (kindBadge === 'Drive') return { ...base, background: 'rgba(249,115,22,0.13)', border: '1px solid rgba(249,115,22,0.4)', color: '#fdba74' };
-                        if (kindBadge === 'Saved') return { ...base, background: 'rgba(59,130,246,0.13)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd' };
-                        return { ...base, border: '1px solid color-mix(in srgb, var(--td-primary, #3b82f6) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--td-primary, #3b82f6) 85%, var(--td-fg))' };
+                        if (kindBadge === 'Saved') return { ...base, background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 13%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent)', color: 'var(--accent-primary, #93c5fd)' };
+                        return { ...base, border: '1px solid color-mix(in srgb, var(--accent-primary, var(--td-primary, #3b82f6)) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--accent-primary, var(--td-primary, #3b82f6)) 85%, var(--td-fg))' };
                       })()}>
                         {kindBadge}
                       </span>

@@ -467,7 +467,7 @@ function DropRow({
           const img = document.createElement('div');
           img.textContent = folderDragSource.folderName;
           img.style.cssText =
-            'position:fixed;top:-999px;left:-999px;padding:6px 10px;border-radius:8px;background:#1e293b;color:#f1f5f9;font:600 12px system-ui;border:1px solid #3b82f6;';
+            'position:fixed;top:-999px;left:-999px;padding:6px 10px;border-radius:8px;background:var(--bg-card, #1e293b);color:#f1f5f9;font:600 12px system-ui;border:1px solid var(--accent-primary, #3b82f6);';
           document.body.appendChild(img);
           e.dataTransfer.setDragImage(img, 12, 12);
           window.setTimeout(() => img.remove(), 0);

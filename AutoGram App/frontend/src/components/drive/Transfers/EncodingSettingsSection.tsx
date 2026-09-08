@@ -234,7 +234,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 {/* Tingkat 2, 3, & 4: Progressive Disclosure saat Konversi Aktif */}
                 {draft.imageTranscodeScope !== 'none' && (
-                  <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '10px' }}>
+                  <div style={{ marginTop: '14px', padding: '12px', background: 'var(--bg-card, rgba(15, 23, 42, 0.45))', border: '1px solid var(--border-subtle, rgba(51, 65, 85, 0.5))', borderRadius: '10px' }}>
                     <div>
                       <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
                         {t('drive.image_transcode_scope_label')}
@@ -454,7 +454,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 {/* Progressive Disclosure saat Transcode Video Aktif */}
                 {draft.videoTranscodeScope !== 'none' && currentEncoderMode !== 'disabled' && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '10px' }}>
+                  <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-card, rgba(15, 23, 42, 0.45))', border: '1px solid var(--border-subtle, rgba(51, 65, 85, 0.5))', borderRadius: '10px' }}>
                     <div className="td-field-group">
                       <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
                         {t('drive.video_transcode_scope_label')}

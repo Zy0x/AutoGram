@@ -2990,7 +2990,7 @@ export function DrivePreviewModal({
 
   const fileExtBadgeStyle = useMemo(() => {
     if (isDocxFile) {
-      return { background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.35)' };
+      return { background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 15%, transparent)', color: 'var(--accent-primary, #60a5fa)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 35%, transparent)' };
     }
     if (isPptxFile) {
       return { background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c', border: '1px solid rgba(249, 115, 22, 0.35)' };
@@ -4560,7 +4560,7 @@ export function DrivePreviewModal({
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '2px',
-                        background: 'rgba(15, 23, 42, 0.75)',
+                        background: 'var(--bg-card, rgba(15, 23, 42, 0.75))',
                         padding: '2px 3px',
                         borderRadius: '8px',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -5146,7 +5146,7 @@ export function DrivePreviewModal({
                 bottom: moreTabsMenuPos.bottom !== undefined ? moreTabsMenuPos.bottom : 'auto',
                 left: moreTabsMenuPos.left,
                 width: moreTabsMenuPos.width,
-                background: 'rgba(15, 23, 42, 0.98)',
+                background: 'var(--bg-card, rgba(15, 23, 42, 0.98))',
                 backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: '8px',
@@ -6711,7 +6711,7 @@ export function DrivePreviewModal({
                   bottom: '50px',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: 'rgba(15, 23, 42, 0.9)',
+                  background: 'var(--bg-card, rgba(15, 23, 42, 0.9))',
                   backdropFilter: 'blur(8px)',
                   padding: '8px 16px',
                   borderRadius: '12px',
@@ -6988,7 +6988,7 @@ export function DrivePreviewModal({
                 width: '100%',
                 maxWidth: '500px',
                 margin: '0 auto',
-                background: 'rgba(15, 23, 42, 0.45)',
+                background: 'var(--bg-card, rgba(15, 23, 42, 0.45))',
                 backdropFilter: 'blur(16px)',
                 borderRadius: '24px',
                 border: '1px solid rgba(255, 255, 255, 0.08)',

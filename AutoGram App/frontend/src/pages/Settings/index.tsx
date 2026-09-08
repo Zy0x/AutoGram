@@ -1170,7 +1170,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     justifyContent: 'space-between',
                     padding: '12px 16px',
                     borderRadius: '12px',
-                    background: 'rgba(15, 23, 42, 0.6)',
+                    background: 'var(--bg-card, rgba(15, 23, 42, 0.6))',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                   }}
                 >
@@ -1535,7 +1535,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             style={{
               width: '100%',
               maxWidth: '520px',
-              background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%)',
+              background: 'linear-gradient(160deg, var(--bg-card, rgba(15, 23, 42, 0.98)) 0%, var(--bg-primary, rgba(10, 15, 30, 0.99)) 100%)',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
               borderRadius: '16px',
               padding: '24px',
@@ -1668,7 +1668,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             style={{
               width: '100%',
               maxWidth: '520px',
-              background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%)',
+              background: 'linear-gradient(160deg, var(--bg-card, rgba(15, 23, 42, 0.98)) 0%, var(--bg-primary, rgba(10, 15, 30, 0.99)) 100%)',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
               borderRadius: '16px',
               padding: '24px',

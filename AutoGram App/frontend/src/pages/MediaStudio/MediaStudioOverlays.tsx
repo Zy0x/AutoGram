@@ -74,7 +74,7 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
                 className="td-chip-btn"
                 onClick={onOpenRelogModal}
                 style={{
-                  background: 'var(--primary, #3b82f6)',
+                  background: 'var(--accent-primary, var(--primary, #3b82f6))',
                   color: '#fff',
                   border: 'none',
                   display: 'inline-flex',

@@ -99,14 +99,14 @@ export const ColorPaletteSection: React.FC = () => {
                 outline: 'none',
                 transition: 'all 0.16s ease',
                 background: isCatActive
-                  ? 'var(--color-accent, var(--primary, #38bdf8))'
+                  ? 'var(--accent-primary, var(--color-accent, var(--primary, #38bdf8)))'
                   : 'rgba(255, 255, 255, 0.05)',
                 color: isCatActive ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
                 border: isCatActive
                   ? '1px solid transparent'
                   : '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: isCatActive
-                  ? '0 2px 8px color-mix(in srgb, var(--color-accent, #38bdf8) 35%, transparent)'
+                  ? '0 2px 8px color-mix(in srgb, var(--accent-primary, var(--color-accent, #38bdf8)) 35%, transparent)'
                   : 'none',
               }}
             >
@@ -155,8 +155,8 @@ export const ColorPaletteSection: React.FC = () => {
                 minHeight: '130px',
                 minWidth: '44px',
                 background: isSelected
-                  ? 'color-mix(in srgb, var(--color-accent, #38bdf8) 12%, rgba(15, 23, 42, 0.75))'
-                  : 'rgba(15, 23, 42, 0.6)',
+                  ? 'color-mix(in srgb, var(--accent-primary, var(--color-accent, #38bdf8)) 12%, var(--bg-card, rgba(15, 23, 42, 0.75)))'
+                  : 'var(--bg-card, rgba(15, 23, 42, 0.6))',
                 border: isSelected
                   ? `2px solid ${accent}`
                   : '1px solid rgba(255, 255, 255, 0.08)',

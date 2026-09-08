@@ -772,7 +772,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 bottom: '16px',
                 left: '24px',
                 right: '24px',
-                background: 'rgba(15, 23, 42, 0.95)',
+                background: 'var(--bg-card, rgba(15, 23, 42, 0.95))',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(249, 115, 22, 0.3)',
                 borderRadius: '8px',

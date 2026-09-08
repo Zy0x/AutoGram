@@ -735,7 +735,7 @@ export function SessionLauncher({
                             right: 0,
                             marginTop: '6px',
                             width: '160px',
-                            background: 'rgba(15, 23, 42, 0.95)',
+                            background: 'var(--bg-card, rgba(15, 23, 42, 0.95))',
                             border: '1px solid rgba(255, 255, 255, 0.12)',
                             borderRadius: '12px',
                             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255,255,255,0.2)',
@@ -843,7 +843,7 @@ export function SessionLauncher({
                       width: '52px',
                       height: '52px',
                       borderRadius: '16px',
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      background: 'linear-gradient(135deg, var(--bg-card, #1e293b) 0%, var(--bg-primary, #0f172a) 100%)',
                       border: showAvatar
                         ? '1.5px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent)'
                         : '1px solid var(--border-color, rgba(255,255,255,0.12))',
@@ -1158,7 +1158,7 @@ export function SessionLauncher({
                 border: '3px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent)',
                 boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
                 marginBottom: '20px',
-                background: '#0f172a',
+                background: 'var(--bg-card, #0f172a)',
               }}
             >
               <img
@@ -1198,7 +1198,7 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '420px',
-              background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 100%)',
+              background: 'linear-gradient(150deg, var(--bg-card, #1e293b) 0%, var(--bg-primary, #0f172a) 100%)',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
               borderRadius: '20px',
               padding: '24px',
@@ -1291,7 +1291,7 @@ export function SessionLauncher({
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
+                  boxShadow: '0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 40%, transparent)',
                 }}
               >
                 {t('nav.modal_save')}
@@ -1321,7 +1321,7 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '440px',
-              background: 'linear-gradient(150deg, #1e1b2e 0%, #0f172a 100%)',
+              background: 'linear-gradient(150deg, var(--bg-card, #1e1b2e) 0%, var(--bg-primary, #0f172a) 100%)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
               borderRadius: '20px',
               padding: '24px',
@@ -1428,7 +1428,7 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '470px',
-              background: 'linear-gradient(150deg, #1e1b2e 0%, #0f172a 100%)',
+              background: 'linear-gradient(150deg, var(--bg-card, #1e1b2e) 0%, var(--bg-primary, #0f172a) 100%)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
               borderRadius: '20px',
               padding: '24px',

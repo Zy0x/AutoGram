@@ -1438,10 +1438,10 @@ export function JobEditor({
                           color = '#f59e0b';
                         } else if (d.type === 'Group') {
                           icon = (
-                            <Users size={18} color="#3b82f6" style={{ marginRight: '12px', flexShrink: 0 }} />
+                            <Users size={18} color="var(--accent-primary, #3b82f6)" style={{ marginRight: '12px', flexShrink: 0 }} />
                           );
-                          bg = 'rgba(59, 130, 246, 0.2)';
-                          color = '#3b82f6';
+                          bg = 'color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent)';
+                          color = 'var(--accent-primary, #3b82f6)';
                         } else if (d.type === 'Bot') {
                           icon = (
                             <Bot size={18} color="#10b981" style={{ marginRight: '12px', flexShrink: 0 }} />

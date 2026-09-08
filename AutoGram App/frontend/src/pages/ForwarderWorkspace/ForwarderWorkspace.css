@@ -59,7 +59,7 @@
   min-height: 0;
   padding: 0;
   border-right: 1px solid var(--fw-border);
-  background: var(--fw-surface, var(--td-surface, #0d1527));
+  background: var(--fw-surface, var(--td-surface, var(--bg-card, #0d1527)));
   overflow: hidden;
   transition: width 180ms ease, transform 180ms ease;
 }
