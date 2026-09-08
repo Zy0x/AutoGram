@@ -31139,6 +31139,9 @@ button.td-confirm-icon.is-back-btn:active {
 .td-remote-inspecting-spinner {
   color: #38bdf8;
   animation: spin 1s linear infinite;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .td-remote-inspecting-title {

@@ -869,7 +869,7 @@ fn ytdlp_resolve_internal(
         "--no-warnings",
         "--no-progress",
         "--sub-langs",
-        "all",
+        "id.*,en.*,ja.*,ko.*,zh.*,es.*,ar.*,ru.*,fr.*,de.*",
         "--write-subs",
         "--write-auto-subs",
     ]);

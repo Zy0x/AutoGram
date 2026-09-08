@@ -522,8 +522,25 @@ export function processYtDlpData(
   const subtitleMap = data?.subtitles && typeof data.subtitles === 'object' ? data.subtitles : {};
   const autoCaptionMap = data?.automatic_captions && typeof data.automatic_captions === 'object' ? data.automatic_captions : {};
 
+  const PRIORITY_LANG_PREFIXES = ['id', 'en', 'ja', 'ko', 'zh', 'es', 'ar', 'ru', 'fr', 'de'];
+  const sortLanguageEntries = (entries: [string, any[]][]) => {
+    return [...entries].sort(([a], [b]) => {
+      const aClean = a.toLowerCase();
+      const bClean = b.toLowerCase();
+      const aPrio = PRIORITY_LANG_PREFIXES.findIndex((p) => aClean.startsWith(p));
+      const bPrio = PRIORITY_LANG_PREFIXES.findIndex((p) => bClean.startsWith(p));
+      const aRank = aPrio >= 0 ? aPrio : 999;
+      const bRank = bPrio >= 0 ? bPrio : 999;
+      return aRank - bRank || aClean.localeCompare(bClean);
+    });
+  };
+
   const processSubGroup = (map: Record<string, any[]>, isAuto: boolean) => {
-    Object.entries(map).forEach(([langCode, trackList]) => {
+    const rawEntries = Object.entries(map);
+    const sortedEntries = isAuto ? sortLanguageEntries(rawEntries).slice(0, 25) : rawEntries;
+    const allowedExts = isAuto ? new Set(['vtt', 'srt']) : new Set(['vtt', 'srt', 'ass', 'ttml']);
+
+    sortedEntries.forEach(([langCode, trackList]) => {
       if (!Array.isArray(trackList) || trackList.length === 0) return;
       const cleanLang = langCode.trim();
       const sampleTrack = trackList[0];
@@ -557,6 +574,7 @@ export function processYtDlpData(
         const directUrl = track?.url;
         if (!directUrl) return;
         const ext = String(track?.ext || 'vtt').toLowerCase();
+        if (!allowedExts.has(ext)) return;
         if (seenExts.has(ext)) return;
         seenExts.add(ext);
 

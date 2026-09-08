@@ -23,46 +23,7 @@ export async function resolveTikTokVideo(
   signal?: AbortSignal,
   options?: ResolveOptions
 ): Promise<ResolvedMediaInfo | null> {
-  // Tier 1: Prefer updateable yt-dlp extractor first
-  try {
-    const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal, Boolean(options?.forceRefresh));
-    if (ytDlpData) {
-      const formats: StreamQualityFormat[] = [];
-      const subtitles: SubtitleTrackItem[] = [];
-      const rawStreams: RawStreamItem[] = [];
-      const metadata = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
-      if (formats.length > 0) {
-        const selected =
-          [...formats]
-            .filter((format) => format.isVideo)
-            .sort(
-              (a, b) =>
-                Number(b.height || 0) - Number(a.height || 0) ||
-                Number(b.fps || 0) - Number(a.fps || 0) ||
-                Number(b.bitrate || 0) - Number(a.bitrate || 0)
-            )[0] || formats[0];
-
-        return {
-          url: cleanUrl,
-          platform: 'tiktok',
-          platformName: 'TikTok',
-          title: metadata.title || `TikTok_${Date.now()}`,
-          author: metadata.author,
-          durationSec: metadata.durationSec,
-          thumbnailUrl: metadata.thumbnailUrl,
-          formats,
-          subtitles,
-          rawStreams,
-          selectedFormatId: selected.id,
-          resolvedAt: Date.now(),
-        };
-      }
-    }
-  } catch {
-    // Continue to Tier 2 public lightweight metadata service below.
-  }
-
-  // Tier 2: TikWM API via native Rust IPC or direct web fetch
+  // Tier 1: Instant lightweight TikWM API via native Rust IPC or direct web fetch (300-500ms)
   try {
     let data: TikTokMetadata | null = null;
     try {
@@ -77,7 +38,7 @@ export async function resolveTikTokVideo(
     if (!data) {
       const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`;
       const resp = await fetch(apiUrl, {
-        signal: signal || AbortSignal.timeout(8000),
+        signal: signal || AbortSignal.timeout(6000),
       });
 
       if (resp.ok) {
@@ -118,91 +79,79 @@ export async function resolveTikTokVideo(
         if (postImages.length > 1) {
           formats.push({
             id: 'tiktok_photo_all_pack',
-            label: `All Photos (${postImages.length})`,
+            label: `Slideshow Pack (${postImages.length} Photos)`,
             qualityTier: 'original',
-            ext: 'jpg',
+            ext: 'zip',
             directUrl: allDirectImages[0],
-            allAlbumUrls: allDirectImages,
-            isAlbumPack: true,
             isImage: true,
-            isCleanNoWatermark: true,
-            badge: `FULL ALBUM (${postImages.length})`,
+            isAlbumPack: true,
+            isDownloadable: true,
+            badge: `${postImages.length} PHOTOS`,
+            customTitle: `${title} - Slideshow Pack (${postImages.length} Photos)`,
+            customFilename: `${title} - Slideshow Pack (${postImages.length} Photos).zip`,
           });
         }
 
-        postImages.forEach((imgUrl: string, idx: number) => {
-          const fullImgUrl = imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`;
+        allDirectImages.forEach((imgUrl: string, idx: number) => {
           formats.push({
             id: `tiktok_photo_${idx + 1}`,
-            label: postImages.length === 1 ? 'Original Photo' : `Photo ${idx + 1} of ${postImages.length}`,
+            label: `Photo Slide ${idx + 1} of ${postImages.length}`,
             qualityTier: 'original',
             ext: 'jpg',
-            directUrl: fullImgUrl,
+            directUrl: imgUrl,
             isImage: true,
-            isCleanNoWatermark: true,
-            badge: postImages.length === 1 ? 'PHOTO' : `PHOTO ${idx + 1}`,
+            isDownloadable: true,
+            badge: `SLIDE ${idx + 1}/${postImages.length}`,
+            customTitle: `${title} - Slide ${idx + 1}`,
+            customFilename: `${title} - Slide ${idx + 1}.jpg`,
           });
         });
       } else {
-        // B. VIDEO MODE
-        if (data.hdplay) {
-          const hdFormat: StreamQualityFormat = {
-            id: 'tiktok_hd_nwm',
-            label: measuredHeight ? `${measuredHeight}p (MP4)` : 'Original (MP4)',
-            qualityTier: qualityTierForMeasuredHeight(measuredHeight),
-            resolution: measuredHeight ? `${measuredHeight}p` : undefined,
-            fps: measuredFps,
+        // B. HD CLEAN VIDEO MODE
+        const primaryPlayUrl = data.hdplay || data.play;
+        if (primaryPlayUrl) {
+          const directUrl = primaryPlayUrl.startsWith('http') ? primaryPlayUrl : `https://www.tikwm.com${primaryPlayUrl}`;
+          const effectiveHeight = measuredHeight || 1080;
+          const tier = qualityTierForMeasuredHeight(effectiveHeight);
+          const badgeText = data.hdplay ? 'NO WATERMARK • HD' : 'NO WATERMARK';
+
+          formats.push({
+            id: 'tiktok_hd_clean',
+            label: `HD No Watermark (${effectiveHeight}p)`,
+            qualityTier: tier,
+            resolution: `${effectiveHeight}p`,
             ext: 'mp4',
-            filesizeBytes: data.hd_size || data.size,
-            directUrl: data.hdplay.startsWith('http') ? data.hdplay : `https://www.tikwm.com${data.hdplay}`,
-            isCleanNoWatermark: true,
-            isVideo: true,
-            badge: measuredBitrate ? `${Math.round(measuredBitrate / 1_000)} kbps` : undefined,
             width: measuredWidth,
-            height: measuredHeight,
+            height: effectiveHeight,
+            fps: measuredFps,
+            filesizeBytes: primarySize,
             bitrate: measuredBitrate,
+            directUrl,
+            isVideo: true,
+            isCleanNoWatermark: true,
             isDownloadable: true,
             isStreamable: true,
-          };
-          formats.push(hdFormat);
+            badge: badgeText,
+            customTitle: `${title} - HD Clean (No Watermark)`,
+            customFilename: `${title}.mp4`,
+          });
         }
 
-        const hasDistinctStandardStream =
-          data.play &&
-          data.play !== data.hdplay &&
-          (!data.hdplay || (data.size && data.hd_size && data.size < data.hd_size * 0.92));
-
-        if (hasDistinctStandardStream) {
+        // Standard watermarked video if distinct
+        if (data.wmplay && data.wmplay !== data.play && data.wmplay !== data.hdplay) {
+          const wmUrl = data.wmplay.startsWith('http') ? data.wmplay : `https://www.tikwm.com${data.wmplay}`;
           formats.push({
-            id: 'tiktok_standard_nwm',
-            label: 'Original (MP4)',
+            id: 'tiktok_watermark',
+            label: 'Standard (Watermarked)',
             qualityTier: 'original',
             ext: 'mp4',
-            filesizeBytes: data.size,
-            directUrl: data.play!.startsWith('http') ? data.play! : `https://www.tikwm.com${data.play}`,
-            isCleanNoWatermark: true,
+            directUrl: wmUrl,
             isVideo: true,
             isDownloadable: true,
             isStreamable: true,
-          });
-        } else if (!data.hdplay && data.play) {
-          formats.push({
-            id: 'tiktok_standard_nwm',
-            label: measuredHeight ? `${measuredHeight}p (MP4)` : 'Original (MP4)',
-            qualityTier: qualityTierForMeasuredHeight(measuredHeight),
-            resolution: measuredHeight ? `${measuredHeight}p` : undefined,
-            fps: measuredFps,
-            ext: 'mp4',
-            filesizeBytes: data.size,
-            directUrl: data.play.startsWith('http') ? data.play : `https://www.tikwm.com${data.play}`,
-            isCleanNoWatermark: true,
-            isVideo: true,
-            badge: measuredBitrate ? `${Math.round(measuredBitrate / 1_000)} kbps` : undefined,
-            width: measuredWidth,
-            height: measuredHeight,
-            bitrate: measuredBitrate,
-            isDownloadable: true,
-            isStreamable: true,
+            badge: 'WATERMARK',
+            customTitle: `${title} (Watermark)`,
+            customFilename: `${title} (Watermark).mp4`,
           });
         }
       }
@@ -297,7 +246,46 @@ export async function resolveTikTokVideo(
       }
     }
   } catch {
-    // Continue to Tier 3 fallback below
+    // Continue to Tier 2 yt-dlp extractor fallback below
+  }
+
+  // Tier 2: Heavy yt-dlp fallback if TikWM is unavailable or rate limited
+  try {
+    const ytDlpData = await fetchYtDlpMedia(cleanUrl, signal, Boolean(options?.forceRefresh));
+    if (ytDlpData) {
+      const formats: StreamQualityFormat[] = [];
+      const subtitles: SubtitleTrackItem[] = [];
+      const rawStreams: RawStreamItem[] = [];
+      const metadata = processYtDlpData(ytDlpData, formats, subtitles, rawStreams);
+      if (formats.length > 0) {
+        const selected =
+          [...formats]
+            .filter((format) => format.isVideo)
+            .sort(
+              (a, b) =>
+                Number(b.height || 0) - Number(a.height || 0) ||
+                Number(b.fps || 0) - Number(a.fps || 0) ||
+                Number(b.bitrate || 0) - Number(a.bitrate || 0)
+            )[0] || formats[0];
+
+        return {
+          url: cleanUrl,
+          platform: 'tiktok',
+          platformName: 'TikTok',
+          title: metadata.title || `TikTok_${Date.now()}`,
+          author: metadata.author,
+          durationSec: metadata.durationSec,
+          thumbnailUrl: metadata.thumbnailUrl,
+          formats,
+          subtitles,
+          rawStreams,
+          selectedFormatId: selected.id,
+          resolvedAt: Date.now(),
+        };
+      }
+    }
+  } catch {
+    // Continue to Tier 3 secondary provider fallback below.
   }
 
   // Tier 3: Secondary provider fallback (VKR downloader)

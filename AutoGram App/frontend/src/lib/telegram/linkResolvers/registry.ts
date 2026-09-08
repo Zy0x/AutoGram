@@ -48,7 +48,18 @@ function setCachedResult(url: string, result: ResolvedMediaInfo): void {
 // These do NOT need the HTMLVideoElement fallback duration probe, which can
 // consume seconds per format when there are 50+ quality cards (yt-dlp path).
 // ---------------------------------------------------------------------------
-const PLATFORMS_WITH_BUILT_IN_DURATION = new Set(['youtube', 'tiktok', 'twitter', 'pinterest', 'pixiv']);
+const PLATFORMS_WITH_BUILT_IN_DURATION = new Set([
+  'youtube',
+  'tiktok',
+  'twitter',
+  'pinterest',
+  'pixiv',
+  'instagram',
+  'videe',
+  'vqso',
+  'streamrizz',
+  'threads',
+]);
 
 // ---------------------------------------------------------------------------
 // Video duration probe via hidden <video preload="metadata">
@@ -59,22 +70,36 @@ const VIDEO_EXTS = new Set(['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv', 'm4v', 'm
 function isVideoFormat(fmt: StreamQualityFormat): boolean {
   return !!(
     fmt.isVideo ||
-    (fmt.ext && VIDEO_EXTS.has(fmt.ext.toLowerCase()))
+    (fmt.ext && VIDEO_EXTS.has(fmt.ext.toLowerCase())) ||
+    fmt.resolution ||
+    fmt.height
   );
 }
 
-async function probeVideoDuration(url: string, timeoutMs = 8000, signal?: AbortSignal): Promise<number | undefined> {
-  if (typeof document === 'undefined' || signal?.aborted) return undefined;
+/**
+ * Probes the duration (seconds) of a remote video URL.
+ *
+ * Strategy 1 (fast): Range-fetch the first 512 KB of the file, turn it into a Blob URL,
+ * and load metadata. For MP4/WebM with moov atom at the front, this completes in < 150 ms
+ * without downloading the entire video or blocking the main thread.
+ *
+ * Strategy 2 (fallback): Load direct URL directly in a temporary <video> element.
+ */
+async function probeVideoDuration(
+  url: string,
+  timeoutMs = 4000,
+  signal?: AbortSignal
+): Promise<number | undefined> {
+  if (signal?.aborted) return undefined;
 
-  // Strategy 1: fetch first 512 KB via Range request → blob URL → video element
-  // This bypasses CORS because fetch in Tauri WebView2 uses native HTTP (no CORS policy).
-  // A 512 KB prefix is enough for MP4 files with faststart (moov at beginning).
+  // Strategy 1: Range fetch first 512 KB
   try {
     const ctrl = new AbortController();
+    const fetchTimer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs, 3000));
     const onParentAbort = () => ctrl.abort();
     if (signal) signal.addEventListener('abort', onParentAbort, { once: true });
-    const fetchTimer = setTimeout(() => ctrl.abort(), timeoutMs - 1000);
-    let blobUrl: string | undefined;
+
+    let blobUrl: string | null = null;
     try {
       const resp = await fetch(url, {
         headers: { Range: 'bytes=0-524287' }, // first 512 KB
@@ -101,7 +126,7 @@ async function probeVideoDuration(url: string, timeoutMs = 8000, signal?: AbortS
         document.body.appendChild(video);
 
         let done = false;
-        const tid = setTimeout(() => finish(undefined), 6000);
+        const tid = setTimeout(() => finish(undefined), 3000);
         const onAbort = () => finish(undefined);
         if (signal) signal.addEventListener('abort', onAbort, { once: true });
 
@@ -166,58 +191,71 @@ async function probeVideoDuration(url: string, timeoutMs = 8000, signal?: AbortS
 }
 
 /**
- * After resolution, concurrently probe duration for all video formats
- * and mediaItems that have no durationSec yet. Mutates the result in-place.
- *
- * Performance: platforms like YouTube/TikTok always return durationSec from
- * their own API, so HTMLVideoElement probing is skipped entirely for them.
- * This avoids the cost of probing 50+ yt-dlp format URLs (each up to 10 s).
+ * After resolution, efficiently attach duration to formats and media items.
+ * If top-level durationSec is known, it is shared across all video formats.
+ * If unknown, only ONE primary format is probed instead of flooding Chromium's
+ * video decoders with 5-10 concurrent media tags.
  */
 async function enrichWithDurations(result: ResolvedMediaInfo, signal?: AbortSignal): Promise<ResolvedMediaInfo> {
   if (signal?.aborted) return result;
-  const tasks: Promise<void>[] = [];
 
-  // Skip video probing for platforms that already supply durationSec from
-  // their own API (YouTube via yt-dlp, TikTok, Twitter, etc.).
-  // For these, durationSec on the top-level result is the authoritative value.
+  // Fast path: If top-level durationSec is already known, propagate to all formats that lack it
+  if (result.durationSec && result.durationSec > 0) {
+    for (const fmt of result.formats) {
+      if (isVideoFormat(fmt) && !fmt.durationSec) {
+        fmt.durationSec = result.durationSec;
+      }
+    }
+    return result;
+  }
+
+  const tasks: Promise<void>[] = [];
   const hasBuiltInDuration = PLATFORMS_WITH_BUILT_IN_DURATION.has(result.platform || '');
 
-  // Top-level formats — only probe for platforms without built-in duration
-  // AND only when the top-level result itself has no durationSec yet.
+  // Top-level formats — only probe ONE primary video format if platform lacks built-in duration
   if (!result.durationSec && !hasBuiltInDuration) {
-    for (const fmt of result.formats) {
-      if (isVideoFormat(fmt) && !fmt.durationSec && fmt.directUrl) {
-        tasks.push(
-          probeVideoDuration(fmt.directUrl, 8000, signal).then((dur) => {
-            if (dur && !signal?.aborted) {
-              fmt.durationSec = dur;
-              if (!result.durationSec) result.durationSec = dur;
+    const primaryVideoFmt = result.formats.find(
+      (fmt) => isVideoFormat(fmt) && !fmt.durationSec && fmt.directUrl
+    );
+
+    if (primaryVideoFmt?.directUrl) {
+      tasks.push(
+        probeVideoDuration(primaryVideoFmt.directUrl, 4000, signal).then((dur) => {
+          if (dur && !signal?.aborted) {
+            result.durationSec = dur;
+            primaryVideoFmt.durationSec = dur;
+            for (const fmt of result.formats) {
+              if (isVideoFormat(fmt) && !fmt.durationSec) {
+                fmt.durationSec = dur;
+              }
             }
-          })
-        );
-      }
+          }
+        })
+      );
     }
   }
 
-  // mediaItems (gallery batch) — probe only unknown-duration items
-  // but still skip per-format probing if the platform has built-in duration.
-  if (result.mediaItems && result.mediaItems.length > 0) {
+  // mediaItems (gallery batch) — probe only unknown-duration items (one probe per gallery item)
+  if (result.mediaItems && result.mediaItems.length > 0 && !hasBuiltInDuration) {
     for (const item of result.mediaItems) {
       if (item.kind !== 'video') continue;
       if (item.durationSec && item.durationSec > 0) continue;
-      if (hasBuiltInDuration) continue; // platform already supplies duration
 
-      // Find first video format with a URL
       const fmt = item.formats.find((f) => isVideoFormat(f) && f.directUrl && !f.durationSec);
       if (!fmt?.directUrl) continue;
 
-      const fmtRef = fmt; // capture for closure
+      const fmtRef = fmt;
       const itemRef = item;
       tasks.push(
-        probeVideoDuration(fmtRef.directUrl, 8000, signal).then((dur) => {
+        probeVideoDuration(fmtRef.directUrl, 4000, signal).then((dur) => {
           if (dur && !signal?.aborted) {
             fmtRef.durationSec = dur;
             itemRef.durationSec = dur;
+            for (const f of itemRef.formats) {
+              if (isVideoFormat(f) && !f.durationSec) {
+                f.durationSec = dur;
+              }
+            }
           }
         })
       );
