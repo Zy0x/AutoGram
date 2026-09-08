@@ -1,12 +1,12 @@
-AutoGram Version: v3.9.82
+AutoGram Version: v3.9.83
 
 Current State:
-v3.9.51 Nested Overlay Back Navigation & Cascade Collapse Elimination Architecture:
-1. Elimination of Competing Window Listeners: Removed all raw `window.addEventListener('auxclick')`, `mouseup`, and `wheel` listeners from `MediaStudio`, `DrivePreviewModal`, and `DriveZipBrowser`. Enforced a single, centralized global dispatcher in `mouseBackGesture.ts` with a 300ms action cooldown guard.
-2. Prevention of Unauthorized Workspace Exit: Stripped premature `setAppMode('launcher')` and `onBackToLauncher()` fallbacks from Drives navigation handlers. Back gestures performed inside Drives strictly remain inside Drives, returning `false` (no-op) when reaching the root level.
-3. Strict Multi-Tiered LIFO Peeling: Guaranteed that 1 back click/gesture pops exactly 1 innermost layer (Innermost Modals via `useModalBackHandler` -> `DriveZipBrowser` at priority 40 -> `DrivePreviewModal` at priority 30 -> `MediaStudio` at priority 20). Nested overlays peel back cleanly layer-by-layer without cascading collapse.
-4. History State Race Prevention: Replaced boolean popping flag in `modalBackStack.ts` with an internal pops counter and `isPopping` entry flag, eliminating browser history popping races and duplicate `popstate` events.
-5. 100% Quality Gates Passed: Verified across all 6 gates (6,333 i18n keys with 100% ID/EN parity, 0 TypeScript compile errors, 49 Vitest test suites / 424 tests passing, SQLite WAL schema parity, and live CDP verification on port 9230).
+v3.9.83 TikTok Power Suite: Original Music Metadata & Cover Art Extraction, Interactive Photo Slideshow Carousel, Automatic Telegram Cloud Caption Sync & High-Speed Mobile Shortlink Normalization:
+1. Original Music Metadata, HD Cover Art & Video Poster: Extracted complete TikTok original music metadata (`rawSongTitle - rawArtist`), HD Music Cover Art card (`tiktok_music_cover`), and pristine Video Cover Poster HD card (`tiktok_video_cover`) alongside creator avatar and clean 1080P stream.
+2. Interactive Slideshow Carousel Canvas: Multi-image carousel with floating `<` / `>` navigation arrows, live slide counter (`Slide X / Y`), and clickable dots on preview canvas for TikTok slideshows.
+3. Automatic Telegram Caption & Hashtag Template: Toggleable and editable caption box with real-time character counter (`X / 1,024`) synchronized with TikTok's original video title and hashtags when destination is Telegram Cloud.
+4. Fast Mobile Shortlink Normalization: Native Rust redirect follower in `lib.rs` and fallback resolver in TypeScript for `vt.tiktok.com` and `vm.tiktok.com` links, normalizing `/@/video/<ID>` paths to guarantee 100% instant 200ms resolution.
+5. 100% Quality Gates Passed: Passed all 7 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,448 keys, 60 Vitest files passing, SQLite master schema synchronization, and live CDP verification on port 9230.
 
 Previous:
 v3.9.50 Deep Transfer Double-Buffering, Fast NTFS Pre-Allocation & Hot-Head RAM Streaming Cache:

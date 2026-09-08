@@ -6860,6 +6860,7 @@ function MediaDriveDesktop({
       qualityMode?: string;
       customFilename?: string;
       customFilenames?: string[];
+      customCaption?: string;
       sourceSizes?: number[];
       thumbnailUrls?: string[];
       remoteMuxes?: Array<RemoteMuxSpec | null>;
@@ -6980,7 +6981,7 @@ function MediaDriveDesktop({
         albumAvoidSingle: transferSettings.albumAvoidSingle,
         duplicatePolicy: transferSettings.duplicatePolicy,
         oversizeAction: transferSettings.oversizeAction,
-        globalCaption: (transferSettings.globalCaption || '').trim() || undefined,
+        globalCaption: (opts?.customCaption || transferSettings.globalCaption || '').trim() || undefined,
         captionOverflowPolicy: transferSettings.captionOverflowPolicy,
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
@@ -7086,7 +7087,7 @@ function MediaDriveDesktop({
         opts?.presentationOverride === 'document'
           ? 'document'
           : transferSettings.sendAs.trim() || undefined,
-      global_caption: (transferSettings.globalCaption || '').trim() || undefined,
+      global_caption: (opts?.customCaption || transferSettings.globalCaption || '').trim() || undefined,
       caption_overflow_policy: transferSettings.captionOverflowPolicy,
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
@@ -7214,6 +7215,7 @@ function MediaDriveDesktop({
       remoteEngineMode?: RemoteEngineMode;
       storagePolicy?: StorageLocalPolicy;
       customDiskPath?: string;
+      customCaption?: string;
       asDocument?: boolean;
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
@@ -7230,6 +7232,7 @@ function MediaDriveDesktop({
       qualityMode: opts?.qualityMode,
       customFilename: opts?.customFilename,
       customFilenames: opts?.customFilenames,
+      customCaption: opts?.customCaption,
       sourceSizes: opts?.sourceSizes,
       thumbnailUrls: opts?.thumbnailUrls,
       remoteMuxes: opts?.remoteMuxes,

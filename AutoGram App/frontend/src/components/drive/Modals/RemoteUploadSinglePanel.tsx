@@ -8,7 +8,7 @@ import {
   Link2, X, Loader2, RefreshCw, Clipboard, ExternalLink, Film, Image as ImageIcon, Music,
   FileText, CheckCircle2, Check, CheckCheck, CheckSquare, Square, XCircle,
   LayoutGrid, List, Layers, Sparkles, Zap, KeyRound, Search, Play, Clock, Pencil, RotateCcw,
-  Copy, ArrowUp, ArrowDown, Filter, Info,
+  Copy, ArrowUp, ArrowDown, Filter, Info, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { detectTauriRuntime } from '../../../lib/tauri/platform';
 import type { RawStreamItem, StreamQualityFormat } from '../../../lib/telegram/linkResolvers';
@@ -19,7 +19,7 @@ import { kindIcon } from './remoteUploadUiPrimitives';
 import { renderMatrixTable } from './remoteUploadRenderers';
 
 export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
-  const { t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,selectedFormatId,setSelectedFormatId,activePlayableUrl,setActivePlayableUrl,isPlayingStream,setIsPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,setResolvedMedia,effectiveMediaItems,activeSlideIndex,activeTargetExt,activeItemCurrentName,isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,handleToggleItem,handleSelectAllItems,handleDeselectAllItems,filteredAndSortedItems,galleryViewMode,setGalleryViewMode,galleryFilter,setGalleryFilter,gallerySearch,setGallerySearch,gallerySortBy,setGallerySortBy,gallerySortOrder,setGallerySortOrder,itemDurations,setItemDurations,itemResolutions,setItemResolutions,itemSelectedFormats,selectedBytes,streamContainerFilter,setStreamContainerFilter,matrixSearchQuery,setMatrixSearchQuery,matrixHideM3u8,setMatrixHideM3u8,subtitleSearchQuery,setSubtitleSearchQuery,subtitleTypeFilter,setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef} = ctx;
+  const { t,url,passcode,submitting,inspection,setInspection,probeUrl,handleOpenInBrowser,handlePasteClipboard,handleUrlChange,resolvedMedia,handlePasscodeChange,renderTripletAndDestinationControls,isSplitActive,previewSectionRef,selectedFormatId,setSelectedFormatId,activePlayableUrl,setActivePlayableUrl,isPlayingStream,setIsPlayingStream,activePreviewItem,activeSlideUrl,captureVideoCanvasThumbnail,setResolvedMedia,effectiveMediaItems,activeSlideIndex,setActiveSlideIndex,activeTargetExt,activeItemCurrentName,isEditingActiveName,setIsEditingActiveName,editingNameValue,setEditingNameValue,saveCurrentEditingName,resetActiveName,itemCustomNames,isNameModified,handleSelectFormat,handleToggleFormat,handlePlayFormat,selectedMediaItemIds,handleToggleItem,handleSelectAllItems,handleDeselectAllItems,filteredAndSortedItems,galleryViewMode,setGalleryViewMode,galleryFilter,setGalleryFilter,gallerySearch,setGallerySearch,gallerySortBy,setGallerySortBy,gallerySortOrder,setGallerySortOrder,itemDurations,setItemDurations,itemResolutions,setItemResolutions,itemSelectedFormats,selectedBytes,streamContainerFilter,setStreamContainerFilter,matrixSearchQuery,setMatrixSearchQuery,matrixHideM3u8,setMatrixHideM3u8,subtitleSearchQuery,setSubtitleSearchQuery,subtitleTypeFilter,setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef,includeCustomCaption,setIncludeCustomCaption,customCaption,setCustomCaption,storagePolicy} = ctx;
 
   const formatClickTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -197,6 +197,58 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
 
                   {/* Triplet Compact Row (Media Delivery Format, Transfer Engine, Storage Policy) & Destination */}
                   {renderTripletAndDestinationControls(false)}
+
+                  {/* Caption Template Toggle & Editor (for Cloud / Telegram destinations) */}
+                  {resolvedMedia && storagePolicy !== 'custom_disk' && (resolvedMedia.rawCaption || resolvedMedia.platform === 'tiktok') && (
+                    <div className="td-remote-caption-box" style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: includeCustomCaption ? 8 : 0 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={includeCustomCaption}
+                            onChange={(e) => {
+                              const next = e.target.checked;
+                              setIncludeCustomCaption(next);
+                              if (next && !customCaption && resolvedMedia.rawCaption) {
+                                setCustomCaption(resolvedMedia.rawCaption);
+                              }
+                            }}
+                            style={{ cursor: 'pointer', accentColor: '#38bdf8', width: 15, height: 15 }}
+                          />
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                            {t('drive.remote_tiktok_include_caption', { defaultValue: 'Sertakan Caption Asli TikTok' })}
+                          </span>
+                        </label>
+                        {includeCustomCaption && (
+                          <span style={{ fontSize: '0.72rem', color: (customCaption?.length || 0) > 1024 ? '#f87171' : '#94a3b8' }}>
+                            {(customCaption?.length || 0)} / 1.024
+                          </span>
+                        )}
+                      </div>
+                      {includeCustomCaption && (
+                        <div style={{ marginTop: 6 }}>
+                          <textarea
+                            value={customCaption || ''}
+                            onChange={(e) => setCustomCaption(e.target.value)}
+                            placeholder={t('drive.remote_tiktok_caption_placeholder', { defaultValue: 'Sesuaikan caption Telegram di sini...' })}
+                            rows={3}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              fontSize: '0.8rem',
+                              lineHeight: 1.4,
+                              color: '#f1f5f9',
+                              background: 'rgba(15, 23, 42, 0.6)',
+                              border: (customCaption?.length || 0) > 1024 ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: 8,
+                              resize: 'vertical',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -323,12 +375,64 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                             ) : (activeFormatForCanvas?.isImage ? (activeFormatForCanvas.directUrl || activeSlideUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl)) ? (
                               <div className="td-remote-big-canvas-inner">
                                 <img
-                                  src={activeFormatForCanvas?.isImage ? (activeFormatForCanvas.directUrl || activeSlideUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl)}
+                                  src={activeFormatForCanvas?.isImage ? (resolvedMedia.albumImages?.[activeSlideIndex] || activeFormatForCanvas.directUrl || activeSlideUrl || activePreviewItem?.thumbnailUrl || resolvedMedia.thumbnailUrl) : (activePreviewItem?.thumbnailUrl || activeSlideUrl || resolvedMedia.thumbnailUrl)}
                                   alt={resolvedMedia.title}
                                   className="td-remote-big-canvas-img"
                                   loading="eager"
                                   referrerPolicy="no-referrer"
                                 />
+                                {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="td-remote-carousel-nav-btn td-remote-carousel-prev"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const total = resolvedMedia.albumImages!.length;
+                                        const next = (activeSlideIndex - 1 + total) % total;
+                                        setActiveSlideIndex(next);
+                                        const nextFmt = resolvedMedia.formats.find((f) => f.id === `tiktok_photo_${next + 1}`);
+                                        if (nextFmt) setSelectedFormatId(nextFmt.id);
+                                      }}
+                                      title={t('drive.remote_carousel_prev', { defaultValue: 'Slide Sebelumnya' })}
+                                      aria-label="Previous Slide"
+                                    >
+                                      <ChevronLeft size={20} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="td-remote-carousel-nav-btn td-remote-carousel-next"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const total = resolvedMedia.albumImages!.length;
+                                        const next = (activeSlideIndex + 1) % total;
+                                        setActiveSlideIndex(next);
+                                        const nextFmt = resolvedMedia.formats.find((f) => f.id === `tiktok_photo_${next + 1}`);
+                                        if (nextFmt) setSelectedFormatId(nextFmt.id);
+                                      }}
+                                      title={t('drive.remote_carousel_next', { defaultValue: 'Slide Berikutnya' })}
+                                      aria-label="Next Slide"
+                                    >
+                                      <ChevronRight size={20} />
+                                    </button>
+                                    <div className="td-remote-carousel-dots">
+                                      {resolvedMedia.albumImages.map((_, dotIdx) => (
+                                        <button
+                                          key={dotIdx}
+                                          type="button"
+                                          className={`td-remote-carousel-dot ${dotIdx === activeSlideIndex ? 'active' : ''}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveSlideIndex(dotIdx);
+                                            const nextFmt = resolvedMedia.formats.find((f) => f.id === `tiktok_photo_${dotIdx + 1}`);
+                                            if (nextFmt) setSelectedFormatId(nextFmt.id);
+                                          }}
+                                          aria-label={`Slide ${dotIdx + 1}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                                 {activeFormatForCanvas && !activeFormatForCanvas.isImage && (
                                   <button
                                     type="button"
@@ -346,7 +450,15 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                   {activeFormatForCanvas?.isImage ? (
                                     <span className="td-remote-canvas-slide-tag">
                                       <ImageIcon size={12} />
-                                      <span>{activeFormatForCanvas.badge || activeFormatForCanvas.resolution || 'Image'}</span>
+                                      <span>
+                                        {resolvedMedia.albumImages && resolvedMedia.albumImages.length > 1
+                                          ? t('drive.remote_carousel_slide_counter', {
+                                              current: activeSlideIndex + 1,
+                                              total: resolvedMedia.albumImages.length,
+                                              defaultValue: `Slide ${activeSlideIndex + 1} / ${resolvedMedia.albumImages.length}`,
+                                            })
+                                          : activeFormatForCanvas.badge || activeFormatForCanvas.resolution || 'Image'}
+                                      </span>
                                     </span>
                                   ) : (
                                     <>
@@ -1133,7 +1245,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                           const curatedGeneralAudio: StreamQualityFormat[] = audioFmts.slice(0, 1);
                           const curatedGeneralImages: StreamQualityFormat[] = resolvedMedia.formats
                             .filter((f) => f.isImage && !isBrokenOrM3u8(f) && !f.isAlbumPack)
-                            .slice(0, 2);
+                            .slice(0, 6);
                           const totalGeneralCount = curatedGeneralVideos.length + curatedGeneralAudio.length + curatedGeneralImages.length;
 
                           const activeFmt = resolvedMedia.formats.find((f) => f.id === selectedFormatId) || resolvedMedia.formats[0];

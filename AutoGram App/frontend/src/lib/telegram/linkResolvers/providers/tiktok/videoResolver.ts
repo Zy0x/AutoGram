@@ -73,7 +73,18 @@ export async function resolveTikTokVideo(
     }
 
     if (!data) {
-      const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}&hd=1`;
+      let targetForApi = cleanUrl;
+      if (cleanUrl.includes('vt.tiktok.com') || cleanUrl.includes('vm.tiktok.com')) {
+        try {
+          const headRes = await fetch(cleanUrl, { method: 'HEAD', redirect: 'follow' });
+          if (headRes.url) {
+            targetForApi = headRes.url.replace('/@/video/', '/@a/video/');
+          }
+        } catch {
+          // ignore
+        }
+      }
+      const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(targetForApi)}&hd=1`;
       const resp = await fetch(apiUrl, {
         signal: signal || AbortSignal.timeout(6000),
       });
@@ -120,6 +131,7 @@ export async function resolveTikTokVideo(
             qualityTier: 'original',
             ext: 'zip',
             directUrl: allDirectImages[0],
+            allAlbumUrls: allDirectImages,
             isImage: true,
             isAlbumPack: true,
             isDownloadable: true,
@@ -186,7 +198,7 @@ export async function resolveTikTokVideo(
         }
       }
 
-      // C. AUDIO STREAM (Standalone track extraction with bitrate & status)
+      // C. AUDIO STREAM (Standalone track extraction with song title, artist & cover)
       let resolvedAudioFormat: StreamQualityFormat | undefined;
       if (audioStatus.hasAudio && audioStatus.audioUrl) {
         const musicDuration = durationSec || data.music_info?.duration || 0;
@@ -195,18 +207,26 @@ export async function resolveTikTokVideo(
           ? Math.round((musicDuration * bitrate) / 8)
           : undefined;
 
-        const musicTitle = audioStatus.audioTitle || `${title} (Audio Track)`;
+        const rawSongTitle = data.music_info?.title?.trim();
+        const rawArtist = data.music_info?.author?.trim();
+        const formattedSongLabel = rawSongTitle && rawArtist
+          ? `${rawSongTitle} - ${rawArtist}`
+          : rawSongTitle || audioStatus.audioTitle || 'Original Audio (MP3)';
+
         const kbps = Math.round(bitrate / 1_000);
+        const musicCover = data.music_info?.cover
+          ? (data.music_info.cover.startsWith('http') ? data.music_info.cover : `https://www.tikwm.com${data.music_info.cover}`)
+          : undefined;
 
         resolvedAudioFormat = {
           id: 'tiktok_audio',
-          label: 'Original Audio (MP3)',
+          label: formattedSongLabel,
           qualityTier: 'audio',
           resolution: `${kbps} kbps`,
           ext: 'mp3',
           filesizeBytes: estimatedAudioSize,
           directUrl: audioStatus.audioUrl,
-          thumbnailUrl: data.music_info?.cover || data.author?.avatar || data.cover,
+          thumbnailUrl: musicCover || data.author?.avatar || data.cover,
           isAudio: true,
           badge: `MP3 • ${kbps} kbps`,
           bitrate,
@@ -215,8 +235,8 @@ export async function resolveTikTokVideo(
           audioChannels: audioStatus.audioChannels || 2,
           isDownloadable: true,
           isStreamable: true,
-          customTitle: musicTitle,
-          customFilename: `${musicTitle}.mp3`,
+          customTitle: formattedSongLabel,
+          customFilename: `${formattedSongLabel}.mp3`,
         };
         formats.push(resolvedAudioFormat);
       }
@@ -262,6 +282,55 @@ export async function resolveTikTokVideo(
         });
       }
 
+      // E. Music Cover Art (HD Image)
+      if (data.music_info?.cover) {
+        const musicCoverUrl = data.music_info.cover.startsWith('http')
+          ? data.music_info.cover
+          : `https://www.tikwm.com${data.music_info.cover}`;
+        const songTitle = data.music_info.title?.trim() || 'Music';
+        const artist = data.music_info.author?.trim();
+        const coverLabel = artist ? `${songTitle} - ${artist} (Cover Art)` : `${songTitle} (Cover Art)`;
+
+        formats.push({
+          id: 'tiktok_music_cover',
+          label: coverLabel,
+          qualityTier: 'original',
+          ext: 'jpg',
+          directUrl: musicCoverUrl,
+          thumbnailUrl: musicCoverUrl,
+          isImage: true,
+          isDownloadable: true,
+          isStreamable: true,
+          badge: 'COVER ART',
+          customTitle: `${songTitle} - Music Cover Art`,
+          customFilename: `${songTitle} - Cover.jpg`,
+        });
+      }
+
+      // F. Video Cover Poster (HD Image)
+      const rawVideoCover = data.origin_cover || data.cover;
+      if (rawVideoCover && !isPhotoPost) {
+        const directVideoCover = rawVideoCover.startsWith('http')
+          ? rawVideoCover
+          : `https://www.tikwm.com${rawVideoCover}`;
+        const posterLabel = 'Video Cover Poster (HD)';
+
+        formats.push({
+          id: 'tiktok_video_cover',
+          label: posterLabel,
+          qualityTier: 'original',
+          ext: 'jpg',
+          directUrl: directVideoCover,
+          thumbnailUrl: directVideoCover,
+          isImage: true,
+          isDownloadable: true,
+          isStreamable: true,
+          badge: 'POSTER HD',
+          customTitle: `${title} - Cover Poster`,
+          customFilename: `${title} - Cover Poster.jpg`,
+        });
+      }
+
       const rawAlbumImages = Array.isArray(data.images) && data.images.length > 0
         ? data.images.map((img: string) => img.startsWith('http') ? img : `https://www.tikwm.com${img}`)
         : undefined;
@@ -271,11 +340,17 @@ export async function resolveTikTokVideo(
         : (data.origin_cover || data.cover);
 
       if (formats.length > 0) {
+        const musicCoverFull = data.music_info?.cover
+          ? (data.music_info.cover.startsWith('http') ? data.music_info.cover : `https://www.tikwm.com${data.music_info.cover}`)
+          : undefined;
+
         return {
           url: cleanUrl,
           platform: 'tiktok',
           platformName: 'TikTok',
           title,
+          rawCaption: data.title || '',
+          musicCoverUrl: musicCoverFull,
           author,
           authorAvatar,
           durationSec,

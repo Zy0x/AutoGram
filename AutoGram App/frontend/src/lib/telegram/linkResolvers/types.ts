@@ -187,6 +187,8 @@ export interface ResolvedMediaInfo {
   thumbnailUrl?: string;
   albumImages?: string[];
   description?: string;
+  rawCaption?: string;
+  musicCoverUrl?: string;
   formats: StreamQualityFormat[];
   selectedFormatId: string;
   mediaItems?: ResolvedMediaItem[];

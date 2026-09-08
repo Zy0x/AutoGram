@@ -80,6 +80,7 @@ interface RemoteUploadModalProps {
       remoteEngineMode?: RemoteEngineMode;
       storagePolicy?: StorageLocalPolicy;
       customDiskPath?: string;
+      customCaption?: string;
       /** One optional adaptive video/audio pair per uploaded URL. */
       remoteMuxes?: Array<RemoteMuxSpec | null>;
     }
@@ -94,6 +95,12 @@ interface RemoteUploadModalProps {
   }
   if (fmt.id === 'tiktok_profile_avatar') {
     return t('drive.remote_fmt_creator_avatar');
+  }
+  if (fmt.id === 'tiktok_music_cover') {
+    return t('drive.remote_fmt_music_cover');
+  }
+  if (fmt.id === 'tiktok_video_cover') {
+    return t('drive.remote_fmt_video_cover');
   }
   if (fmt.id === 'tiktok_photo_all_pack' || (fmt.isAlbumPack && resolvedMedia?.platform === 'tiktok')) {
     const total = resolvedMedia?.albumImages?.length || '';
@@ -413,6 +420,11 @@ export function RemoteUploadModal({
   const playRequestRef = useRef(0);
 
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
+  const [includeCustomCaption, setIncludeCustomCaption] = useState(false);
+  const [customCaption, setCustomCaption] = useState('');
+  useEffect(() => {
+    if (resolvedMedia?.rawCaption) setCustomCaption(resolvedMedia.rawCaption);
+  }, [resolvedMedia]);
 
   useEffect(() => {
     if (isOpen) setMatrixHideM3u8(transferSettings?.remoteHideManifests !== false);
@@ -500,6 +512,8 @@ export function RemoteUploadModal({
       setItemSelectedFormats({});
       setGallerySearch('');
       setActiveSlideIndex(0);
+      setIncludeCustomCaption(false);
+      setCustomCaption('');
       setSelectedDest(currentDestination || { id: null, label: 'Saved Messages', kind: 'saved' });
       setErrorMsg('');
       setPickerOpen(false);
@@ -1689,7 +1703,9 @@ export function RemoteUploadModal({
   });
 
   const handleSubmit = createRemoteUploadSubmitHandler({
-    t, setErrorMsg, setSubmitting, tab, url, passcode, customFilename, resolvedMedia, effectiveMediaItems,
+    t, setErrorMsg, setSubmitting, tab, url, passcode, customFilename,
+    customCaption: includeCustomCaption ? customCaption : undefined,
+    resolvedMedia, effectiveMediaItems,
     selectedMediaItemIds, selectedItems, selectedDest, onUpload, onClose, deliveryMode,
     remoteEngineMode, storagePolicy, customDiskPath, selectedBatchItems, batchGroups,
     isEditingBatchText, handleInspectBatchUrls, canTransferResolvedFormat,
@@ -1815,7 +1831,8 @@ export function RemoteUploadModal({
               setSubtitleTypeFilter,copiedStreamUrl,setCopiedStreamUrl,handleLoadMoreDiscovery,discoveryLoading,
               handleOpenAssistedInspector,probeSingleItemDuration,ItemDurationBadge,fileKindIcon,getFormatDisplayLabel,
               getFormatDisplayBadge,getBadgeModifierClass,getSingleUnifiedBadgeInfo,isManifestFormat,splitFilenameAndExt,
-              formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef
+              formatMediaDuration,formatDriveBytes,handleCardClick,handleCardDoubleClick,clickTimersRef,
+              includeCustomCaption,setIncludeCustomCaption,customCaption,setCustomCaption,storagePolicy
             }} />
           ) : (
             <RemoteUploadBatchPanel ctx={{

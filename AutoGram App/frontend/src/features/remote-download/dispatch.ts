@@ -6,6 +6,7 @@ import { startLocalDownloads } from './service';
 interface DestinationOptions {
   storagePolicy?: string; customDiskPath?: string; customFilename?: string;
   customFilenames?: string[]; remoteMuxes?: Array<RemoteMuxSpec | null>;
+  customCaption?: string;
 }
 
 /** Destination policy wins over transport preference. Never pass Local to Telegram. */

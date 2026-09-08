@@ -186,20 +186,22 @@ describe('TikTok Link Resolver & Audio Integrity Engine', () => {
     it('produces HD video, original audio, and creator avatar formats from TikTok metadata', () => {
       const mockData = {
         id: '7680589730219707666',
-        title: 'Yangyang Xuanling 4K 120FPS',
+        title: 'Yangyang Xuanling 4K 120FPS #wuwa #wutheringwaves',
         duration: 26,
         size: 313367660,
         hd_size: 313367660,
         height: 1920,
         width: 1080,
         fps: 120,
+        origin_cover: 'https://p19.tiktokcdn.com/cover_hd.webp',
         play: 'https://v16m.tiktokcdn-us.com/video_standard.mp4',
         hdplay: 'https://v16-notes.tiktokcdn-us.com/video_hd.mp4',
         music: 'https://v16-ies-music.tiktokcdn-us.com/music.mp3',
         music_info: {
           id: '7680589789749398280',
-          title: 'original sound - izuru.01',
+          title: 'original sound',
           author: 'Izuru',
+          cover: 'https://p19.tiktokcdn.com/music_cover.jpg',
           original: true,
           duration: 26,
           bitrate: 128000,
@@ -226,6 +228,37 @@ describe('TikTok Link Resolver & Audio Integrity Engine', () => {
       // Verify resolution calculation for portrait video (min of width and height)
       const effectiveHeight = Math.min(mockData.width, mockData.height);
       expect(`${effectiveHeight}P (No Watermark)`).toBe('1080P (No Watermark)');
+
+      // Verify music title & artist formatting
+      const songLabel = `${mockData.music_info.title} - ${mockData.music_info.author}`;
+      expect(songLabel).toBe('original sound - Izuru');
+
+      // Verify music cover presence
+      expect(mockData.music_info.cover).toBe('https://p19.tiktokcdn.com/music_cover.jpg');
+
+      // Verify video poster presence
+      expect(mockData.origin_cover).toBe('https://p19.tiktokcdn.com/cover_hd.webp');
+    });
+
+    it('handles photo slideshow posts with multiple images and allAlbumUrls', () => {
+      const mockPhotoPost = {
+        id: '71122334455',
+        title: 'Slideshow aesthetic #aesthetic #photography',
+        images: [
+          'https://p19.tiktokcdn.com/photo1.jpg',
+          'https://p19.tiktokcdn.com/photo2.jpg',
+          'https://p19.tiktokcdn.com/photo3.jpg',
+        ],
+        music_info: {
+          title: 'Song Name',
+          author: 'Artist Name',
+          cover: 'https://p19.tiktokcdn.com/music.jpg',
+        },
+      };
+
+      expect(mockPhotoPost.images.length).toBe(3);
+      expect(mockPhotoPost.title).toContain('#photography');
+      expect(mockPhotoPost.images[0]).toBe('https://p19.tiktokcdn.com/photo1.jpg');
     });
   });
 

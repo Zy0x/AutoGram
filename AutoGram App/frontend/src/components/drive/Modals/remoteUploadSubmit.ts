@@ -5,7 +5,7 @@ import type React from 'react';
 import type { RemoteMuxSpec } from '../../../lib/telegram/linkResolvers';
 import { dispatchRemoteDestination } from '../../../features/remote-download/dispatch';
 export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
-  const { t,setErrorMsg,setSubmitting,tab,url,passcode,customFilename,resolvedMedia,effectiveMediaItems,selectedItems,selectedDest,onUpload,onClose,deliveryMode,remoteEngineMode,storagePolicy,customDiskPath,selectedBatchItems,batchGroups,isEditingBatchText,handleInspectBatchUrls,canTransferResolvedFormat,getEffectiveFormatFilename,resolveRemoteMediaUrl,hasKnownRemoteProvider,selectedFormatId,itemCustomNames,itemSelectedFormats } = ctx;
+  const { t,setErrorMsg,setSubmitting,tab,url,passcode,customFilename,customCaption,resolvedMedia,effectiveMediaItems,selectedItems,selectedDest,onUpload,onClose,deliveryMode,remoteEngineMode,storagePolicy,customDiskPath,selectedBatchItems,batchGroups,isEditingBatchText,handleInspectBatchUrls,canTransferResolvedFormat,getEffectiveFormatFilename,resolveRemoteMediaUrl,hasKnownRemoteProvider,selectedFormatId,itemCustomNames,itemSelectedFormats } = ctx;
   const submitToDestination = async (urls, dest, options) => {
     try { return await dispatchRemoteDestination(urls, dest, options, onUpload); }
     catch (error) {
@@ -98,6 +98,7 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
             remoteEngineMode,
             storagePolicy,
             customDiskPath: customDiskPath.trim() || undefined,
+            customCaption: customCaption?.trim() || undefined,
             remoteMuxes,
           });
         } catch (err: any) {
@@ -192,6 +193,7 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           remoteEngineMode,
           storagePolicy,
           customDiskPath: customDiskPath.trim() || undefined,
+          customCaption: customCaption?.trim() || undefined,
           remoteMuxes,
         });
       } catch (err: any) {

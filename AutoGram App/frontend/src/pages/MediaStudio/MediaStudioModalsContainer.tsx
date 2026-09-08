@@ -9,7 +9,8 @@ import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadMod
 import { DriveFileInfoModal } from '../../components/drive/Modals/DriveFileInfoModal';
 import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
-import type { DriveChat, DriveFile, DriveFolder, DriveTopic, RemoteEngineMode } from '../../lib/telegram/driveTypes';
+import type { DriveChat, DriveFile, DriveFolder, DriveTopic, RemoteEngineMode, StorageLocalPolicy } from '../../lib/telegram/driveTypes';
+import type { RemoteMuxSpec } from '../../lib/telegram/linkResolvers';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import type { DriveTransferSettings } from '../../components/drive/Transfers/transferSettingsModel';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
@@ -93,6 +94,10 @@ export interface MediaStudioModalsContainerProps {
       qualityMode?: string;
       presentationOverride?: 'document' | 'original' | 'standard' | 'compressed';
       remoteEngineMode?: RemoteEngineMode;
+      storagePolicy?: StorageLocalPolicy;
+      customDiskPath?: string;
+      customCaption?: string;
+      remoteMuxes?: Array<RemoteMuxSpec | null>;
     }
   ) => Promise<boolean | void>;
   onOpenTelegramLink?: (url: string) => void;

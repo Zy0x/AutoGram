@@ -28629,6 +28629,78 @@ button.td-confirm-icon.is-back-btn:active {
   pointer-events: none;
 }
 
+.td-remote-carousel-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 25;
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  padding: 0;
+}
+
+.td-remote-carousel-nav-btn:hover {
+  background: rgba(14, 165, 233, 0.9);
+  border-color: rgba(56, 189, 248, 0.6);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.td-remote-carousel-prev {
+  left: 12px;
+}
+
+.td-remote-carousel-next {
+  right: 12px;
+}
+
+.td-remote-carousel-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 20;
+}
+
+.td-remote-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.td-remote-carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.td-remote-carousel-dot.active {
+  background: #38bdf8;
+  width: 18px;
+  border-radius: 4px;
+}
+
 .td-remote-pulse-dot {
   width: 7px;
   height: 7px;

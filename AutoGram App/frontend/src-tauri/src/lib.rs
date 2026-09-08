@@ -2910,10 +2910,35 @@ async fn fetch_remote_json_metadata(url: String) -> Result<serde_json::Value, St
             }));
         }
 
-        let api_url = if u_clean.contains("tiktok.com") || u_clean.contains("douyin.com") {
+        let is_tiktok_shortlink = u_clean.contains("vt.tiktok.com") || u_clean.contains("vm.tiktok.com");
+        let effective_tiktok_url = if is_tiktok_shortlink {
+            let mut resolved = u_clean.to_string();
+            if let Ok(short_resp) = agent
+                .get(u_clean)
+                .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                .call()
+            {
+                let final_url = short_resp.get_url().to_string();
+                if !final_url.is_empty() {
+                    resolved = final_url;
+                }
+            }
+            if resolved.contains("/@/video/") {
+                resolved = resolved.replace("/@/video/", "/@a/video/");
+            } else if resolved.contains("/video/") && !resolved.contains("/@") {
+                resolved = resolved.replace("/video/", "/@a/video/");
+            }
+            resolved
+        } else if u_clean.contains("/@/video/") {
+            u_clean.replace("/@/video/", "/@a/video/")
+        } else {
+            u_clean.to_string()
+        };
+
+        let api_url = if effective_tiktok_url.contains("tiktok.com") || effective_tiktok_url.contains("douyin.com") {
             format!(
                 "https://www.tikwm.com/api/?url={}&hd=1",
-                urlencoding::encode(u_clean)
+                urlencoding::encode(&effective_tiktok_url)
             )
         } else {
             u_clean.to_string()
