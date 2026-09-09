@@ -1114,8 +1114,8 @@ function DupTab({
       <div
         className="td-tools-dup-hero"
         style={{
-          background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 10%, transparent) 0%, rgba(15, 23, 42, 0.7) 100%)',
-          border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent)',
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #3b82f6) 12%, var(--bg-card)) 0%, var(--bg-card) 100%)',
+          border: '1px solid var(--border-default, color-mix(in srgb, var(--accent-primary, #3b82f6) 25%, transparent))',
           borderRadius: '12px',
           padding: '12px 16px',
           display: 'flex',
@@ -1128,21 +1128,21 @@ function DupTab({
           {/* KEY METRICS */}
           <div className="td-tools-dup-metrics" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.grup_duplikat_77084e6')}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.grup_duplikat_77084e6')}</span>
               <strong style={{ fontSize: '1.15rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 800 }}>{filteredGroups.length}</strong>
             </div>
 
-            <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle, rgba(255, 255, 255, 0.1))' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.salinan_dihapus_37a5689')}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.salinan_dihapus_37a5689')}</span>
               <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} {t('drive.tab_telegram_files')}</strong>
             </div>
 
-            <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle, rgba(255, 255, 255, 0.1))' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.potensi_hemat_3815aa7')}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.potensi_hemat_3815aa7')}</span>
               <strong style={{ fontSize: '1.15rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
             </div>
           </div>
@@ -1220,7 +1220,7 @@ function DupTab({
               })}</span>
               <span>{scanProgressPct}%</span>
             </div>
-            <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'var(--bg-card, rgba(15, 23, 42, 0.8))', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'var(--bg-card)', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${scanProgressPct}%`,
@@ -1235,7 +1235,7 @@ function DupTab({
         )}
 
         {/* OPTIONAL ADVANCED DETECTION MODE TOGGLE BUTTON */}
-        <div className="td-tools-dup-preferences" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
+        <div className="td-tools-dup-preferences" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))', paddingTop: '8px', marginTop: '2px' }}>
           <button
             className="td-tools-dup-mode-toggle"
             type="button"
@@ -1243,7 +1243,7 @@ function DupTab({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-secondary, #94a3b8)',
               fontSize: '0.75rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -1259,7 +1259,7 @@ function DupTab({
           </button>
 
           <div className="td-tools-dup-preference-list" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <label className="td-tools-check-inline" title={t("drive.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+            <label className="td-tools-check-inline" title={t("drive.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0, color: 'var(--text-primary)' }}>
               <input
                 type="checkbox"
                 checked={keepNewest}
@@ -1268,7 +1268,7 @@ function DupTab({
               <span>{t('drive.default_keep_newest')}</span>
             </label>
 
-            <label className="td-tools-check-inline" title={t("drive.prefer_split_mode_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+            <label className="td-tools-check-inline" title={t("drive.prefer_split_mode_tooltip")} style={{ fontSize: '0.75rem', margin: 0, color: 'var(--text-primary)' }}>
               <input
                 type="checkbox"
                 checked={preferSplitPreview}
@@ -1298,9 +1298,9 @@ function DupTab({
                   borderRadius: '6px',
                   fontSize: '0.75rem',
                   fontWeight: dupMode === m.id ? 700 : 500,
-                  background: dupMode === m.id ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'rgba(255, 255, 255, 0.04)',
-                  border: dupMode === m.id ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: dupMode === m.id ? 'var(--accent-primary, #38bdf8)' : '#cbd5e1',
+                  background: dupMode === m.id ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'var(--bg-card)',
+                  border: dupMode === m.id ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
+                  color: dupMode === m.id ? 'var(--accent-primary, #38bdf8)' : 'var(--text-secondary, #cbd5e1)',
                   cursor: 'pointer',
                 }}
               >
@@ -1315,9 +1315,10 @@ function DupTab({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, width: '100%' }}>
         {/* SEARCH INPUT FIELD (FULL WIDTH ADJUSTING TO MODAL SIZE) */}
         <div style={{ position: 'relative', width: '100%' }}>
-          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary, #64748b)' }} />
           <input
             type="text"
+            className="td-tools-dup-search-input"
             placeholder={t('ui.generated.cari_duplikat_233adbe')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1325,9 +1326,9 @@ function DupTab({
               width: '100%',
               padding: '7px 32px 7px 30px',
               borderRadius: '9px',
-              background: 'var(--bg-card, rgba(15, 23, 42, 0.8))',
-              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
-              color: '#f8fafc',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-primary)',
               fontSize: '0.8rem',
               outline: 'none',
               boxSizing: 'border-box',
@@ -1345,7 +1346,7 @@ function DupTab({
                 transform: 'translateY(-50%)',
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: 'var(--text-secondary, #64748b)',
                 cursor: 'pointer',
                 padding: '2px',
                 display: 'flex',
@@ -1375,8 +1376,8 @@ function DupTab({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '3px',
-              background: 'var(--bg-card, rgba(15, 23, 42, 0.7))',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-default)',
               borderRadius: '10px',
               padding: '3px',
               flexWrap: 'wrap',
@@ -1409,21 +1410,21 @@ function DupTab({
                       ? 'linear-gradient(135deg, var(--accent-primary, #0ea5e9) 0%, var(--accent-secondary, #0284c7) 100%)'
                       : 'transparent',
                     border: 'none',
-                    color: isActive ? '#ffffff' : '#94a3b8',
+                    color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #94a3b8)',
                     cursor: 'pointer',
                     boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--accent-primary, #0ea5e9) 35%, transparent)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <IconComp size={13} style={{ color: isActive ? '#ffffff' : '#94a3b8' }} />
+                  <IconComp size={13} style={{ color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #94a3b8)' }} />
                   <span>{tab.label}</span>
                   <span
                     style={{
                       fontSize: '0.68rem',
                       padding: '1px 5px',
                       borderRadius: '4px',
-                      background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-                      color: isActive ? '#ffffff' : '#64748b',
+                      background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+                      color: isActive ? '#ffffff' : 'var(--text-secondary, #64748b)',
                       fontWeight: 700,
                     }}
                   >
@@ -1472,9 +1473,9 @@ function DupTab({
                 gap: '5px',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#cbd5e1',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-secondary, #cbd5e1)',
                 fontWeight: 600,
                 fontSize: '0.78rem',
                 cursor: 'pointer',
@@ -1503,8 +1504,8 @@ function DupTab({
             justifyContent: 'center',
             padding: '48px 24px',
             textAlign: 'center',
-            background: 'var(--bg-card, rgba(15, 23, 42, 0.4))',
-            border: '1px border-dashed color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-default)',
             borderRadius: '16px',
             margin: 'auto 0',
           }}
@@ -1525,11 +1526,11 @@ function DupTab({
           >
             <ShieldCheck size={26} style={{ color: '#4ade80' }} />
           </div>
-          <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+          <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
             {t('ui.generated.semua_berkas_rapi_bebas_duplikat_2e94024')}
           </h4>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', maxWidth: '420px', lineHeight: 1.5 }}>
-            {t('ui.generated.tidak_ditemukan_salinan_ganda_pada_lokasi_7495108')} <strong style={{ color: '#cbd5e1' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} {t('ui.generated.berkas_ruang_penyimpanan_anda_dalam_kondisi_opti_47cb8d6')}
+          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary, #94a3b8)', maxWidth: '420px', lineHeight: 1.5 }}>
+            {t('ui.generated.tidak_ditemukan_salinan_ganda_pada_lokasi_7495108')} <strong style={{ color: 'var(--text-primary, #cbd5e1)' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} {t('ui.generated.berkas_ruang_penyimpanan_anda_dalam_kondisi_opti_47cb8d6')}
           </p>
         </div>
       )}
@@ -1658,9 +1659,9 @@ function DupTab({
           position: 'sticky',
           bottom: 0,
           zIndex: 10,
-          background: 'var(--bg-card, rgba(15, 23, 42, 0.95))',
+          background: 'var(--bg-card)',
           backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          borderTop: '1px solid var(--border-default)',
           padding: '10px 14px',
           borderRadius: '10px',
           display: 'flex',

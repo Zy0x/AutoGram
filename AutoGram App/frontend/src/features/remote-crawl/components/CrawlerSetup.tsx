@@ -2,18 +2,19 @@ import { useId, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Globe2, List, Braces, ShieldCheck } from 'lucide-react';
 import { CRAWL_KINDS, DEFAULT_CRAWL_REQUEST, MAX_LINKS, type CrawlEntry, type CrawlRequest } from '../domain/types';
-import { generatePattern, parseLinkText } from '../domain/links';
+import { generatePattern, parseLinkText, validateCrawlRequest } from '../domain/links';
 
 type Mode = 'website' | 'list' | 'pattern';
 interface Props {
   initialUrl?: string;
   busy: boolean;
+  crawlActive?: boolean;
   onStart: (request: CrawlRequest, name: string) => Promise<void>;
   onBatch: (name: string, entries: CrawlEntry[]) => void;
   onError: (error: unknown) => void;
 }
 
-export function CrawlerSetup({ initialUrl = '', busy, onStart, onBatch, onError }: Props) {
+export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onStart, onBatch, onError }: Props) {
   const { t } = useTranslation();
   const id = useId();
   const [mode, setMode] = useState<Mode>('website');
@@ -22,11 +23,11 @@ export function CrawlerSetup({ initialUrl = '', busy, onStart, onBatch, onError 
   const [request, setRequest] = useState<CrawlRequest>({ ...DEFAULT_CRAWL_REQUEST, kinds: [...DEFAULT_CRAWL_REQUEST.kinds] });
   const modes = [{ value: 'website', icon: Globe2 }, { value: 'list', icon: List }, { value: 'pattern', icon: Braces }] as const;
   const limits = [
-    { key: 'maxDepth', min: 0, max: 10, step: 1 },
-    { key: 'maxPages', min: 1, max: 5000, step: 1 },
+    { key: 'maxDepth', min: 0, max: 8, step: 1 },
+    { key: 'maxPages', min: 1, max: 500, step: 1 },
     { key: 'maxResults', min: 1, max: MAX_LINKS, step: 1 },
-    { key: 'concurrency', min: 1, max: 8, step: 1 },
-    { key: 'delayMs', min: 0, max: 60000, step: 100 },
+    { key: 'concurrency', min: 1, max: 4, step: 1 },
+    { key: 'delayMs', min: 250, max: 10000, step: 1 },
   ] as const;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -35,13 +36,15 @@ export function CrawlerSetup({ initialUrl = '', busy, onStart, onBatch, onError 
     try {
       const batchName = name.trim() || t(`crawler.default_name_${mode}`);
       if (mode === 'website') {
+        if (crawlActive) throw new Error('busy');
         if (!request.kinds.length) throw new Error('crawler.select_kind');
         // Validate expressions before asking the native crawler to start.
         if (request.includePattern) new RegExp(request.includePattern);
         if (request.excludePattern) new RegExp(request.excludePattern);
         if (request.selector) document.createDocumentFragment().querySelector(request.selector);
         const seeds = parseLinkText(inputs.website).map(entry => entry.url);
-        await onStart({ ...request, seeds, respectRobots: true }, batchName);
+        if (seeds.length > 32) throw new Error('invalid_seeds');
+        await onStart(validateCrawlRequest({ ...request, seeds, respectRobots: true }), batchName);
       } else {
         const entries = mode === 'pattern' ? generatePattern(inputs.pattern) : parseLinkText(inputs.list);
         if (!entries.length) throw new Error('crawler.empty_input');
@@ -97,12 +100,13 @@ export function CrawlerSetup({ initialUrl = '', busy, onStart, onBatch, onError 
         </fieldset>
         {(['selector', 'includePattern', 'excludePattern'] as const).map(key => <label key={key} className="crawler-field" htmlFor={`${id}-${key}`}>
           <span>{t(`crawler.${key}`)}</span>
-          <input id={`${id}-${key}`} value={request[key]} maxLength={2048} spellCheck={false} autoComplete="off"
+          <input id={`${id}-${key}`} value={request[key]} maxLength={500} spellCheck={false} autoComplete="off"
             placeholder={t(`crawler.placeholder_${key}`)} onChange={event => setRequest(current => ({ ...current, [key]: event.target.value }))} />
         </label>)}
       </details>}
       {mode === 'website' && <p className="crawler-policy"><ShieldCheck size={16} aria-hidden="true" />{t('crawler.robots')}</p>}
-      <button className="crawler-primary crawler-start" type="submit" disabled={busy || !inputs[mode].trim()}>
+      {mode === 'website' && crawlActive && <p className="crawler-hint">{t('crawler.busy')}</p>}
+      <button className="crawler-primary crawler-start" type="submit" disabled={busy || !inputs[mode].trim() || (mode === 'website' && crawlActive)}>
         {t(busy ? 'crawler.working' : `crawler.start_${mode}`)}<ArrowRight size={17} aria-hidden="true" />
       </button>
     </fieldset>

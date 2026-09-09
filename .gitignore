@@ -218,4 +218,7 @@ plugins/**/bin/
 plugins/**/runtime/
 ORIGINAL_REQUEST.md
 
-
+# SQLite runtime journal files
+*.db-shm
+*.db-wal
+*.db-journal

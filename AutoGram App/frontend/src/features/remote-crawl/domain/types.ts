@@ -22,7 +22,7 @@ export interface CrawlEntry {
   kind: CrawlKind;
   depth: number;
 }
-export type CrawlState = 'running' | 'paused' | 'done' | 'cancelled' | 'failed' | 'limited';
+export type CrawlState = 'running' | 'paused' | 'done' | 'cancelled' | 'failed' | 'limited' | 'interrupted';
 export interface CrawlSnapshot {
   id: string;
   state: CrawlState;
@@ -36,6 +36,7 @@ export interface CrawlSnapshot {
 }
 export interface CrawlRecord {
   id: string;
+  nativeId?: string;
   name: string;
   native: boolean;
   request?: CrawlRequest;

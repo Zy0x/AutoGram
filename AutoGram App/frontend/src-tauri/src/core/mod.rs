@@ -72,6 +72,7 @@ pub mod transfer_journal;
 pub mod transfer_state;
 pub mod remote_transfer;
 pub mod remote_download;
+pub mod remote_crawl;
 pub mod zip_local;
 pub mod ytdlp_plugin;
 pub mod universal_thumbnail;

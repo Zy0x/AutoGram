@@ -1,10 +1,10 @@
+import { RemoteLinkHeader } from '../../../features/remote-upload/RemoteLinkHeader';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalBackHandler } from '../../../lib/platform/modalBackStack';
 import {
   Link2,
-  X,
   Loader2,
   Home,
   Folder,
@@ -1761,24 +1761,11 @@ export function RemoteUploadModal({
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
-        <header className="td-confirm-head">
-          <span className="td-confirm-icon input td-remote-head-icon" aria-hidden>
-            <Link2 size={20} strokeWidth={2.25} />
-          </span>
-          <div className="td-confirm-head-text">
-            <h2>{t('drive.remote_upload_url_title')}</h2>
-            <p className="td-confirm-desc">{t('drive.remote_upload_url_subtitle')}</p>
-          </div>
-          <button
-            type="button"
-            className="td-confirm-close"
-            onClick={onClose}
-            disabled={submitting}
-            aria-label={t('drive.preview_close_btn')}
-          >
-            <X size={18} />
-          </button>
-        </header>
+        <RemoteLinkHeader url={url} submitting={submitting} onClose={onClose} onUseLinks={urls => {
+          setBatchUrlsText(previous => [...new Set([...previous.split(/\r?\n/).filter(Boolean), ...urls])].join('\n'));
+          setTab('batch');
+          setIsEditingBatchText(true);
+        }} />
 
         <div className="td-remote-tabs" role="tablist">
           <button

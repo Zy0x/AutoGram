@@ -2,7 +2,7 @@ import { CRAWL_KINDS, MAX_LINKS, type CrawlEntry, type CrawlKind, type CrawlReco
 
 /** Renderer validation is only an early guard; native transport checks DNS and redirects. */
 export function canonicalCrawlUrl(raw: string): string {
-  if (raw.length > 8192) throw new Error('invalid_url');
+  if (raw.length > 4096 || /[\u0000-\u001f\u007f]/.test(raw)) throw new Error('invalid_url');
   let parsed: URL;
   try { parsed = new URL(raw.trim()); } catch { throw new Error('invalid_url'); }
   if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('invalid_url');
@@ -105,7 +105,7 @@ export function validateCrawlRequest(input: CrawlRequest): CrawlRequest {
     const value = input[key as keyof typeof limits];
     if (!Number.isInteger(value) || value < min || value > max) throw new Error('invalid_options');
   }
-  if (!Array.isArray(input.seeds) || input.seeds.length < 1 || input.seeds.length > 100) throw new Error('invalid_seeds');
+  if (!Array.isArray(input.seeds) || input.seeds.length < 1 || input.seeds.length > 32) throw new Error('invalid_seeds');
   if (!Array.isArray(input.kinds) || !input.kinds.length || input.kinds.some(k => !CRAWL_KINDS.includes(k))) throw new Error('invalid_options');
   for (const value of [input.includePattern, input.excludePattern, input.selector]) {
     if (typeof value !== 'string' || value.length > 500) throw new Error('invalid_options');

@@ -1,6 +1,7 @@
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import i18n from '../../../i18n';
+import { loadTransferSettings } from '../../../lib/telegram/driveTransferSettings';
 import { startLocalDownloads, type LocalDownloadRequest } from '../../remote-download/service';
 import { canonicalCrawlUrl, classifyCrawlUrl, crawlerCsvCell, exportCrawlerProject, safeCrawlFilename } from '../domain/links';
 import type { CrawlEntry, CrawlRecord } from '../domain/types';
@@ -31,7 +32,7 @@ export function planCrawlerDownloads(entries: CrawlEntry[], directory: string): 
     let suffix = 1;
     while (filenames.has(filename.toLowerCase())) filename = `${stem} (${suffix++})${ext}`;
     filenames.add(filename.toLowerCase());
-    return { url, filename, directory, connections: 4, referer: canonicalCrawlUrl(entry.sourceUrl) };
+    return { url, filename, directory, connections: loadTransferSettings().downloadConcurrency, referer: canonicalCrawlUrl(entry.sourceUrl) };
   });
 }
 

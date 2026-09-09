@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Copy, Download, Link2, Search, FileDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Download, Link2, Search, FileDown, Pencil, Trash2 } from 'lucide-react';
 import { MAX_LINKS, type CrawlEntry, type CrawlRecord } from '../domain/types';
-import { setCrawlerSelection } from '../state/workspace';
+import { removeCrawlerEntries, renameCrawlerEntry, setCrawlerSelection } from '../state/workspace';
 
 const PAGE_SIZE = 100;
 interface Props {
@@ -83,6 +83,16 @@ export function CrawlerResults({ record, busy, onCopy, onDownload, onUse, onExpo
         <span className="crawler-file"><strong>{entry.filename || t('crawler.unnamed_url')}</strong>
           <small>{sourceOrigin(entry) || t('crawler.unknown_origin')}</small></span>
         <span className={`crawler-kind crawler-kind-${entry.kind}`}>{t(`crawler.kind_${entry.kind}`)}</span>
+        <span className="crawler-row-actions">
+          <button type="button" title={t('crawler.rename')} aria-label={t('crawler.rename_url', { name: entry.filename || t('crawler.unnamed_url') })}
+            onClick={event => { event.preventDefault(); const value = window.prompt(t('crawler.rename_prompt'), entry.filename); if (value !== null) renameCrawlerEntry(record.id, entry.id, value); }}>
+            <Pencil size={14} aria-hidden="true" />
+          </button>
+          <button type="button" title={t('crawler.remove')} aria-label={t('crawler.remove_url', { name: entry.filename || t('crawler.unnamed_url') })}
+            onClick={event => { event.preventDefault(); if (window.confirm(t('crawler.remove_confirm'))) removeCrawlerEntries(record.id, [entry.id]); }}>
+            <Trash2 size={14} aria-hidden="true" />
+          </button>
+        </span>
       </label>)}
       {!visible.length && <div className="crawler-empty"><Search size={28} aria-hidden="true" />
         <h4>{t(query ? 'crawler.no_matches' : 'crawler.no_results')}</h4>

@@ -1,5 +1,6 @@
 // Master Locale Aggregator for AutoGram (ID & EN)
 import navID from './id/nav.json';
+import crawlerID from './id/crawler.json';
 import dashboardID from './id/dashboard.json';
 import driveToolsID from './id/drive_tools.json';
 import driveID from './id/drive.json';
@@ -16,6 +17,7 @@ import uiID from './id/ui.json';
 import telegramActionsID from './id/telegram_actions.json';
 
 import navEN from './en/nav.json';
+import crawlerEN from './en/crawler.json';
 import dashboardEN from './en/dashboard.json';
 import driveToolsEN from './en/drive_tools.json';
 import driveEN from './en/drive.json';
@@ -35,6 +37,7 @@ export const resources = {
   id: {
     translation: {
       nav: navID,
+      crawler: crawlerID,
       dashboard: dashboardID,
       drive_tools: driveToolsID,
       drive: driveID,
@@ -54,6 +57,7 @@ export const resources = {
   en: {
     translation: {
       nav: navEN,
+      crawler: crawlerEN,
       dashboard: dashboardEN,
       drive_tools: driveToolsEN,
       drive: driveEN,

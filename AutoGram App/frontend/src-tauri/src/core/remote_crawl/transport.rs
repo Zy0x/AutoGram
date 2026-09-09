@@ -79,7 +79,14 @@ impl<'a> Session<'a> {
         for attempt in 0..3 {
             self.paced()?;
             self.job.checkpoint()?;
-            let response = self.transport.get(url)?;
+            let response = match self.transport.get(url) {
+                Ok(response) => response,
+                Err(error) if error == "remote_crawl_network" && attempt < 2 => {
+                    self.job.wait(retry_delay(None, attempt)?)?;
+                    continue;
+                }
+                Err(error) => return Err(error),
+            };
             self.job.checkpoint()?;
             if response.status == 429 || (500..600).contains(&response.status) {
                 if attempt == 2 { return Err("remote_crawl_retry_exhausted".into()); }

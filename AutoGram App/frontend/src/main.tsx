@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/themeEngine.css";
+import "./styles/themeDriveTools.css";
 import "./i18n";
 // One app-lifetime GC loop for bounded caches, object URLs and Rust WAL/memory.
 import "./lib/utils/garbageCollector";

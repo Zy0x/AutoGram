@@ -1,0 +1,420 @@
+/**
+ * AutoGram Theme Drive Tools & Universal Input Controls Stylesheet
+ * Bridges form controls, input elements, search bars, Drive Tools modal,
+ * and Transfer & Engine Settings to dynamic color palette CSS tokens.
+ */
+
+/* Dynamic CSS token bridges for legacy Drive components */
+:root,
+[data-palette] {
+  --td-bg2: var(--input-bg, var(--bg-card));
+  --td-text: var(--text-primary);
+  --td-sub: var(--text-secondary);
+  --td-accent: var(--accent-primary, var(--primary));
+  --td-hover: color-mix(in srgb, var(--accent-primary, var(--primary)) 10%, var(--bg-card));
+}
+
+/* ==========================================================================
+   SECTION 1: UNIVERSAL INPUT CONTROLS, SEARCH BARS & FORM ELEMENTS
+   ========================================================================== */
+
+/* 1. Universal Text Inputs, Search Inputs & Textareas */
+[data-palette] input[type="text"],
+[data-palette] input[type="search"],
+[data-palette] input[type="number"],
+[data-palette] input[type="date"],
+[data-palette] input[type="password"],
+[data-palette] textarea,
+[data-palette] .td-input-field,
+[data-palette] .td-tools-input,
+[data-palette] .td-tools-dup-search-input,
+[data-palette] .td-search,
+[data-palette] .td-header-search-input {
+  background-color: var(--input-bg, var(--bg-card)) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+  color-scheme: inherit !important;
+}
+
+[data-palette] input[type="text"]::placeholder,
+[data-palette] input[type="search"]::placeholder,
+[data-palette] input[type="number"]::placeholder,
+[data-palette] input[type="date"]::placeholder,
+[data-palette] input[type="password"]::placeholder,
+[data-palette] textarea::placeholder,
+[data-palette] .td-input-field::placeholder,
+[data-palette] .td-tools-input::placeholder,
+[data-palette] .td-tools-dup-search-input::placeholder,
+[data-palette] .td-search::placeholder,
+[data-palette] .td-header-search-input::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+[data-palette] input[type="text"]:focus,
+[data-palette] input[type="search"]:focus,
+[data-palette] input[type="number"]:focus,
+[data-palette] input[type="date"]:focus,
+[data-palette] input[type="password"]:focus,
+[data-palette] textarea:focus,
+[data-palette] .td-input-field:focus,
+[data-palette] .td-tools-input:focus,
+[data-palette] .td-tools-dup-search-input:focus,
+[data-palette] .td-search:focus,
+[data-palette] .td-header-search-input:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  outline: none !important;
+}
+
+/* 2. Top Bar Search Container & Icon */
+[data-palette] .td-topbar-search-box {
+  background: transparent !important;
+}
+
+[data-palette] .td-topbar-search-box .td-search {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-topbar-search-box .td-topbar-search-icon {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-topbar-search-box:focus-within .td-topbar-search-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-topbar-search-clear-btn {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-topbar-search-clear-btn:hover {
+  background: color-mix(in srgb, #ef4444 30%, transparent) !important;
+  color: #ef4444 !important;
+}
+
+/* 3. Settings Header & Standalone Search Containers */
+[data-palette] .td-header-search-box,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box,
+[data-palette] .td-xfer-search-wrapper {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-header-search-box:focus-within,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box:focus-within,
+[data-palette] .td-xfer-search-wrapper:focus-within {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-header-search-icon,
+[data-palette] .td-xfer-search-wrapper .td-search-icon {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-search-popover-dropdown {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 20px color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .td-popover-head {
+  background: var(--bg-card) !important;
+  border-bottom-color: var(--border-default) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-search-result-row {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-search-result-row:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+}
+
+/* 4. Select Dropdowns & Options */
+[data-palette] select,
+[data-palette] select.input-field,
+[data-palette] .td-select,
+[data-palette] .td-sort {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+  color-scheme: inherit !important;
+}
+
+[data-palette] select option,
+[data-palette] .td-select option,
+[data-palette] .td-sort option {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color-scheme: inherit !important;
+}
+
+/* ==========================================================================
+   SECTION 2: DRIVE SETTINGS & DRIVE TOOLS HARMONIZATION (HEADER, BODY & TOOLS)
+   ========================================================================== */
+
+/* 1. Dialog Container & Main Panels */
+[data-palette] .td-tools-panel.is-unified {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-head {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-main {
+  background: var(--bg-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-section,
+[data-palette] .td-tools-panel.is-unified .td-tools-xfer-container {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 2. Header Elements */
+[data-palette] .td-header-toggle-icon {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-title-text h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-sub {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-loc-dot {
+  background: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-close,
+[data-palette] .td-tools-close-btn {
+  color: var(--text-secondary) !important;
+  border-radius: 8px !important;
+}
+
+[data-palette] .td-tools-close:hover,
+[data-palette] .td-tools-close-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 3. Sidebar Brand, Tabs & Dividers */
+[data-palette] .td-sidebar-brand-title {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-sidebar-brand-sub {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-sidebar-header {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-sidebar-divider {
+  background: var(--border-subtle) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-panel.is-unified .td-tools-sidebar-tab.active {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: inset 3px 0 var(--accent-primary) !important;
+}
+
+/* 4. Tab Intro Banners */
+[data-palette] .td-tools-tab-intro {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-tab-intro-title {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-tab-intro-desc {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-tab-intro-meta span {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* 5. Duplicates Tool Elements */
+[data-palette] .td-tools-dup-hero {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 12%, var(--bg-card)) 0%, var(--bg-card) 100%) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-dup-category-bar {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-dup-category {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+[data-palette] .td-tools-dup-category:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-tools-dup-group {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-dup-head {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-dup-mini {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-dup-mini:hover {
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-dup-file.is-keep .td-tools-dup-row {
+  background: color-mix(in srgb, #22c55e 10%, var(--bg-card)) !important;
+  border-color: color-mix(in srgb, #22c55e 35%, transparent) !important;
+}
+
+[data-palette] .td-tools-dup-file.is-marked-delete .td-tools-dup-row {
+  background: color-mix(in srgb, #ef4444 10%, var(--bg-card)) !important;
+  border-color: color-mix(in srgb, #ef4444 35%, transparent) !important;
+}
+
+[data-palette] .td-tools-dup-meta .td-tools-fname {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-dup-sub {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-dup-dock {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border-default) !important;
+}
+
+/* 6. Space Usage, Bulk Rename & Filter Tools */
+[data-palette] .td-tools-stats-hero,
+[data-palette] .td-tools-lead-box,
+[data-palette] .td-tools-preview-container {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-tools-stats-count {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-stats-label,
+[data-palette] .td-tools-stats-bytes {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-bar-track {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .td-tools-bar-fill {
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)) !important;
+}
+
+[data-palette] .td-tools-bar-label {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-bar-bytes {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-largest-item {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-token-badge {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-preview-row {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-tools-oldname {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-newname {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-tools-field {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-tools-action-footer {
+  border-top: 1px solid var(--border-default) !important;
+}
+
+/* 7. Settings Workspace Integration in Drive Tools */
+[data-palette] .td-xfer-header {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-xfer-header h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-xfer-header p {
+  color: var(--text-secondary) !important;
+}
