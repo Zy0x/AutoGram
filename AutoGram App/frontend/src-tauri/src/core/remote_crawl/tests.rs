@@ -22,7 +22,7 @@ impl Fixture {
 impl Transport for Fixture {
     fn get(&self, url: &Url) -> Result<Response, String> {
         let (mime, body, status) = self.pages.get(url.as_str()).copied()
-            .ok_or_else(|| "remote_crawl_network".into())?;
+            .ok_or_else(|| String::from("remote_crawl_network"))?;
         Ok(Response { status, mime: mime.into(), location: None, retry_after: None,
             encoding: None, length: Some(body.len()), body: Box::new(Cursor::new(body.as_bytes())) })
     }
