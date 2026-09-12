@@ -135,7 +135,7 @@ export function AccountLoginWizard({
             {step === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Method Tabs */}
-                <div style={{ display: 'flex', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-surface-secondary, rgba(255, 255, 255, 0.04))', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))' }}>
                   <button
                     type="button"
                     onClick={() => { setLoginMethod('qr'); }}
@@ -145,7 +145,7 @@ export function AccountLoginWizard({
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'qr' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
-                      color: loginMethod === 'qr' ? '#ffffff' : '#94a3b8',
+                      color: loginMethod === 'qr' ? '#ffffff' : 'var(--text-secondary, #475569)',
                       fontWeight: '600',
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -168,7 +168,7 @@ export function AccountLoginWizard({
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'phone' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
-                      color: loginMethod === 'phone' ? '#ffffff' : '#94a3b8',
+                      color: loginMethod === 'phone' ? '#ffffff' : 'var(--text-secondary, #475569)',
                       fontWeight: '600',
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -191,7 +191,7 @@ export function AccountLoginWizard({
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'string_session' ? 'linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, var(--accent-secondary, #0369a1) 100%)' : 'transparent',
-                      color: loginMethod === 'string_session' ? '#ffffff' : '#94a3b8',
+                      color: loginMethod === 'string_session' ? '#ffffff' : 'var(--text-secondary, #475569)',
                       fontWeight: '600',
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -285,10 +285,10 @@ export function AccountLoginWizard({
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '10px',
-                                  padding: '5px 10px',
+                                  padding: '6px 10px',
                                   borderRadius: '8px',
-                                  background: 'rgba(255, 255, 255, 0.02)',
-                                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                                  background: 'var(--bg-elevated, rgba(255, 255, 255, 0.02))',
+                                  border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.04))',
                                 }}
                               >
                                 <span
@@ -296,9 +296,9 @@ export function AccountLoginWizard({
                                     width: '20px',
                                     height: '20px',
                                     borderRadius: '50%',
-                                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
-                                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
-                                    color: 'var(--accent-primary, #38bdf8)',
+                                    background: 'color-mix(in srgb, var(--accent-primary, #0284c7) 15%, transparent)',
+                                    border: '1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent)',
+                                    color: 'var(--accent-primary, #0284c7)',
                                     fontSize: '0.7rem',
                                     fontWeight: 700,
                                     display: 'flex',
@@ -309,7 +309,7 @@ export function AccountLoginWizard({
                                 >
                                   {index + 1}
                                 </span>
-                                <span style={{ fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.35, fontWeight: 500 }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-primary, #0f172a)', lineHeight: 1.35, fontWeight: 500 }}>
                                   {stepText}
                                 </span>
                               </div>
@@ -317,7 +317,7 @@ export function AccountLoginWizard({
                           </div>
                         </div>
 
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4, marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)', textAlign: 'center', lineHeight: 1.4, marginTop: '2px' }}>
                           {t('accounts.qr_auto_refresh_hint')}
                         </div>
                       </div>

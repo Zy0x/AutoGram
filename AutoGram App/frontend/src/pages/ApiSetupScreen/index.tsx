@@ -168,7 +168,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             <BookOpen size={17} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #ffffff)', letterSpacing: '-0.01em' }}>
               {t('nav.how_to_get_title')}
             </h3>
           </div>
@@ -205,7 +205,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               style={{
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#94a3b8',
+                color: 'var(--text-secondary, #94a3b8)',
                 cursor: 'pointer',
                 padding: '4px',
                 borderRadius: '7px',
@@ -225,40 +225,40 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       </div>
 
       {/* STEPS LIST */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: '#cbd5e1' }}>
-        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: 'var(--text-primary, #cbd5e1)' }}>
+        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'var(--bg-elevated, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))' }}>
           <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step1_title')}
           </strong>
-          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step1_desc')}</span>
+          <span style={{ color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>{t('nav.how_to_get_step1_desc')}</span>
         </div>
 
-        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'var(--bg-elevated, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))' }}>
           <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step2_title')}
           </strong>
-          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step2_desc')}</span>
+          <span style={{ color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>{t('nav.how_to_get_step2_desc')}</span>
         </div>
 
-        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'var(--bg-elevated, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))' }}>
           <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step3_title')}
           </strong>
-          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step3_desc')}</span>
+          <span style={{ color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>{t('nav.how_to_get_step3_desc')}</span>
         </div>
 
-        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'var(--bg-elevated, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))' }}>
           <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step4_title')}
           </strong>
-          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step4_desc')}</span>
+          <span style={{ color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>{t('nav.how_to_get_step4_desc')}</span>
         </div>
 
-        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div className="guide-step-item" style={{ padding: '7px 10px', borderRadius: '9px', background: 'var(--bg-elevated, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))' }}>
           <strong style={{ color: 'var(--accent-primary, #38bdf8)', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
             {t('nav.how_to_get_step5_title')}
           </strong>
-          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step5_desc')}</span>
+          <span style={{ color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>{t('nav.how_to_get_step5_desc')}</span>
         </div>
       </div>
 
@@ -270,7 +270,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)',
           border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
           fontSize: '0.72rem',
-          color: '#cbd5e1',
+          color: 'var(--text-secondary, #cbd5e1)',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -393,10 +393,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               <KeyRound size={20} />
             </div>
             <div>
-              <h2 id="api-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+              <h2 id="api-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: 'var(--text-primary, #ffffff)' }}>
                 {t('nav.api_setup_title')}
               </h2>
-              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', margin: '2px 0 0 0', lineHeight: 1.35 }}>
                 {t('nav.api_setup_subtitle')}
               </p>
             </div>
@@ -410,7 +410,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)',
               fontSize: '0.76rem',
-              color: '#cbd5e1',
+              color: 'var(--text-primary, #cbd5e1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -511,7 +511,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
           >
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#fca5a5' : '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#ef4444' : 'var(--text-primary, #cbd5e1)', marginBottom: '4px' }}>
                 {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
@@ -527,10 +527,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: '10px',
-                  background: error ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-card, rgba(15, 23, 42, 0.8))',
-                  border: error ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                  background: error ? 'rgba(239, 68, 68, 0.08)' : 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: error ? '1px solid #ef4444' : '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
                   boxShadow: error ? '0 0 14px rgba(239, 68, 68, 0.35)' : 'none',
-                  color: '#f8fafc',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.86rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -540,7 +540,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#fca5a5' : '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#ef4444' : 'var(--text-primary, #cbd5e1)', marginBottom: '4px' }}>
                 {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
@@ -557,10 +557,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                     width: '100%',
                     padding: '9px 36px 9px 12px',
                     borderRadius: '10px',
-                    background: error ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-card, rgba(15, 23, 42, 0.8))',
-                    border: error ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                    background: error ? 'rgba(239, 68, 68, 0.08)' : 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                    border: error ? '1px solid #ef4444' : '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
                     boxShadow: error ? '0 0 14px rgba(239, 68, 68, 0.35)' : 'none',
-                    color: '#f8fafc',
+                    color: 'var(--text-primary, #f8fafc)',
                     fontSize: '0.86rem',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -577,7 +577,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                     transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
-                    color: '#64748b',
+                    color: 'var(--text-secondary, #64748b)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -629,7 +629,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             style={{
               margin: 0,
               fontSize: '0.74rem',
-              color: '#64748b',
+              color: 'var(--text-secondary, #64748b)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -638,7 +638,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               lineHeight: 1.3,
             }}
           >
-            <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
+            <ShieldCheck size={15} style={{ flexShrink: 0, color: 'var(--text-secondary, #64748b)' }} />
             <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
           </div>
         </div>
@@ -740,10 +740,10 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               <KeyRound size={22} />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: 'var(--text-primary, #ffffff)' }}>
                 {t('nav.api_setup_title')}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.4 }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', margin: '2px 0 0 0', lineHeight: 1.4 }}>
                 {t('nav.api_setup_subtitle')}
               </p>
             </div>
@@ -757,7 +757,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)',
               fontSize: '0.78rem',
-              color: '#cbd5e1',
+              color: 'var(--text-primary, #cbd5e1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -819,7 +819,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           {/* FORM */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #cbd5e1)', marginBottom: '4px' }}>
                 {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
@@ -832,9 +832,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   width: '100%',
                   padding: '10px 14px',
                   borderRadius: '12px',
-                  background: 'var(--bg-card, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.9rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -843,7 +843,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #cbd5e1)', marginBottom: '4px' }}>
                 {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
@@ -857,9 +857,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                     width: '100%',
                     padding: '10px 42px 10px 14px',
                     borderRadius: '12px',
-                    background: 'var(--bg-card, rgba(15, 23, 42, 0.8))',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    color: '#f8fafc',
+                    background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                    border: '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
+                    color: 'var(--text-primary, #f8fafc)',
                     fontSize: '0.9rem',
                     outline: 'none',
                     boxSizing: 'border-box',

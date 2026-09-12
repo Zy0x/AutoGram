@@ -1320,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "frontend"
-version = "4.0.1"
+version = "4.0.2"
 dependencies = [
  "aes-gcm",
  "async-trait",

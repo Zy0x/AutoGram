@@ -563,11 +563,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#ef4444',
-                            color: '#ef4444',
+                            backgroundColor: 'var(--status-danger, #ef4444)',
+                            color: 'var(--status-danger, #ef4444)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#fca5a5', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--status-danger, #ef4444)', fontWeight: 600 }}>
                           {t('nav.connection_expired')}
                         </span>
                       </>
@@ -579,11 +579,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: 'var(--accent-primary, #38bdf8)',
-                            color: 'var(--accent-primary, #38bdf8)',
+                            backgroundColor: 'var(--accent-primary, #0284c7)',
+                            color: 'var(--accent-primary, #0284c7)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--accent-primary, #0284c7)', fontWeight: 600 }}>
                           {t('nav.connection_checking')}
                         </span>
                       </>
@@ -595,11 +595,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#f59e0b',
-                            color: '#f59e0b',
+                            backgroundColor: 'var(--status-warning, #d97706)',
+                            color: 'var(--status-warning, #d97706)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--status-warning, #d97706)', fontWeight: 600 }}>
                           {t('nav.connection_last_verified')}
                         </span>
                       </>
@@ -611,11 +611,11 @@ export function SessionLauncher({
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#f59e0b',
-                            color: '#f59e0b',
+                            backgroundColor: 'var(--status-warning, #d97706)',
+                            color: 'var(--status-warning, #d97706)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--status-warning, #d97706)', fontWeight: 600 }}>
                           {t('nav.connection_error')}
                         </span>
                       </>
@@ -631,7 +631,7 @@ export function SessionLauncher({
                             color: 'var(--status-dot, #10b981)',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: 'var(--status-dot, #34d399)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--status-dot, #059669)', fontWeight: 600 }}>
                           {t('nav.connection_strong', { latency: sess.latencyMs || 15 })}
                         </span>
                       </>
