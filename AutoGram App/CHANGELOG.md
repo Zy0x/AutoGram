@@ -1,3 +1,35 @@
+## v4.0.5 — Comprehensive Light Mode Navigation Tabs, Filter Badges & Shimmer Skeleton Engine
+
+### 1. Sidebar Navigation Tabs & Account Header Contrast Architecture
+- **Sidebar Tabs High-Contrast State & Tactile Counter Badges**:
+  - *What changed*:
+    - Resolved washed-out inactive navigation tabs ("Telegram", "Recent") in `.td-sidebar-tab-btn:not(.is-active)`: replaced `#94a3b8` with crisp Slate 700 (`#334155`, font-weight 600, contrast $\ge 7.2:1$) and Slate 600 (`#475569`) icons.
+    - Standardized inactive count badges (`.td-tab-badge`): replaced faint circles with solid Slate 100 fills (`#e2e8f0`), `#cbd5e1` borders, and deep Slate 800 (`#1e293b`) numbers.
+    - Hardened active tab styling: enforced deep amber typography, glowing baseline indicator, and vibrant accent badges with pure white `#ffffff` counter numbers.
+    - Overhauled sidebar account header (`.td-session-header-row`): elevated "ACCOUNT" label from `#94a3b8` to Slate 600 (`#475569`, bold 700), latency ping status to Slate 700 (`#334155`, bold 600), and added high-contrast hover feedback to the refresh trigger.
+  - *Technical rationale*: Legacy obsidian dark theme defaults in `index.css` and `App.css` assigned static `#94a3b8` to unselected buttons and badges, causing severe contrast loss against warm cream and light backgrounds.
+  - *User impact*: Navigation tabs and connection latency indicators are immediately readable and visually balanced in Light Mode.
+
+### 2. Universal Filter Pills & Inactive/Active Count Badges Contrast Lock
+- **Elimination of Washed-Out Amber/Yellow Badges & Muddy Text**:
+  - *What changed*:
+    - Completely eliminated the critical illegibility bug where `.td-pill.active .td-filter-count` rendered pale yellow text (`#fde68a` on pale amber, 1.2:1 contrast). Active badges now feature solid accent fills (`var(--accent-primary, #d97706)`) with crisp, bold white `#ffffff` text (contrast $\ge 14:1$).
+    - Enhanced inactive filter pills and topic chips (`.td-pill:not(.active)`): enforced high-contrast Slate 700 (`#334155`) text with Slate 200 (`#e2e8f0`) count badges and `#cbd5e1` borders.
+    - Polished hover micro-interactions: hovering inactive pills smoothly elevates the pill to `#f1f5f9` with Slate 900 (`#0f172a`) text and `#cbd5e1` badge fills.
+    - Updated topbar perspective toggle (`.td-perspective-switcher`): elevated buttons to pure white cards with Slate 700 inactive labels and solid Sky 600 active fills.
+  - *Technical rationale*: Hardcoded `#fde68a` in `App.css` line 25819 caused active count numbers to blend into light surfaces, violating accessibility guidelines.
+  - *User impact*: All filter pills ("All 61", "Media 15", "Files 27", "Links 19") display razor-sharp text and distinct, readable count badges.
+
+### 3. Catalog Sync Loading Overlay & Luminous Skeleton Media Grid
+- **Neutralization of Dark Screen Overlay & Obsidian Placeholder Grid**:
+  - *What changed*:
+    - Overrode `.ag-loading-overlay` from dark charcoal (`rgba(12, 15, 22, 0.65)`) to a luminous frosted light overlay (`rgba(248, 250, 252, 0.78)` with `backdrop-filter: blur(8px)`).
+    - Redesigned skeleton placeholder cards (`.ag-skeleton-card`, `.ag-skeleton-list-row`): replaced dark obsidian cards (`rgba(22, 26, 35, 0.75)`) with pure white cards (`#ffffff`) framed by subtle Slate 200 borders (`#e2e8f0`).
+    - Re-engineered skeleton shimmer animation (`.skeleton-shimmer`): replaced the dark wave gradient with a gentle slate wave (`linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 35%, #cbd5e1 50%, #e2e8f0 65%, #f1f5f9 100%)`).
+    - Standardized skeleton icon placeholders and progress card text to bold high-contrast slate.
+  - *Technical rationale*: The loading overlay and skeleton grid lacked light mode CSS adaptations, causing the entire viewport behind the sync modal to darken into an ink-black grid.
+  - *User impact*: Catalog loading is smooth, bright, elegant, and seamlessly integrated with the active light theme.
+
 ## v4.0.4 — Cloud Drives Light Mode WCAG Contrast & Component Shell Resolution
 
 ### 1. Cloud Drives Transfer Manager & Floating Actions Light Mode Overhaul

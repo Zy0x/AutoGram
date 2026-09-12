@@ -1,6 +1,14 @@
-AutoGram Version: v4.0.4
+AutoGram Version: v4.0.5
 
 Current State:
+v4.0.5 Cloud Drives Comprehensive Light Mode High-Contrast Engine:
+1. Sidebar Navigation Tabs & Counter Badges: Fixed washed-out inactive tabs ("Telegram", "Recent") with high-contrast Slate 700 (`#334155`), Slate 600 icons, solid contrast badges (`#e2e8f0` with `#1e293b`), and white tab bar container with `#cbd5e1` border.
+2. Sidebar Account Header & Latency Indicator: Eliminated faint `#94a3b8` text on "ACCOUNT" (`#475569`, bold 700) and latency ping status (`#334155`, bold 600), with high-contrast hover on refresh button and clear dropdown chevron.
+3. Catalog Sync Loading Overlay & Skeleton Media Grid: Neutralized dark charcoal screen blur (`rgba(12, 15, 22, 0.65)`) with a clean luminous overlay (`rgba(248, 250, 252, 0.78)`), bright white skeleton cards (`.ag-skeleton-card`), and soft light shimmer animation (`.skeleton-shimmer`).
+4. Filter Pills & Count Badges Contrast Lock: Completely eliminated pale yellow `#fde68a` on amber badges by enforcing solid accent badges (`var(--accent-primary, #d97706)`) with crisp white `#ffffff` text, bold Slate 700 inactive pills, and high-contrast count indicators.
+5. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests, and master schema synchronization.
+
+Previous:
 v4.0.4 Cloud Drives Light Mode WCAG Contrast & Component Shell Resolution:
 1. Transfer Manager High-Contrast Empty State: Fixed invisible text in `.tm-empty p` with deep Slate 900 (`#0f172a`, bold, contrast >= 15:1) and polished elevated white flyout shell (`.td-transfer-manager`) and floating FAB (`.tm-fab`).
 2. Storage & Media Details Popover Contrast: Fixed zero-contrast metric numbers in `DriveStorageInfoBadge.tsx` (`.td-metric-value` Slate 900 bold, `.td-metric-label` Slate 600) on clean Slate 50 cards (`.td-storage-metric-box`).

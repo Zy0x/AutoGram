@@ -574,5 +574,232 @@
   color: #475569 !important;
 }
 
+/* 17. Sidebar Navigation Tabs & Counter Badges (Image 1) */
+[data-color-scheme="light"] .td-sidebar-tabs-bar {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
 
+[data-color-scheme="light"] .td-sidebar-tab-btn:not(.is-active):not(.active) {
+  color: #334155 !important; /* Slate 700, contrast >= 7.2:1 */
+  font-weight: 600 !important;
+}
 
+[data-color-scheme="light"] .td-sidebar-tab-btn:not(.is-active):not(.active) svg {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn:not(.is-active):not(.active):hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn:not(.is-active):not(.active) .td-tab-badge,
+[data-color-scheme="light"] .td-tab-badge:not(.is-active):not(.active) {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn.is-active,
+[data-color-scheme="light"] .td-sidebar-tab-btn.active {
+  background: color-mix(in srgb, var(--accent-primary, #d97706) 16%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #d97706) 55%, transparent) !important;
+  color: color-mix(in srgb, var(--accent-primary, #b45309) 90%, #000000) !important;
+  font-weight: 750 !important;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-primary, #d97706) 20%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn.is-active svg,
+[data-color-scheme="light"] .td-sidebar-tab-btn.active svg {
+  color: var(--accent-primary, #b45309) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn.is-active::after,
+[data-color-scheme="light"] .td-sidebar-tab-btn.active::after {
+  background: var(--accent-primary, #d97706) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #d97706) 40%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-tab-btn.is-active .td-tab-badge,
+[data-color-scheme="light"] .td-sidebar-tab-btn.active .td-tab-badge {
+  background: var(--accent-primary, #d97706) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 750 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16) !important;
+}
+
+/* 18. Sidebar Account Header & Latency Row (Image 2) */
+[data-color-scheme="light"] .td-session-header-row .td-label {
+  color: #475569 !important; /* Slate 600, contrast >= 5.9:1 */
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+[data-color-scheme="light"] .td-session-refresh-btn {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .td-session-refresh-btn:hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-session-header-row .td-conn-text {
+  color: #334155 !important; /* Slate 700, contrast >= 7.2:1 */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-modern-select-arrow,
+[data-color-scheme="light"] .td-modern-select svg {
+  color: #475569 !important;
+}
+
+/* 19. Catalog Sync Loading Overlay & Skeleton Media Grid (Image 3) */
+[data-color-scheme="light"] .ag-loading-overlay {
+  background: rgba(248, 250, 252, 0.78) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+[data-color-scheme="light"] .ag-skeleton-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 35%, #cbd5e1 50%, #e2e8f0 65%, #f1f5f9 100%) !important;
+  background-size: 250% 100% !important;
+}
+
+[data-color-scheme="light"] .ag-skeleton-thumb {
+  background: #f8fafc !important;
+  border: 1px solid #f1f5f9 !important;
+}
+
+[data-color-scheme="light"] .ag-skeleton-icon-placeholder svg {
+  color: #94a3b8 !important;
+  opacity: 0.55 !important;
+}
+
+[data-color-scheme="light"] .ag-skeleton-list-row {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .ag-compact-card .ag-context-text strong {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+/* 20. Filter Pills, Badges & Interactive Chips (Images 4 & 5) */
+[data-color-scheme="light"] .td-pill:not(.active),
+[data-color-scheme="light"] .td-filter-chip:not(.active),
+[data-color-scheme="light"] .td-topic-pill:not(.active),
+[data-color-scheme="light"] .td-chat-folder-chip:not(.active),
+[data-color-scheme="light"] .td-chat-type-filter-pill:not(.active) {
+  color: #334155 !important; /* Slate 700, contrast >= 7.2:1 */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-pill:not(.active) .td-pill-label,
+[data-color-scheme="light"] .td-filter-pills .td-pill:not(.active) .td-pill-label {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+/* Standalone inactive pills (with individual borders) */
+[data-color-scheme="light"] .td-pill:not(.active) {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* Inactive count badge */
+[data-color-scheme="light"] .td-filter-count,
+[data-color-scheme="light"] .td-pill:not(.active) .td-filter-count,
+[data-color-scheme="light"] .td-filter-pills .td-pill:not(.active) .td-filter-count {
+  background: #e2e8f0 !important;
+  color: #334155 !important; /* Slate 700, contrast >= 7.2:1 */
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+/* Inactive pill hover state */
+[data-color-scheme="light"] .td-pill:not(.active):hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-pill:not(.active):hover .td-pill-label {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-pill:not(.active):hover .td-filter-count {
+  background: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Active filter pill */
+[data-color-scheme="light"] .td-pill.active,
+[data-color-scheme="light"] .td-topbar .td-pill.active,
+[data-color-scheme="light"] .td-filter-pills .td-pill.active {
+  background: color-mix(in srgb, var(--accent-primary, #d97706) 16%, #ffffff) !important;
+  border: 1.5px solid color-mix(in srgb, var(--accent-primary, #d97706) 60%, transparent) !important;
+  color: color-mix(in srgb, var(--accent-primary, #b45309) 90%, #000000) !important;
+  font-weight: 750 !important;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-primary, #d97706) 18%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-pill.active .td-pill-label,
+[data-color-scheme="light"] .td-filter-pills .td-pill.active .td-pill-label {
+  color: color-mix(in srgb, var(--accent-primary, #b45309) 90%, #000000) !important;
+  font-weight: 750 !important;
+}
+
+/* Active filter pill count badge — elimination of pale yellow #fde68a defect */
+[data-color-scheme="light"] .td-pill.active .td-filter-count,
+[data-color-scheme="light"] .td-filter-pills .td-pill.active .td-filter-count {
+  background: var(--accent-primary, #d97706) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 800 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16) !important;
+}
+
+/* 21. Perspective Switcher & Topbar Cluster Dividers */
+[data-color-scheme="light"] .td-perspective-switcher {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .td-perspective-btn {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-perspective-btn:hover:not(.active) {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-perspective-btn.active {
+  background: var(--accent-primary, #0284c7) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-primary, #0284c7) 40%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-tools-right-cluster {
+  border-top-color: #e2e8f0 !important;
+}
+
+[data-color-scheme="light"] .td-topbar-tools-row {
+  border-bottom-color: #e2e8f0 !important;
+}
