@@ -854,6 +854,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
 
             {/* Transfer Database & Deduplication Clean */}
             <div
+              className="settings-db-danger-card"
               style={{
                 marginTop: '12px',
                 padding: '14px 16px',
@@ -869,18 +870,19 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)', display: 'block' }}>
                   {t('ui.generated.transfer_database_deduplication_a123f45')}
                 </strong>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #475569)', lineHeight: 1.45 }}>
                   {t('ui.generated.wipes_all_uploaded_file_history_resume_state_audi_b678c90')}
                 </span>
               </div>
               <button
                 type="button"
+                className="settings-db-danger-btn"
                 onClick={handleClearDatabase}
                 disabled={isClearingDb}
                 style={{
                   alignSelf: 'flex-start',
                   background: 'rgba(239, 68, 68, 0.15)',
-                  color: '#fca5a5',
+                  color: 'var(--status-danger, #fca5a5)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
                   borderRadius: '8px',
                   padding: '6px 14px',

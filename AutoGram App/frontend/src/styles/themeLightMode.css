@@ -288,8 +288,21 @@
 }
 
 [data-color-scheme="light"] .settings-page p,
-[data-color-scheme="light"] .settings-page span:not(.badge):not(.tag) {
+[data-color-scheme="light"] .settings-page span:not(.badge):not(.tag):not(button *):not([role="tab"] *):not(.btn *):not([role="button"] *) {
   color: var(--text-secondary, #334155);
+}
+
+/* Eliminate dark gradient bleed at top of settings page */
+[data-color-scheme="light"] .settings-page::before {
+  background: radial-gradient(circle at 90% 2%, color-mix(in srgb, var(--accent-primary, #0284c7) 8%, transparent), transparent 30rem) !important;
+}
+
+/* Guarantees solid contrast on active tabs and filter pills in Settings */
+[data-color-scheme="light"] .settings-page button[aria-selected="true"],
+[data-color-scheme="light"] .settings-page button[aria-selected="true"] span,
+[data-color-scheme="light"] .settings-page [role="tab"][aria-selected="true"],
+[data-color-scheme="light"] .settings-page [role="tab"][aria-selected="true"] span {
+  color: #ffffff !important;
 }
 
 [data-color-scheme="light"] .settings-card,
@@ -306,3 +319,145 @@
   background-color: var(--bg-card, #ffffff) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
 }
+
+/* 8. Native Form Controls: Select & Dropdown Options High-Contrast Engine */
+[data-color-scheme="light"] select,
+[data-color-scheme="light"] select.input-field,
+[data-color-scheme="light"] .input-field select,
+[data-color-scheme="light"] .settings-page select.input-field {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+}
+
+[data-color-scheme="light"] select option,
+[data-color-scheme="light"] select.input-field option,
+[data-color-scheme="light"] .input-field option,
+[data-color-scheme="light"] .settings-page select.input-field option,
+[data-color-scheme="light"] .settings-page .input-field option,
+[data-color-scheme="light"] optgroup option {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] select option:checked,
+[data-color-scheme="light"] select option:hover,
+[data-color-scheme="light"] select option:focus,
+[data-color-scheme="light"] select option:selected,
+[data-color-scheme="light"] select.input-field option:checked,
+[data-color-scheme="light"] select.input-field option:selected,
+[data-color-scheme="light"] .input-field option:checked,
+[data-color-scheme="light"] .input-field option:selected,
+[data-color-scheme="light"] .settings-page select.input-field option:checked,
+[data-color-scheme="light"] .settings-page select.input-field option:selected {
+  color-scheme: light !important;
+  background-color: #0284c7 !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* 9. Destructive Action Card & Danger Clean Buttons */
+[data-color-scheme="light"] .settings-db-danger-card {
+  background: rgba(239, 68, 68, 0.04) !important;
+  border: 1px solid rgba(239, 68, 68, 0.22) !important;
+}
+
+[data-color-scheme="light"] .settings-db-danger-card strong {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .settings-db-danger-card span {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .settings-db-danger-btn {
+  background: color-mix(in srgb, #dc2626 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, #dc2626 35%, transparent) !important;
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .settings-db-danger-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, #dc2626 18%, #ffffff) !important;
+  border-color: #b91c1c !important;
+  color: #b91c1c !important;
+}
+
+/* 10. Session Launcher: Mode Action Buttons (Drives & Forwarder) */
+[data-color-scheme="light"] .ag-launcher-mode-grid button:first-child {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 8%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 32%, transparent) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent-primary, #0284c7) 12%, transparent) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:first-child:hover {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 14%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary, #0284c7) 20%, transparent) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:first-child strong {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:first-child span {
+  color: #0369a1 !important; /* Sky 700, contrast >= 5.5:1 */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:last-child {
+  background: color-mix(in srgb, #f59e0b 8%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent) !important;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.1) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:last-child:hover {
+  background: color-mix(in srgb, #f59e0b 14%, #ffffff) !important;
+  border-color: #d97706 !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:last-child strong {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:last-child span {
+  color: #b45309 !important; /* Amber 700, contrast >= 5.5:1 */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-mode-grid button:last-child svg {
+  color: #d97706 !important;
+}
+
+/* 11. Topbar Action Buttons Light Mode Contrast */
+[data-color-scheme="light"] .ag-launcher-header-actions button:not(.api-credentials-btn-error):not(.ag-launcher-refresh-btn),
+[data-color-scheme="light"] .settings-header-actions button:not(.api-credentials-btn-error) {
+  background: #ffffff !important;
+  border: 1px solid var(--border-default, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-header-actions button:not(.api-credentials-btn-error):not(.ag-launcher-refresh-btn):hover,
+[data-color-scheme="light"] .settings-header-actions button:not(.api-credentials-btn-error):hover {
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-api-btn {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-api-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 16%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+

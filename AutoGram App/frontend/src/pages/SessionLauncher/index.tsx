@@ -361,7 +361,7 @@ export function SessionLauncher({
           <button
             type="button"
             onClick={onOpenApiSetup}
-            className={hasApiError ? 'api-credentials-btn-error' : undefined}
+            className={hasApiError ? 'api-credentials-btn-error' : 'ag-launcher-api-btn'}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

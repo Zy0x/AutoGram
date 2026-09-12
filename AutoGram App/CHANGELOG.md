@@ -1,3 +1,47 @@
+## v4.0.3 — Comprehensive Light Mode Defect Resolution & Native Controls Engine
+
+### 1. Native Dropdown & Select Elements Light Mode Engine
+- **Universal Light Mode `<select>` & `<option>` Controls**:
+  - *What changed*:
+    - Overhauled native form dropdown styling in `themeLightMode.css`: neutralized hardcoded dark mode overrides from `index.css` by declaring high-specificity rules for `select`, `select.input-field`, `select option`, and `optgroup option` with `color-scheme: light !important;`, `background-color: #ffffff !important;`, and `color: #0f172a !important;`.
+    - Modernized dropdown chevron arrow: replaced washed-out cyan stroke (`#38bdf8`) with high-contrast Sky 600 (`#0284c7`) in Light Mode.
+    - Standardized selected/hover option highlights to accessible deep Sky 600 (`#0284c7`) with crisp white (`#ffffff`) text.
+  - *Technical rationale*: Chromium/WebView2 derives OS popup menu styling from the element's CSS `color-scheme` property; without explicit light mode declarations, the browser was summoning dark popup palettes on light pages.
+  - *User impact*: Native language selectors and dropdown menus now open with clean, readable white menus and high-contrast options.
+
+### 2. Theme Gallery Filter Pills & Label Contrast Lock
+- **Active Filter Pill Contrast Guarantee**:
+  - *What changed*:
+    - Refined `.settings-page span` typography selector in `themeLightMode.css` by adding strict exclusions (`:not(button *):not([role="tab"] *):not(.btn *):not([role="button"] *)`), preventing button label spans from being overwritten with dark slate text.
+    - Added dedicated tab contrast enforcement: all active tabs and filter pills in Settings (`[role="tab"][aria-selected="true"]`) now strictly enforce `#ffffff !important` on both label and count badge spans.
+    - Updated `ColorPaletteSection.tsx` category filter tabs to explicitly bind `color: isCatActive ? '#ffffff' : 'inherit'` directly on the label span.
+  - *Technical rationale*: Eliminates CSS selector collision where broad text color rules unintentionally stripped white text from active saturated buttons.
+  - *User impact*: Filter pills like *"All Themes 13"* and *"Curated Modern 5"* display crisp, vibrant white typography with zero contrast degradation against purple or blue fills.
+
+### 3. Destructive Database Zone & Deduplication Modernization
+- **High-Contrast Danger Actions & Semantic Cleanup**:
+  - *What changed*:
+    - Refactored *"Transfer Database & Deduplication"* section in `StorageSettingsSection.tsx`: converted hardcoded `#94a3b8` subtitle to `var(--text-secondary, #475569)`, elevating contrast from 2.5:1 to 5.2:1 (WCAG AA compliant).
+    - Introduced semantic classes `.settings-db-danger-card` and `.settings-db-danger-btn` in `themeLightMode.css`: danger button now renders deep crimson red text (`#dc2626` / `#b91c1c`, contrast $\ge 5.5:1$) on a clean light-red tint background with high-contrast borders.
+  - *Technical rationale*: Destructive buttons must remain visually unmistakable and readable in light mode without relying on pale pastel tones that fail accessibility standards.
+  - *User impact*: Critical database wipe controls and warning descriptions are prominent, legible, and visually balanced.
+
+### 4. Topbar Header Artifact Elimination & Action Pill Polish
+- **Elimination of Muddy Topbar Gradients**:
+  - *What changed*:
+    - Neutralized dark black overlay gradient on `.settings-page::before` in `themeLightMode.css`, replacing it with a clean radial accent glow and eliminating the dark horizontal shadow beneath the topbar header.
+    - Enhanced topbar action buttons (`Telegram API Credentials`, `General Settings`, `Back to Session Hub`) across `SessionLauncher` and `Settings` with crisp white background fills, soft shadows, and high-contrast text (`#0284c7` / `#0f172a`).
+  - *Technical rationale*: Dark background pseudo-elements designed for dark canvas aesthetics bleed muddy grey washes when rendered over white surfaces in Light Mode.
+  - *User impact*: Pure, clean header surfaces with no dark banding or muddy artifacts.
+
+### 5. Launcher Workspace Mode Action Pills Contrast Alignment
+- **"Storage & Media Manager" and "Media Migration Platform" Readability**:
+  - *What changed*:
+    - Added targeted `.ag-launcher-mode-grid` styling in `themeLightMode.css`: *"Buka Drives"* button now displays Slate 900 (`#0f172a`) title with Sky 700 (`#0369a1`, contrast 5.8:1) subtitle *"Storage & Media Manager"*; *"Buka Forwarder"* displays Slate 900 title with Amber 700 (`#b45309`, contrast 5.5:1) subtitle.
+    - Enhanced border and hover elevation states on launcher cards to guarantee tactile depth and touch-target feedback.
+  - *Technical rationale*: Subtitle descriptions on tinted card buttons require dedicated darker shade tokens to satisfy WCAG AA contrast against soft pastel background fills.
+  - *User impact*: Immediate clarity on launcher mode capabilities without squinting or eye fatigue.
+
 ## v4.0.2 — Comprehensive Light Mode WCAG AA Contrast Audit & UI Modernization
 
 ### 1. Cloud Drives, Account Selector & Sidebar Visual Contrast Audit

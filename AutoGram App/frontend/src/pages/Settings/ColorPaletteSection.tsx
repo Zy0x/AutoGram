@@ -211,7 +211,7 @@ export const ColorPaletteSection: React.FC = () => {
                   : 'none',
               }}
             >
-              <span>{t(cat.labelKey)}</span>
+              <span style={{ color: isCatActive ? '#ffffff' : 'inherit' }}>{t(cat.labelKey)}</span>
               <span
                 style={{
                   fontSize: '0.72rem',
