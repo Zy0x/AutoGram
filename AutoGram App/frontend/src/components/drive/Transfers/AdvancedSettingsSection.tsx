@@ -42,10 +42,10 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                   <SlidersHorizontal size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {t('ui.generated.1_sinkronisasi_perilaku_sesi_18b0462')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('ui.generated.konfigurasi_pembaruan_tampilan_otomatis_dan_retr_1b4ee7d')}
                   </p>
                 </div>
@@ -122,10 +122,10 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                   <ShieldAlert size={18} style={{ color: '#f87171' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {t('drive.hide_restricted_media_section_title')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('drive.hide_restricted_media_section_subtitle')}
                   </p>
                 </div>
@@ -187,10 +187,10 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                   <Download size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {t('ui.generated.3_ekspor_impor_konfigurasi_backup_restore_e4087b9')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('ui.generated.cadangkan_seluruh_profil_pengaturan_transfer_ke__be6f6c5')}
                   </p>
                 </div>
@@ -276,10 +276,10 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
                   <Activity size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {t('ui.generated.4_diagnostik_log_sistem_13e7eee')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('ui.generated.opsi_pelacakan_detail_transaksi_teknis_untuk_pem_07becf1')}
                   </p>
                 </div>

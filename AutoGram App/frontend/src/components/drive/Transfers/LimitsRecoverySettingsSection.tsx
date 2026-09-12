@@ -31,10 +31,10 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                   <HardDriveUpload size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     1. {t('drive.oversize_title')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('drive.oversize_desc')}
                   </p>
                 </div>
@@ -84,7 +84,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
               {/* 2. COLLAPSIBLE MANUAL STRATEGY OPTIONS (IF MANUAL SELECTED) */}
               {draft.oversizeAction !== 'auto_adaptive' && (
                 <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
-                  <h5 style={{ color: '#f8fafc', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
+                  <h5 style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
                     {t('drive.oversize_manual_heading')}
                   </h5>
 
@@ -182,7 +182,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                     </div>
 
                     {/* INTERACTIVE PREMIUM SESSIONS CHIPS & SELECTOR */}
-                    <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '12px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                         {availableSessions.length > 0 ? (
                           availableSessions.map((sess: any) => {
@@ -340,7 +340,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                               <AlertTriangle size={15} color="#f59e0b" />
                               <span>{t('ui.generated.sistem_informasi_tidak_ada_akun_premium_aktif_sa_d22e47d')}</span>
                             </div>
-                            <p style={{ margin: 0, color: '#cbd5e1', fontSize: '11px' }}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '11px' }}>
                               {t('ui.generated.seluruh_sesi_terhubung_adalah_20bd1da')} <strong>{t('ui.generated.akun_standar_limit_2_gb_be2ff4a')}</strong>. Jika terdapat berkas berukuran &gt; 2 GB, pengunggahan utuh 4 GB tidak dapat dilakukan lewat pool ini. Sistem akan otomatis beralih ke skenario cadangan <strong>{t('ui.generated.pecah_berkas_split_parts_2_gb_ed7053d')}</strong> {t('ui.generated.atau_a713ae9')} <strong>{t('ui.generated.fit_to_limit_video_bitrate_compress_da6fbd4')}</strong> {t('ui.generated.agar_transfer_tetap_berhasil_tanpa_error_limit_t_ede2eb0')}
                             </p>
                           </div>

@@ -18,50 +18,87 @@
    SECTION 1: UNIVERSAL INPUT CONTROLS, SEARCH BARS & FORM ELEMENTS
    ========================================================================== */
 
-/* 1. Universal Text Inputs, Search Inputs & Textareas */
+/* 1. Universal Text Inputs, Search Inputs, Selects & Textareas */
+[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
 [data-palette] input[type="text"],
 [data-palette] input[type="search"],
 [data-palette] input[type="number"],
 [data-palette] input[type="date"],
 [data-palette] input[type="password"],
+[data-palette] input[type="email"],
+[data-palette] input[type="url"],
 [data-palette] textarea,
+[data-palette] select,
+[data-palette] .input-field,
+[data-palette] .form-input,
+[data-palette] .settings-input,
+[data-palette] .settings-select,
+[data-palette] .settings-textarea,
 [data-palette] .td-input-field,
 [data-palette] .td-tools-input,
 [data-palette] .td-tools-dup-search-input,
 [data-palette] .td-search,
-[data-palette] .td-header-search-input {
+[data-palette] .td-header-search-input,
+[data-palette] .dzb-search-input,
+[data-palette] .td-dest-search input,
+[data-palette] .td-xfer-search-wrapper input,
+[data-palette] .ag-forwarder-input {
   background-color: var(--input-bg, var(--bg-card)) !important;
   border-color: var(--border-default) !important;
   color: var(--text-primary) !important;
   color-scheme: inherit !important;
 }
 
+[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"])::placeholder,
 [data-palette] input[type="text"]::placeholder,
 [data-palette] input[type="search"]::placeholder,
 [data-palette] input[type="number"]::placeholder,
 [data-palette] input[type="date"]::placeholder,
 [data-palette] input[type="password"]::placeholder,
+[data-palette] input[type="email"]::placeholder,
+[data-palette] input[type="url"]::placeholder,
 [data-palette] textarea::placeholder,
+[data-palette] .input-field::placeholder,
+[data-palette] .form-input::placeholder,
+[data-palette] .settings-input::placeholder,
+[data-palette] .settings-textarea::placeholder,
 [data-palette] .td-input-field::placeholder,
 [data-palette] .td-tools-input::placeholder,
 [data-palette] .td-tools-dup-search-input::placeholder,
 [data-palette] .td-search::placeholder,
-[data-palette] .td-header-search-input::placeholder {
+[data-palette] .td-header-search-input::placeholder,
+[data-palette] .dzb-search-input::placeholder,
+[data-palette] .td-dest-search input::placeholder,
+[data-palette] .td-xfer-search-wrapper input::placeholder,
+[data-palette] .ag-forwarder-input::placeholder {
   color: var(--text-secondary) !important;
   opacity: 0.8 !important;
 }
 
+[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
 [data-palette] input[type="text"]:focus,
 [data-palette] input[type="search"]:focus,
 [data-palette] input[type="number"]:focus,
 [data-palette] input[type="date"]:focus,
 [data-palette] input[type="password"]:focus,
+[data-palette] input[type="email"]:focus,
+[data-palette] input[type="url"]:focus,
 [data-palette] textarea:focus,
+[data-palette] select:focus,
+[data-palette] .input-field:focus,
+[data-palette] .form-input:focus,
+[data-palette] .settings-input:focus,
+[data-palette] .settings-select:focus,
+[data-palette] .settings-textarea:focus,
 [data-palette] .td-input-field:focus,
 [data-palette] .td-tools-input:focus,
 [data-palette] .td-tools-dup-search-input:focus,
 [data-palette] .td-search:focus,
-[data-palette] .td-header-search-input:focus {
+[data-palette] .td-header-search-input:focus,
+[data-palette] .dzb-search-input:focus,
+[data-palette] .td-dest-search input:focus,
+[data-palette] .td-xfer-search-wrapper input:focus,
+[data-palette] .ag-forwarder-input:focus {
   border-color: var(--accent-primary) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
   outline: none !important;
@@ -162,12 +199,19 @@
    ========================================================================== */
 
 /* 1. Dialog Container & Main Panels */
+[data-palette] .td-tools-overlay {
+  background: var(--bg-overlay, rgba(2, 6, 14, 0.7)) !important;
+}
+
+[data-palette] .td-tools-panel,
 [data-palette] .td-tools-panel.is-unified {
   background: var(--bg-modal) !important;
   border: 1px solid var(--border-default) !important;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6) !important;
+  color: var(--text-primary) !important;
 }
 
+[data-palette] .td-tools-head,
 [data-palette] .td-tools-panel.is-unified .td-tools-head {
   background: var(--bg-card) !important;
   border-bottom: 1px solid var(--border-default) !important;
@@ -405,16 +449,945 @@
   border-top: 1px solid var(--border-default) !important;
 }
 
-/* 7. Settings Workspace Integration in Drive Tools */
+/* 7. Settings Workspace Integration in Drive Tools & Standalone Settings */
+
+/* Drive Transfer Settings Dialog & Overlay */
+[data-palette] .td-xfer-settings-overlay {
+  background: var(--bg-overlay, rgba(2, 6, 15, 0.65)) !important;
+  backdrop-filter: blur(8px) saturate(110%) !important;
+}
+
+[data-palette] .td-xfer-settings-dialog {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 32px 80px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-xfer-single-workspace {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-xfer-single-workspace.is-embedded {
+  background: transparent !important;
+}
+
+/* Header Drive Settings */
 [data-palette] .td-xfer-header {
   background: var(--bg-card) !important;
   border-bottom: 1px solid var(--border-default) !important;
 }
 
+[data-palette] .td-xfer-header-left h3,
 [data-palette] .td-xfer-header h3 {
   color: var(--text-primary) !important;
 }
 
+[data-palette] .td-xfer-header-left p,
 [data-palette] .td-xfer-header p {
   color: var(--text-secondary) !important;
 }
+
+[data-palette] .td-back-nav-btn {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-back-nav-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-xfer-avatar {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 25%, transparent) 0%, color-mix(in srgb, var(--accent-secondary) 20%, transparent) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-xfer-mode-segmented {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-segmented-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-segmented-btn:hover:not(.active) {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-segmented-btn.active {
+  background: var(--accent-primary) !important;
+  color: var(--text-on-accent, #ffffff) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+}
+
+[data-palette] .td-dirty-badge {
+  background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 35%, transparent) !important;
+  color: var(--warning, #f59e0b) !important;
+}
+
+/* Body Drive Settings: Viewport, Menu Page & Categories */
+[data-palette] .td-xfer-panel-viewport {
+  background: var(--bg-primary) !important;
+}
+
+[data-palette] .td-xfer-menu-page {
+  background: transparent !important;
+}
+
+[data-palette] .td-xfer-preset-strip {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 10%, var(--bg-card)) 0%, var(--bg-card) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-preset-label-text {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preset-label-text strong {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-preset-details-text {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-category-menu-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-category-menu-card:hover {
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-card)) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .td-cat-card-icon {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-category-menu-card:hover .td-cat-card-icon {
+  background: var(--accent-primary) !important;
+  color: var(--text-on-accent, #ffffff) !important;
+}
+
+[data-palette] .td-cat-card-info h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-cat-card-info p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-cat-arrow {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-category-menu-card:hover .td-cat-arrow {
+  color: var(--accent-primary) !important;
+}
+
+/* Sub-Menu Navigation Pills */
+[data-palette] .td-xfer-subnav-bar {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-subnav-pill {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-subnav-pill:hover:not(.active) {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-subnav-pill.active {
+  color: var(--text-on-accent, #ffffff) !important;
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+}
+
+/* Settings Cards & Switch Rows inside Body Drive Settings */
+[data-palette] .td-settings-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-palette] .td-settings-card h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-settings-card p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-switch-row {
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .td-switch-row strong {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-switch-row p {
+  color: var(--text-secondary) !important;
+}
+
+/* Footer & Reset Overlays in Drive Settings */
+[data-palette] .td-xfer-footer {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-xfer-confirm-modal {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-palette] .td-xfer-confirm-modal h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-xfer-confirm-modal p {
+  color: var(--text-secondary) !important;
+}
+
+/* Standalone Settings Page Harmonization */
+[data-palette] .settings-page {
+  background: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .settings-header {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .settings-header .title {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .settings-header .subtitle {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .settings-sidebar-nav {
+  background: var(--bg-sidebar, var(--bg-card)) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .settings-card,
+[data-palette] .settings-page .glass-panel.card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+/* ==========================================================================
+   SECTION 3: ZIP BROWSER WORKBENCH THEME HARMONIZATION (.dzb-*)
+   ========================================================================== */
+
+/* 1. Archive Root & Workbench Header */
+[data-palette] .dzb-container {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-header-workbench {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-identity-bar,
+[data-palette] .dzb-breadcrumbs-bar,
+[data-palette] .dzb-controls-row,
+[data-palette] .dzb-command-bar {
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .dzb-nav-pill-group {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-nav-icon-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-nav-icon-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-archive-name,
+[data-palette] .dzb-archive-heading {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-crumb-item {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-crumb-item.is-active {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-crumb-divider {
+  color: var(--text-secondary) !important;
+  opacity: 0.5 !important;
+}
+
+/* 2. Search Box & Category Filters */
+[data-palette] .dzb-search-wrap {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-search-wrap:focus-within {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .dzb-search-input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-search-input::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.7 !important;
+}
+
+[data-palette] .dzb-search-icon {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-search-clear-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-search-clear-btn:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+}
+
+[data-palette] .dzb-category-chips {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-chip-btn {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-chip-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-chip-btn.active {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-chip-counter {
+  background: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-chip-btn.active .dzb-chip-counter {
+  background: color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-sort-trigger-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-sort-dropdown {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-palette] .dzb-sort-option {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-sort-option:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+/* 3. Table & Grid Listings */
+[data-palette] .dzb-thead {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-thead th {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-tr {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-tr:hover {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+}
+
+[data-palette] .dzb-tr.selected {
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-entry-text {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-size-cell {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-action-icon-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-action-icon-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-view-btn {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-view-btn:hover {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-view-btn.active {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-view-toggle-group {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-btn-save-archive {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .dzb-close-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-close-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .dzb-grid-card-inner {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-grid-card:hover .dzb-grid-card-inner {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-palette] .dzb-grid-card.selected .dzb-grid-card-inner {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-card)) !important;
+}
+
+[data-palette] .dzb-status-bar {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .dzb-sidebar-drawer {
+  background: var(--bg-sidebar) !important;
+  border-left: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .dzb-checkbox {
+  accent-color: var(--accent-primary) !important;
+}
+
+/* ==========================================================================
+   SECTION 4: CONFIRM, INPUT & DESTINATION DIALOGS (.td-confirm-*, .td-dest-*)
+   ========================================================================== */
+
+[data-palette] .td-confirm-overlay {
+  background: var(--bg-overlay, rgba(0, 0, 0, 0.65)) !important;
+}
+
+[data-palette] .td-confirm-panel {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55) !important;
+}
+
+[data-palette] .td-confirm-head {
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .td-confirm-head-text h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-confirm-head-text p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-confirm-close {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-confirm-close:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+}
+
+[data-palette] .td-confirm-list {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-confirm-list li {
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .td-confirm-more {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-confirm-foot {
+  border-top: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-confirm-mode-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-confirm-mode-btn:hover {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-card)) !important;
+}
+
+[data-palette] .td-confirm-mode-btn.active {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-card)) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-confirm-mode-hint {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-input-label {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-dest-search {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-dest-search:focus-within {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
+}
+
+[data-palette] .td-dest-search-input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-dest-list {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+[data-palette] .td-dest-item {
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .td-dest-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+}
+
+[data-palette] .td-dest-item.selected {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-dest-empty {
+  color: var(--text-secondary) !important;
+}
+
+/* ==========================================================================
+   SECTION 5: CONTEXT MENUS & SUBMENUS (.drive-context-menu)
+   ========================================================================== */
+
+[data-palette] .drive-context-menu,
+[data-palette] .drive-context-submenu-flyout {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .drive-context-title {
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+[data-palette] .drive-context-menu button,
+[data-palette] .drive-context-submenu-flyout button {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .drive-context-menu button:hover,
+[data-palette] .drive-context-submenu:hover > button,
+[data-palette] .drive-context-submenu-flyout button:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .drive-context-divider {
+  background: var(--border-subtle) !important;
+}
+
+/* ==========================================================================
+   SECTION 6: PREVIEW MODAL DROPDOWNS & ACTION MENUS (.td-dropdown-*)
+   ========================================================================== */
+
+[data-palette] .td-dropdown-menu {
+  background: var(--bg-modal) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-palette] .td-dropdown-item {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-dropdown-item:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ==========================================================================
+   SECTION 7: PREFLIGHT REVIEW DIALOG HARMONIZATION (.td-preflight-*)
+   ========================================================================== */
+
+[data-palette] .td-preflight-overlay {
+  background: color-mix(in srgb, var(--bg-main) 85%, transparent) !important;
+}
+
+[data-palette] .td-preflight-dialog {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65), inset 0 1px 0 var(--border-subtle) !important;
+}
+
+[data-palette] .td-preflight-head,
+[data-palette] .td-preflight-foot {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-preflight-head-text h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-head-text p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-overview {
+  background: var(--bg-card) !important;
+  border-bottom-color: var(--border-default) !important;
+}
+
+[data-palette] .td-preflight-overview-stats {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-preflight-stat-pill {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-stat-pill:hover,
+[data-palette] .td-preflight-stat-pill.is-filter:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-pill-count {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-palette] .td-preflight-item {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-item.is-upload {
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-card)) !important;
+}
+
+[data-palette] .td-preflight-item.is-skip {
+  background: var(--bg-card) !important;
+}
+
+[data-palette] .td-preflight-item.is-duplicate {
+  background: color-mix(in srgb, #f59e0b 8%, var(--bg-card)) !important;
+}
+
+[data-palette] .td-preflight-item-topline strong {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-item-topline span {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-bento-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-bento-card:hover {
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-preflight-bento-value,
+[data-palette] .td-preflight-bento-text {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-bento-subtext {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-bento-tag {
+  background: var(--bg-primary) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-palette] .td-preflight-popover-card {
+  background: var(--bg-modal) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-popover-head {
+  background: var(--bg-card) !important;
+  border-bottom-color: var(--border-default) !important;
+}
+
+[data-palette] .td-preflight-popover-head strong {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-popover-desc {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-mode-card-6 {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-preflight-mode-card-6:hover {
+  border-color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-preflight-mode6-title {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-mode6-subtext {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-mode6-pill {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-mode6-pill:hover {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-mode6-pill.is-active {
+  background: var(--accent-primary) !important;
+  color: var(--text-contrast-dark, #0f172a) !important;
+}
+
+[data-palette] .td-preflight-choice {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-preflight-choice:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-preflight-choice.is-upload.is-selected {
+  background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-card)) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ==========================================================================
+   SECTION 8: DRIVE SETTINGS PANELS, SUMMARY TILES & SEARCH POPOVERS
+   ========================================================================== */
+
+[data-palette] .td-panel-head h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-panel-head p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-card-head h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-card-head p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-summary-tile {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-summary-tile:hover {
+  border-color: var(--accent-primary) !important;
+  background: var(--bg-hover) !important;
+}
+
+[data-palette] .td-summary-tile-title {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-summary-tile-sub {
+  color: var(--text-muted) !important;
+}
+
+[data-palette] .td-radio-tile,
+[data-palette] .td-encoder-tile {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-palette] .td-radio-tile:hover,
+[data-palette] .td-encoder-tile:hover {
+  border-color: var(--accent-primary) !important;
+  background: var(--bg-hover) !important;
+}
+
+[data-palette] .td-radio-tile strong,
+[data-palette] .td-encoder-tile strong {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-radio-tile p,
+[data-palette] .td-encoder-tile p {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-caption-input-box textarea {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-caption-meta {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-caption-overflow-select select {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-field-group input[type="text"],
+[data-palette] .td-field-group input[type="datetime-local"],
+[data-palette] .td-field-group select {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-result-title {
+  color: var(--text-primary) !important;
+}
+
+[data-palette] .td-result-snippet {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-popover-empty {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-popover-close-btn {
+  color: var(--text-secondary) !important;
+}
+
+[data-palette] .td-popover-close-btn:hover {
+  color: var(--text-primary) !important;
+  background: var(--bg-hover) !important;
+}
+

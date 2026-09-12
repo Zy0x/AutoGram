@@ -44,7 +44,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
             {/* RESUME */}
             <label style={{ 
                 display: 'flex', gap: '12px', padding: '16px', 
-                background: mode === 'RESUME' ? 'rgba(99, 102, 246, 0.1)' : 'rgba(255,255,255,0.02)',
+                background: mode === 'RESUME' ? 'rgba(99, 102, 246, 0.1)' : 'var(--bg-card)',
                 border: `1px solid ${mode === 'RESUME' ? 'var(--primary)' : 'var(--border)'}`,
                 borderRadius: '8px', cursor: 'pointer'
             }}>
@@ -62,7 +62,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
             {/* OVERWRITE */}
             <label style={{ 
                 display: 'flex', gap: '12px', padding: '16px', 
-                background: mode === 'OVERWRITE' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.02)',
+                background: mode === 'OVERWRITE' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-card)',
                 border: `1px solid ${mode === 'OVERWRITE' ? 'var(--danger)' : 'var(--border)'}`,
                 borderRadius: '8px', cursor: 'pointer'
             }}>
@@ -98,7 +98,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
             {/* SMART SYNC */}
             <label style={{ 
                 display: 'flex', gap: '12px', padding: '16px', 
-                background: mode === 'SMART_SYNC' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.02)',
+                background: mode === 'SMART_SYNC' ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-card)',
                 border: `1px solid ${mode === 'SMART_SYNC' ? 'var(--warning)' : 'var(--border)'}`,
                 borderRadius: '8px', cursor: 'pointer'
             }}>

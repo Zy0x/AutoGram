@@ -152,17 +152,17 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
 
                   <div
                     style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
+                      background: 'var(--bg-primary, rgba(0, 0, 0, 0.3))',
                       padding: '8px 12px',
                       borderRadius: '6px',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--border-default, rgba(255, 255, 255, 0.05))',
                       fontFamily: 'monospace',
                       fontSize: '0.78rem',
-                      color: customCacheInfo?.customPath ? 'var(--accent-primary, #38bdf8)' : '#94a3b8',
+                      color: customCacheInfo?.customPath ? 'var(--accent-primary, #38bdf8)' : 'var(--text-secondary)',
                       wordBreak: 'break-all',
                     }}
                   >
-                    <span style={{ color: '#64748b', marginRight: '6px', fontFamily: 'sans-serif' }}>
+                    <span style={{ color: 'var(--text-muted, #64748b)', marginRight: '6px', fontFamily: 'sans-serif' }}>
                       {t('settings.custom_cache_current_path')}
                     </span>
                     {customCacheInfo?.activePath || t('settings.default_cache_path')}

@@ -83,7 +83,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
       >
         <span
           style={{
-            color: selectedOption ? 'inherit' : 'rgba(255,255,255,0.2)',
+            color: selectedOption ? 'inherit' : 'var(--text-muted)',
             flex: 1,
             minWidth: 0,
             overflow: 'hidden',
@@ -105,7 +105,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
           top: pos.top,
           left: pos.left,
           width: pos.width,
-          background: 'rgba(15, 17, 26, 0.85)',
+          background: 'var(--bg-modal, var(--bg-card))',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid var(--border)',
@@ -113,7 +113,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
           zIndex: 99999,
           maxHeight: '250px',
           overflowY: 'auto',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+          boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.4))',
         }}>
           {options.length === 0 ? (
             <div style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
@@ -134,12 +134,12 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
                   padding: '12px 14px',
                   cursor: opt.disabled ? 'not-allowed' : 'pointer',
                   color: opt.disabled ? 'var(--text-muted)' : (value === opt.value ? 'var(--primary)' : 'var(--text-main)'),
-                  background: value === opt.value ? 'rgba(255, 174, 0, 0.1)' : 'transparent',
+                  background: value === opt.value ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)' : 'transparent',
                   opacity: opt.disabled ? 0.5 : 1,
                   transition: 'background 0.2s'
                 }}
                 onMouseEnter={e => {
-                  if (!opt.disabled && value !== opt.value) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  if (!opt.disabled && value !== opt.value) e.currentTarget.style.background = 'var(--bg-hover)';
                 }}
                 onMouseLeave={e => {
                   if (!opt.disabled && value !== opt.value) e.currentTarget.style.background = 'transparent';

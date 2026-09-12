@@ -49,7 +49,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
             <h4 style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
               <Database size={16} /> {t('ui.generated.general_info_a1fd58a')}
             </h4>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-default)' }}>
               <DetailItem label={t('ui.generated.job_id_7707976')} value={job.id} />
               <DetailItem label={t('jobs.col_job_name')} value={job.job_name} />
               <DetailItem label={t('ui.generated.profile_session_0adb384')} value={job.profile_name || config.session} />
@@ -66,7 +66,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
             <h4 style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
               <Sliders size={16} /> {t('drive.tools_tab_settings')}
             </h4>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-default)' }}>
               <DetailItem label={t('ui.generated.fetch_direction_d73cc40')} value={config.fetchDirection || config.fetch_direction || 'Newest First'} />
               <DetailItem label={t('ui.generated.limit_24d948e')} value={config.limit === 0 ? 'Unlimited' : config.limit} />
               <DetailItem label={t('dashboard.dup_action')} value={config.dupAction || config.duplicate_action || 'Skip'} />
@@ -80,7 +80,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
             <h4 style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
               <Filter size={16} /> {t('ui.generated.filters_rules_58de166')}
             </h4>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-default)' }}>
               <DetailItem label={t('ui.generated.media_type_622a2e5')} value={config.media || config.media_filter || 'All'} />
               <DetailItem label={t('ui.generated.min_size_mb_ccccdd4')} value={config.size_min || config.size_min_mb || 0} />
               <DetailItem label={t('ui.generated.max_size_mb_07368aa')} value={config.size_max || config.size_max_mb || 'Unlimited'} />

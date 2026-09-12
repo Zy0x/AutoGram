@@ -176,7 +176,7 @@ export function Profiles() {
                       overflow: 'hidden', 
                       textOverflow: 'ellipsis',
                       fontFamily: 'monospace',
-                      background: 'rgba(0,0,0,0.2)',
+                      background: 'var(--bg-primary, rgba(0,0,0,0.1))',
                       padding: '4px 8px',
                       borderRadius: '4px'
                     }}>

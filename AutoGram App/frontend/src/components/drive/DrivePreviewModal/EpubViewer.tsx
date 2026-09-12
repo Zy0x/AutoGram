@@ -175,10 +175,10 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BookOpen size={17} className="text-cyan-400" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
             {bookTitle || fileName}
           </span>
-          <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', fontWeight: 700 }}>
+          <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)', fontWeight: 700 }}>
             {currentChapterIdx + 1} / {chapters.length}
           </span>
         </div>
@@ -187,27 +187,27 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
           <button
             type="button"
             onClick={() => setShowToc((p) => !p)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '6px', background: showToc ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)', color: showToc ? '#22d3ee' : '#cbd5e1', border: '1px solid rgba(255, 255, 255, 0.1)', fontSize: '11.5px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '6px', background: showToc ? 'color-mix(in srgb, var(--accent-primary) 20%, transparent)' : 'var(--bg-card)', color: showToc ? 'var(--accent-primary)' : 'var(--text-secondary)', border: '1px solid var(--border-default)', fontSize: '11.5px', cursor: 'pointer', fontWeight: 500 }}
             title="Daftar Isi Bab"
           >
             <List size={13} />
             <span>Daftar Isi</span>
           </button>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: 'var(--bg-card)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border-default)' }}>
             <button
               type="button"
               onClick={() => setFontSize((s) => Math.max(12, s - 2))}
-              style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+              style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
               title="Perkecil Font"
             >
               A-
             </button>
-            <span style={{ fontSize: '11px', color: '#94a3b8', padding: '0 4px' }}>{fontSize}px</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', padding: '0 4px' }}>{fontSize}px</span>
             <button
               type="button"
               onClick={() => setFontSize((s) => Math.min(28, s + 2))}
-              style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+              style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
               title="Perbesar Font"
             >
               A+
@@ -221,7 +221,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
         {/* TOC Sidebar */}
         {showToc && (
           <div style={{ width: '220px', background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 8px', overflowY: 'auto', flexShrink: 0 }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', padding: '0 6px 6px' }}>Daftar Bab:</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '0 6px 6px' }}>Daftar Bab:</span>
             {chapters.map((ch, idx) => (
               <button
                 key={ch.id}
@@ -231,7 +231,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
                   setShowToc(false);
                   if (readerStageRef.current) readerStageRef.current.scrollTop = 0;
                 }}
-                style={{ display: 'block', width: '100%', padding: '6px 10px', borderRadius: '6px', background: currentChapterIdx === idx ? 'rgba(6, 182, 212, 0.15)' : 'transparent', color: currentChapterIdx === idx ? '#22d3ee' : '#cbd5e1', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: currentChapterIdx === idx ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                style={{ display: 'block', width: '100%', padding: '6px 10px', borderRadius: '6px', background: currentChapterIdx === idx ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' : 'transparent', color: currentChapterIdx === idx ? 'var(--accent-primary)' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', fontWeight: currentChapterIdx === idx ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
               >
                 {ch.title}
               </button>
@@ -240,8 +240,8 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
         )}
 
         {/* Reader Stage */}
-        <div ref={readerStageRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 48px', maxWidth: '820px', margin: '0 auto', width: '100%', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', fontSize: `${fontSize}px`, lineHeight: '1.7', color: '#e2e8f0' }}>
-          <h2 style={{ fontSize: `${fontSize * 1.4}px`, fontWeight: 700, color: '#f8fafc', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px', marginBottom: '24px' }}>
+        <div ref={readerStageRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 48px', maxWidth: '820px', margin: '0 auto', width: '100%', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', fontSize: `${fontSize}px`, lineHeight: '1.7', color: 'var(--text-primary)' }}>
+          <h2 style={{ fontSize: `${fontSize * 1.4}px`, fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)', paddingBottom: '12px', marginBottom: '24px' }}>
             {activeChapter?.title}
           </h2>
           <div
@@ -260,14 +260,14 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
             setCurrentChapterIdx((p) => Math.max(0, p - 1));
             if (readerStageRef.current) readerStageRef.current.scrollTop = 0;
           }}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)', color: currentChapterIdx === 0 ? '#475569' : '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)', cursor: currentChapterIdx === 0 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === 0 ? 'transparent' : 'var(--bg-primary)', color: currentChapterIdx === 0 ? 'var(--text-secondary)' : 'var(--text-primary)', border: '1px solid var(--border-default)', cursor: currentChapterIdx === 0 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, opacity: currentChapterIdx === 0 ? 0.4 : 1 }}
         >
           <ChevronLeft size={15} />
           <span>Bab Sebelumnya</span>
         </button>
 
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>
-          Bab <strong style={{ color: '#f8fafc' }}>{currentChapterIdx + 1}</strong> dari <strong style={{ color: '#f8fafc' }}>{chapters.length}</strong>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          Bab <strong style={{ color: 'var(--text-primary)' }}>{currentChapterIdx + 1}</strong> dari <strong style={{ color: 'var(--text-primary)' }}>{chapters.length}</strong>
         </span>
 
         <button
@@ -277,7 +277,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
             setCurrentChapterIdx((p) => Math.min(chapters.length - 1, p + 1));
             if (readerStageRef.current) readerStageRef.current.scrollTop = 0;
           }}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === chapters.length - 1 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)', color: currentChapterIdx === chapters.length - 1 ? '#475569' : '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)', cursor: currentChapterIdx === chapters.length - 1 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === chapters.length - 1 ? 'transparent' : 'var(--bg-primary)', color: currentChapterIdx === chapters.length - 1 ? 'var(--text-secondary)' : 'var(--text-primary)', border: '1px solid var(--border-default)', cursor: currentChapterIdx === chapters.length - 1 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, opacity: currentChapterIdx === chapters.length - 1 ? 0.4 : 1 }}
         >
           <span>Bab Selanjutnya</span>
           <ChevronRight size={15} />

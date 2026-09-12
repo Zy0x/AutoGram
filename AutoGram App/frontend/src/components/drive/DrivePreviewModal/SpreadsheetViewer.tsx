@@ -134,9 +134,9 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
                 padding: '4px 8px 4px 28px',
                 fontSize: '12px',
                 borderRadius: '6px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#f8fafc',
+                background: 'var(--bg-primary, rgba(255, 255, 255, 0.06))',
+                border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+                color: 'var(--text-primary)',
                 outline: 'none',
                 width: '180px',
               }}
@@ -174,7 +174,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
           gap: '8px',
           padding: '4px 16px',
           background: 'var(--bg-primary, #0a0f1d)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.06))',
           fontSize: '12px',
           flexShrink: 0,
         }}
@@ -193,7 +193,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
         >
           {selectedCell ? selectedCell.coord : 'A1'}
         </span>
-        <span style={{ color: '#64748b', fontStyle: 'italic', fontWeight: 600 }}>fx</span>
+        <span style={{ color: 'var(--text-secondary, #64748b)', fontStyle: 'italic', fontWeight: 600 }}>fx</span>
         <input
           type="text"
           readOnly
@@ -202,7 +202,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             flex: 1,
             background: 'transparent',
             border: 'none',
-            color: '#e2e8f0',
+            color: 'var(--text-primary)',
             outline: 'none',
             fontFamily: 'monospace',
             fontSize: '12px',
@@ -218,8 +218,8 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             alignItems: 'center',
             gap: '4px',
             padding: '4px 16px',
-            background: '#090d16',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.06))',
             overflowX: 'auto',
             flexShrink: 0,
           }}

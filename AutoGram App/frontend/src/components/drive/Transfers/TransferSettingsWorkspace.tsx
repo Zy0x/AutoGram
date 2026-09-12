@@ -1407,10 +1407,10 @@ export function TransferSettingsWorkspace({
                   <FolderTree size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     1. {t('drive.album_orchestration_title')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('drive.album_orchestration_desc')}
                   </p>
                 </div>
@@ -1439,14 +1439,14 @@ export function TransferSettingsWorkspace({
                   />
 
                   {/* ALBUM INCOMPATIBLE MEDIA HANDLING SYNC BANNER */}
-                  <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)', borderRadius: '12px' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <div>
                         <strong style={{ fontSize: '0.85rem', color: 'var(--accent-primary, #38bdf8)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Film size={16} />
                           {t('drive.album_media_hub_sync_title')}
                         </strong>
-                        <p style={{ margin: '6px 0 0', fontSize: '0.79rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.79rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                           {t('drive.album_media_hub_sync_desc')}
                         </p>
                       </div>
@@ -1505,10 +1505,10 @@ export function TransferSettingsWorkspace({
                   <CopyCheck size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     1. {t('drive.duplicate_title')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('drive.duplicate_desc')}
                   </p>
                 </div>
@@ -1590,43 +1590,43 @@ export function TransferSettingsWorkspace({
 
                 <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   {/* LEVEL 1 */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_1')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level1_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level1_desc')}</p>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level1_title')}</strong>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level1_desc')}</p>
                   </div>
 
                   {/* LEVEL 2 */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_2')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level2_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level2_desc')}</p>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level2_title')}</strong>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level2_desc')}</p>
                   </div>
 
                   {/* LEVEL 3 */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_3')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level3_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level3_desc')}</p>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level3_title')}</strong>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level3_desc')}</p>
                   </div>
 
                   {/* LEVEL 4 */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: '10px', padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ color: 'var(--accent-primary, #38bdf8)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('drive.dup_level_4')}</span>
                       <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{t('nav.status_active')}</span>
                     </div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level4_title')}</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level4_desc')}</p>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '13px', display: 'block', marginBottom: '2px' }}>{t('drive.dup_level4_title')}</strong>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{t('drive.dup_level4_desc')}</p>
                   </div>
                 </div>
               </details>
@@ -1652,10 +1652,10 @@ export function TransferSettingsWorkspace({
                       <Download size={18} style={{ color: '#c084fc' }} />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                         {t('drive_tools.plugin_section_ytdlp_title')}
                       </h4>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.35, minHeight: '38px' }}>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.35, minHeight: '38px' }}>
                         {t('drive_tools.plugin_section_ytdlp_desc')}
                       </p>
                     </div>
@@ -1665,7 +1665,7 @@ export function TransferSettingsWorkspace({
                 {/* Middle Switches & Status */}
                 <div className="td-plugin-status-box">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{t('drive_tools.ytdlp_auto_update_title')}</span>
                     <ToggleSwitch
                       checked={draft.ytdlpAutoUpdate !== false}
                       disabled={!!transferActive}
@@ -1722,10 +1722,10 @@ export function TransferSettingsWorkspace({
                       <Film size={18} style={{ color: '#c084fc' }} />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                         {t('drive_tools.plugin_ffmpeg_title_short')}
                       </h4>
-                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.35, minHeight: '38px' }}>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.35, minHeight: '38px' }}>
                         {t('drive_tools.plugin_ffmpeg_overview_desc')}
                       </p>
                     </div>
@@ -1735,7 +1735,7 @@ export function TransferSettingsWorkspace({
                 {/* Middle Switches & Status */}
                 <div className="td-plugin-status-box">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {t('drive_tools.plugin_ffmpeg_auto_mux_title')}
                     </span>
                     <ToggleSwitch
@@ -1789,11 +1789,11 @@ export function TransferSettingsWorkspace({
                   <Sparkles size={18} style={{ color: '#94a3b8' }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#e2e8f0' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {t('drive_tools.plugin_more_title')}
                   </h4>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b', maxWidth: '280px', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-secondary)', maxWidth: '280px', lineHeight: 1.4 }}>
                   {t('drive_tools.plugin_more_desc')}
                 </p>
               </div>
@@ -1886,9 +1886,9 @@ export function TransferSettingsWorkspace({
                 className="td-chip-btn"
                 onClick={() => setShowTabResetConfirm(false)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#cbd5e1',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-secondary)',
                   fontWeight: 600,
                 }}
               >
@@ -1930,9 +1930,9 @@ export function TransferSettingsWorkspace({
                 className="td-chip-btn"
                 onClick={() => setShowResetConfirm(false)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#cbd5e1',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-secondary)',
                   fontWeight: 600,
                 }}
               >

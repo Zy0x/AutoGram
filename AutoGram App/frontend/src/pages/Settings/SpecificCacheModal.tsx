@@ -633,8 +633,8 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             display: 'flex',
             gap: '8px',
             padding: '12px 24px',
-            background: 'rgba(0, 0, 0, 0.2)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--bg-primary, rgba(0, 0, 0, 0.2))',
+            borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.06))',
           }}
         >
           <button

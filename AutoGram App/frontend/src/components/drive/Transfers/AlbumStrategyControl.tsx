@@ -117,7 +117,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
       {/* 1. STRATEGY SELECTION TILES — COMPACT 2-COLUMN TILES */}
       <div>
         <div style={{ marginBottom: '10px' }}>
-          <label className="td-field-label" style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label className="td-field-label" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Layers size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
             {t('drive.album_strategy_title')}
           </label>
@@ -147,7 +147,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             {/* Title Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
               <Sparkles size={16} className="td-tile-icon is-auto" style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-              <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
                 {t('drive.album_strategy_smart')}
               </strong>
               <button
@@ -191,7 +191,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
             {/* Title Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
               <Sliders size={16} className="td-tile-icon is-disable" style={{ color: '#a855f7' }} />
-              <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+              <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
                 {t('drive.album_strategy_custom')}
               </strong>
               <button
@@ -290,7 +290,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               <strong style={{ color: '#fbbf24', fontSize: '0.78rem' }}>
                 {t('drive.album_strategy_custom_warning_title')}
               </strong>
-              <span style={{ fontSize: '0.73rem', color: '#cbd5e1' }}>
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>
                 — {t('drive.album_strategy_custom_warning_short')}
               </span>
               <button
@@ -440,7 +440,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               {/* SMART MODE OVERLAY CONTENT */}
               {activeOverlay === 'smart' && (
                 <>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     {t('drive.album_strategy_smart_desc')}
                   </p>
                   <div
@@ -466,7 +466,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               {/* CUSTOM GRID OVERLAY CONTENT */}
               {activeOverlay === 'custom' && (
                 <>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     {t('drive.album_strategy_custom_desc')}
                   </p>
                   <div
@@ -476,7 +476,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                       borderRadius: '10px',
                       padding: '12px 14px',
                       fontSize: '0.78rem',
-                      color: '#e2e8f0',
+                      color: 'var(--text-primary)',
                       lineHeight: '1.45',
                     }}
                   >
@@ -488,14 +488,14 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               {/* TIMEOUT WARNING OVERLAY CONTENT */}
               {activeOverlay === 'warning' && (
                 <>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     {t('drive.album_strategy_custom_warning_desc')}
                   </p>
 
                   {/* Concrete Real Examples (10 -> 9+1, 13 -> 9+1+3 / 7+1+2) */}
                   <div
                     style={{
-                      background: 'rgba(0, 0, 0, 0.35)',
+                      background: 'var(--bg-card)',
                       borderRadius: '10px',
                       padding: '12px 14px',
                       border: '1px solid rgba(245, 158, 11, 0.25)',
@@ -507,10 +507,10 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fcd34d' }}>
                       {t('drive.album_strategy_custom_warning_examples_title')}
                     </span>
-                    <div style={{ fontSize: '0.76rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                       {t('drive.album_strategy_custom_warning_example_10')}
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                       {t('drive.album_strategy_custom_warning_example_13')}
                     </div>
                   </div>

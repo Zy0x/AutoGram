@@ -288,10 +288,10 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                     </div>
                                   </div>
                                   <div style={{ textAlign: 'center', marginBottom: 16, width: '100%', padding: '0 12px' }}>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       {getFormatDisplayLabel(activeFormatForCanvas, resolvedMedia, t)}
                                     </span>
-                                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                                       {t('drive.remote_audio_player_title')}
                                     </span>
                                   </div>

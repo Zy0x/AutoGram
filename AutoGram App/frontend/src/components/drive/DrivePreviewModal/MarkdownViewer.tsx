@@ -29,9 +29,9 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         <div key={key} style={{ margin: '16px 0', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+              <tr style={{ background: 'var(--bg-card)' }}>
                 {headers.map((h, i) => (
-                  <th key={i} style={{ padding: '8px 12px', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
+                  <th key={i} style={{ padding: '8px 12px', border: '1px solid var(--border-default)', color: 'var(--accent-primary)', fontWeight: 600 }}>
                     {h}
                   </th>
                 ))}
@@ -39,9 +39,9 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
             </thead>
             <tbody>
               {dataRows.map((r, ri) => (
-                <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.02)' }}>
+                <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : 'var(--bg-card)' }}>
                   {r.map((c, ci) => (
-                    <td key={ci} style={{ padding: '7px 12px', border: '1px solid rgba(255, 255, 255, 0.08)', color: '#e2e8f0' }}>
+                    <td key={ci} style={{ padding: '7px 12px', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>
                       {c}
                     </td>
                   ))}
@@ -58,13 +58,13 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
     const flushCodeBlock = (key: string) => {
       if (codeBlockLines.length === 0) return;
       elements.push(
-        <div key={key} style={{ margin: '14px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-default)', background: 'var(--bg-main)' }}>
+        <div key={key} style={{ margin: '14px 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
           {codeBlockLang && (
-            <div style={{ padding: '4px 12px', background: 'rgba(255, 255, 255, 0.04)', fontSize: '11px', color: '#94a3b8', fontWeight: 600, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div style={{ padding: '4px 12px', background: 'var(--bg-primary)', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border-subtle)' }}>
               {codeBlockLang.toUpperCase()}
             </div>
           )}
-          <pre style={{ margin: 0, padding: '12px', overflowX: 'auto', fontSize: '12.5px', fontFamily: 'monospace', color: '#e2e8f0', lineHeight: 1.45 }}>
+          <pre style={{ margin: 0, padding: '12px', overflowX: 'auto', fontSize: '12.5px', fontFamily: 'monospace', color: 'var(--text-primary)', lineHeight: 1.45 }}>
             {codeBlockLines.join('\n')}
           </pre>
         </div>
@@ -110,17 +110,17 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
 
       // Headings
       if (line.startsWith('# ')) {
-        elements.push(<h1 key={i} style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', margin: '20px 0 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px' }}>{line.slice(2)}</h1>);
+        elements.push(<h1 key={i} style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: '20px 0 10px', borderBottom: '1px solid var(--border-default)', paddingBottom: '8px' }}>{line.slice(2)}</h1>);
       } else if (line.startsWith('## ')) {
-        elements.push(<h2 key={i} style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9', margin: '18px 0 8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '6px' }}>{line.slice(3)}</h2>);
+        elements.push(<h2 key={i} style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: '18px 0 8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>{line.slice(3)}</h2>);
       } else if (line.startsWith('### ')) {
-        elements.push(<h3 key={i} style={{ fontSize: '16px', fontWeight: 600, color: '#e2e8f0', margin: '14px 0 6px' }}>{line.slice(4)}</h3>);
+        elements.push(<h3 key={i} style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: '14px 0 6px' }}>{line.slice(4)}</h3>);
       } else if (line.startsWith('#### ')) {
-        elements.push(<h4 key={i} style={{ fontSize: '14px', fontWeight: 600, color: '#cbd5e1', margin: '12px 0 4px' }}>{line.slice(5)}</h4>);
+        elements.push(<h4 key={i} style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: '12px 0 4px' }}>{line.slice(5)}</h4>);
       } else if (line.startsWith('> ')) {
         // Blockquote
         elements.push(
-          <blockquote key={i} style={{ margin: '12px 0', padding: '8px 16px', borderLeft: '3px solid var(--accent-primary, #38bdf8)', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)', color: 'var(--text-primary, #bae6fd)', borderRadius: '0 6px 6px 0', fontSize: '13px' }}>
+          <blockquote key={i} style={{ margin: '12px 0', padding: '8px 16px', borderLeft: '3px solid var(--accent-primary)', background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--text-primary)', borderRadius: '0 6px 6px 0', fontSize: '13px' }}>
             {line.slice(2)}
           </blockquote>
         );
@@ -128,16 +128,16 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         // Task list
         const checked = line.startsWith('- [x] ') || line.startsWith('- [X] ');
         elements.push(
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0', fontSize: '13.5px', color: checked ? '#94a3b8' : '#f8fafc' }}>
-            <input type="checkbox" checked={checked} readOnly style={{ accentColor: 'var(--accent-primary, #38bdf8)' }} />
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0', fontSize: '13.5px', color: checked ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+            <input type="checkbox" checked={checked} readOnly style={{ accentColor: 'var(--accent-primary)' }} />
             <span style={{ textDecoration: checked ? 'line-through' : 'none' }}>{line.slice(6)}</span>
           </div>
         );
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         // Bullet list
         elements.push(
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: '#e2e8f0' }}>
-            <span style={{ color: 'var(--accent-primary, #38bdf8)', lineHeight: '1.4' }}>•</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: 'var(--text-primary)' }}>
+            <span style={{ color: 'var(--accent-primary)', lineHeight: '1.4' }}>•</span>
             <span style={{ flex: 1, lineHeight: '1.5' }}>{line.slice(2)}</span>
           </div>
         );
@@ -145,18 +145,18 @@ export const MarkdownViewer: React.FC<Props> = ({ content, fileName, viewMode: c
         // Numbered list
         const match = line.match(/^(\d+\.)\s(.*)$/);
         elements.push(
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: '#e2e8f0' }}>
-            <span style={{ color: 'var(--accent-primary, #38bdf8)', fontWeight: 600, minWidth: '18px' }}>{match ? match[1] : '1.'}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '3px 0 3px 12px', fontSize: '13.5px', color: 'var(--text-primary)' }}>
+            <span style={{ color: 'var(--accent-primary)', fontWeight: 600, minWidth: '18px' }}>{match ? match[1] : '1.'}</span>
             <span style={{ flex: 1, lineHeight: '1.5' }}>{match ? match[2] : line}</span>
           </div>
         );
       } else if (line.trim() === '---' || line.trim() === '***') {
-        elements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '20px 0' }} />);
+        elements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border-default)', margin: '20px 0' }} />);
       } else if (!line.trim()) {
         elements.push(<div key={i} style={{ height: '10px' }} />);
       } else {
         elements.push(
-          <p key={i} style={{ margin: '4px 0', fontSize: '13.5px', lineHeight: '1.6', color: '#e2e8f0', userSelect: 'text' }}>
+          <p key={i} style={{ margin: '4px 0', fontSize: '13.5px', lineHeight: '1.6', color: 'var(--text-primary)', userSelect: 'text' }}>
             {line}
           </p>
         );

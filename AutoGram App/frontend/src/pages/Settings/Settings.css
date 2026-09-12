@@ -58,7 +58,7 @@
   padding: clamp(0.875rem, 1.8vw, 1.25rem);
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius);
-  background: rgba(10, 18, 28, 0.78);
+  background: var(--bg-card);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -339,7 +339,7 @@
 
 .settings-page .btn-primary {
   border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 38%, transparent);
-  color: #04111d;
+  color: var(--text-on-accent, #ffffff);
   background: var(--settings-accent);
   box-shadow: none;
 }
@@ -349,16 +349,16 @@
 }
 
 .settings-page .btn-primary:hover:not(:disabled) {
-  color: #03101a;
-  background: #67cff5;
+  color: var(--text-on-accent, #ffffff);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 85%, white);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent);
 }
 
 .settings-page .btn-secondary,
 .settings-page .btn:not(.btn-primary):not(.btn-danger) {
   border: 1px solid var(--settings-border);
-  color: #d7e0ea;
-  background: rgba(255, 255, 255, 0.045);
+  color: var(--text-secondary);
+  background: var(--bg-card);
   box-shadow: none;
 }
 
@@ -373,7 +373,7 @@
   padding: 0.6rem 0.7rem;
   border: 1px solid var(--settings-border);
   border-radius: 10px;
-  background: rgba(4, 12, 22, 0.42);
+  background: var(--bg-card);
 }
 
 .settings-page label.title-with-icon:has(input[type='checkbox']):hover {
@@ -393,11 +393,11 @@
   width: 100%;
   min-height: 4.8rem;
   padding: 0.9rem 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border-default);
   border-radius: 14px;
   color: var(--text-main);
   text-align: left;
-  background: rgba(11, 18, 30, 0.65);
+  background: var(--bg-card);
   cursor: pointer;
   box-sizing: border-box;
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
@@ -406,7 +406,7 @@
 .settings-tier-option:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent);
-  background: rgba(20, 32, 48, 0.85);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, var(--bg-card));
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent);
 }
 
@@ -416,7 +416,7 @@
 
 .settings-tier-option.is-selected {
   border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 55%, transparent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent) 0%, rgba(15, 23, 42, 0.88) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent) 0%, var(--bg-card) 100%);
   box-shadow: inset 3px 0 0 var(--settings-accent-strong), 0 0 20px color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
 }
 
@@ -542,7 +542,7 @@
 .settings-cache-limit {
   border-color: var(--settings-border) !important;
   border-radius: 12px !important;
-  background: rgba(4, 12, 22, 0.45) !important;
+  background: var(--bg-card) !important;
 }
 
 .settings-cache-summary strong,
@@ -780,7 +780,7 @@
   background: var(--bg-card, #0b1520);
   border: 1px solid var(--border-color, color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  color: #f8fafc;
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -788,7 +788,7 @@
 }
 
 .custom-account-select-trigger:hover {
-  background: rgba(14, 25, 38, 0.95);
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-card));
   border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 55%, transparent);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 14px color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent);
 }
@@ -961,7 +961,7 @@
   .settings-page .glass-panel.card,
   .settings-card,
   .settings-header {
-    background: #101a26;
+    background: var(--bg-modal, var(--bg-card));
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1172,8 +1172,8 @@
   justify-content: space-between !important;
   padding: 0 16px !important;
   border-radius: 14px !important;
-  background: rgba(13, 20, 32, 0.88) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(16px) !important;
   margin-bottom: min(2vh, 18px) !important;
@@ -1204,11 +1204,12 @@
   letter-spacing: -0.02em !important;
   margin: 0 !important;
   line-height: 1.1 !important;
+  color: var(--text-primary) !important;
 }
 
 .settings-header .subtitle {
   font-size: 0.76rem !important;
-  color: #94a3b8 !important;
+  color: var(--text-secondary) !important;
   margin: 2px 0 0 0 !important;
   line-height: 1.15 !important;
 }
@@ -1260,8 +1261,8 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
-  background: rgba(13, 20, 32, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-sidebar, var(--bg-card)) !important;
+  border: 1px solid var(--border-default) !important;
   border-radius: 14px !important;
   padding: 6px !important;
   backdrop-filter: blur(16px) !important;
@@ -1306,8 +1307,8 @@
 .settings-page .glass-panel.card,
 .settings-card {
   border-radius: 16px !important;
-  background: var(--bg-card, rgba(13, 20, 32, 0.9)) !important;
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08)) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
   box-shadow: 0 14px 38px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   padding: min(2.5vh, 22px) min(2.5vw, 24px) !important;
   backdrop-filter: blur(16px) !important;

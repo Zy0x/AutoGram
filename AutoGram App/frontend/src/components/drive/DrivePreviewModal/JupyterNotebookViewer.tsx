@@ -56,9 +56,9 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-modal, var(--bg-card))', color: 'var(--text-primary)', overflowY: 'auto', padding: '20px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '16px', borderBottom: '1px solid var(--border-default)', marginBottom: '20px' }}>
         <BookOpen size={18} className="text-amber-400" />
-        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', fontWeight: 600 }}>
+        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)', fontWeight: 600 }}>
           Jupyter Notebook ({cells.length} cells: {cells.filter(c => c.cell_type === 'code').length} code, {cells.filter(c => c.cell_type === 'markdown').length} markdown)
         </span>
       </div>
@@ -74,12 +74,12 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
                 key={idx}
                 style={{
                   padding: '14px 18px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-default)',
                   borderRadius: '8px',
                   lineHeight: '1.6',
                   fontSize: '13px',
-                  color: '#cbd5e1',
+                  color: 'var(--text-primary)',
                   whiteSpace: 'pre-wrap',
                 }}
               >
@@ -93,21 +93,21 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
               <div
                 key={idx}
                 style={{
-                  background: '#070a12',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-default)',
                   borderRadius: '8px',
                   overflow: 'hidden',
                 }}
               >
                 {/* Code Header Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--accent-primary, #38bdf8)', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--accent-primary)', fontWeight: 600 }}>
                     In [{cell.execution_count != null ? cell.execution_count : ' '}]:
                   </span>
                   <button
                     type="button"
                     onClick={() => handleCopyCode(srcText, idx)}
-                    style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
                     {copiedCell === idx ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
                     <span>{copiedCell === idx ? 'Tersalin' : 'Salin'}</span>
@@ -115,20 +115,20 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
                 </div>
 
                 {/* Code Content */}
-                <pre style={{ margin: 0, padding: '12px 16px', fontSize: '12px', fontFamily: 'Consolas, Monaco, monospace', color: '#e2e8f0', background: 'transparent', overflowX: 'auto' }}>
+                <pre style={{ margin: 0, padding: '12px 16px', fontSize: '12px', fontFamily: 'Consolas, Monaco, monospace', color: 'var(--text-primary)', background: 'transparent', overflowX: 'auto' }}>
                   <code>{srcText}</code>
                 </pre>
 
                 {/* Outputs */}
                 {Array.isArray(cell.outputs) && cell.outputs.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', background: 'rgba(0, 0, 0, 0.3)', padding: '10px 16px' }}>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-primary)', padding: '10px 16px' }}>
                     {cell.outputs.map((out, outIdx) => {
                       const outText = out.text ? (Array.isArray(out.text) ? out.text.join('') : String(out.text)) : out.data?.['text/plain'] ? (Array.isArray(out.data['text/plain']) ? out.data['text/plain'].join('') : String(out.data['text/plain'])) : '';
                       const imgPng = out.data?.['image/png'];
                       const imgJpeg = out.data?.['image/jpeg'];
 
                       return (
-                        <div key={outIdx} style={{ fontSize: '11px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                        <div key={outIdx} style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                           {out.execution_count != null && (
                             <span style={{ color: '#f43f5e', marginRight: '6px', fontWeight: 600 }}>
                               Out [{out.execution_count}]:
@@ -141,7 +141,7 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
                             <img src={`data:image/jpeg;base64,${imgJpeg}`} alt="Output Plot" style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />
                           )}
                           {outText && (
-                            <pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: '#cbd5e1' }}>{outText}</pre>
+                            <pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{outText}</pre>
                           )}
                         </div>
                       );

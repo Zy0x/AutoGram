@@ -470,8 +470,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: '#090d16',
-        color: '#f8fafc',
+        background: 'var(--bg-modal, var(--bg-card))',
+        color: 'var(--text-primary)',
         overflow: 'hidden',
         position: 'relative',
       }}
@@ -482,14 +482,14 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 16px',
-          background: '#0e1422',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-card)',
+          borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
           flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Presentation size={17} className="text-orange-400" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
             {activeSlide?.title || `Slide ${currentSlideIdx + 1}`}
           </span>
           <span
@@ -577,8 +577,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
         <div
           style={{
             width: '160px',
-            background: '#0b0f19',
-            borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-sidebar, var(--bg-card))',
+            borderRight: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
@@ -598,8 +598,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 gap: '4px',
                 padding: '6px',
                 borderRadius: '6px',
-                background: currentSlideIdx === idx ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                border: `1.5px solid ${currentSlideIdx === idx ? '#f97316' : 'rgba(255, 255, 255, 0.06)'}`,
+                background: currentSlideIdx === idx ? 'rgba(249, 115, 22, 0.15)' : 'var(--bg-card)',
+                border: `1.5px solid ${currentSlideIdx === idx ? '#f97316' : 'var(--border-default, rgba(255, 255, 255, 0.06))'}`,
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'border-color 0.15s, background 0.15s',
@@ -645,7 +645,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
             justifyContent: 'center',
             padding: '24px',
             overflow: 'auto',
-            background: '#070a12',
+            background: 'var(--bg-primary, var(--bg-main))',
             position: 'relative',
           }}
         >
@@ -801,8 +801,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
           justifyContent: 'center',
           gap: '12px',
           padding: '8px 16px',
-          background: '#0e1422',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-card)',
+          borderTop: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
           flexShrink: 0,
         }}
       >
@@ -816,9 +816,9 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
             gap: '4px',
             padding: '5px 12px',
             borderRadius: '6px',
-            background: currentSlideIdx === 0 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)',
-            color: currentSlideIdx === 0 ? '#475569' : '#f8fafc',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: currentSlideIdx === 0 ? 'transparent' : 'var(--bg-card)',
+            color: currentSlideIdx === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+            border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
             cursor: currentSlideIdx === 0 ? 'not-allowed' : 'pointer',
             fontSize: '12px',
             fontWeight: 600,
@@ -828,8 +828,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
           <span>Sebelumnya</span>
         </button>
 
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', minWidth: '100px', textAlign: 'center' }}>
-          Slide <strong style={{ color: '#f8fafc' }}>{currentSlideIdx + 1}</strong> dari <strong style={{ color: '#f8fafc' }}>{slides.length}</strong>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '100px', textAlign: 'center' }}>
+          Slide <strong style={{ color: 'var(--text-primary)' }}>{currentSlideIdx + 1}</strong> dari <strong style={{ color: 'var(--text-primary)' }}>{slides.length}</strong>
         </span>
 
         <button
@@ -842,9 +842,9 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
             gap: '4px',
             padding: '5px 12px',
             borderRadius: '6px',
-            background: currentSlideIdx === slides.length - 1 ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)',
-            color: currentSlideIdx === slides.length - 1 ? '#475569' : '#f8fafc',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: currentSlideIdx === slides.length - 1 ? 'transparent' : 'var(--bg-card)',
+            color: currentSlideIdx === slides.length - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+            border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
             cursor: currentSlideIdx === slides.length - 1 ? 'not-allowed' : 'pointer',
             fontSize: '12px',
             fontWeight: 600,

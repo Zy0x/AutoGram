@@ -31,10 +31,10 @@ export function DownloadSettingsSection({ activeTab, ctx }: { activeTab: string;
                   <Download size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     1. {t('drive.tab_download_title')}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                     {t('drive.tab_download_desc')}
                   </p>
                 </div>

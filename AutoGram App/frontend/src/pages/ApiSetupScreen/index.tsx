@@ -133,7 +133,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
         width: '100%',
         height: 'fit-content',
         alignSelf: 'center',
-        background: 'linear-gradient(150deg, rgba(16, 26, 44, 0.98) 0%, rgba(10, 16, 30, 0.98) 100%)',
+        background: 'var(--bg-modal, var(--bg-card))',
         border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
         borderRadius: '20px',
         padding: '20px 22px',

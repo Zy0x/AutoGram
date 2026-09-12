@@ -1161,12 +1161,12 @@ export function JobEditor({
               </div>
 
               {/* Filters & Rules Section */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
+              <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)' }}>
                   <Settings size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>{t('ui.generated.configuration_details_317e190')}</h4>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px' }}>
                   
                   <div>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>{t('drive.mode_label')}</span>

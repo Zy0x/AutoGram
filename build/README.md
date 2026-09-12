@@ -1,4 +1,4 @@
-﻿# AutoGram Build System & Release Hub
+# AutoGram Build System & Release Hub
 
 This directory is the dedicated standalone hub for building, packaging, and producing distribution binaries for **AutoGram Desktop (Windows)** and **AutoGram Mobile (Android APK)**.
 
@@ -14,6 +14,8 @@ build/
 ├── build_desktop.ps1              # Desktop build engine (PowerShell)
 ├── build_apk.bat                  # Compile & package Android APK (.apk)
 ├── build_apk.ps1                  # Android APK build engine (PowerShell)
+├── clean_build.bat                # 1-Click deep purge of all build caches & bloat
+├── clean_build.ps1                # High-speed comprehensive purge engine (PowerShell)
 ├── bootstrap_toolchains.bat       # Auto-download isolated Android SDK & JDK 17
 │
 ├── tools/                         # Build helper scripts & utilities
@@ -25,6 +27,18 @@ build/
     ├── desktop/                   # Output Windows executables & MSI installers
     └── apk/                       # Output Android debug & release APKs
 ```
+
+---
+
+## 🧹 How to Deep Clean Build Caches & Free Disk Space
+
+Whenever compilation targets accumulate or storage approaches 40 GB:
+Double-click `clean_build.bat` (or `Bersihkan_Sampah_AutoGram.bat` in root) or run:
+```cmd
+build\clean_build.bat
+```
+* **Purges**: `build\target` (Cargo Desktop & Android), `src-tauri\target`, `worker\cache\preview`, `.gradle`, and Vite caches.
+* **Preserves (Whitelisted)**: User sessions (`worker\sessions`), SQLite database (`worker\database`), SDK toolchains (`.toolchains`), and source code.
 
 ---
 

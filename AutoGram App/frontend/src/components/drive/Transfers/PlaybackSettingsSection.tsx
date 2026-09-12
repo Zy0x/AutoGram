@@ -32,10 +32,10 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                     <PlaySquare size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                       {t('drive.tab_playback_title')}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                       {t('drive.tab_playback_desc')}
                     </p>
                   </div>
@@ -82,10 +82,10 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                   }}
                 >
                   <div>
-                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', display: 'block' }}>
                       {t('drive.playback_history_cache_title')}
                     </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       {t('drive.playback_history_cache_desc')}
                     </p>
                   </div>
