@@ -146,10 +146,10 @@ export const NetworkSection = memo(function NetworkSection() {
     <div
       style={{
         background: 'linear-gradient(150deg, var(--bg-card, rgba(15, 22, 36, 0.8)) 0%, var(--bg-primary, rgba(8, 12, 22, 0.95)) 100%)',
-        border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
+        border: '1px solid var(--border-default, var(--border-subtle, rgba(255, 255, 255, 0.08)))',
         borderRadius: '16px',
         padding: '24px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+        boxShadow: 'var(--shadow-card, 0 4px 20px rgba(0, 0, 0, 0.15))',
       }}
     >
       {/* SECTION HEADER */}
@@ -169,11 +169,11 @@ export const NetworkSection = memo(function NetworkSection() {
         >
           <Network size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
         </div>
-        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)', letterSpacing: '-0.01em' }}>
           {t('settings.proxy_title')}
         </h3>
       </div>
-      <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
+      <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.5 }}>
         {t(
           'settings.proxy_subtitle'
         )}
@@ -207,14 +207,14 @@ export const NetworkSection = memo(function NetworkSection() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '14px',
-              background: 'var(--bg-card, rgba(15, 23, 42, 0.4))',
+              background: 'var(--bg-elevated, var(--bg-card, rgba(15, 23, 42, 0.4)))',
               padding: '18px',
               borderRadius: '14px',
-              border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
+              border: '1px solid var(--border-default, var(--border-subtle, rgba(255, 255, 255, 0.08)))',
             }}
           >
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                 {t('ui.generated.tipe_proxy_b102b20')}
               </label>
               <select
@@ -222,9 +222,9 @@ export const NetworkSection = memo(function NetworkSection() {
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.85rem',
                   outline: 'none',
                 }}
@@ -244,7 +244,7 @@ export const NetworkSection = memo(function NetworkSection() {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                 {t('ui.generated.host_ip_4c8335b')}
               </label>
               <input
@@ -252,9 +252,9 @@ export const NetworkSection = memo(function NetworkSection() {
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.85rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -271,7 +271,7 @@ export const NetworkSection = memo(function NetworkSection() {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                 {t('settings.proxy_port_label')}
               </label>
               <input
@@ -280,9 +280,9 @@ export const NetworkSection = memo(function NetworkSection() {
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.85rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -301,7 +301,7 @@ export const NetworkSection = memo(function NetworkSection() {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                 {t('ui.generated.username_opsional_83d3e74')}
               </label>
               <input
@@ -309,9 +309,9 @@ export const NetworkSection = memo(function NetworkSection() {
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.85rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -327,7 +327,7 @@ export const NetworkSection = memo(function NetworkSection() {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                 {t('ui.generated.password_opsional_07ba8e3')}
               </label>
               <input
@@ -336,9 +336,9 @@ export const NetworkSection = memo(function NetworkSection() {
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
+                  background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                  border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                  color: 'var(--text-primary, #f8fafc)',
                   fontSize: '0.85rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -355,7 +355,7 @@ export const NetworkSection = memo(function NetworkSection() {
 
             {netCfg.proxy.proxyType === 'mtproto' && (
               <div>
-                <label style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+                <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
                   {t('ui.generated.mtproto_secret_hex_73e805f')}
                 </label>
                 <input
@@ -363,9 +363,9 @@ export const NetworkSection = memo(function NetworkSection() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '10px',
-                    background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    color: '#f8fafc',
+                    background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                    border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.12)))',
+                    color: 'var(--text-primary, #f8fafc)',
                     fontSize: '0.85rem',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -384,7 +384,7 @@ export const NetworkSection = memo(function NetworkSection() {
           </div>
         )}
 
-        <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))', margin: '4px 0' }} />
 
         {/* VPN OPTIMIZER TOGGLE SWITCH (AUTO-SAVE) */}
         <div className="td-switches-list">
@@ -424,24 +424,24 @@ export const NetworkSection = memo(function NetworkSection() {
 
         {/* STATUS MESSAGES */}
         {proxyStatus && (
-          <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', margin: '4px 0 0 0' }}>
             {t('settings.proxy_tcp_label')}{' '}
-            <strong style={{ color: proxyStatus.reachable ? '#4ade80' : '#f87171' }}>
+            <strong style={{ color: proxyStatus.reachable ? '#10b981' : '#ef4444' }}>
               {proxyStatus.reachable ? t('ui.generated.ok_9ce3bd4') : t('jobs.status_failed')}
             </strong>
             {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
           </p>
         )}
         {netAvail != null && (
-          <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', margin: '4px 0 0 0' }}>
             {t('settings.proxy_reachability')}{' '}
-            <strong style={{ color: netAvail ? '#4ade80' : '#f87171' }}>
+            <strong style={{ color: netAvail ? '#10b981' : '#ef4444' }}>
               {netAvail ? t('settings.proxy_available') : t('settings.proxy_unavailable')}
             </strong>
           </p>
         )}
         {vpnHint != null && vpnHint && (
-          <p style={{ fontSize: '0.8rem', color: '#f59e0b', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '0.8rem', color: '#d97706', margin: '4px 0 0 0' }}>
             {t('ui.generated.petunjuk_telegram_dc_lambat_tidak_terjangkau_per_52d2398')}
           </p>
         )}

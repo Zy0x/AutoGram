@@ -23,19 +23,32 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
-      <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+    <div
+      className="rounded-2xl p-5 space-y-4 shadow-xl border"
+      style={{
+        background: 'var(--bg-card)',
+        borderColor: 'var(--border-default)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <h3
+        className="text-sm font-bold flex items-center gap-2 pb-3 border-b"
+        style={{
+          borderColor: 'var(--border-default)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <ShieldCheck size={18} className="text-emerald-400" />
         {t('ui.generated.kredensial_api_telegram_api_id_api_hash_a9eae53')}
       </h3>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
         {t('ui.generated.api_id_dan_api_hash_digunakan_oleh_grammers_rust_d74bf8e')}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
             {t('nav.api_id_label')}
           </label>
           <input
@@ -43,12 +56,17 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
             value={apiId}
             onChange={(e) => setApiId(e.target.value)}
             placeholder={t('settings.api_id_ph')}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-xl px-3.5 py-2 text-xs font-mono focus:ring-1 focus:ring-indigo-500 border"
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--border-default)',
+              color: 'var(--text-primary)',
+            }}
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
             {t('nav.api_hash_label')}
           </label>
           <input
@@ -56,19 +74,24 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
             value={apiHash}
             onChange={(e) => setApiHash(e.target.value)}
             placeholder={t('settings.api_hash_ph')}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-xl px-3.5 py-2 text-xs font-mono focus:ring-1 focus:ring-indigo-500 border"
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--border-default)',
+              color: 'var(--text-primary)',
+            }}
           />
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2">
         {saveStatus === 'success' && (
-          <span className="text-xs text-emerald-400 font-medium">
+          <span className="text-xs text-emerald-500 font-medium">
             {t('settings.creds_save_success')}
           </span>
         )}
         {saveStatus === 'error' && (
-          <span className="text-xs text-red-400 font-medium">
+          <span className="text-xs text-red-500 font-medium">
             {t('settings.creds_save_fail')}
           </span>
         )}

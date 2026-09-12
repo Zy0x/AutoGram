@@ -131,6 +131,7 @@ import {
   buildDriveMediaContext,
   scopeMediaRecords,
   deleteMediaRecordsForPeer,
+  deleteMediaRecordsBatchByContext,
   enqueueAction,
   getPendingActions,
   updateActionStatus,
@@ -175,12 +176,12 @@ import {
   driveSyncBackoffMs,
   getDriveLiveSyncPlan,
   reconcileDriveLiveHead,
+  findDeletedMsgIdsFromLiveHead,
   dedupeByMsgId,
   purgeDeletedMsgIds,
   driveGetMediaStats,
   removeFilesFromDeepIndex,
 } from '../../lib/telegram';
-import { shouldPreservePersistentRows } from '../../lib/telegram/persistentIndexPolicy';
 import { mediaListCache } from '../../lib/cache/multiTierCache';
 import {
   driveEngineAccountId,
@@ -292,6 +293,7 @@ import {
   requestNewlyUploadedThumbs,
   notifyTransferBatchDone,
   getCachedThumb,
+  evictThumbsForMessages,
   invalidateThumbFailures,
   setThumbContext,
   setThumbBootstrapMode,
@@ -580,7 +582,8 @@ function MediaDriveDesktop({
   const [chatsLoadingMore, setChatsLoadingMore] = useState(false);
   const [locationKind, setLocationKind] = useState<LocationKind>(initial.kind);
   const [activePeerId, setActivePeerId] = useState<number | null>(initial.id);
-  const [files, setFiles] = useState<DriveFile[]>(() => initialLocationCache?.files ?? []);
+  // Universal Zero-Ghost: start with empty array until authoritative Telegram head validates
+  const [files, setFiles] = useState<DriveFile[]>([]);
   // Filtered Media Stream State (per-category stream for instant fast access)
   const [filteredFilesMap, setFilteredFilesMap] = useState<Record<string, DriveFile[]>>({});
   const [filteredLoading, setFilteredLoading] = useState(false);
@@ -589,14 +592,10 @@ function MediaDriveDesktop({
   const [filteredTotalCountMap, setFilteredTotalCountMap] = useState<Record<string, number | null>>({});
   const filteredNextOffsetMapRef = useRef<Record<string, number | null>>({});
   const filterRequestSeqRef = useRef(0);
-  const [filesHasMore, setFilesHasMore] = useState(() => initialLocationCache?.hasMore ?? false);
+  const [filesHasMore, setFilesHasMore] = useState(false);
   /** Accurate totals for the whole location (not just loaded page) */
-  const [totalFileCount, setTotalFileCount] = useState<number | null>(
-    () => clampMediaTotal(initialLocationCache?.totalCount, initialLocationCache?.files ?? [])
-  );
-  const [totalBytes, setTotalBytes] = useState<number | null>(
-    () => clampMediaBytes(initialLocationCache?.totalBytes, initialLocationCache?.files ?? [])
-  );
+  const [totalFileCount, setTotalFileCount] = useState<number | null>(null);
+  const [totalBytes, setTotalBytes] = useState<number | null>(null);
   /** True when media_stats finished unique walk (not estimate) */
   const [statsAccurate, setStatsAccurate] = useState(false);
   /** Per-type breakdown from accurate media_stats (location-wide) */
@@ -614,9 +613,7 @@ function MediaDriveDesktop({
   // plain component state value can otherwise survive navigation and make a
   // new peer appear partially indexed with the previous peer's count.
   const indexedCountScopeRef = useRef<string>(initCacheKey);
-  const [nextOffsetId, setNextOffsetId] = useState<number | null>(
-    () => initialLocationCache?.nextOffsetId ?? null
-  );
+  const [nextOffsetId, setNextOffsetId] = useState<number | null>(null);
 
   const nextOffsetIdRef = useRef<number | null>(nextOffsetId);
   useEffect(() => {
@@ -635,7 +632,7 @@ function MediaDriveDesktop({
   }, [filesHasMore]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [loadingChats, setLoadingChats] = useState(false);
-  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(true);
   const [loadingMoreFiles, setLoadingMoreFiles] = useState(false);
   const [progressiveReady, setProgressiveReady] = useState(false);
   /** Forum topics for active group — null filter = Semua media */
@@ -1523,37 +1520,19 @@ function MediaDriveDesktop({
       setError(localizedDriveError(e, t));
       setStatusText(t('ui.generated.lokasi_tidak_valid_di_session_ini_d5b3e1a'));
 
-      // Instantly hydrate Saved Messages from local cache so UI is never left blank
+      // Universal Zero-Ghost: require live Telegram validation for Saved Messages
       const currentSession = session || creds?.session;
       if (currentSession) {
         const savedBootKey = getDriveCacheKey(currentSession, null, null);
         indexedCountScopeRef.current = savedBootKey;
         activeFilesCacheKeyRef.current = savedBootKey;
-        const cachedSaved = filesCacheRef.current.get(savedBootKey);
-        if (cachedSaved && cachedSaved.length > 0) {
-          setFiles(cachedSaved);
-          setLoadingFiles(false);
-        } else {
-          const snap = loadDriveLocationSnapshot(localStorage, currentSession, null, null);
-          if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
-            const deduped = dedupeByMsgId(snap.files);
-            filesCacheRef.current.set(savedBootKey, deduped);
-            setFiles(deduped);
-            setFilesHasMore(!!snap.hasMore);
-            setNextOffsetId(snap.nextOffsetId ?? null);
-            if (snap.totalCount != null) setTotalFileCount(snap.totalCount);
-            if (snap.totalBytes != null) setTotalBytes(snap.totalBytes);
-            setLoadingFiles(false);
-          } else {
-            setFiles([]);
-            setLoadingFiles(true);
-          }
-        }
-      } else {
-        setFiles([]);
-        setFilesHasMore(false);
-        setNextOffsetId(null);
       }
+      setFiles([]);
+      setFilesHasMore(false);
+      setNextOffsetId(null);
+      setTotalFileCount(null);
+      setTotalBytes(null);
+      setLoadingFiles(true);
 
       window.setTimeout(() => {
         void refreshFilesRef.current?.(0, { bypassCache: true });
@@ -1702,19 +1681,14 @@ function MediaDriveDesktop({
         setLoadingChats(false);
         setLoadingFolders(false);
       }
-      const location = loadDriveLocationSnapshot(localStorage, next, null, null);
-      if (location && Array.isArray(location.files)) {
-        const dedupedLocFiles = dedupeByMsgId(location.files);
-        const locKey = getDriveCacheKey(next, null, null);
-        filesCacheRef.current.set(locKey, dedupedLocFiles);
-        activeFilesCacheKeyRef.current = locKey;
-        setFiles(dedupedLocFiles);
-        setFilesHasMore(location.hasMore);
-        setNextOffsetId(location.nextOffsetId);
-        if (location.totalCount != null) setTotalFileCount(location.totalCount);
-        if (location.totalBytes != null) setTotalBytes(location.totalBytes);
-        setLoadingFiles(false);
-      }
+      // Universal Zero-Ghost: zero-bleed between accounts, wait for live Telegram response
+      setFiles([]);
+      setFilesHasMore(false);
+      setNextOffsetId(null);
+      setTotalFileCount(null);
+      setTotalBytes(null);
+      setLoadingFiles(true);
+      filesCacheRef.current.clear();
     } catch {
       /* empty until live */
     }
@@ -3407,51 +3381,17 @@ function MediaDriveDesktop({
       setIndexBackfillComplete(false);
     }
 
-    // Instant cache restore
-    const cachedFiles = filesCacheRef.current.get(cacheKey);
-    let persisted: ReturnType<typeof loadDriveLocationSnapshot> = null;
-    if (!cachedFiles) {
-      try {
-        persisted = loadDriveLocationSnapshot(localStorage, creds.session, peerId, tid);
-      } catch {
-        persisted = null;
-      }
-    }
-    const instantFiles = cachedFiles ?? persisted?.files;
-    // Topic views are security-sensitive: cached cards can outlive a deleted
-    // Telegram message. Do not paint a topic from local snapshots before the
-    // authoritative Telegram head has been validated below. Root/peer views
-    // retain the local-first fast path.
-    const topicRequiresLiveValidation = tid != null;
-    if (!topicRequiresLiveValidation && instantFiles && instantFiles.length > 0) {
-      setFiles(dedupeByMsgId(instantFiles));
-      const cachedCount = filesTotalCountRef.current.get(cacheKey);
-      if (cachedCount != null) setTotalFileCount(clampMediaTotal(cachedCount, instantFiles));
-      else if (persisted?.totalCount != null) {
-        setTotalFileCount(clampMediaTotal(persisted.totalCount, instantFiles));
-      }
-      const cachedBytes = filesTotalBytesRef.current.get(cacheKey);
-      if (cachedBytes != null) setTotalBytes(clampMediaBytes(cachedBytes, instantFiles));
-      else if (persisted?.totalBytes != null) {
-        setTotalBytes(clampMediaBytes(persisted.totalBytes, instantFiles));
-      }
-      if (persisted) {
-        filesCacheRef.current.set(cacheKey, persisted.files);
-        setFilesHasMore(persisted.hasMore);
-        setNextOffsetId(persisted.nextOffsetId);
-      }
-      setLoadingFiles(false);
-    } else {
-      setFiles([]);
-      setTotalFileCount(null);
-      setTotalBytes(null);
-      setFilesHasMore(false);
-      setNextOffsetId(null);
-    }
+    // Universal Zero-Ghost: To prevent any ghost card leakage of messages deleted
+    // on Telegram (in Saved Messages, Channels, Groups, DMs, or Topics), never
+    // paint unvalidated cached cards before the authoritative Telegram head response is received.
+    setFiles([]);
+    setTotalFileCount(null);
+    setTotalBytes(null);
+    setFilesHasMore(false);
+    setNextOffsetId(null);
+    setLoadingFiles(true);
 
-    // Canonical persistent restore: read one sorted page from the normalized,
-    // account/peer/topic-scoped store. Never deserialize a duplicate full-array
-    // snapshot into RAM; startup cost remains bounded for 100k-1M item indexes.
+    // Read normalized durable index for delta comparison and stats metadata only.
     let durableRows: DriveFile[] = [];
     let durableIndexFound = false;
     let durableUniqueCount = 0;
@@ -3471,30 +3411,8 @@ function MediaDriveDesktop({
         stagedInitialPageSize(perf.tier, perf.filePage)
       ));
       durableIndexFound = durableRows.length > 0;
-      if (!topicRequiresLiveValidation && durableIndexFound && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
-          const durableCount = await getMediaRecordsCountByContext(mediaContext);
-          durableUniqueCount = durableCount;
-          // The normalized store is authoritative for the number of unique
-          // records in this exact account/peer/topic scope. A checkpoint count
-          // can legitimately lag behind a just-committed delta page.
-          const exactCount = durableCount;
-          const exactBytes = indexState?.exactBytes ?? null;
-          const hasMore = exactCount > durableRows.length;
-          setFiles(durableRows);
-          filesCacheRef.current.set(cacheKey, durableRows);
-          setFilesHasMore(hasMore);
-          filesHasMoreRef.current = hasMore;
-          setNextOffsetId(durableRows[durableRows.length - 1]?.id ?? null);
-          setTotalFileCount(exactCount);
-          setTotalIndexedCount(exactCount);
-          filesTotalCountRef.current.set(cacheKey, exactCount);
-          if (exactBytes != null) {
-            setTotalBytes(exactBytes);
-            filesTotalBytesRef.current.set(cacheKey, exactBytes);
-          }
-          setStatsAccurate(indexState?.backfillComplete === true);
-          setStatsLoading(false);
-          setLoadingFiles(false);
+      if (durableIndexFound) {
+        durableUniqueCount = await getMediaRecordsCountByContext(mediaContext);
       }
     } catch {
       // The live Grammers path below remains available if persistence is damaged.
@@ -3582,22 +3500,15 @@ function MediaDriveDesktop({
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       let page: DriveFile[] = dedupeByMsgId(res.files || []);
-      const preserveDurableRows = !topicRequiresLiveValidation && shouldPreservePersistentRows({
-        persistentRowCount: durableRows.length,
-        remoteRowCount: page.length,
-        remoteTotalCount: res.total_count ?? null,
-        remoteStatsAccurate: res.stats_accurate === true,
-      });
-      if (preserveDurableRows) {
-        page = durableRows;
-        res.has_more = res.has_more === true || Number(res.total_count || 0) > page.length;
-        res.next_offset_id = page[page.length - 1]?.id ?? null;
-        res.total_count = Math.max(
-          Number(res.total_count || 0),
-          filesTotalCountRef.current.get(cacheKey) || page.length
-        );
-        res.total_bytes = res.total_bytes ?? filesTotalBytesRef.current.get(cacheKey) ?? null;
-        res.cached = true;
+
+      // Universal Zero-Ghost: detect messages deleted on Telegram and evict them from snapshots, DB, and thumbnail cache
+      const previousReference = filesCacheRef.current.get(cacheKey) || durableRows;
+      const detectedDeletedIds = findDeletedMsgIdsFromLiveHead(previousReference, page, !!res.has_more);
+      if (detectedDeletedIds.length > 0) {
+        removeFilesFromDriveLocationSnapshot(localStorage, creds.session, peerId, tid, detectedDeletedIds);
+        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+        void deleteMediaRecordsBatchByContext(mediaContext, detectedDeletedIds).catch(() => undefined);
+        evictThumbsForMessages(detectedDeletedIds);
       }
       // Auto-paginate if topic scan returned 0 files but Telegram indicates has_more (supports deep topics up to 10k msgs)
       if (page.length === 0 && res.has_more && tid != null && res.next_offset_id && gen === peerGen.current) {
@@ -3680,15 +3591,11 @@ function MediaDriveDesktop({
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
           return prev;
         }
-        if (!topicRequiresLiveValidation && activeFilesCacheKeyRef.current === cacheKey && prev.length > page.length && page.length > 0) {
-          const merged = reconcileDriveLiveHead(prev, page, !!res.has_more, { isExplicitRefresh: true });
-          filesCacheRef.current.set(cacheKey, merged);
-          return merged;
-        }
         activeFilesCacheKeyRef.current = cacheKey;
         filesCacheRef.current.set(cacheKey, page);
         return page;
       });
+      setLoadingFiles(false);
       const hasMore = !!res.has_more;
       setFilesHasMore(hasMore);
       setNextOffsetId(res.next_offset_id ?? null);
@@ -4702,6 +4609,16 @@ function MediaDriveDesktop({
         const headChanged =
           previousHead.length !== liveHead.length ||
           previousHead.some((file, index) => file.id !== liveHead[index]?.id);
+
+        // Universal Zero-Ghost: detect and evict deleted message IDs from snapshots, DB, and thumbnail cache
+        const detectedDeletedIds = findDeletedMsgIdsFromLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
+        if (detectedDeletedIds.length > 0) {
+          removeFilesFromDriveLocationSnapshot(localStorage, creds.session, peerId, tid, detectedDeletedIds);
+          const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+          void deleteMediaRecordsBatchByContext(mediaContext, detectedDeletedIds).catch(() => undefined);
+          evictThumbsForMessages(detectedDeletedIds);
+        }
+
         // Reconcile live head while retaining older loaded pages so that background
         // interval sync does not abruptly truncate the list and reset user scroll position.
         const keptExtendedPages = !!res.has_more && loadedBefore > liveHead.length;
@@ -4906,34 +4823,13 @@ function MediaDriveDesktop({
           setLoadingChats(false);
           setLoadingFolders(false);
         }
-        // Only paint Saved Messages root cache for the NEW session
-        const location = loadDriveLocationSnapshot(localStorage, creds.session, null, null);
-        if (location) {
-          const key = getDriveCacheKey(creds.session, null, null);
-          const dedupedBootFiles = dedupeByMsgId(location.files);
-          filesCacheRef.current.set(key, dedupedBootFiles);
-          activeFilesCacheKeyRef.current = key;
-          setFiles(dedupedBootFiles);
-          setFilesHasMore(location.hasMore);
-          setNextOffsetId(location.nextOffsetId);
-          if (location.totalCount != null) {
-            filesTotalCountRef.current.set(key, location.totalCount);
-            setTotalFileCount(location.totalCount);
-          }
-          if (location.totalBytes != null) {
-            filesTotalBytesRef.current.set(key, location.totalBytes);
-            setTotalBytes(location.totalBytes);
-          }
-          setLoadingFiles(false);
-        } else {
-          const cachedFiles = sessionStorage.getItem(`drive_root_files_${creds.session}`);
-          if (cachedFiles) {
-            const parsed = JSON.parse(cachedFiles);
-            setFiles(dedupeByMsgId(parsed.files || []));
-            if (parsed.totalCount != null) setTotalFileCount(Number(parsed.totalCount));
-            if (parsed.totalBytes != null) setTotalBytes(Number(parsed.totalBytes));
-          }
-        }
+        // Universal Zero-Ghost: keep files cleared with skeleton loader until live validation completes
+        setFiles([]);
+        setFilesHasMore(false);
+        setNextOffsetId(null);
+        setTotalFileCount(null);
+        setTotalBytes(null);
+        setLoadingFiles(true);
         if (!sidebar) {
           const cachedChats = sessionStorage.getItem(`drive_root_chats_${creds.session}`);
           if (cachedChats) {
@@ -6742,30 +6638,16 @@ function MediaDriveDesktop({
               setTopics([]);
               setIsForumChat(false);
 
-              // Instantly hydrate Saved Messages from local cache so UI is never left blank
+              // Universal Zero-Ghost: require live Telegram validation for Saved Messages
               const savedBootKey = getDriveCacheKey(creds.session, null, null);
               indexedCountScopeRef.current = savedBootKey;
               activeFilesCacheKeyRef.current = savedBootKey;
-              const cachedSaved = filesCacheRef.current.get(savedBootKey);
-              if (cachedSaved && cachedSaved.length > 0) {
-                setFiles(cachedSaved);
-                setLoadingFiles(false);
-              } else {
-                const snap = loadDriveLocationSnapshot(localStorage, creds.session, null, null);
-                if (snap && Array.isArray(snap.files) && snap.files.length > 0) {
-                  const deduped = dedupeByMsgId(snap.files);
-                  filesCacheRef.current.set(savedBootKey, deduped);
-                  setFiles(deduped);
-                  setFilesHasMore(!!snap.hasMore);
-                  setNextOffsetId(snap.nextOffsetId ?? null);
-                  if (snap.totalCount != null) setTotalFileCount(snap.totalCount);
-                  if (snap.totalBytes != null) setTotalBytes(snap.totalBytes);
-                  setLoadingFiles(false);
-                } else {
-                  setFiles([]);
-                  setLoadingFiles(true);
-                }
-              }
+              setFiles([]);
+              setFilesHasMore(false);
+              setNextOffsetId(null);
+              setTotalFileCount(null);
+              setTotalBytes(null);
+              setLoadingFiles(true);
             }
 
             try {

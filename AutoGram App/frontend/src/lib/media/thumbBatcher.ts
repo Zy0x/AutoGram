@@ -3,6 +3,11 @@
  * High-end: multiple concurrent batches + aggressive flush.
  * Low-end: single flight, never one-shot Python spawn.
  */
+/**
+ * Coalesce thumbnail requests into one worker process per batch.
+ * High-end: multiple concurrent batches + aggressive flush.
+ * Low-end: single flight, never one-shot Python spawn.
+ */
 import { driveThumbnailsBatch, type DriveCredentials } from '../telegram/driveApi';
 import { debugLog } from '../utils/debugMode';
 import type { DriveThumbQuality } from '../telegram/driveTypes';
@@ -12,6 +17,7 @@ import { isDriveSessionReady } from '../telegram';
 import {
   loadPersistentThumb,
   loadPersistentThumbs,
+  removePersistentThumbsForMessages,
   savePersistentThumb,
 } from './thumbPersistentCache';
 
@@ -114,6 +120,19 @@ class LRUThumbnailCache {
       URL.revokeObjectURL(oldUrl);
     }
     this.cache.delete(key);
+  }
+
+  deleteByMessageIds(messageIds: number[]): void {
+    if (!messageIds || !messageIds.length) return;
+    const suffixes = new Set(messageIds.map((id) => `:${id}`));
+    for (const key of [...this.cache.keys()]) {
+      for (const suffix of suffixes) {
+        if (key.endsWith(suffix)) {
+          this.delete(key);
+          break;
+        }
+      }
+    }
   }
 
   clear(): void {
@@ -627,6 +646,16 @@ export function cacheCapturedThumb(
     void savePersistentThumb(k, dataUrl);
     notifyThumbReady(k, dataUrl, false);
   }
+}
+
+/**
+ * Evict thumbnails for messages that were deleted on Telegram.
+ * Revokes blob URLs, removes them from in-memory cache, and cleans IndexedDB.
+ */
+export function evictThumbsForMessages(messageIds: number[]): void {
+  if (!messageIds || !messageIds.length) return;
+  memCache.deleteByMessageIds(messageIds);
+  void removePersistentThumbsForMessages(messageIds);
 }
 
 /**

@@ -21,16 +21,37 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
-      <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+    <div
+      className="rounded-2xl p-5 space-y-4 shadow-xl border"
+      style={{
+        background: 'var(--bg-card)',
+        borderColor: 'var(--border-default)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <h3
+        className="text-sm font-bold flex items-center gap-2 pb-3 border-b"
+        style={{
+          borderColor: 'var(--border-default)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <Trash2 size={18} className="text-amber-400" />
         {t('ui.generated.manajemen_cache_pembersihan_storage_bee9cc4')}
       </h3>
 
-      <div className="flex items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800">
+      <div
+        className="flex items-center justify-between p-4 rounded-xl border"
+        style={{
+          background: 'var(--bg-elevated)',
+          borderColor: 'var(--border-default)',
+        }}
+      >
         <div>
-          <h4 className="font-semibold text-xs text-slate-200">{t('settings.local_media_cache_label')}</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <h4 className="font-semibold text-xs" style={{ color: 'var(--text-primary)' }}>
+            {t('settings.local_media_cache_label')}
+          </h4>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {t('settings.disk_usage')} <strong className="text-indigo-400 font-mono">{formatDriveBytes(cacheSizeBytes)}</strong>
           </p>
         </div>
@@ -40,7 +61,10 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
             type="button"
             disabled={isCalculating}
             onClick={onCalculateCacheSize}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+            className="p-2 rounded-lg transition-all"
+            style={{
+              color: 'var(--text-secondary)',
+            }}
             title={t('settings.recalculate_cache_tooltip')}
           >
             <RefreshCw size={15} className={isCalculating ? 'animate-spin' : ''} />

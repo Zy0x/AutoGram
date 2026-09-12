@@ -24,9 +24,17 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
+  --text-main: var(--text-primary, #f8fafc);
+  --td-text: var(--text-primary, #f8fafc);
+  --td-sub: var(--text-secondary, #94a3b8);
 
+  --bg-primary: var(--bg-main, #090d16);
+  --bg-secondary: var(--bg-card, rgba(22, 32, 54, 0.65));
+  --bg-hover: var(--surface-elevated, rgba(30, 41, 59, 0.90));
+  --border-color: var(--border-default, rgba(255, 255, 255, 0.08));
   --border-default: var(--border-color, var(--td-border, rgba(255, 255, 255, 0.08)));
   --border-hover: var(--color-secondary-border, var(--border-color, var(--input-focus-ring, color-mix(in srgb, var(--accent-primary) 50%, transparent))));
+  --input-bg: rgba(15, 23, 42, 0.85);
 
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.25);
   --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.45);
@@ -40,13 +48,22 @@
   --bg-modal: #ffffff;
   --bg-overlay: rgba(15, 23, 42, 0.48);
 
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-hover: #f1f5f9;
+
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
+  --text-main: #0f172a;
+  --td-text: #0f172a;
+  --td-sub: #475569;
 
+  --border-color: #e2e8f0;
   --border-default: #e2e8f0;
   --border-hover: var(--accent-primary, #b45309);
+  --input-bg: #ffffff;
 
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 20px 48px -8px rgba(0, 0, 0, 0.18), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
@@ -1643,4 +1660,271 @@ body,
 
 [data-color-scheme="light"] .td-drop-overlay-hint {
   color: var(--text-secondary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   18. TOTAL DEEP LIGHT MODE CONTRAST & HARMONIZATION MATRIX
+   Comprehensive multi-level overrides ensuring pristine readability,
+   proper contrast, and zero dark remnants across the deepest layers.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Session Launcher Light Harmonization */
+[data-color-scheme="light"] .ag-launcher-shell {
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-primary, #0284c7) 8%, transparent) 0%, var(--bg-main, #f8fafc) 75%) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-header {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-hero h1 {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-hero p {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-session-card {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-session-card:hover {
+  border-color: color-mix(in srgb, var(--accent-primary, #0284c7) 45%, transparent) !important;
+  box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-session-card[data-is-default="true"],
+[data-color-scheme="light"] .ag-launcher-session-card.is-default {
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 12px 30px -6px color-mix(in srgb, var(--accent-primary, #0284c7) 20%, transparent), 0 0 0 1px var(--accent-primary, #0284c7) !important;
+}
+
+/* Refresh Button States */
+[data-color-scheme="light"] .ag-launcher-refresh-btn {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-refresh-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 8%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #0284c7) 18%, transparent) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-refresh-btn.is-refreshing {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 12%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #0284c7) 20%, transparent) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-refresh-btn.is-success {
+  border-color: #059669 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  box-shadow: 0 1px 4px rgba(5, 150, 105, 0.15) !important;
+}
+
+[data-color-scheme="light"] .ag-launcher-refresh-btn .ag-refresh-check-icon {
+  color: #047857 !important;
+}
+
+/* 2. File Explorer & Cloud Drives Deep Light Overrides */
+[data-color-scheme="light"] .td-list-row {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #e2e8f0) !important;
+  color: var(--text-primary, #0f172a) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .td-list-row:hover {
+  background: var(--bg-hover, #f1f5f9) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #0284c7) 40%, #cbd5e1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .td-list-row.selected {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 10%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 0 1px var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-list-name {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .td-list-size,
+[data-color-scheme="light"] .td-list-date {
+  color: var(--text-secondary, #475569) !important;
+}
+
+/* File Card Surfaces in Grid */
+[data-color-scheme="light"] .td-file-card-inner {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-file-card:hover .td-file-card-inner {
+  background: var(--bg-card, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #0284c7) 50%, transparent) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09) !important;
+}
+
+[data-color-scheme="light"] .td-file-card.selected .td-file-card-inner {
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 0 2px var(--accent-primary, #0284c7), 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Empty File Thumbnails in Light Mode */
+[data-color-scheme="light"] .td-file-thumb-empty {
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--accent-primary, #0284c7) 12%, transparent), transparent 60%), #f8fafc !important;
+}
+
+[data-color-scheme="light"] .td-file-card-meta.on-empty {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.85) 55%, rgba(255, 255, 255, 0.2) 85%, transparent 100%) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .td-file-card-meta.on-empty .td-file-card-name {
+  color: var(--text-primary, #0f172a) !important;
+  text-shadow: none !important;
+}
+
+[data-color-scheme="light"] .td-file-card-meta.on-empty .td-file-card-sub {
+  color: var(--text-secondary, #475569) !important;
+  text-shadow: none !important;
+}
+
+/* 3. Settings & Subsystems Deep Light Bridging */
+[data-color-scheme="light"] .bg-slate-900,
+[data-color-scheme="light"] .bg-slate-950,
+[data-color-scheme="light"] .bg-slate-900\/80,
+[data-color-scheme="light"] .bg-slate-900\/90,
+[data-color-scheme="light"] .bg-slate-900\/60,
+[data-color-scheme="light"] .bg-slate-900\/40,
+[data-color-scheme="light"] .bg-slate-950\/80,
+[data-color-scheme="light"] .bg-slate-950\/90,
+[data-color-scheme="light"] .bg-slate-800\/80,
+[data-color-scheme="light"] .bg-slate-800\/90 {
+  background-color: var(--bg-card, #ffffff) !important;
+}
+
+[data-color-scheme="light"] .border-slate-800,
+[data-color-scheme="light"] .border-slate-700,
+[data-color-scheme="light"] .border-slate-800\/80,
+[data-color-scheme="light"] .border-slate-800\/60,
+[data-color-scheme="light"] .border-slate-700\/60 {
+  border-color: var(--border-default, #e2e8f0) !important;
+}
+
+[data-color-scheme="light"] .text-slate-100,
+[data-color-scheme="light"] .text-slate-200,
+[data-color-scheme="light"] .text-slate-300,
+[data-color-scheme="light"] .text-slate-50 {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .text-slate-400 {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .text-slate-500 {
+  color: var(--text-muted, #64748b) !important;
+}
+
+[data-color-scheme="light"] .hover\:bg-slate-800:hover,
+[data-color-scheme="light"] .hover\:bg-slate-800\/90:hover,
+[data-color-scheme="light"] .hover\:bg-slate-900:hover {
+  background-color: var(--bg-hover, #f1f5f9) !important;
+}
+
+[data-color-scheme="light"] .hover\:text-slate-200:hover,
+[data-color-scheme="light"] .hover\:text-slate-100:hover {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+/* Settings Inputs and Select Elements in Light Mode */
+[data-color-scheme="light"] .settings-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-color-scheme="light"] .settings-page select,
+[data-color-scheme="light"] .settings-page textarea {
+  background-color: var(--input-bg, #ffffff) !important;
+  border-color: var(--border-default, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav {
+  background: var(--bg-card, #ffffff) !important;
+  border-color: var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav-item {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav-item:hover {
+  background: var(--bg-hover, #f1f5f9) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav-item.active {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 12%, #ffffff) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+/* 4. Specific Cache Modal & Settings Modals in Light Mode */
+[data-color-scheme="light"] .ag-specific-cache-modal {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-color-scheme="light"] .ag-specific-cache-modal h3,
+[data-color-scheme="light"] .ag-specific-cache-modal strong,
+[data-color-scheme="light"] .ag-specific-cache-modal label,
+[data-color-scheme="light"] .ag-specific-cache-modal select {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .ag-specific-cache-modal p {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .ag-specific-cache-modal div[style*="rgba(255, 255, 255, 0.03)"],
+[data-color-scheme="light"] .ag-specific-cache-modal div[style*="rgba(255, 255, 255, 0.04)"],
+[data-color-scheme="light"] .ag-specific-cache-modal div[style*="rgba(255, 255, 255, 0.05)"] {
+  background: var(--bg-elevated, #f8fafc) !important;
+  border-color: var(--border-default, #e2e8f0) !important;
+}
+
+[data-color-scheme="light"] .ag-specific-cache-modal select {
+  background: var(--input-bg, #ffffff) !important;
+  border-color: var(--border-default, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+/* 5. Radio Cards & Options in Settings */
+[data-color-scheme="light"] .settings-page [style*="border: 1px solid rgba(255, 255, 255, 0.08)"],
+[data-color-scheme="light"] .settings-page [style*="border: 1px solid rgba(255, 255, 255, 0.07)"] {
+  border-color: var(--border-default, #e2e8f0) !important;
+  background-color: var(--bg-card, #ffffff) !important;
+}
+
+[data-color-scheme="light"] .settings-page strong,
+[data-color-scheme="light"] .settings-page label {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .settings-page p {
+  color: var(--text-secondary, #475569) !important;
 }

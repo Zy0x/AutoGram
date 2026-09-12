@@ -556,13 +556,14 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       onClick={onClose}
     >
       <div
+        className="ag-specific-cache-modal"
         style={{
           width: '100%',
           maxWidth: '720px',
           background: 'linear-gradient(160deg, var(--bg-card, rgba(15, 23, 42, 0.96)) 0%, var(--bg-primary, rgba(10, 15, 30, 0.98)) 100%)',
           border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
           borderRadius: '20px',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
+          boxShadow: 'var(--shadow-card, 0 25px 60px rgba(0, 0, 0, 0.6))',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -574,7 +575,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         <div
           style={{
             padding: '20px 24px 16px 24px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -597,10 +598,10 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
               <SlidersHorizontal size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
                 {t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}
               </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
                 {t('ui.generated.pembersihan_cache_spesifik_sistem_dan_per_akun_f345a90')}
               </p>
             </div>
@@ -610,15 +611,15 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-elevated, rgba(255, 255, 255, 0.06))',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
               borderRadius: '10px',
               width: '32px',
               height: '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#94a3b8',
+              color: 'var(--text-secondary, #94a3b8)',
               cursor: 'pointer',
               transition: 'all 0.18s ease',
             }}
@@ -748,7 +749,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <MapPin size={16} style={{ color: '#f87171' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_navigasi_lokasi_semua_akun_b123a45')}
                         </strong>
                       </div>
@@ -789,7 +790,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <FolderTree size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_pohon_sidebar_semua_akun_f345a67')}
                         </strong>
                       </div>
@@ -830,7 +831,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <MessageSquare size={16} style={{ color: '#c084fc' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_topik_forum_semua_akun_c678d90')}
                         </strong>
                       </div>
@@ -871,7 +872,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Users size={16} style={{ color: 'var(--accent-primary, #60a5fa)' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.metadata_peer_channel_semua_akun_d901e23')}
                         </strong>
                       </div>
@@ -912,7 +913,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Folder size={16} style={{ color: '#4ade80' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_filter_folder_chat_semua_akun_f345a67')}
                         </strong>
                       </div>
@@ -955,7 +956,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_scroll_state_workspace_semua_akun_a123f45')}
                         </strong>
                       </div>
@@ -989,7 +990,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <RotateCcw size={16} style={{ color: '#a78bfa' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>{t('drive.playback_history_cache_title')}</strong>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>{t('drive.playback_history_cache_title')}</strong>
                       </div>
                       <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{t('drive.playback_history_cache_desc')}</p>
                     </div>
@@ -1036,7 +1037,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <User size={16} style={{ color: '#fca5a5' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_avatar_foto_profil_fd75268')}
                         </strong>
                       </div>
@@ -1078,7 +1079,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Trash2 size={16} style={{ color: '#fcd34d' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.file_temporary_chunk_split_794ad52')}
                         </strong>
                       </div>
@@ -1120,7 +1121,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Image size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_thumbnail_pratinjau_f901ab2')}
                         </strong>
                       </div>
@@ -1162,7 +1163,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <FolderArchive size={16} style={{ color: '#c084fc' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_zip_navigasi_folder_b123d45')}
                         </strong>
                       </div>
@@ -1204,7 +1205,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Upload size={16} style={{ color: '#4ade80' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_antrean_upload_staging_f123a45')}
                         </strong>
                       </div>
@@ -1246,7 +1247,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <Sliders size={16} style={{ color: '#fbbf24' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('ui.generated.cache_tampilan_preferensi_ui_a234b56')}
                         </strong>
                       </div>
@@ -1288,7 +1289,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <HardDrive size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('settings.cache_media_db_title')}
                         </strong>
                       </div>
@@ -1331,7 +1332,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 }}
               >
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)', display: 'block' }}>
                     {t('ui.generated.pembersihan_total_cache_sistem_a123f45')}
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
@@ -1362,7 +1363,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
           {activeTab === 'session' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #f8fafc)', marginBottom: '6px' }}>
                   {t('ui.generated.pilih_sesi_akun_telegram_d012a34')}
                 </label>
 
@@ -1388,7 +1389,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       borderRadius: '10px',
                       background: 'var(--bg-card, #0f172a)',
                       border: '1px solid rgba(168, 85, 247, 0.4)',
-                      color: '#f8fafc',
+                      color: 'var(--text-primary, #f8fafc)',
                       fontSize: '0.85rem',
                       fontWeight: 600,
                       outline: 'none',
@@ -1402,7 +1403,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         value={s.name}
                         style={{
                           backgroundColor: 'var(--bg-primary, #0b1520)',
-                          color: '#f8fafc',
+                          color: 'var(--text-primary, #f8fafc)',
                           padding: '10px 14px',
                           fontWeight: 600,
                         }}
@@ -1434,7 +1435,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <MapPin size={16} style={{ color: '#f87171' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
                             </strong>
                           </div>
@@ -1478,7 +1479,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FolderTree size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
                             </strong>
                           </div>
@@ -1522,7 +1523,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <MessageSquare size={16} style={{ color: '#c084fc' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.cache_topik_forum_sesi_a890f12')}
                             </strong>
                           </div>
@@ -1566,7 +1567,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Users size={16} style={{ color: 'var(--accent-primary, #60a5fa)' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
                             </strong>
                           </div>
@@ -1610,7 +1611,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Folder size={16} style={{ color: '#4ade80' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.cache_filter_folder_chat_sesi_a123b45')}
                             </strong>
                           </div>
@@ -1654,7 +1655,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                               {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
                             </strong>
                           </div>
@@ -1691,7 +1692,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <RotateCcw size={16} style={{ color: '#a78bfa' }} />
-                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>{t('drive.playback_history_cache_title')}</strong>
+                            <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>{t('drive.playback_history_cache_title')}</strong>
                           </div>
                           <span style={{ fontSize: '0.72rem', color: hasSessionPlayback ? '#c4b5fd' : '#64748b', fontWeight: 600 }}>{sessionBuckets.playback.length} {t('ui.generated.entri_terdeteksi_c123d45')}</span>
                         </div>
@@ -1718,7 +1719,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                           <HardDrive size={16} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                             {t('settings.cache_session_media_db_title')}
                           </strong>
                         </div>
@@ -1757,7 +1758,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     }}
                   >
                     <div>
-                      <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                      <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)', display: 'block' }}>
                         {t('ui.generated.pembersihan_total_cache_sesi_c890f12')}
                       </strong>
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>

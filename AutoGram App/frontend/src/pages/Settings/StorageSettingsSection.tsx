@@ -78,7 +78,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Folder size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-                      <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.custom_cache_location_title')}
                       </strong>
                     </div>
@@ -183,7 +183,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <strong style={{ display: 'block', fontSize: '0.9rem', color: '#f8fafc' }}>
+                      <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.cache_size_label')}
                       </strong>
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
@@ -463,11 +463,11 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         placeholder={t('ui.generated.contoh_75_a123f45')}
                         style={{
                           flex: 1,
-                          background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                          border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.15)))',
                           borderRadius: '6px',
                           padding: '6px 10px',
-                          color: '#f8fafc',
+                          color: 'var(--text-primary, #f8fafc)',
                           fontSize: '0.82rem',
                           outline: 'none',
                         }}
@@ -476,11 +476,11 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         value={customUnit}
                         onChange={(e) => setCustomUnit(e.target.value as 'MB' | 'GB')}
                         style={{
-                          background: 'var(--bg-primary, rgba(15, 23, 42, 0.8))',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          background: 'var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.8)))',
+                          border: '1px solid var(--input-border, var(--border-default, rgba(255, 255, 255, 0.15)))',
                           borderRadius: '6px',
                           padding: '6px 10px',
-                          color: '#f8fafc',
+                          color: 'var(--text-primary, #f8fafc)',
                           fontSize: '0.82rem',
                           outline: 'none',
                         }}
@@ -866,7 +866,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
               }}
             >
               <div>
-                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)', display: 'block' }}>
                   {t('ui.generated.transfer_database_deduplication_a123f45')}
                 </strong>
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.45 }}>

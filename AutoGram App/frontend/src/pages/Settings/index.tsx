@@ -863,10 +863,10 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
               {/* STARTUP MODE CARDS GRID */}
               <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('settings.startup_mode_label')}
                 </label>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '4px' }}>
                   {t('settings.startup_mode_desc')}
                 </span>
 
@@ -877,12 +877,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setStartupBehavior('launcher')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.startup_mode_launcher')}
                       </strong>
                       {startupBehavior === 'launcher' && <CheckCircle size={15} color="var(--accent-primary, #38bdf8)" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.startup_mode_launcher_desc')}
                     </span>
                   </div>
@@ -893,12 +893,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setStartupBehavior('drives')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.startup_mode_drives')}
                       </strong>
                       {startupBehavior === 'drives' && <CheckCircle size={15} color="var(--accent-primary, #38bdf8)" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.startup_mode_drives_desc')}
                     </span>
                   </div>
@@ -909,12 +909,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setStartupBehavior('forwarder')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.startup_mode_forwarder')}
                       </strong>
                       {startupBehavior === 'forwarder' && <CheckCircle size={15} color="var(--accent-primary, #38bdf8)" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.startup_mode_forwarder_desc')}
                     </span>
                   </div>
@@ -925,12 +925,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setStartupBehavior('last')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.startup_mode_last')}
                       </strong>
                       {startupBehavior === 'last' && <CheckCircle size={15} color="var(--accent-primary, #38bdf8)" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.startup_mode_last_desc')}
                     </span>
                   </div>
@@ -1039,7 +1039,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                           marginBottom: '6px',
                         }}
                       >
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('settings.sidebar_model_a_title')}
                         </strong>
                         {sidebarModel === 'model_a' && <Check size={16} color="var(--accent-primary, #38bdf8)" />}
@@ -1047,7 +1047,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                       <p
                         style={{
                           fontSize: '0.76rem',
-                          color: '#94a3b8',
+                          color: 'var(--text-secondary, #94a3b8)',
                           lineHeight: '1.4',
                           margin: 0,
                         }}
@@ -1066,11 +1066,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                         background:
                           sidebarModel === 'model_b'
                             ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)'
-                            : 'rgba(15, 23, 42, 0.6)',
+                            : 'var(--bg-elevated, var(--bg-card, rgba(15, 23, 42, 0.6)))',
                         border:
                           sidebarModel === 'model_b'
                             ? '2px solid var(--accent-primary, #38bdf8)'
-                            : '1px solid rgba(255, 255, 255, 0.08)',
+                            : '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
                         boxShadow:
                           sidebarModel === 'model_b'
                             ? '0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)'
@@ -1086,7 +1086,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                           marginBottom: '6px',
                         }}
                       >
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('settings.sidebar_model_b_title')}
                         </strong>
                         {sidebarModel === 'model_b' && <Check size={16} color="var(--accent-primary, #38bdf8)" />}
@@ -1094,7 +1094,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                       <p
                         style={{
                           fontSize: '0.76rem',
-                          color: '#94a3b8',
+                          color: 'var(--text-secondary, #94a3b8)',
                           lineHeight: '1.4',
                           margin: 0,
                         }}
@@ -1113,11 +1113,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                         background:
                           sidebarModel === 'model_c'
                             ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)'
-                            : 'rgba(15, 23, 42, 0.6)',
+                            : 'var(--bg-elevated, var(--bg-card, rgba(15, 23, 42, 0.6)))',
                         border:
                           sidebarModel === 'model_c'
                             ? '2px solid var(--accent-primary, #38bdf8)'
-                            : '1px solid rgba(255, 255, 255, 0.08)',
+                            : '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
                         boxShadow:
                           sidebarModel === 'model_c'
                             ? '0 0 16px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)'
@@ -1133,7 +1133,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                           marginBottom: '6px',
                         }}
                       >
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                           {t('settings.sidebar_model_c_title')}
                         </strong>
                         {sidebarModel === 'model_c' && <Check size={16} color="var(--accent-primary, #38bdf8)" />}
@@ -1141,7 +1141,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                       <p
                         style={{
                           fontSize: '0.76rem',
-                          color: '#94a3b8',
+                          color: 'var(--text-secondary, #94a3b8)',
                           lineHeight: '1.4',
                           margin: 0,
                         }}
@@ -1171,11 +1171,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     padding: '12px 16px',
                     borderRadius: '12px',
                     background: 'var(--bg-card, rgba(15, 23, 42, 0.6))',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
                   }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary, #f8fafc)' }}>
                       {t('settings.debug_enable')}
                     </strong>
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
@@ -1230,10 +1230,10 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
               {/* RELEASE CHANNEL SELECTOR (SEGMENTED CARDS) */}
               <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('settings.release_channel_label')}
                 </label>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '4px' }}>
                   {t('settings.release_channel_desc')}
                 </span>
 
@@ -1244,12 +1244,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setReleaseChannel('stable')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#10b981' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#10b981' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.channel_stable')}
                       </strong>
                       {releaseChannel === 'stable' && <CheckCircle size={15} color="#10b981" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.channel_stable_desc')}
                     </span>
                   </div>
@@ -1260,12 +1260,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     onClick={() => setReleaseChannel('beta')}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : '#f8fafc' }}>
+                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.channel_beta')}
                       </strong>
                       {releaseChannel === 'beta' && <CheckCircle size={15} color="#f59e0b" />}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.35 }}>
                       {t('settings.channel_beta_desc')}
                     </span>
                   </div>
@@ -1548,7 +1548,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Folder size={22} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
                 {t('settings.custom_cache_migrate_modal_title')}
               </h3>
             </div>
@@ -1617,14 +1617,14 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Loader2 size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} className="cache-progress-spin" />
-                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                     {activeMigrationAction === 'move'
                       ? t('settings.custom_cache_progress_moving')
                       : t('settings.custom_cache_progress_wiping')}
                   </span>
                 </div>
                 <div className="cache-progress-bar-indeterminate" />
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #94a3b8)' }}>
                   {t('settings.custom_cache_progress_wait')}
                 </span>
               </div>
@@ -1648,17 +1648,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       {/* RESET TO DEFAULT CONFIRMATION MODAL */}
       {isResetModalOpen && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
+          className="cache-migrate-modal-backdrop"
           onClick={() => {
             if (!isMigrating) setIsResetModalOpen(false);
           }}
@@ -1672,7 +1662,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
               borderRadius: '16px',
               padding: '24px',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+              boxShadow: 'var(--shadow-card, 0 25px 60px rgba(0, 0, 0, 0.7))',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
@@ -1681,12 +1671,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <RotateCw size={22} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
                 {t('settings.custom_cache_reset_modal_title')}
               </h3>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary, #94a3b8)', lineHeight: 1.5 }}>
               {t('settings.custom_cache_reset_modal_msg')}
             </p>
 
@@ -1715,7 +1705,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent-primary, #38bdf8)', display: 'block', lineHeight: 1.3 }}>
                   📦 {t('settings.custom_cache_reset_option_move')}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_reset_option_move_desc')}
                 </span>
               </button>
@@ -1750,14 +1740,14 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Loader2 size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} className="cache-progress-spin" />
-                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                     {activeMigrationAction === 'move'
                       ? t('settings.custom_cache_progress_moving')
                       : t('settings.custom_cache_progress_wiping')}
                   </span>
                 </div>
                 <div className="cache-progress-bar-indeterminate" />
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #94a3b8)' }}>
                   {t('settings.custom_cache_progress_wait')}
                 </span>
               </div>

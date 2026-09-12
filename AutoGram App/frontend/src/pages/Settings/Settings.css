@@ -1117,11 +1117,11 @@
 }
 
 .cache-modal-cancel-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #f8fafc;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.12));
+  border-color: var(--border-default, rgba(255, 255, 255, 0.25));
+  color: var(--text-primary, #f8fafc);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .cache-modal-cancel-btn:active:not(:disabled) {
@@ -1291,8 +1291,8 @@
 }
 
 .settings-sidebar-nav-item:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: #f8fafc !important;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.04)) !important;
+  color: var(--text-primary, #f8fafc) !important;
 }
 
 .settings-sidebar-nav-item.active {

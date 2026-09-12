@@ -151,6 +151,42 @@ export async function clearPersistentThumbs(): Promise<void> {
   }
 }
 
+/** Remove persistent thumbnails for deleted messages. */
+export async function removePersistentThumbsForMessages(messageIds: number[]): Promise<number> {
+  if (!messageIds || !messageIds.length) return 0;
+  const db = await openDb();
+  if (!db) return 0;
+  const idSet = new Set(messageIds.map((id) => `:${id}`));
+  return new Promise<number>((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      let removed = 0;
+      const req = store.openCursor();
+      req.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (cursor) {
+          const key = String(cursor.key);
+          for (const suffix of idSet) {
+            if (key.endsWith(suffix)) {
+              cursor.delete();
+              removed += 1;
+              break;
+            }
+          }
+          cursor.continue();
+        } else {
+          resolve(removed);
+        }
+      };
+      req.onerror = () => resolve(0);
+      tx.oncomplete = () => resolve(removed);
+    } catch {
+      resolve(0);
+    }
+  });
+}
+
 async function prunePersistentThumbs(db: IDBDatabase): Promise<void> {
   try {
     const countTx = db.transaction(STORE_NAME, 'readonly');

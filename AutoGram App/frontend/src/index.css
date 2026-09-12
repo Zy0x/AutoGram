@@ -712,6 +712,20 @@ select option:selected {
   border-radius: var(--radius-sm);
 }
 
+[data-color-scheme="light"] .input-field:-webkit-autofill,
+[data-color-scheme="light"] .input-field:-webkit-autofill:hover,
+[data-color-scheme="light"] .input-field:-webkit-autofill:focus,
+[data-color-scheme="light"] .input-field:-webkit-autofill:active,
+[data-color-scheme="light"] .PhoneInputInput:-webkit-autofill,
+[data-color-scheme="light"] .PhoneInputInput:-webkit-autofill:hover,
+[data-color-scheme="light"] .PhoneInputInput:-webkit-autofill:focus,
+[data-color-scheme="light"] .PhoneInputInput:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+  caret-color: #0f172a !important;
+}
+
 /* Global modern-elegant scrollbar (content areas, tables, modals) */
 * {
   scrollbar-width: thin;

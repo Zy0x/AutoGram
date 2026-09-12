@@ -342,8 +342,8 @@ export function SessionLauncher({
               padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
-              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, var(--bg-card, transparent))',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 32%, transparent)',
               color: 'var(--accent-primary, #38bdf8)',
               fontSize: '0.82rem',
               fontWeight: 600,
@@ -378,8 +378,8 @@ export function SessionLauncher({
               ...(hasApiError
                 ? {}
                 : {
-                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
+                    background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, var(--bg-card, transparent))',
+                    border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 32%, transparent)',
                     color: 'var(--accent-primary, #38bdf8)',
                   }),
             }}
@@ -403,8 +403,8 @@ export function SessionLauncher({
               padding: '0 13px',
               height: '36px',
               borderRadius: '10px',
-              background: 'color-mix(in srgb, var(--bg-card, #141a26) 60%, transparent)',
-              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+              background: 'color-mix(in srgb, var(--bg-card, #141a26) 80%, transparent)',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
               color: 'var(--text-primary, #f8fafc)',
               fontSize: '0.82rem',
               fontWeight: 500,
@@ -417,7 +417,7 @@ export function SessionLauncher({
               e.currentTarget.style.color = 'var(--accent-primary, #38bdf8)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-default, rgba(255, 255, 255, 0.1))';
+              e.currentTarget.style.borderColor = 'var(--border-default, rgba(255, 255, 255, 0.12))';
               e.currentTarget.style.color = 'var(--text-primary, #f8fafc)';
             }}
             title={t('nav.general_settings')}
@@ -846,10 +846,10 @@ export function SessionLauncher({
                       width: '52px',
                       height: '52px',
                       borderRadius: '16px',
-                      background: 'linear-gradient(135deg, var(--bg-card, #1e293b) 0%, var(--bg-primary, #0f172a) 100%)',
+                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, var(--bg-card, #1e293b)) 0%, var(--bg-card, #0f172a) 100%)',
                       border: showAvatar
                         ? '1.5px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent)'
-                        : '1px solid var(--border-color, rgba(255,255,255,0.12))',
+                        : '1px solid var(--border-default, rgba(255,255,255,0.12))',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -967,7 +967,7 @@ export function SessionLauncher({
                   </div>
                 </div>
 
-                <hr style={{ border: 0, borderTop: '1px solid var(--border-color, rgba(255,255,255,0.06))', margin: 0 }} />
+                <hr style={{ border: 0, borderTop: '1px solid var(--border-default, rgba(255,255,255,0.08))', margin: 0 }} />
 
                 {sess.status === 'expired' || sess.status === 'unauthorized' ? (
                   <div
@@ -1201,11 +1201,11 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '420px',
-              background: 'linear-gradient(150deg, var(--bg-card, #1e293b) 0%, var(--bg-primary, #0f172a) 100%)',
-              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)',
+              background: 'var(--bg-modal, #1e293b)',
+              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, var(--border-default, rgba(255, 255, 255, 0.15)))',
               borderRadius: '20px',
               padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
+              boxShadow: 'var(--shadow-modal, 0 25px 50px -12px rgba(0, 0, 0, 0.8))',
               display: 'flex',
               flexDirection: 'column',
               gap: '18px',
@@ -1216,10 +1216,10 @@ export function SessionLauncher({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Pencil size={20} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                     {t('nav.modal_edit_title')}
                   </h3>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #94a3b8)' }}>
                     {t('nav.modal_edit_subtitle')}
                   </span>
                 </div>
@@ -1227,7 +1227,7 @@ export function SessionLauncher({
               <button
                 type="button"
                 onClick={() => setEditingSession(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary, #94a3b8)', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
@@ -1244,9 +1244,9 @@ export function SessionLauncher({
                   width: '100%',
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  background: 'rgba(0, 0, 0, 0.35)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#ffffff',
+                  background: 'var(--input-bg, rgba(0, 0, 0, 0.35))',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.15))',
+                  color: 'var(--text-primary, #ffffff)',
                   fontSize: '0.9rem',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -1268,9 +1268,9 @@ export function SessionLauncher({
                 style={{
                   padding: '8px 16px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#94a3b8',
+                  background: 'color-mix(in srgb, var(--text-secondary, #94a3b8) 12%, transparent)',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+                  color: 'var(--text-secondary, #94a3b8)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -1324,11 +1324,11 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '440px',
-              background: 'linear-gradient(150deg, var(--bg-card, #1e1b2e) 0%, var(--bg-primary, #0f172a) 100%)',
+              background: 'var(--bg-modal, #1e1b2e)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
               borderRadius: '20px',
               padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)',
+              boxShadow: 'var(--shadow-modal, 0 25px 50px -12px rgba(239, 68, 68, 0.3))',
               display: 'flex',
               flexDirection: 'column',
               gap: '18px',
@@ -1351,7 +1351,7 @@ export function SessionLauncher({
                 <Trash2 size={20} style={{ color: '#ef4444' }} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('nav.modal_delete_step1_title')}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
@@ -1360,9 +1360,9 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary, #cbd5e1)', lineHeight: 1.6 }}>
               {t('nav.modal_delete_step1_msg_prefix')}{' '}
-              <strong style={{ color: '#f8fafc', fontWeight: 600 }}>
+              <strong style={{ color: 'var(--text-primary, #f8fafc)', fontWeight: 600 }}>
                 '{deletingSessionStep1.label || deletingSessionStep1.name}'
               </strong>{' '}
               {t('nav.modal_delete_step1_msg_suffix')}
@@ -1375,9 +1375,9 @@ export function SessionLauncher({
                 style={{
                   padding: '8px 16px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#94a3b8',
+                  background: 'color-mix(in srgb, var(--text-secondary, #94a3b8) 12%, transparent)',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+                  color: 'var(--text-secondary, #94a3b8)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -1431,11 +1431,11 @@ export function SessionLauncher({
             style={{
               width: '100%',
               maxWidth: '470px',
-              background: 'linear-gradient(150deg, var(--bg-card, #1e1b2e) 0%, var(--bg-primary, #0f172a) 100%)',
+              background: 'var(--bg-modal, #1e1b2e)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
               borderRadius: '20px',
               padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)',
+              boxShadow: 'var(--shadow-modal, 0 25px 50px -12px rgba(239, 68, 68, 0.3))',
               display: 'flex',
               flexDirection: 'column',
               gap: '18px',
@@ -1458,7 +1458,7 @@ export function SessionLauncher({
                 <Folder size={20} style={{ color: '#f87171' }} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('nav.modal_delete_step2_title')}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
@@ -1467,9 +1467,9 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary, #cbd5e1)', lineHeight: 1.6 }}>
               {t('nav.modal_delete_step2_msg_prefix')}{' '}
-              <strong style={{ color: '#f8fafc', fontWeight: 600 }}>
+              <strong style={{ color: 'var(--text-primary, #f8fafc)', fontWeight: 600 }}>
                 '{deletingSessionStep2.label || deletingSessionStep2.name}'
               </strong>
               {t('nav.modal_delete_step2_msg_suffix')}
@@ -1500,9 +1500,9 @@ export function SessionLauncher({
                 style={{
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#e2e8f0',
+                  background: 'color-mix(in srgb, var(--bg-card, #141a26) 80%, transparent)',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.15))',
+                  color: 'var(--text-primary, #e2e8f0)',
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -1515,10 +1515,10 @@ export function SessionLauncher({
               >
                 {isDeleting && <Loader2 size={16} className="animate-spin" />}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary, #e2e8f0)' }}>
                     {t('nav.modal_delete_session_only')}
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 400 }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 400 }}>
                     {t('nav.modal_delete_session_only_sub')}
                   </span>
                 </div>

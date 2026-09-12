@@ -40,6 +40,30 @@ export function purgeDeletedMsgIds(files: DriveFile[], deletedIds: number[]): Dr
 }
 
 /**
+ * Detect message IDs that existed in local/previous state but are absent
+ * from the authoritative live head window returned by Telegram.
+ */
+export function findDeletedMsgIdsFromLiveHead(
+  previous: DriveFile[],
+  liveHead: DriveFile[],
+  serverHasMore: boolean
+): number[] {
+  if (!previous || !previous.length) return [];
+  const liveIds = new Set(liveHead.map((f) => f.id));
+  if (!serverHasMore) {
+    // When server has no more pages, liveHead represents the complete set of active files.
+    // Any previous item absent from liveHead was deleted on Telegram.
+    return previous.filter((f) => !liveIds.has(f.id)).map((f) => f.id);
+  }
+  if (!liveHead.length) return [];
+  const oldestLiveId = Math.min(...liveHead.map((f) => f.id));
+  // In a paginated window, any item with id >= oldestLiveId that is missing in liveHead was deleted.
+  return previous
+    .filter((f) => f.id >= oldestLiveId && !liveIds.has(f.id))
+    .map((f) => f.id);
+}
+
+/**
  * Replace the authoritative newest window while retaining pages the user has
  * already loaded below it. Missing ids inside that newest id range are treated
  * as deleted; older loaded rows remain available without a full history walk.
@@ -53,8 +77,9 @@ export function reconcileDriveLiveHead(
   if (opts?.knownDeletedIds && opts.knownDeletedIds.length) {
     previous = purgeDeletedMsgIds(previous, opts.knownDeletedIds);
   }
+  if (!serverHasMore && !liveHead.length) return [];
   if (!liveHead.length) return dedupeByMsgId(previous);
-  if (!serverHasMore && previous.length <= liveHead.length) return dedupeByMsgId(liveHead);
+  if (!serverHasMore) return dedupeByMsgId(liveHead);
 
   const liveIds = new Set(liveHead.map((file) => file.id));
   const oldestLiveId = Math.min(...liveHead.map((file) => file.id));

@@ -107,7 +107,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #f8fafc)' }}>
                       {displayName}
                     </span>
                     {isInactive && (

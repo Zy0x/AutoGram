@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reconcileDriveLiveHead } from './driveLiveSync';
+import { reconcileDriveLiveHead, findDeletedMsgIdsFromLiveHead } from './driveLiveSync';
 import type { DriveFile } from '../driveTypes';
 
 function makeFile(id: number, name = `file_${id}`): DriveFile {
@@ -58,9 +58,47 @@ describe('driveLiveSync - reconcileDriveLiveHead', () => {
     expect(result.map((f) => f.id)).toEqual([3, 2, 1]);
   });
 
-  it('handles empty liveHead by returning previous', () => {
+  it('handles empty liveHead by returning previous when serverHasMore is true', () => {
     const previous = [makeFile(3), makeFile(2), makeFile(1)];
     const result = reconcileDriveLiveHead(previous, [], true);
     expect(result.length).toBe(3);
+  });
+
+  it('returns empty array when serverHasMore is false and liveHead is empty (all messages deleted)', () => {
+    const previous = [makeFile(3), makeFile(2), makeFile(1)];
+    const result = reconcileDriveLiveHead(previous, [], false);
+    expect(result).toEqual([]);
+  });
+
+  it('returns liveHead directly when serverHasMore is false (authoritative chat state)', () => {
+    const previous = [makeFile(5), makeFile(4), makeFile(3), makeFile(2), makeFile(1)];
+    const liveHead = [makeFile(5), makeFile(3)]; // 4, 2, 1 deleted
+    const result = reconcileDriveLiveHead(previous, liveHead, false);
+    expect(result.map((f) => f.id)).toEqual([5, 3]);
+  });
+});
+
+describe('driveLiveSync - findDeletedMsgIdsFromLiveHead', () => {
+  it('detects all missing items when serverHasMore is false', () => {
+    const previous = [makeFile(5), makeFile(4), makeFile(3), makeFile(2), makeFile(1)];
+    const liveHead = [makeFile(5), makeFile(2)]; // 4, 3, 1 deleted
+    const deleted = findDeletedMsgIdsFromLiveHead(previous, liveHead, false);
+    expect(deleted).toEqual([4, 3, 1]);
+  });
+
+  it('detects missing items within the head window when serverHasMore is true', () => {
+    const previous = [makeFile(10), makeFile(9), makeFile(8), makeFile(7), makeFile(6), makeFile(5)];
+    // Live head spans 10 down to 7, but 8 is missing (deleted on Telegram)
+    const liveHead = [makeFile(10), makeFile(9), makeFile(7)];
+    const deleted = findDeletedMsgIdsFromLiveHead(previous, liveHead, true);
+    // 8 is in the window (>= 7) and missing from liveHead
+    expect(deleted).toEqual([8]);
+  });
+
+  it('returns empty array when no items were deleted', () => {
+    const previous = [makeFile(5), makeFile(4), makeFile(3)];
+    const liveHead = [makeFile(6), makeFile(5), makeFile(4), makeFile(3)];
+    const deleted = findDeletedMsgIdsFromLiveHead(previous, liveHead, false);
+    expect(deleted).toEqual([]);
   });
 });
