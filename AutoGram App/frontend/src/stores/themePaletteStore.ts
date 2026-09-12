@@ -1434,14 +1434,12 @@ export function getColorPalette(): ColorPaletteId {
 }
 
 let currentColorSchemeMode: ColorSchemeMode | null = null;
-let mediaQueryList: MediaQueryList | null = null;
-let mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
 
 export function getColorSchemeMode(): ColorSchemeMode {
   if (currentColorSchemeMode) return currentColorSchemeMode;
   try {
-    const stored = localStorage.getItem(LS_COLOR_SCHEME_KEY) as ColorSchemeMode;
-    if (stored === 'dark' || stored === 'light' || stored === 'system') {
+    const stored = localStorage.getItem(LS_COLOR_SCHEME_KEY);
+    if (stored === 'dark' || stored === 'light') {
       currentColorSchemeMode = stored;
       return stored;
     }
@@ -1455,62 +1453,25 @@ export function getColorSchemeMode(): ColorSchemeMode {
 export const getColorScheme = getColorSchemeMode;
 
 export function getResolvedColorScheme(): ResolvedColorScheme {
-  const mode = getColorSchemeMode();
-  if (mode === 'system') {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      try {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } catch {
-        /* ignore */
-      }
-    }
-    return 'dark';
-  }
-  return mode;
+  return getColorSchemeMode();
 }
 
 function ensureSystemListener(): void {
-  if (typeof window === 'undefined' || !window.matchMedia) return;
-  if (!mediaQueryList) {
-    try {
-      mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQueryListener = (e: MediaQueryListEvent) => {
-        if (getColorSchemeMode() === 'system') {
-          const resolved: ResolvedColorScheme = e.matches ? 'dark' : 'light';
-          applyColorPalette(getColorPalette());
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(
-              new CustomEvent(COLOR_SCHEME_EVENT, {
-                detail: { mode: 'system', resolved },
-              })
-            );
-          }
-        }
-      };
-      if (mediaQueryList.addEventListener) {
-        mediaQueryList.addEventListener('change', mediaQueryListener);
-      } else if ((mediaQueryList as any).addListener) {
-        (mediaQueryList as any).addListener(mediaQueryListener);
-      }
-    } catch {
-      /* ignore */
-    }
-  }
+  // Retained as safe no-op for backward compatibility
 }
 
 export function setColorSchemeMode(mode: ColorSchemeMode): void {
+  const normalized: ColorSchemeMode = mode === 'light' ? 'light' : 'dark';
   try {
-    localStorage.setItem(LS_COLOR_SCHEME_KEY, mode);
+    localStorage.setItem(LS_COLOR_SCHEME_KEY, normalized);
   } catch {
     /* ignore */
   }
-  currentColorSchemeMode = mode;
-  ensureSystemListener();
+  currentColorSchemeMode = normalized;
   applyColorPalette(getColorPalette());
-  const resolved = getResolvedColorScheme();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
-      new CustomEvent(COLOR_SCHEME_EVENT, { detail: { mode, resolved } })
+      new CustomEvent(COLOR_SCHEME_EVENT, { detail: { mode: normalized, resolved: normalized } })
     );
   }
 }
@@ -1519,7 +1480,7 @@ export const setColorScheme = setColorSchemeMode;
 
 export function toggleColorSchemeMode(): ColorSchemeMode {
   const current = getColorSchemeMode();
-  const next: ColorSchemeMode = current === 'dark' ? 'light' : current === 'light' ? 'system' : 'dark';
+  const next: ColorSchemeMode = current === 'dark' ? 'light' : 'dark';
   setColorSchemeMode(next);
   return next;
 }

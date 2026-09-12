@@ -327,10 +327,9 @@ describe('themePaletteStore Architecture & Contracts', () => {
     expect(getResolvedColorScheme()).toBe('dark');
   });
 
-  it('cycles colorSchemeMode cleanly between "dark", "light", and "system" via toggleColorSchemeMode', () => {
+  it('cycles colorSchemeMode cleanly between "dark" and "light" via toggleColorSchemeMode', () => {
     setColorSchemeMode('dark');
     expect(toggleColorSchemeMode()).toBe('light');
-    expect(toggleColorSchemeMode()).toBe('system');
     expect(toggleColorSchemeMode()).toBe('dark');
   });
 
