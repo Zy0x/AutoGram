@@ -1,6 +1,15 @@
-AutoGram Version: v4.0.5
+AutoGram Version: v4.0.6
 
 Current State:
+v4.0.6 Cloud Drives Light Mode Precision Contrast & Surface Overhaul:
+1. Topbar Sort Scope & Index All Chip: Replaced near-invisible `#f1f5f9` (white) count on light beige chip with deep Slate 900 (`#0f172a`, bold 750), high-contrast accent badge label (`#0369a1`), crisp border, and high-visibility status indicators.
+2. Floating Multi-Select Batch Action Bar (`.td-selection-strip`): Transformed obsidian dark black container into a luminous, elevated white bar with Slate 300 border and subtle shadow. Eliminated white-on-white text defect in the Download action button (`#0f172a` bold 700 on Slate 50), and gave the Selection Count pill a vibrant cyan accent treatment.
+3. Full-Location "Download All as ZIP" Modal: Replaced pitch-black backdrop with a soft blurred scrim (`rgba(15, 23, 42, 0.38)`). Styled modal dialog with crisp white background, high-contrast Slate 900 header, Slate 600 secondary text, high-visibility file counters, and accessible multi-select category buttons.
+4. Remote Upload Modal Triplet Option Headers & Target Badge: Eliminated hardcoded `#e2e8f0` pale text across "Media Delivery Format", "Transfer Engine", and "Storage Policy" card headers with Slate 900 (`#0f172a`, bold 700). Fixed faint `#cbd5e1` text in the footer destination target badge with deep Slate 900 on Slate 100 pill.
+5. Storage & Media Details Popover Breakdown Pills: Corrected target selector to `.td-storage-popover-card`, applying high-contrast styling across item counters, space metrics, category breakdown pills (`.td-breakdown-pill`), and close button.
+6. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, and master schema synchronization.
+
+Previous:
 v4.0.5 Cloud Drives Comprehensive Light Mode High-Contrast Engine:
 1. Sidebar Navigation Tabs & Counter Badges: Fixed washed-out inactive tabs ("Telegram", "Recent") with high-contrast Slate 700 (`#334155`), Slate 600 icons, solid contrast badges (`#e2e8f0` with `#1e293b`), and white tab bar container with `#cbd5e1` border.
 2. Sidebar Account Header & Latency Indicator: Eliminated faint `#94a3b8` text on "ACCOUNT" (`#475569`, bold 700) and latency ping status (`#334155`, bold 600), with high-contrast hover on refresh button and clear dropdown chevron.

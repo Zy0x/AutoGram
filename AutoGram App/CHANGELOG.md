@@ -1,3 +1,44 @@
+## v4.0.6 — Cloud Drives Light Mode Precision Contrast, Batch Action Bar & Modal Surface Overhaul
+
+### 1. Topbar Sort Scope & Index All Chip Contrast Perfection
+- **Elimination of White-on-Beige Count Text Defect**:
+  - *What changed*:
+    - Resolved critical contrast defect in `.td-sort-scope-text` where the count number (e.g. `"43"`) rendered near-invisible `#f1f5f9` (white) on top of a soft beige/amber pill card. Enforced deep Slate 900 (`#0f172a`, bold 750, contrast $\ge 14:1$).
+    - Overhauled `.td-sort-scope-chip` and `.td-sort-scope-chip.is-partial`: elevated background to luminous accent-tinted white with `#0f172a` text and crisp `#cbd5e1` borders.
+    - Standardized `.td-sort-scope-btn-label` (`"Index All"`): styled with vibrant accent primary background (`var(--accent-primary, #0284c7)` 18% tint on white) and bold text (`#0369a1`).
+    - Styled loading states (`.td-sort-scope-chip.is-loading`), pause borders, speed tags, and micro action controls (`.td-sort-scope-btn`) for crisp visibility under Light Mode.
+  - *Technical rationale*: Legacy dark mode rule in `App.css` line 40851 hardcoded `.td-sort-scope-text { color: #f1f5f9; }`, creating an illegible white-on-light artifact whenever partial indexing was active in Light Mode.
+  - *User impact*: Catalog sort and indexing indicators are immediately readable, clearly distinguishing pending item counts from action labels.
+
+### 2. Floating Multi-Select Batch Action Bar & Modal Scrim Modernization
+- **Conversion of Obsidian Dark Container to Elevated Luminous White Bar**:
+  - *What changed*:
+    - Transformed `.td-selection-strip` from dark obsidian (`color-mix(#0ea5e9, #0f172a)`) into an elevated pure white bar (`#ffffff`) framed by a Slate 300 border (`#cbd5e1`) and subtle multi-layered elevation shadow.
+    - Completely eliminated the severe white-on-white text defect in the Download action button (`.td-chip-btn:not(.primary):not(.danger)`): replaced `#e2e8f0` text with deep Slate 900 (`#0f172a`, bold 700) on Slate 50 (`#f8fafc`).
+    - Upgraded selection counter badge (`.td-selection-count`): rendered on a soft accent-tinted pill with deep cyan text (`#0369a1`, font-weight 800) and removed muddy dark glow filters.
+    - Redesigned selection button states: ghost buttons on the left (`.td-selection-strip-left .td-chip-btn`) use high-contrast Slate 700 with smooth `#f1f5f9` hover elevation, primary action buttons use rich sky blue with crisp borders, and danger action buttons use clean light red tints.
+  - *Technical rationale*: `App.css` lines 9608 and 9728 styled the batch action bar with dark mode specific backgrounds and assigned `#e2e8f0` to neutral action buttons without light-mode overrides.
+  - *User impact*: Multi-item selection workflows in Cloud Drives are fully legible with clear interactive targets and zero text washouts.
+
+### 3. "Download All as ZIP" Preflight Modal & Storage Popover Overhaul
+- **Full Scrim & Card Modernization for Bulk Export and Storage Popover**:
+  - *What changed*:
+    - Neutralized the pitch-black modal backdrop (`.td-zip-preflight-backdrop`) by switching to a soft translucent dark scrim (`rgba(15, 23, 42, 0.38)` with `backdrop-filter: blur(8px)`).
+    - Upgraded `.td-zip-preflight` modal dialog: pure white card (`#ffffff`) with Slate 300 borders, deep Slate 900 title, Slate 600 secondary location text, and high-contrast close button.
+    - Refactored category multi-select chips (`.td-zip-cat-btn`): unselected chips now feature white surfaces with Slate 700 text (`#334155`) and Slate 300 borders, active chips display vibrant accent borders and backgrounds, and bold count numbers render in accent blue (`#0369a1`).
+    - Upgraded `.td-storage-popover-card`: fixed target selector, styling metric boxes with Slate 50 fills, category breakdown pills (`.td-breakdown-pill`) with Slate 100 fills, and high-contrast count badges.
+  - *Technical rationale*: `DownloadAllZipModal.tsx` and `DriveStorageInfoBadge.tsx` inherited dark obsidian backgrounds and washed-out text colors from `App.css` lines 25890–26200 and 38890–39080.
+  - *User impact*: Bulk ZIP export configuration and storage breakdown details present a clean, high-contrast user interface compliant with WCAG AA/AAA.
+
+### 4. Remote Upload Modal Triplet Option Headers & Target Badge Architecture
+- **Elimination of Faint Text on Triplet Cards and Target Indicator**:
+  - *What changed*:
+    - Resolved critical contrast defect in `.td-remote-triplet-title` where "Media Delivery Format", "Transfer Engine", and "Storage Policy" headers rendered `#e2e8f0` (pale white) on light card surfaces. Replaced with deep Slate 900 (`#0f172a`, bold 700, contrast $\ge 15:1$).
+    - Overhauled triplet column cards (`.td-remote-triplet-col`): pure white cards (`#ffffff`) with Slate 300 borders and high-contrast info trigger buttons (`.td-remote-col-info-btn`).
+    - Fixed destination footer badge (`.td-remote-foot-dest-badge`): replaced faint `#cbd5e1` text with deep Slate 900 on a clean Slate 100 pill (`#f1f5f9`).
+  - *Technical rationale*: `App.css` line 28122 had a static `.td-remote-triplet-title { color: #e2e8f0; }` and line 31316 had `.td-remote-foot-dest-badge { color: #cbd5e1; }`, creating low-contrast issues in the remote download modal.
+  - *User impact*: All technical options and target channel badges in the Remote Upload modal are immediately readable and visually prominent.
+
 ## v4.0.5 — Comprehensive Light Mode Navigation Tabs, Filter Badges & Shimmer Skeleton Engine
 
 ### 1. Sidebar Navigation Tabs & Account Header Contrast Architecture
