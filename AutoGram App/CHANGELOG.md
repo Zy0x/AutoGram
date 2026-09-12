@@ -1,3 +1,33 @@
+## v4.0.1 — Deep Light Mode Contrast & Universal Theme Harmonization
+
+### 1. Universal Theme Token Contract & Deep Light Mode Engine
+- **Token Contract Extension & Background Leaks Elimination**:
+  - *What changed*:
+    - Extended `themePaletteStore.ts` and `themeEngine.css` to comprehensively define dynamic tokens for `--bg-primary`, `--bg-secondary`, `--bg-hover`, `--text-main`, `--td-text`, and `--td-sub` across dark and light palettes.
+    - Added Section 18 to `themeEngine.css`: *Total Deep Light Mode Contrast & Harmonization Matrix*, bridging legacy Tailwind utility classes (`bg-slate-900`, `border-slate-800`, `text-slate-100/200/300/400`) to dynamic theme CSS variables when `data-color-scheme="light"`.
+    - Eliminated static `#f8fafc !important` and `#94a3b8 !important` declarations in `App.css`, converting all high-specificity selectors to adaptive `var(--text-primary)` and `var(--text-secondary)`.
+  - *Technical rationale*: High-specificity `!important` color rules in `App.css` were directly forcing white headings and titles on light surfaces, making text completely invisible in Light Mode. Replacing them with tokenized variables guarantees pristine WCAG AA/AAA contrast.
+  - *User impact*: Flawless readability in Light Mode across all views with crystal-clear typography, balanced contrast, and zero eye strain.
+
+### 2. SessionLauncher, Topbar & Modal Dialog Contrast Polish
+- **Cohesive Light Surface and Interaction Styling**:
+  - *What changed*:
+    - Refactored `SessionLauncher/index.tsx`: Replaced hardcoded dark styling on hero headings, section titles, topbar action pills (`Add Session`, `API Credentials`, `Settings`), and mode selector tabs with responsive CSS variables.
+    - Redesigned avatar placeholder to a soft tinted accent card (`color-mix(12% accent, bg-card)`) with a bold colored letter mark instead of a dark box.
+    - Updated `ag-launcher-refresh-btn` states: in Light Mode, the active state provides crisp dark text with a soft border, and the success state displays an emerald pill (`#ecfdf5` background and `#047857` deep emerald text).
+    - Harmonized Edit Account, Delete Confirmation Step 1 & Step 2 modals with `--bg-modal`, `--border-default`, and `--input-bg`.
+  - *Technical rationale*: Preserves high visual aesthetic and glassmorphism without compromising readability or violating touch target standards ($\ge 44 \times 44\text{px}$).
+  - *User impact*: A welcoming, elegant, and perfectly balanced launcher hub experience in both daylight and dark environments.
+
+### 3. Settings, Storage & Cache Subsystems Deep Contrast Alignment
+- **Zero-Bleed Subsystem Tokenization**:
+  - *What changed*:
+    - Harmonized all Settings panels (`AppearanceSection`, `AccountSessionSection`, `DataBackupSection`, `NetworkSection`, `StorageSettingsSection`, and `Settings/index.tsx`) to eliminate hardcoded dark colors on cards, radio pills, labels, inputs, and modal dialogs.
+    - Updated `SpecificCacheModal.tsx`: Applied `.ag-specific-cache-modal` tokenization, replaced 28 instances of hardcoded `#f8fafc` text colors with `var(--text-primary)`, and converted system cache tile backgrounds to clean elevated cards.
+    - Added light mode autofill overrides in `index.css` to prevent browser autofill from rendering dark background insets in light inputs.
+  - *Technical rationale*: Deep subsystem consistency ensures that users navigating deep into settings or cache management tools experience 100% theme harmony.
+  - *User impact*: Uncompromised clarity and seamless visual continuity throughout every screen and dialog.
+
 ## v4.0.0 — Universal Zero-Ghost Media & Privacy Protection Across All Locations
 
 ### 1. Universal Zero-Ghost Media Architecture Across All Telegram Locations
