@@ -460,4 +460,119 @@
   color: var(--accent-primary, #0284c7) !important;
 }
 
+/* 12. Transfer Manager Flyout High-Contrast Light Mode */
+[data-color-scheme="light"] .td-transfer-manager {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-color-scheme="light"] .tm-empty p {
+  color: #0f172a !important; /* Bold Slate 900 (contrast >= 15:1) */
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .tm-empty .tm-hint {
+  color: #475569 !important; /* Slate 600 (contrast >= 5:1) */
+}
+
+/* 13. Storage & Media Details Popover High-Contrast */
+[data-color-scheme="light"] .td-storage-popover {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-color-scheme="light"] .td-storage-metric-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-color-scheme="light"] .td-metric-label,
+[data-color-scheme="light"] .td-breakdown-title {
+  color: #475569 !important; /* High contrast uppercase label */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-metric-value {
+  color: #0f172a !important; /* Bold dark slate metric numbers (contrast >= 15:1) */
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-footer-hint {
+  color: #475569 !important;
+}
+
+/* 14. Topbar Filter, Sort, & Quality Group Shells */
+[data-color-scheme="light"] .td-topbar .td-view-toggle,
+[data-color-scheme="light"] .td-topbar .td-zoom-controls,
+[data-color-scheme="light"] .td-topbar .td-filter-pills,
+[data-color-scheme="light"] .td-topbar .td-thumb-quality-pills,
+[data-color-scheme="light"] .td-topbar .td-sort-group {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-filter-pills .td-pill:not(.active),
+[data-color-scheme="light"] .td-thumb-quality-pills button:not(.active),
+[data-color-scheme="light"] .td-perspective-toggle button:not(.active) {
+  color: #334155 !important;
+}
+
+[data-color-scheme="light"] .td-filter-pills .td-pill:not(.active):hover,
+[data-color-scheme="light"] .td-thumb-quality-pills button:not(.active):hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-tool-label {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+/* 15. Catalog Sync & Media Skeleton Progress Modal */
+[data-color-scheme="light"] .ag-compact-card {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #f59e0b) 32%, #cbd5e1) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12), 0 0 35px color-mix(in srgb, var(--accent-primary, #f59e0b) 15%, transparent) !important;
+}
+
+[data-color-scheme="light"] .ag-brand-name {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .ag-brand-sub,
+[data-color-scheme="light"] .ag-progress-label,
+[data-color-scheme="light"] .ag-context-text span,
+[data-color-scheme="light"] .ag-estimate-text {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .ag-slim-track {
+  background: #e2e8f0 !important;
+}
+
+/* 16. Sidebar Foot & Minimized Transfer FAB */
+[data-color-scheme="light"] .td-status-foot {
+  color: #334155 !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .tm-fab {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .tm-fab-pct {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .tm-fab-status {
+  color: #475569 !important;
+}
+
+
 

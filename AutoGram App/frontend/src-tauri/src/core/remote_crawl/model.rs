@@ -21,6 +21,12 @@ pub struct CrawlRequest {
     pub kinds: Vec<String>,
     #[serde(default = "default_robots")]
     pub respect_robots: bool,
+    #[serde(default)]
+    pub network: super::network_options::NetworkOptions,
+    #[serde(default)]
+    pub rules: Vec<super::rules::ExtractionRule>,
+    #[serde(default)]
+    pub directory_mode: bool,
 }
 fn default_robots() -> bool { true }
 

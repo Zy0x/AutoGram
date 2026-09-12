@@ -44,7 +44,8 @@ pub fn run<T: Transport>(policy: &Policy, job: &Job, transport: &T) -> Result<bo
             Ok(body) => body,
             Err(_) => { job.update(|s| s.errors += 1); continue; }
         };
-        let found = extraction::extract(&final_url, &body, &policy.request.selector)?;
+        let mut found = extraction::extract(&final_url, &body, &policy.request.selector)?;
+        super::rules::extract(&final_url, &body, &policy.request.rules, &mut found);
         job.update(|s| s.blocked += found.blocked);
         for candidate in found.candidates {
             job.checkpoint()?;

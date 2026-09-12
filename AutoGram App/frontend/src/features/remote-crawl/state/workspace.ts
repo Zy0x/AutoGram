@@ -15,7 +15,7 @@ function loadRecords(): CrawlRecord[] {
       const record = value as CrawlRecord;
       if (typeof record.id !== 'string' || typeof record.name !== 'string' || !record.snapshot ||
         !Array.isArray(record.snapshot.entries)) return [];
-      const state = record.snapshot.state === 'running' || record.snapshot.state === 'paused'
+      const state = ['queued', 'running', 'paused'].includes(record.snapshot.state)
         ? 'interrupted' : record.snapshot.state;
       if (!['done', 'cancelled', 'failed', 'limited', 'interrupted'].includes(state)) return [];
       return [{ ...record, nativeId: record.nativeId || record.snapshot.id,
@@ -87,7 +87,6 @@ export async function startCrawl(request: CrawlRequest, name: string, baselineUr
   publish({ busy: true, error: null });
   try {
     const validated = validateCrawlRequest(request);
-    if (state.records.some(row => isCrawlActive(row.snapshot.state))) throw new Error('busy');
     const snapshot = await invoke<CrawlSnapshot>('remote_crawl_start', { request: validated });
     const id = replaceId || snapshot.id;
     const record: CrawlRecord = { id, nativeId: snapshot.id, name: name.trim().slice(0, 100) || new URL(validated.seeds[0]).hostname,

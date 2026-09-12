@@ -1,6 +1,14 @@
-AutoGram Version: v4.0.3
+AutoGram Version: v4.0.4
 
 Current State:
+v4.0.4 Cloud Drives Light Mode WCAG Contrast & Component Shell Resolution:
+1. Transfer Manager High-Contrast Empty State: Fixed invisible text in `.tm-empty p` with deep Slate 900 (`#0f172a`, bold, contrast >= 15:1) and polished elevated white flyout shell (`.td-transfer-manager`) and floating FAB (`.tm-fab`).
+2. Storage & Media Details Popover Contrast: Fixed zero-contrast metric numbers in `DriveStorageInfoBadge.tsx` (`.td-metric-value` Slate 900 bold, `.td-metric-label` Slate 600) on clean Slate 50 cards (`.td-storage-metric-box`).
+3. Topbar Group Enclosure Refinement: Replaced dark dirty grey group shells behind Topbar controls (`.td-view-toggle`, `.td-zoom-controls`, `.td-filter-pills`, `.td-thumb-quality-pills`, `.td-sort-group`) with clean Slate 100 fills and Slate 300 borders.
+4. Catalog Sync Progress Modal Overhaul: Replaced dark obsidian card in `DriveSkeleton.tsx` (`.ag-compact-card`) with frosted white card (`rgba(255, 255, 255, 0.96)`) framed by an amber accent border and soft shadow.
+5. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 69 MTProto album invariant tests, and SQLite schema verification.
+
+Previous:
 v3.9.83 TikTok Power Suite: Original Music Metadata & Cover Art Extraction, Interactive Photo Slideshow Carousel, Automatic Telegram Cloud Caption Sync & High-Speed Mobile Shortlink Normalization:
 1. Original Music Metadata, HD Cover Art & Video Poster: Extracted complete TikTok original music metadata (`rawSongTitle - rawArtist`), HD Music Cover Art card (`tiktok_music_cover`), and pristine Video Cover Poster HD card (`tiktok_video_cover`) alongside creator avatar and clean 1080P stream.
 2. Interactive Slideshow Carousel Canvas: Multi-image carousel with floating `<` / `>` navigation arrows, live slide counter (`Slide X / Y`), and clickable dots on preview canvas for TikTok slideshows.

@@ -31,7 +31,8 @@ impl Transport for Fixture {
 fn request(seed: &str) -> CrawlRequest {
     CrawlRequest { seeds: vec![seed.into()], max_depth: 2, max_pages: 20, max_results: 20,
         delay_ms: 250, concurrency: 2, same_origin: true, include_pattern: String::new(),
-        exclude_pattern: String::new(), selector: String::new(), kinds: Vec::new(), respect_robots: true }
+        exclude_pattern: String::new(), selector: String::new(), kinds: Vec::new(), respect_robots: true,
+        network: Default::default(), rules: Vec::new(), directory_mode: false }
 }
 
 fn job() -> Arc<Job> { Arc::new(Job::new("fixture".into())) }
@@ -123,4 +124,21 @@ fn request_bounds_and_public_dns_validation_are_enforced() {
     request.max_pages = 501;
     assert!(Policy::new(request).is_err());
     assert!(super::transport::validate_addresses(&["127.0.0.1:80".parse().unwrap()]).is_err());
+}
+
+#[test]
+fn declarative_rules_are_bounded_and_extract_only_declared_attributes() {
+    let mut request = request("https://example.com/");
+    request.rules = vec![super::rules::ExtractionRule { selector: "a[data-file]".into(),
+        attribute: "data-file".into(), kind: "video".into(), follow: false }];
+    let policy = Policy::new(request).unwrap();
+    let fixture = Fixture::new()
+        .add("https://example.com/robots.txt", "text/plain", "User-agent: *\nAllow: /")
+        .add("https://example.com/", "text/html", "<a data-file='/clip.mp4' href='/ignored'>x</a>");
+    let worker = job();
+    engine::run(&policy, &worker, &fixture).unwrap();
+    let snapshot = lock(&worker.snapshot).clone();
+    assert_eq!(snapshot.entries.len(), 1);
+    assert_eq!(snapshot.entries[0].url, "https://example.com/clip.mp4");
+    assert_eq!(snapshot.entries[0].kind, "video");
 }

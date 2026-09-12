@@ -21,6 +21,7 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
   const [name, setName] = useState('');
   const [inputs, setInputs] = useState({ website: initialUrl, list: initialUrl, pattern: '' });
   const [request, setRequest] = useState<CrawlRequest>({ ...DEFAULT_CRAWL_REQUEST, kinds: [...DEFAULT_CRAWL_REQUEST.kinds] });
+  const [rulesText, setRulesText] = useState('');
   const modes = [{ value: 'website', icon: Globe2 }, { value: 'list', icon: List }, { value: 'pattern', icon: Braces }] as const;
   const limits = [
     { key: 'maxDepth', min: 0, max: 8, step: 1 },
@@ -36,7 +37,6 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
     try {
       const batchName = name.trim() || t(`crawler.default_name_${mode}`);
       if (mode === 'website') {
-        if (crawlActive) throw new Error('busy');
         if (!request.kinds.length) throw new Error('crawler.select_kind');
         // Validate expressions before asking the native crawler to start.
         if (request.includePattern) new RegExp(request.includePattern);
@@ -44,7 +44,9 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
         if (request.selector) document.createDocumentFragment().querySelector(request.selector);
         const seeds = parseLinkText(inputs.website).map(entry => entry.url);
         if (seeds.length > 32) throw new Error('invalid_seeds');
-        await onStart(validateCrawlRequest({ ...request, seeds, respectRobots: true }), batchName);
+        let rules = [];
+        if (rulesText.trim()) { try { rules = JSON.parse(rulesText); } catch { throw new Error('crawler.invalid_rules'); } }
+        await onStart(validateCrawlRequest({ ...request, seeds, rules, respectRobots: true }), batchName);
       } else {
         const entries = mode === 'pattern' ? generatePattern(inputs.pattern) : parseLinkText(inputs.list);
         if (!entries.length) throw new Error('crawler.empty_input');
@@ -91,6 +93,18 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
         <label className="crawler-check"><input type="checkbox" checked={request.sameOrigin}
           onChange={event => setRequest(current => ({ ...current, sameOrigin: event.target.checked }))} />
           <span>{t('crawler.sameOrigin')}</span></label>
+        <label className="crawler-check"><input type="checkbox" checked={request.directoryMode === true}
+          onChange={event => setRequest(current => ({ ...current, directoryMode: event.target.checked }))} />
+          <span>{t('crawler.directoryMode')}</span></label>
+        <label className="crawler-field" htmlFor={`${id}-user-agent`}><span>{t('crawler.userAgent')}</span>
+          <input id={`${id}-user-agent`} value={request.network?.userAgent || ''} maxLength={512}
+            onChange={event => setRequest(current => ({ ...current, network: { ...DEFAULT_CRAWL_REQUEST.network!, ...current.network, userAgent: event.target.value } }))} /></label>
+        <label className="crawler-field" htmlFor={`${id}-proxy`}><span>{t('crawler.proxy')}</span>
+          <input id={`${id}-proxy`} value={request.network?.proxyUrl || ''} placeholder={t('crawler.placeholder_proxy')}
+            onChange={event => setRequest(current => ({ ...current, network: { ...DEFAULT_CRAWL_REQUEST.network!, ...current.network, proxyUrl: event.target.value } }))} /></label>
+        <label className="crawler-field" htmlFor={`${id}-rules`}><span>{t('crawler.rules')}</span>
+          <textarea id={`${id}-rules`} value={rulesText} rows={3} maxLength={12000} spellCheck={false}
+            placeholder={t('crawler.placeholder_rules')} onChange={event => setRulesText(event.target.value)} /></label>
         <fieldset className="crawler-kinds"><legend>{t('crawler.kinds')}</legend>
           {CRAWL_KINDS.map(kind => <label className="crawler-check" key={kind}>
             <input type="checkbox" checked={request.kinds.includes(kind)} onChange={event => setRequest(current => ({
@@ -105,8 +119,8 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
         </label>)}
       </details>}
       {mode === 'website' && <p className="crawler-policy"><ShieldCheck size={16} aria-hidden="true" />{t('crawler.robots')}</p>}
-      {mode === 'website' && crawlActive && <p className="crawler-hint">{t('crawler.busy')}</p>}
-      <button className="crawler-primary crawler-start" type="submit" disabled={busy || !inputs[mode].trim() || (mode === 'website' && crawlActive)}>
+      {mode === 'website' && crawlActive && <p className="crawler-hint">{t('crawler.queue_hint')}</p>}
+      <button className="crawler-primary crawler-start" type="submit" disabled={busy || !inputs[mode].trim()}>
         {t(busy ? 'crawler.working' : `crawler.start_${mode}`)}<ArrowRight size={17} aria-hidden="true" />
       </button>
     </fieldset>

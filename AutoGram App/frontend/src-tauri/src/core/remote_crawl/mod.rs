@@ -5,6 +5,8 @@ mod model;
 mod policy;
 mod robots;
 mod transport;
+mod network_options;
+mod rules;
 
 use model::{CrawlRequest, Snapshot};
 use policy::Policy;

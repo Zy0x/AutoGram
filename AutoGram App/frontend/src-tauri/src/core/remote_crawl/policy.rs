@@ -13,6 +13,8 @@ pub struct Policy {
 
 impl Policy {
     pub fn new(request: CrawlRequest) -> Result<Self, String> {
+        request.network.validate()?;
+        super::rules::validate(&request.rules)?;
         if request.seeds.is_empty() || request.seeds.len() > 32 || request.max_depth > 8
             || !(1..=500).contains(&request.max_pages) || !(1..=5000).contains(&request.max_results)
             || !(250..=10000).contains(&request.delay_ms) || !(1..=4).contains(&request.concurrency)
@@ -29,6 +31,10 @@ impl Policy {
         Ok(Self { request, seeds, include, exclude })
     }
     pub fn in_scope(&self, url: &Url) -> bool {
+        if self.request.directory_mode {
+            return self.seeds.iter().any(|seed| seed.origin() == url.origin()
+                && url.path().starts_with(&directory_prefix(seed)));
+        }
         !self.request.same_origin || self.seeds.iter().any(|s| s.origin() == url.origin())
     }
     // Include is a result filter, so a matching asset remains discoverable through
@@ -40,6 +46,10 @@ impl Policy {
         !self.excluded(url) && self.include.as_ref().is_none_or(|r| r.is_match(url.as_str()))
             && (self.request.kinds.is_empty() || self.request.kinds.iter().any(|k| k == kind))
     }
+}
+fn directory_prefix(seed: &Url) -> String {
+    if seed.path().ends_with('/') { seed.path().to_string() }
+    else { format!("{}/", seed.path().rsplit_once('/').map(|(p, _)| p).unwrap_or("")) }
 }
 fn pattern(value: &str) -> Result<Option<Regex>, String> {
     if value.is_empty() { return Ok(None); }

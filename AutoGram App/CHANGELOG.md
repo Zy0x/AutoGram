@@ -1,3 +1,32 @@
+## v4.0.4 — Cloud Drives Light Mode WCAG Contrast & Component Shell Resolution
+
+### 1. Cloud Drives Transfer Manager & Floating Actions Light Mode Overhaul
+- **Transfer Manager High-Contrast Empty State & Elevated Flyout Shell**:
+  - *What changed*:
+    - Resolved critical contrast defect in `.tm-empty p` where text *"No downloads or uploads yet."* had a near-invisible 1.16:1 contrast ratio (`#e2e8f0` text on `#ffffff` canvas). Enforced deep Slate 900 (`#0f172a`, bold 700, contrast $\ge 15:1$) for the title and Slate 600 (`#475569`) for subtitle hints.
+    - Neutralized dark flyout shadows and borders: `.td-transfer-manager` now renders on crisp pure white surfaces with `#cbd5e1` borders and a refined elevation shadow (`box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12)`).
+    - Polished the minimized floating action widget (`.tm-fab`): upgraded from muddy grey fill to a high-contrast white pill with crisp Slate 900 percentage and Slate 600 status text.
+  - *Technical rationale*: Legacy dark mode styling in `App.css` was forcing `#e2e8f0` with `!important` across all transfer manager flyouts, failing accessibility standards in light theme mode.
+  - *User impact*: Transfer status, empty states, and progress indicators are instantly legible, tactile, and clear.
+
+### 2. Storage & Media Details Popover & Topbar Control Shells
+- **Storage Metrics Visibility & Neutral Topbar Group Enclosures**:
+  - *What changed*:
+    - Fixed zero-contrast metric numbers in `DriveStorageInfoBadge.tsx` where `.td-metric-value` rendered white `#ffffff` numbers on white `#ffffff` cards. Enforced deep Slate 900 (`#0f172a`, bold 800, contrast $\ge 15:1$) on all metric numbers (`TOTAL MEDIA` and `TOTAL FILE SIZE`), with Slate 600 (`#475569`) for uppercase labels.
+    - Updated storage metric box backgrounds (`.td-storage-metric-box`) to clean Slate 50 (`#f8fafc`) with subtle borders (`#e2e8f0`), replacing dark semi-transparent overlays.
+    - Replaced dark dirty grey group container shells behind Topbar controls (`.td-view-toggle`, `.td-zoom-controls`, `.td-filter-pills`, `.td-thumb-quality-pills`, `.td-sort-group`) with clean Slate 100 (`#f1f5f9`) fills and Slate 300 (`#cbd5e1`) borders. Inactive pills now feature Slate 700 (`#334155`) text with smooth hover transitions.
+  - *Technical rationale*: CSS custom variable `--td-group-bg: rgba(0, 0, 0, 0.22)` in `App.css` produced dark muddy boxes in light mode, while static `#ffffff` values in `.td-metric-value` caused complete data invisibility.
+  - *User impact*: Storage breakdown metrics and topbar filter/sort tools are clean, aesthetic, and completely readable without visual artifacts.
+
+### 3. Catalog Sync Progress Modal & Sidebar Status Legibility
+- **Fullscreen Catalog Sync Card & Ambient Footer Contrast**:
+  - *What changed*:
+    - Overhauled `.ag-compact-card` in `DriveSkeleton.tsx`: replaced dark obsidian card backgrounds (`rgba(22, 27, 39, 0.88)`) with a high-translucency frosted white card (`rgba(255, 255, 255, 0.96)`) framed by a warm amber border and soft glow shadow.
+    - Adjusted progress text typography: brand name and progress titles display Slate 900 (`#0f172a`), subtitles and status labels render Slate 600 (`#475569`), and the progress track uses Slate 200 (`#e2e8f0`).
+    - Elevated sidebar live sync status in `.td-status-foot`: neutralized low opacity (`opacity: 0.85`) and faint color, enforcing solid Slate 700 (`#334155`, `opacity: 1`, font-weight: 500) for effortless legibility.
+  - *Technical rationale*: Media library synchronization cards used dark surface classes that were not dynamically adapting when warm light themes were selected.
+  - *User impact*: Progress feedback during catalog sync is luminous, elegant, and perfectly integrated into the active light palette.
+
 ## v4.0.3 — Comprehensive Light Mode Defect Resolution & Native Controls Engine
 
 ### 1. Native Dropdown & Select Elements Light Mode Engine

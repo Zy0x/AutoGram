@@ -13,18 +13,34 @@ pub struct Response {
     pub body: Box<dyn Read + Send>,
 }
 pub trait Transport: Sync { fn get(&self, url: &Url) -> Result<Response, String>; }
-pub struct Network { agent: ureq::Agent }
+pub struct Network {
+    agent: ureq::Agent,
+    options: super::network_options::NetworkOptions,
+    origins: Vec<url::Origin>,
+}
 impl Network {
-    pub fn new() -> Self {
-        Self { agent: ureq::AgentBuilder::new().redirects(0).try_proxy_from_env(false)
-            .timeout_connect(Duration::from_secs(5)).timeout_read(Duration::from_secs(2))
-            .timeout_write(Duration::from_secs(2)).timeout(Duration::from_secs(15))
-            .max_idle_connections(4).user_agent("AutoGramCrawler/1.0")
-            .resolver(|host: &str| -> std::io::Result<Vec<SocketAddr>> {
+    pub fn new(policy: &Policy) -> Result<Self, String> {
+        let options = policy.request.network.clone();
+        options.validate()?;
+        let proxy = if options.proxy_url.is_empty() { None } else { Some(options.proxy()?) };
+        let loopback_proxy = proxy.as_ref().and_then(|p| {
+            p.socket_addrs(|| None).ok().and_then(|a| a.first().copied()).filter(|a| a.ip().is_loopback())
+        });
+        let timeout = Duration::from_secs(options.timeout_seconds);
+        let mut builder = ureq::AgentBuilder::new().redirects(0).try_proxy_from_env(false)
+            .timeout_connect(timeout).timeout_read(timeout).timeout_write(timeout).timeout(timeout)
+            .max_idle_connections(4).user_agent(&options.user_agent)
+            .resolver(move |host: &str| -> std::io::Result<Vec<SocketAddr>> {
                 let addresses: Vec<_> = host.to_socket_addrs()?.take(33).collect();
-                validate_addresses(&addresses)?;
+                if !(addresses.len() == 1 && loopback_proxy == addresses.first().copied()) {
+                    validate_addresses(&addresses)?;
+                }
                 Ok(addresses)
-            }).build() }
+            });
+        if let Some(proxy) = proxy {
+            builder = builder.proxy(ureq::Proxy::new(proxy.as_str()).map_err(|_| "remote_crawl_invalid_proxy")?);
+        }
+        Ok(Self { agent: builder.build(), options, origins: policy.seeds.iter().map(Url::origin).collect() })
     }
 }
 pub fn validate_addresses(addresses: &[SocketAddr]) -> std::io::Result<()> {
@@ -36,8 +52,19 @@ pub fn validate_addresses(addresses: &[SocketAddr]) -> std::io::Result<()> {
 impl Transport for Network {
     fn get(&self, url: &Url) -> Result<Response, String> {
         parse_url(url.as_str())?;
-        let response = match self.agent.get(url.as_str()).set("Accept-Encoding", "identity")
-            .set("Accept", "text/html,application/xhtml+xml,application/rss+xml,application/atom+xml,text/plain;q=0.5,*/*;q=0.1").call() {
+        // A proxy resolves destinations itself. Preflight the destination locally
+        // on every hop as well; the explicitly selected proxy remains trusted.
+        if !self.options.proxy_url.is_empty() {
+            let addresses = url.socket_addrs(|| url.port_or_known_default()).map_err(|_| "remote_crawl_network")?;
+            validate_addresses(&addresses).map_err(|_| "remote_crawl_private_address")?;
+        }
+        let mut request = self.agent.get(url.as_str()).set("Accept-Encoding", "identity")
+            .set("Accept", "text/html,application/xhtml+xml,application/rss+xml,application/atom+xml,text/plain;q=0.5,*/*;q=0.1");
+        // Never forward user headers to a cross-origin redirect or linked site.
+        if self.origins.contains(&url.origin()) && url.path() != "/robots.txt" {
+            for (name, value) in &self.options.headers { request = request.set(name, value); }
+        }
+        let response = match request.call() {
             Ok(response) | Err(ureq::Error::Status(_, response)) => response,
             Err(_) => return Err("remote_crawl_network".into()),
         };
@@ -76,12 +103,13 @@ impl<'a> Session<'a> {
         }
     }
     fn request(&self, url: &Url) -> Result<Response, String> {
-        for attempt in 0..3 {
+        let retries = self.policy.request.network.retries;
+        for attempt in 0..=retries {
             self.paced()?;
             self.job.checkpoint()?;
             let response = match self.transport.get(url) {
                 Ok(response) => response,
-                Err(error) if error == "remote_crawl_network" && attempt < 2 => {
+                Err(error) if error == "remote_crawl_network" && attempt < retries => {
                     self.job.wait(retry_delay(None, attempt)?)?;
                     continue;
                 }
@@ -89,7 +117,7 @@ impl<'a> Session<'a> {
             };
             self.job.checkpoint()?;
             if response.status == 429 || (500..600).contains(&response.status) {
-                if attempt == 2 { return Err("remote_crawl_retry_exhausted".into()); }
+                if attempt == retries { return Err("remote_crawl_retry_exhausted".into()); }
                 let delay = retry_delay(response.retry_after.as_deref(), attempt)?;
                 drop(response);
                 let mut pace = lock(&self.pace);

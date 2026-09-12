@@ -61,7 +61,9 @@ pub struct Registry { jobs: VecDeque<Arc<Job>> }
 impl Registry {
     pub fn insert(&mut self, job: Arc<Job>) -> Result<(), String> {
         use std::sync::atomic::Ordering;
-        if self.jobs.iter().any(|j| j.active.load(Ordering::Acquire)) { return Err("remote_crawl_busy".into()); }
+        if self.jobs.iter().filter(|j| j.active.load(Ordering::Acquire)).count() >= 8 {
+            return Err("remote_crawl_queue_full".into());
+        }
         self.prune();
         self.jobs.push_back(job);
         Ok(())
@@ -76,6 +78,10 @@ impl Registry {
         self.jobs.iter().find(|j| lock(&j.snapshot).id == id).cloned().ok_or_else(|| "remote_crawl_not_found".into())
     }
     pub fn list(&self) -> Vec<Snapshot> { self.jobs.iter().rev().map(|j| lock(&j.snapshot).clone()).collect() }
+    pub fn is_turn(&self, job: &Arc<Job>) -> bool {
+        self.jobs.iter().find(|j| j.active.load(std::sync::atomic::Ordering::Acquire))
+            .is_some_and(|first| Arc::ptr_eq(first, job))
+    }
 }
 pub fn registry() -> &'static Mutex<Registry> {
     static JOBS: OnceLock<Mutex<Registry>> = OnceLock::new();
@@ -87,12 +93,21 @@ pub fn start(policy: Policy) -> Result<Snapshot, String> {
     static SEQUENCE: AtomicU64 = AtomicU64::new(0);
     let id = format!("crawl-{}-{}", std::process::id(), SEQUENCE.fetch_add(1, Ordering::Relaxed));
     let job = Arc::new(Job::new(id));
+    job.update(|s| s.state = "queued".into());
     let snapshot = lock(&job.snapshot).clone();
     lock(registry()).insert(job.clone())?;
     let worker = job.clone();
     if std::thread::Builder::new().name("remote-crawl".into()).spawn(move || {
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            engine::run(&policy, &worker, &Network::new())
+            // FIFO ownership remains native, including when the modal is closed.
+            loop {
+                worker.checkpoint()?;
+                if lock(registry()).is_turn(&worker) { break; }
+                worker.wait(Duration::from_millis(100))?;
+            }
+            worker.update(|s| { if s.state == "queued" { s.state = "running".into(); } });
+            let network = Network::new(&policy)?;
+            engine::run(&policy, &worker, &network)
         }));
         match outcome {
             Ok(Ok(limited)) => worker.finish(if limited { "limited" } else { "done" }, None),
