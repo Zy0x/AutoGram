@@ -392,7 +392,7 @@ export function DriveToolsPanel({
                       ))
                     ) : (
                       <div className="td-popover-empty">
-                        <Search size={18} style={{ color: '#64748b' }} />
+                        <Search size={18} style={{ color: 'var(--text-secondary)' }} />
                         <span>{t('ui.generated.tidak_ada_pengaturan_yang_cocok_dengan_14f47c1')}{toolsSearchQuery}"</span>
                       </div>
                     )}
@@ -401,8 +401,8 @@ export function DriveToolsPanel({
               )}
             </div>
 
-            <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("drive.close_esc")}>
-              <X size={18} />
+            <button type="button" className="td-icon-btn td-tools-close td-tools-close-btn" onClick={onClose} aria-label={t("drive.close_esc")}>
+              <X size={16} />
             </button>
           </div>
         </header>

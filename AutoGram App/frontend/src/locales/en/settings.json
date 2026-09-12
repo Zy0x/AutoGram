@@ -308,7 +308,7 @@
   "palette_cyberpunk_matrix_tag": "Matrix & Kinetic",
   "palette_cyberpunk_matrix_desc": "Dark carbon core with electric lime mint and high-contrast cyber accents.",
   "color_scheme_title": "Color Scheme Mode",
-  "color_scheme_desc": "Choose between dark, light, or automatic system appearance across the entire application.",
+  "color_scheme_desc": "Choose between dark or light appearance across the entire application.",
   "color_scheme_dark": "Dark",
   "color_scheme_dark_desc": "High-contrast dark surfaces designed for comfort in low-light environments.",
   "color_scheme_light": "Light",

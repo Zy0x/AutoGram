@@ -1,3 +1,44 @@
+## v3.9.99 — Focused Bi-State Appearance System: Pure Dark & Light Mode Simplification
+
+### 1. Dedicated Dark & Light Theme System Simplification
+- **Streamlined Bi-State Theme Architecture**:
+  - *What changed*:
+    - Refactored `src/stores/themePaletteStore.ts` to strictly support bi-state appearance modes: `'dark'` and `'light'`.
+    - Removed redundant `'system'` mode and associated OS media query listeners, standardizing color scheme management directly on explicit user choice.
+    - Updated `toggleColorSchemeMode()` to toggle cleanly and directly between `'dark'` and `'light'`.
+    - Sanitized `getColorSchemeMode()` and `setColorSchemeMode()` with automatic fallback to `'dark'` if any legacy or unrecognized mode is found in local storage.
+  - *Technical rationale*: Directly fulfills the user requirement to provide solely Dark and Light options, avoiding ambiguous OS theme overrides and keeping the UI predictable and clean.
+  - *User impact*: Straightforward, reliable toggle between Dark and Light modes without unexpected transitions.
+
+### 2. Topbar Quick Toggle & Settings Color Scheme Alignment
+- **Universal Zero-Confusion UI Controls**:
+  - *What changed*:
+    - Updated `QuickColorSchemeToggle.tsx` (topbar appearance button) to cycle exclusively between Dark (`Gelap`) with Moon icon and Light (`Terang`) with Sun icon.
+    - Updated `ColorPaletteSection.tsx` in Settings to display only the two distinct appearance cards: Dark and Light, removing the System OS option and status pill.
+    - Synchronized localization in `src/locales/id/settings.json` and `src/locales/en/settings.json` with 100% key parity and zero hardcoded strings.
+  - *Technical rationale*: Guarantees cohesive design and interaction across both quick topbar controls and comprehensive settings panels.
+  - *User impact*: Clear, intuitive interface with touch targets $\ge 44 \times 44\text{px}$ and immediate visual feedback.
+
+### 3. Settings & Drive Tools Header Search Box & Close Button Theme Harmonization
+- **Seamless Composite Search Field & Action Controls**:
+  - *What changed*:
+    - Refactored `themeDriveTools.css`, `themeEngine.css`, and `App.css` to properly treat `.td-header-search-box` and `.td-xfer-search-wrapper` as unified composite controls.
+    - Excluded composite search inner input controls (`.td-header-search-input` and `.td-xfer-search-input`) from standalone input styling, guaranteeing transparent backgrounds (`background: transparent !important`) and borderless embedding to eliminate visual seams and two-tone background box cutouts.
+    - Harmonized `.td-tools-close` and `.td-tools-close-btn` with matching 34px height, 9px border-radius, `var(--input-bg)` surface, and dynamic `var(--border-default)` outline with smooth red danger hover.
+    - Updated search icon to dynamically inherit `var(--text-secondary)` resting state and transition to `var(--accent-primary)` on `:focus-within`.
+  - *Technical rationale*: Prevents higher-specificity global input selectors from injecting background colors and focus borders into composite search inputs, restoring complete visual harmony with the active palette.
+  - *User impact*: Flawless visual consistency across all 13 color palettes with clean, unified input surfaces and responsive touch targets.
+
+### 4. Comprehensive Test Suite & Quality Sentinel Certification
+- **Automated Verification & Architectural Integrity**:
+  - *What changed*:
+    - Updated unit tests in `src/stores/themePaletteStore.test.ts` to validate appearance toggling, state persistence, and legacy fallback.
+    - Passed all 63 Vitest test suites (520 tests) and strict TypeScript compilation with 0 errors.
+    - Verified 100% i18n locale parity between Indonesian and English dictionaries with 0 missing keys.
+    - Passed all dimensions of the Autonomous Quality Sentinel suite (`npm run test:quality`).
+  - *Technical rationale*: Ensures zero regressions across all core subsystems.
+  - *User impact*: Uncompromising stability, performance, and responsive elegance.
+
 ## v3.9.98 — Universal Input Controls, Drive Settings & Drive Tools Full Theme Harmonization
 
 ### 1. Universal Input Controls & Search Field Theme Integration

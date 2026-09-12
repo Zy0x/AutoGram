@@ -1167,6 +1167,7 @@ export function TransferSettingsWorkspace({
               <input
                 id={searchInputId}
                 type="text"
+                className="td-xfer-search-input"
                 value={settingsQuery}
                 onChange={(e) => setSettingsQuery(e.target.value)}
                 placeholder={t('drive.search_placeholder_short')}
@@ -1219,7 +1220,7 @@ export function TransferSettingsWorkspace({
                       ))
                     ) : (
                       <div className="td-popover-empty">
-                        <Search size={18} style={{ color: '#64748b' }} />
+                        <Search size={18} style={{ color: 'var(--text-secondary)' }} />
                         <span>{t('ui.generated.tidak_ada_pengaturan_yang_cocok_dengan_14f47c1')}{settingsQuery}"</span>
                       </div>
                     )}

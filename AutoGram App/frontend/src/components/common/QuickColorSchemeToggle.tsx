@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import {
   getColorSchemeMode,
   getResolvedColorScheme,
@@ -36,14 +36,8 @@ export const QuickColorSchemeToggle: React.FC<QuickColorSchemeToggleProps> = ({
     setResolved(getResolvedColorScheme());
   };
 
-  const getIcon = () => {
-    if (mode === 'system') {
-      return <Monitor size={15} />;
-    }
-    return resolved === 'light' ? <Sun size={15} /> : <Moon size={15} />;
-  };
-
-  const modeLabel = t(`settings.mode_${mode}`);
+  const isLight = resolved === 'light' || mode === 'light';
+  const modeLabel = isLight ? t('settings.mode_light') : t('settings.mode_dark');
   const title = `${t('nav.color_scheme_toggle')} (${modeLabel})`;
 
   return (
@@ -84,7 +78,7 @@ export const QuickColorSchemeToggle: React.FC<QuickColorSchemeToggleProps> = ({
       title={title}
       aria-label={title}
     >
-      {getIcon()}
+      {isLight ? <Sun size={15} /> : <Moon size={15} />}
       <span style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
         {modeLabel}
       </span>

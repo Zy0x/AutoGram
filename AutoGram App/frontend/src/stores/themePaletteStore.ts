@@ -19,7 +19,7 @@ export type ThemeAliasId =
   | 'cyberpunk_violet'
   | 'obsidian_slate';
 
-export type ColorSchemeMode = 'dark' | 'light' | 'system';
+export type ColorSchemeMode = 'dark' | 'light';
 export type ResolvedColorScheme = 'dark' | 'light';
 
 export const LS_COLOR_SCHEME_KEY = 'autogram_color_scheme';

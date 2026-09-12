@@ -22439,8 +22439,8 @@ video.drive-zip-img {
   align-items: center !important;
   width: 220px !important;
   height: 36px !important;
-  background: var(--bg-card, rgba(15, 23, 42, 0.75)) !important;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
+  background: var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.75))) !important;
+  border: 1px solid var(--border-default, color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)) !important;
   border-radius: 10px !important;
   padding: 0 10px 0 32px !important;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -22448,16 +22448,21 @@ video.drive-zip-img {
 
 .td-header-search-box:focus-within {
   width: 280px !important;
-  background: var(--bg-card, rgba(15, 23, 42, 0.95)) !important;
-  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 60%, transparent) !important;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary, #38bdf8) 22%, transparent) !important;
+  background: var(--input-bg, var(--bg-card, rgba(15, 23, 42, 0.95))) !important;
+  border-color: var(--accent-primary, #38bdf8) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent) !important;
 }
 
 .td-header-search-icon {
   position: absolute !important;
   left: 10px !important;
-  color: var(--accent-primary, #38bdf8) !important;
+  color: var(--text-secondary, #94a3b8) !important;
   pointer-events: none !important;
+  transition: color 0.18s ease !important;
+}
+
+.td-header-search-box:focus-within .td-header-search-icon {
+  color: var(--accent-primary, #38bdf8) !important;
 }
 
 .td-header-search-input {
@@ -39624,12 +39629,13 @@ button.td-confirm-icon.is-back-btn:active {
   max-height: 34px !important;
   width: 220px !important;
   border-radius: 9px !important;
-  background: var(--bg-card) !important;
+  background: var(--input-bg, var(--bg-card)) !important;
   border: 1px solid var(--border-default) !important;
   box-sizing: border-box !important;
 }
 
-.td-tools-panel.is-unified .td-tools-close-btn {
+.td-tools-panel.is-unified .td-tools-close-btn,
+.td-tools-panel.is-unified .td-tools-close {
   width: 34px !important;
   height: 34px !important;
   min-width: 34px !important;
@@ -39638,16 +39644,17 @@ button.td-confirm-icon.is-back-btn:active {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #94a3b8 !important;
+  background: var(--input-bg, var(--bg-card)) !important;
+  border: 1px solid var(--border-default) !important;
+  color: var(--text-secondary) !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
 }
 
-.td-tools-panel.is-unified .td-tools-close-btn:hover {
-  background: rgba(239, 68, 68, 0.15) !important;
-  border-color: rgba(239, 68, 68, 0.35) !important;
+.td-tools-panel.is-unified .td-tools-close-btn:hover,
+.td-tools-panel.is-unified .td-tools-close:hover {
+  background: color-mix(in srgb, #ef4444 18%, transparent) !important;
+  border-color: color-mix(in srgb, #ef4444 40%, transparent) !important;
   color: #ef4444 !important;
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Palette, Check, Sparkles, Sun, Moon, Monitor } from 'lucide-react';
+import { Palette, Check, Sparkles, Sun, Moon } from 'lucide-react';
 import {
   PALETTES_LIST,
   getColorPalette,
@@ -108,35 +108,6 @@ export const ColorPaletteSection: React.FC = () => {
               {t('settings.color_scheme_desc')}
             </div>
           </div>
-          {colorScheme === 'system' && (
-            <span
-              style={{
-                fontSize: '0.72rem',
-                padding: '3px 10px',
-                borderRadius: '999px',
-                background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)',
-                color: 'var(--accent-primary, #38bdf8)',
-                border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: 'var(--accent-primary, #38bdf8)',
-                  boxShadow: '0 0 6px var(--accent-primary, #38bdf8)',
-                }}
-              />
-              {resolvedScheme === 'dark'
-                ? t('settings.color_scheme_system_active_dark')
-                : t('settings.color_scheme_system_active_light')}
-            </span>
-          )}
         </div>
 
         <div
@@ -151,7 +122,6 @@ export const ColorPaletteSection: React.FC = () => {
           {[
             { id: 'dark' as const, labelKey: 'settings.color_scheme_dark', icon: Moon },
             { id: 'light' as const, labelKey: 'settings.color_scheme_light', icon: Sun },
-            { id: 'system' as const, labelKey: 'settings.color_scheme_system', icon: Monitor },
           ].map((mode) => {
             const isCurrent = colorScheme === mode.id;
             const Icon = mode.icon;

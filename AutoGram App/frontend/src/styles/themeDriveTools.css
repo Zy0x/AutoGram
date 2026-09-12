@@ -19,9 +19,9 @@
    ========================================================================== */
 
 /* 1. Universal Text Inputs, Search Inputs, Selects & Textareas */
-[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
-[data-palette] input[type="text"],
-[data-palette] input[type="search"],
+[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.td-header-search-input):not(.td-xfer-search-input),
+[data-palette] input[type="text"]:not(.td-header-search-input):not(.td-xfer-search-input),
+[data-palette] input[type="search"]:not(.td-header-search-input):not(.td-xfer-search-input),
 [data-palette] input[type="number"],
 [data-palette] input[type="date"],
 [data-palette] input[type="password"],
@@ -38,10 +38,8 @@
 [data-palette] .td-tools-input,
 [data-palette] .td-tools-dup-search-input,
 [data-palette] .td-search,
-[data-palette] .td-header-search-input,
 [data-palette] .dzb-search-input,
 [data-palette] .td-dest-search input,
-[data-palette] .td-xfer-search-wrapper input,
 [data-palette] .ag-forwarder-input {
   background-color: var(--input-bg, var(--bg-card)) !important;
   border-color: var(--border-default) !important;
@@ -75,9 +73,9 @@
   opacity: 0.8 !important;
 }
 
-[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
-[data-palette] input[type="text"]:focus,
-[data-palette] input[type="search"]:focus,
+[data-palette] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.td-header-search-input):not(.td-xfer-search-input):focus,
+[data-palette] input[type="text"]:not(.td-header-search-input):not(.td-xfer-search-input):focus,
+[data-palette] input[type="search"]:not(.td-header-search-input):not(.td-xfer-search-input):focus,
 [data-palette] input[type="number"]:focus,
 [data-palette] input[type="date"]:focus,
 [data-palette] input[type="password"]:focus,
@@ -94,10 +92,8 @@
 [data-palette] .td-tools-input:focus,
 [data-palette] .td-tools-dup-search-input:focus,
 [data-palette] .td-search:focus,
-[data-palette] .td-header-search-input:focus,
 [data-palette] .dzb-search-input:focus,
 [data-palette] .td-dest-search input:focus,
-[data-palette] .td-xfer-search-wrapper input:focus,
 [data-palette] .ag-forwarder-input:focus {
   border-color: var(--accent-primary) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent) !important;
@@ -137,8 +133,11 @@
 [data-palette] .td-header-search-box,
 [data-palette] .td-tools-panel.is-unified .td-header-search-box,
 [data-palette] .td-xfer-search-wrapper {
-  background: var(--bg-card) !important;
+  background: var(--input-bg, color-mix(in srgb, var(--bg-dark) 85%, #000)) !important;
   border: 1px solid var(--border-default) !important;
+  border-radius: 9px !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, width 0.22s ease !important;
 }
 
 [data-palette] .td-header-search-box:focus-within,
@@ -148,9 +147,55 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 25%, transparent) !important;
 }
 
+/* Composite search box inner input: strictly seamless, transparent and borderless */
+[data-palette] .td-header-search-box input,
+[data-palette] .td-header-search-box .td-header-search-input,
+[data-palette] .td-xfer-search-wrapper input,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box input,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box .td-header-search-input {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: var(--text-primary) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+[data-palette] .td-header-search-box input:focus,
+[data-palette] .td-header-search-box .td-header-search-input:focus,
+[data-palette] .td-xfer-search-wrapper input:focus,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box input:focus,
+[data-palette] .td-tools-panel.is-unified .td-header-search-box .td-header-search-input:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 [data-palette] .td-header-search-icon,
 [data-palette] .td-xfer-search-wrapper .td-search-icon {
   color: var(--text-secondary) !important;
+  transition: color 0.18s ease !important;
+}
+
+[data-palette] .td-header-search-box:focus-within .td-header-search-icon,
+[data-palette] .td-xfer-search-wrapper:focus-within .td-search-icon {
+  color: var(--accent-primary) !important;
+}
+
+[data-palette] .td-header-search-clear {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer !important;
+  transition: color 0.15s ease !important;
+}
+
+[data-palette] .td-header-search-clear:hover {
+  color: var(--text-primary) !important;
 }
 
 [data-palette] .td-search-popover-dropdown {
@@ -253,14 +298,27 @@
 
 [data-palette] .td-tools-close,
 [data-palette] .td-tools-close-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--input-bg, var(--bg-card)) !important;
+  border: 1px solid var(--border-default) !important;
   color: var(--text-secondary) !important;
-  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  padding: 0 !important;
 }
 
 [data-palette] .td-tools-close:hover,
 [data-palette] .td-tools-close-btn:hover {
-  background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
-  color: var(--text-primary) !important;
+  background: color-mix(in srgb, #ef4444 18%, transparent) !important;
+  border-color: color-mix(in srgb, #ef4444 40%, transparent) !important;
+  color: #ef4444 !important;
 }
 
 /* 3. Sidebar Brand, Tabs & Dividers */

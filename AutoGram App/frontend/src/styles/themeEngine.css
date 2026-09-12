@@ -699,7 +699,7 @@ body,
 }
 
 [data-palette] .td-tools-panel.is-unified .td-header-search-box {
-  background: color-mix(in srgb, var(--bg-card) 60%, transparent) !important;
+  background: var(--input-bg, var(--bg-card)) !important;
   border-color: var(--border-default) !important;
 }
 
