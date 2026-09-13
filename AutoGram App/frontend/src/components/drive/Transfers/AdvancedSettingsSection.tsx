@@ -218,7 +218,7 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 <label
                   className="td-chip-btn"
-                  style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '8px 16px', fontSize: '12px', cursor: 'pointer' }}
+                  style={{ background: 'color-mix(in srgb, var(--accent-secondary, #a855f7) 15%, transparent)', color: 'var(--accent-secondary, #c084fc)', border: '1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 30%, transparent)', padding: '8px 16px', fontSize: '12px', cursor: 'pointer' }}
                 >
                   <Upload size={15} />
                   <span>{t('ui.generated.impor_konfigurasi_json_7a2ac70')}</span>

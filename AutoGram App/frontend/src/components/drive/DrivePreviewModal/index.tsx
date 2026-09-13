@@ -3008,7 +3008,7 @@ export function DrivePreviewModal({
       return { background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.35)' };
     }
     if (isImage) {
-      return { background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)' };
+      return { background: 'color-mix(in srgb, var(--accent-secondary, #a855f7) 15%, transparent)', color: 'var(--accent-secondary, #c084fc)', border: '1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 35%, transparent)' };
     }
     if (isVideo) {
       return { background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.35)' };

@@ -1,3 +1,41 @@
+## v4.1.6 — Full Theme Audit: Hardcoded Color Elimination & Deep Light Mode Consistency
+
+### 1. Sidebar Search Button & Back Compact Button — Light Mode Override
+- **Elimination of Invisible / Mismatched UI Controls in Light Mode**:
+  - *What changed*: Added Section 58 in `themeLightTransfersSettings.css` overriding `.td-sidebar-search-btn` and `.td-rail-back-compact` for `[data-color-scheme="light"]`. Search button now renders with a crisp white background, `var(--border-default)` border, and `var(--text-secondary)` icon color. On hover, border transitions to `var(--accent-primary)` with a soft glow shadow.
+  - *Technical rationale*: The base dark-mode style declared `rgba(255,255,255,0.04)` transparent background — effectively invisible on light cream/white surfaces. There was no `[data-color-scheme="light"]` override, so the button blended into the sidebar background in Light Mode.
+  - *User impact*: Search location button is clearly visible, identifiable, and interactive on all light-mode palettes including `luxury_gold`.
+
+### 2. FFmpeg Plugin Icon Box — Inline Purple Override Eliminated
+- **Removal of Hardcoded `rgba(168, 85, 247, 0.12)` Purple from Plugin Card**:
+  - *What changed*: In `TransferSettingsWorkspace.tsx`, removed the inline `style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.3)' }}` from the FFmpeg plugin icon box and replaced it with a semantic CSS class `is-ffmpeg`. Added Section 60 in `themeLightTransfersSettings.css` to override all `.td-plugin-icon-box` elements in light mode using `var(--accent-primary)` tokens.
+  - *Technical rationale*: Inline `style` attributes override all CSS specificity, including `!important` rules, making theme CSS powerless. Extracting to a class restores the theme cascade control.
+  - *User impact*: The FFmpeg plugin card icon box now displays the correct palette accent color (warm amber in `luxury_gold`) instead of a jarring purple.
+
+### 3. AlbumStrategyControl — Six Purple Hardcoded Values Replaced
+- **Theme-Aware Custom Partition Strategy Cards & Modal Overlay**:
+  - *What changed*: In `AlbumStrategyControl.tsx`, replaced 6 instances of hardcoded `rgba(168, 85, 247, ...)` and `#a855f7`/`#c084fc` with `color-mix(in srgb, var(--accent-secondary, #a855f7) X%, ...)` expressions. Affected areas: custom strategy tile border/background, custom panel border, modal overlay icon badge background/borderColor, modal info box, and Sliders icon color.
+  - *Technical rationale*: Using `color-mix()` with a CSS variable fallback allows the dark-mode default to remain purple while light-mode palette overrides (`--accent-secondary`) automatically apply without needing extra CSS rules.
+  - *User impact*: Custom partition strategy UI uses the correct accent color from the active palette consistently across all themes.
+
+### 4. AdvancedSettingsSection Import Button — Purple → Accent Secondary
+- **Import Config JSON Button Color Harmonization**:
+  - *What changed*: In `AdvancedSettingsSection.tsx`, replaced `background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)'` with `color-mix(in srgb, var(--accent-secondary, #a855f7) 15%, transparent)` and `var(--accent-secondary, #c084fc)` tokens.
+  - *User impact*: Import configuration button adapts to active palette instead of always showing purple.
+
+### 5. DrivePreviewModal Image Badge — Theme-Responsive Color
+- **Image File Type Badge Palette Compliance**:
+  - *What changed*: In `DrivePreviewModal/index.tsx`, changed the `isImage` style branch from hardcoded `rgba(168, 85, 247, 0.15)` / `#c084fc` to `color-mix(in srgb, var(--accent-secondary) ...)` expressions.
+  - *User impact*: Image preview file type badge (shown in the modal header) now respects the active palette accent color.
+
+### 6. ProgressBar Stats Panel — Dark Background Repaired for Light Mode
+- **Monospace Stats Log Panel Theme-Aware Background**:
+  - *What changed*: In `ProgressBar.tsx`, replaced `background: 'rgba(0,0,0,0.4)'` (opaque dark) with `background: 'var(--bg-elevated, rgba(0,0,0,0.3))'` and added class `progress-stats-log`. Added Section 59 in `themeLightTransfersSettings.css` to override this panel in light mode with `var(--bg-elevated, #f8fafc)`, `var(--border-subtle)` border, and `var(--text-muted)` text.
+  - *Technical rationale*: `rgba(0,0,0,0.4)` renders as near-opaque black on white backgrounds — the panel was completely unreadable in light mode.
+  - *User impact*: The transfer stats log panel is clearly readable in both dark and light modes.
+
+---
+
 ## v4.1.5 — Subpixel Format Badge Sharpness, Root Variable Cycle Repair, Header Sidebar Toggle Isolation & Plugin Icon Theme Harmony
 
 ### 1. File Card Format Badge Sharpness & Vector Precision

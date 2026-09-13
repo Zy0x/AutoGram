@@ -1719,8 +1719,8 @@ export function TransferSettingsWorkspace({
                 {/* Header */}
                 <div className="td-plugin-card-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="td-plugin-icon-box" style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-                      <Film size={18} style={{ color: '#c084fc' }} />
+                    <div className="td-plugin-icon-box is-ffmpeg">
+                      <Film size={18} style={{ color: 'var(--accent-secondary, #c084fc)' }} />
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>

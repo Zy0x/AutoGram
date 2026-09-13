@@ -713,6 +713,7 @@
   -webkit-font-smoothing: subpixel-antialiased !important;
 }
 
+
 [data-color-scheme="light"] .td-tag-badge.drive-fmt,
 [data-color-scheme="light"] .td-file-card-sub-row .td-tag-badge.drive-fmt {
   background: #ffffff !important;
@@ -724,6 +725,86 @@
   -webkit-font-smoothing: subpixel-antialiased !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
 }
+
+/* 58. Sidebar Search Button & Back Compact Button (Light Mode) */
+[data-color-scheme="light"] .td-sidebar-search-btn {
+  background: #ffffff !important;
+  border: 1px solid var(--border-default, #cbd5e1) !important;
+  color: var(--text-secondary, #334155) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-search-btn:hover {
+  background: var(--bg-hover, #f1f5f9) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent-primary, #0284c7) 18%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-search-btn svg {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .td-sidebar-search-btn:hover svg {
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+/* Back compact button — light mode override */
+[data-color-scheme="light"] .td-rail-back-compact {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .td-rail-back-compact:hover {
+  background: var(--accent-primary, #0284c7) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
+}
+
+/* 59. ProgressBar Stats Log Panel (Light Mode) */
+[data-color-scheme="light"] .monospace[style*="rgba(0,0,0,0.4)"],
+[data-color-scheme="light"] .progress-stats-log {
+  background: var(--bg-elevated, #f8fafc) !important;
+  border: 1px solid var(--border-subtle, #e2e8f0) !important;
+  color: var(--text-muted, #64748b) !important;
+}
+
+/* 60. Plugin Card FFmpeg Icon Box Override — Remove Hardcoded Purple */
+[data-color-scheme="light"] .td-plugin-card:nth-child(2) .td-plugin-icon-box,
+[data-color-scheme="light"] .td-plugin-card.is-ffmpeg .td-plugin-icon-box {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 28%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-plugin-card:nth-child(2) .td-plugin-icon-box svg,
+[data-color-scheme="light"] .td-plugin-card.is-ffmpeg .td-plugin-icon-box svg {
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+/* Also fix ALL plugin icon boxes globally in light mode for consistency */
+[data-color-scheme="light"] .td-plugin-icon-box {
+  background: color-mix(in srgb, var(--accent-secondary, #7c3aed) 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #7c3aed) 28%, transparent) !important;
+  color: var(--accent-secondary, #7c3aed) !important;
+}
+
+[data-color-scheme="light"] .td-plugin-icon-box svg {
+  color: var(--accent-secondary, #7c3aed) !important;
+}
+
+/* 61. Album Strategy Control Custom Partition Badge (Light Mode) */
+/* AlbumStrategyControl custom strategy card */
+[data-color-scheme="light"] [class*="strategy"][class*="custom"],
+[data-color-scheme="light"] [class*="album"][class*="custom"] {
+  background: color-mix(in srgb, var(--accent-secondary, #0284c7) 8%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--accent-secondary, #0284c7) 30%, transparent) !important;
+}
+
+
 
 
 

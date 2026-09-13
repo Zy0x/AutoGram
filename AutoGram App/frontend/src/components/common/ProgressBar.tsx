@@ -17,7 +17,7 @@ export function ProgressBar({ progress, isMigrating }: ProgressBarProps) {
       <div className="progress-container">
         <div className="progress-fill" style={{ transform: `scaleX(${progress / 100})` }}></div>
       </div>
-      <div className="monospace" style={{ marginTop: '12px', display: 'flex', gap: '12px', fontSize: '0.85rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.4)', padding: '12px', borderRadius: '6px' }}>
+      <div className="monospace progress-stats-log" style={{ marginTop: '12px', display: 'flex', gap: '12px', fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-elevated, rgba(0,0,0,0.3))', padding: '12px', borderRadius: '6px' }}>
         <TerminalSquare size={16} />
         <span>{isMigrating ? t('ui.generated.id_15_uploading_media_chunk_3c5c622') : t('ui.generated.standby_waiting_for_command_ecbab71')}</span>
       </div>

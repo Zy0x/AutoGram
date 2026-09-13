@@ -180,8 +180,8 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
               position: 'relative',
               cursor: 'pointer',
               borderRadius: '10px',
-              border: currentStrategy === 'custom' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-              background: currentStrategy === 'custom' ? 'rgba(168, 85, 247, 0.08)' : 'var(--bg-card, rgba(15, 23, 42, 0.4))',
+              border: currentStrategy === 'custom' ? '1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 55%, transparent)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: currentStrategy === 'custom' ? 'color-mix(in srgb, var(--accent-secondary, #a855f7) 8%, var(--bg-card, rgba(15, 23, 42, 0.4)))' : 'var(--bg-card, rgba(15, 23, 42, 0.4))',
               transition: 'all 0.15s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -190,7 +190,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
           >
             {/* Title Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <Sliders size={16} className="td-tile-icon is-disable" style={{ color: '#a855f7' }} />
+              <Sliders size={16} className="td-tile-icon is-disable" style={{ color: 'var(--accent-secondary, #a855f7)' }} />
               <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
                 {t('drive.album_strategy_custom')}
               </strong>
@@ -222,7 +222,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
         <div
           style={{
             background: 'var(--bg-card, rgba(15, 23, 42, 0.65))',
-            border: '1px solid rgba(168, 85, 247, 0.3)',
+            border: '1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 30%, transparent)',
             borderRadius: '12px',
             padding: '14px',
             display: 'flex',
@@ -398,18 +398,18 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                       activeOverlay === 'smart'
                         ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)'
                         : activeOverlay === 'custom'
-                        ? 'rgba(168, 85, 247, 0.15)'
+                        ? 'color-mix(in srgb, var(--accent-secondary, #a855f7) 15%, transparent)'
                         : 'rgba(245, 158, 11, 0.15)',
                     borderColor:
                       activeOverlay === 'smart'
                         ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent)'
                         : activeOverlay === 'custom'
-                        ? 'rgba(168, 85, 247, 0.35)'
+                        ? 'color-mix(in srgb, var(--accent-secondary, #a855f7) 35%, transparent)'
                         : 'rgba(245, 158, 11, 0.35)',
                   }}
                 >
                   {activeOverlay === 'smart' && <Sparkles size={18} style={{ color: 'var(--accent-primary, #38bdf8)' }} />}
-                  {activeOverlay === 'custom' && <Sliders size={18} style={{ color: '#c084fc' }} />}
+                  {activeOverlay === 'custom' && <Sliders size={18} style={{ color: 'var(--accent-secondary, #c084fc)' }} />}
                   {activeOverlay === 'warning' && <AlertTriangle size={18} style={{ color: '#fbbf24' }} />}
                 </div>
                 <div>
@@ -471,8 +471,8 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                   </p>
                   <div
                     style={{
-                      background: 'rgba(168, 85, 247, 0.08)',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
+                      background: 'color-mix(in srgb, var(--accent-secondary, #a855f7) 8%, var(--bg-card, rgba(15,23,42,0.4)))',
+                      border: '1px solid color-mix(in srgb, var(--accent-secondary, #a855f7) 25%, transparent)',
                       borderRadius: '10px',
                       padding: '12px 14px',
                       fontSize: '0.78rem',
