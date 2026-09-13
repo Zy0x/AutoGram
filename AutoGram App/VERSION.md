@@ -1,14 +1,13 @@
-AutoGram Version: v4.1.2
+AutoGram Version: v4.1.3
 
 Current State:
-v4.1.2 Video Encoder 2x2 Symmetrical Grid, Theme-Accented Radio Controls & Transcoding Select Component Harmonization:
-1. Video Encoding Grid (`.td-encoder-4x-grid`): Replaced asymmetrical 3+1 auto-fit with strict 2x2 symmetrical grid, pairing Automatic + GPU on Row 1 and CPU + Raw Passthrough on Row 2 with zero empty gaps.
-2. Native Radio Dot Accent: Enforced `accent-color: var(--accent-primary) !important` on `.td-encoder-tile input[type="radio"]` and `.td-radio-tile input[type="radio"]`, eliminating OS-default blue dot clash.
-3. Transcoding Select Controls: Converted all 7 raw HTML `<select>` elements in `EncodingSettingsSection.tsx` into `.td-select-wrapper` with `.td-select-control` and `ChevronDown` affordance.
-4. Dropdown Options Palette: Explicit theme-aware styling for `.td-select-control option` in light and dark modes.
-5. Format Checklist & Action Buttons: Replaced inline styles with semantic `.td-transcode-options-box`, `.td-format-chip`, and high-contrast `.td-format-action-btn` buttons.
-7. File Card Format Badges (`.td-tag-badge.drive-fmt`): Completely eliminated blurry dark drop-shadow halos around `[ MP4 ]` chips; enforced clean Slate 50 fills with bold Slate 900 text.
-8. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
+v4.1.3 Master Encoding Container Light Theme Integration, Checkbox Visual State Repair & Contrast Polish:
+1. Master Encoding Container (`.td-encoding-master-card`): Overrode dark charcoal linear-gradient with soft Slate 50 background (`#f8fafc`), crisp Slate 200 border, and elevated pure white header card with bold Slate 900 typography.
+2. Checkbox Visual State Restoration (`.td-format-chip input[type="checkbox"]`): Enforced `appearance: auto !important` and explicit 16px dimensions, eliminating blank white square glitch and restoring vibrant accent fill with white checkmark `✓`.
+3. Video Encoding Grid (`.td-encoder-4x-grid`): Strict 2x2 symmetrical layout with zero empty space.
+4. Radio Dot Accent: Enforced `accent-color: var(--accent-primary) !important` on `.td-encoder-tile` and `.td-radio-tile`.
+5. Transcoding Select Controls: Wrapped all 7 selects into `.td-select-wrapper` with `.td-select-control` and `ChevronDown` affordance.
+6. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
 
 v4.0.8 Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul:
 1. Storage Popover Status Badges (`.td-popover-status-badge`): Fixed faint mint `#34d399` text on pale mint background (contrast 2.2:1) with deep emerald green `#065f46` (contrast >= 8.2:1), reinforced border, and high contrast counting/syncing/normal badges.

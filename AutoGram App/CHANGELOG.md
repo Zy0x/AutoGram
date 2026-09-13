@@ -1,3 +1,23 @@
+## v4.1.3 — Master Encoding Container Light Theme Integration, Checkbox Visual State Repair & Contrast Polish
+
+### 1. Master Encoding Container Light Mode Integration
+- **Elimination of Jarring Dark Charcoal Background Box**:
+  - *What changed*:
+    - In `themeLightTransfersSettings.css`, overrode `.td-encoding-master-card` (which had a hardcoded dark linear-gradient `rgba(20, 26, 38, 0.7)` with `!important`) with a soft Slate 50 background (`#f8fafc !important`), crisp Slate 200 border (`#e2e8f0 !important`), and subtle shadow.
+    - Elevated `.td-encoding-master-header` to a clean pure white card (`#ffffff !important`) with Slate 200 border.
+    - Updated typography inside the master header: `.td-master-title-flex h3` set to Slate 900 (`#0f172a`), description text to Slate 600 (`#475569`), emphasized text to deep Slate 900 with accent underline, and elevated `.td-uploader-tag` and `.td-master-icon-badge` pills.
+  - *Technical rationale*: The master section previously rendered as a huge dark charcoal block in Light Mode, making the whole settings panel look like an un-themed, disjointed dark frame containing white islands.
+  - *User impact*: The entire section blends harmoniously into the light theme with high-contrast text and uniform aesthetic elegance.
+
+### 2. Format Checklist Checkbox Visual State Restoration
+- **Elimination of Blank White Square Checkbox Glitch**:
+  - *What changed*:
+    - Enforced `appearance: auto !important; -webkit-appearance: auto !important; width: 16px !important; height: 16px !important;` on `.td-format-chip input[type="checkbox"]` in both `App.css` and `themeLightTransfersSettings.css`.
+  - *Technical rationale*: Generic global reset rules on `.td-settings-card input[type="checkbox"]` had set `appearance: none;`, which combined with global light-mode input backgrounds caused checked checkboxes to render as completely empty, blank white squares with zero checkmark indicator.
+  - *User impact*: When formats are selected or when clicking `[ Select All ]`, each chip immediately and clearly displays a solid accent background with a sharp white checkmark `✓`.
+
+---
+
 ## v4.1.2 — Video Encoder 2x2 Symmetrical Grid, Theme-Accented Radio Controls & Transcoding Select Component Harmonization
 
 ### 1. Video Encoding & Acceleration Mode 2x2 Symmetrical Architecture

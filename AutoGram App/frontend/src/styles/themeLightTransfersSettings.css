@@ -457,7 +457,12 @@
 }
 
 [data-color-scheme="light"] .td-format-chip input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
   accent-color: var(--accent-primary, #0284c7) !important;
+  cursor: pointer !important;
 }
 
 [data-color-scheme="light"] .td-format-chip-label {
@@ -492,5 +497,46 @@
 [data-color-scheme="light"] .td-select-control option {
   background: #ffffff !important;
   color: #0f172a !important;
+}
+
+/* 51. Master Encoding & Transcoding Container in Light Mode */
+[data-color-scheme="light"] .td-encoding-master-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .td-encoding-master-header {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+[data-color-scheme="light"] .td-master-title-flex h3 {
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-master-desc {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .td-master-desc strong {
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-master-desc em {
+  color: #0f172a !important;
+  text-decoration-color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-master-icon-badge {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 12%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-uploader-tag {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 12%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
 }
 

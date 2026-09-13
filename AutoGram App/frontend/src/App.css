@@ -40567,8 +40567,12 @@ button.td-confirm-icon.is-back-btn:active {
 }
 
 .td-format-chip input[type="checkbox"] {
-  accent-color: var(--accent-primary, #38bdf8);
-  cursor: pointer;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: var(--accent-primary, #38bdf8) !important;
+  cursor: pointer !important;
 }
 
 .td-format-chip-label {
