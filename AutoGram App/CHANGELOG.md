@@ -1,3 +1,63 @@
+## v4.1.1 — Transfer Settings Layout & Conflict Select Polish, Playback History Action Card & Telemetry Hierarchy Architecture
+
+### 1. Download Settings & Computer File Conflict Policy Control
+- **Custom Dropdown Selector & Grouped Card Elevation**:
+  - *What changed*:
+    - Replaced the unstyled, raw inline HTML `<select>` in `DownloadSettingsSection.tsx` with a dedicated `.td-select-wrapper` container equipped with a custom `ChevronDown` icon (`size={16}`) from `lucide-react`.
+    - Applied `.td-select-control` with an elevated 42px touch-friendly height, crisp Slate 300 border (`#cbd5e1`), 10px rounded corners, balanced horizontal padding (`0 38px 0 14px`), and smooth accent focus ring (`0 0 0 3px color-mix(in srgb, var(--accent-primary) 25%, transparent)`).
+    - Refined `.td-settings-subcard` with consistent 16px 18px padding and 12px border radius.
+    - Upgraded `.td-switch-row` elements inside subcards to render as crisp white elevated cards (`#ffffff`) with Slate 200 borders (`#e2e8f0`) and subtle elevation shadows, establishing clean visual hierarchy against the soft Slate 50 (`#f8fafc`) subcard background.
+  - *Technical rationale*: Inline CSS styles lacked dropdown chevron icons, focus transitions, and touch-target standardization, while nested subcard elements shared identical backgrounds without elevation.
+  - *User impact*: Selecting file conflict behaviors is intuitive, visually crisp, and matches the modern desktop control design system.
+
+### 2. Playback History Action Card & Shortcut Hint Architecture
+- **Self-Contained Action Card & Keyboard Shortcut Banner**:
+  - *What changed*:
+    - Redesigned `.td-playback-history-row` into a unified `.td-playback-history-card` matching the switch rows with balanced 12px 16px padding, 12px rounded corners, and crisp border.
+    - Vertically centered `.td-clear-history-btn` (`[ 🗑 Clear history ]`) directly opposite the 2-line title and description with an enforced 38px height and 8px border-radius.
+    - Transformed the bare paragraph shortcut note into `.td-playback-hint-banner` equipped with an `Info` icon (`size={14}`), subtle Slate 50 background, 10px rounded corners, and Slate 600 text (`#475569`).
+  - *Technical rationale*: The previous raw row relied on a single top border separator that ended abruptly, leaving the button looking floating and uncentered while the shortcut hint lacked container styling.
+  - *User impact*: Playback settings and cache actions form a cohesive, neatly aligned group with prominent shortcut discoverability.
+
+### 3. Performance Tier Alignment, Inline Badges & Status Telemetry Grid
+- **Inline Title-Badge Head Group & Far-Right Telemetry Anchoring**:
+  - *What changed*:
+    - Restructured `.settings-tier-option` in `PerfSection.tsx`: wrapped the tier title and its status badges (`Default`, `✦ Recommended For Your Device`) into `.settings-tier-title-group`.
+    - Badges now sit inline immediately adjacent to the mode title rather than being pushed across an empty gap to the right edge.
+    - Anchored `.settings-tier-metric` (`20 Batch · Low RAM`, `32 Batch · Balanced`, `96 Batch · 6x Parallel Stream`) firmly to the far-right column with high-contrast text (`#334155`, contrast $\ge 7:1$), Slate 300 border (`#cbd5e1`), and subtle Slate 100 pill fill (`#f1f5f9`).
+    - Standardized `.settings-tier-radio` with a 20px circular target and 3.5px pure white inset ring when active.
+  - *Technical rationale*: Splitting badges into separate columns caused cramped text wrapping on narrower resolutions and unbalanced visual weight.
+  - *User impact*: Performance modes present immediate, clear mode titles with their status badges at a glance.
+
+### 4. Active Status Header & Hardware Telemetry Layout
+- **Two-Row Telemetry Structure & Dedicated Engine Status Pill**:
+  - *What changed*:
+    - Split `.settings-perf-status` into a clean two-row layout:
+      - Row 1: `.settings-perf-status-header` featuring active status title on the left and a live `.settings-perf-live-pill` (`Rust MTProto Engine`) on the right with a green live pulse dot and `ShieldCheck` icon.
+      - Row 2: `.settings-perf-chips-row` flex-wrapping physical hardware chips (CPU model, GPU acceleration backend, network profile) with unified 28px height, 7px radius, and balanced padding.
+  - *Technical rationale*: Placing long CPU/GPU strings and status labels in a single flex container forced accidental line-wrapping and truncated telemetry chips.
+  - *User impact*: Hardware diagnostic information is legible, organized, and provides immediate confirmation of the native Rust engine.
+
+### 5. RAM Memory Purge Bar & Touch Target Polish
+- **Balanced Breathing Room & Elevated Action Button**:
+  - *What changed*:
+    - Expanded `.settings-perf-ram-bar` padding to 16px 20px with 12px border radius and pure white surface in Light Mode.
+    - Improved typography hierarchy: `.settings-perf-ram-title` set to 0.9rem Slate 900 (`#0f172a`, font-weight 750) with 4px gap to `.settings-perf-ram-desc` (line-height 1.4).
+    - Upgraded `.settings-perf-ram-btn` (`[ ↺ Clear RAM Memory ]`): 40px touch-friendly height, 10px radius, 8px icon-to-label gap, 1.5px accent border, and smooth hover transform (`translateY(-1px)`).
+  - *Technical rationale*: The RAM bar previously had tight 12px padding and 2px line gap, causing the button and text to feel crowded.
+  - *User impact*: Memory management actions are prominently accessible and provide reassuring visual tactile feedback.
+
+### 6. Architectural Modularization & Physical Line Count Governance (Rule 15/17)
+- **Modular Stylesheet Extraction**:
+  - *What changed*:
+    - Extracted Transfer Settings, Remote Upload, and Performance Light Mode rules (~350 lines) from `themeLightMode.css` into a dedicated modular stylesheet: `themeLightTransfersSettings.css`.
+    - Reduced `themeLightMode.css` from 2,102 physical lines down to 1,755 physical lines, strictly conforming to the 2,000-line hard boundary of Rule 15/17.
+    - Imported `themeLightTransfersSettings.css` directly in `main.tsx` and via `@import` in `themeLightMode.css` for robust bundler resolution.
+  - *Technical rationale*: Enforcing modular stylesheet boundaries prevents monolithic growth and ensures high maintainability.
+  - *User impact*: Faster CSS evaluation and zero regressions across theme switches.
+
+---
+
 ## v4.1.0 — Remote Upload Crawler Button, Tabs Contrast, Transfer Footer Layout, Playback History & Performance Cards Overhaul
 
 ### 1. Remote Upload Header & Crawler Button Architecture

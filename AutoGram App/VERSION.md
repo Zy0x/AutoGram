@@ -1,7 +1,7 @@
-AutoGram Version: v4.1.0
+AutoGram Version: v4.1.1
 
 Current State:
-v4.0.9 Cloud Drives Light Mode Upload Settings, Switch Controls, Concurrency Badges & Format Chips Overhaul:
+v4.1.1 Transfer Settings Layout & Conflict Select Polish, Playback History Action Card & Telemetry Hierarchy Architecture:
 1. Switch Row Checkboxes (`.td-switch-row input[type="checkbox"]`): Fixed invisible switch tracks on "Spoiler Media" and "Silent Delivery" with crisp Slate 200 track (`#e2e8f0`), Slate 300 border (`#cbd5e1`), clean white knob, and radiant accent blue active state.
 2. Throughput Concurrency Badges (`.td-concurrency-badge`): Replaced unreadable lavender text (`#e9d5ff`, contrast 1.2:1) on `[ ⚡ Maximum Throughput ]` with deep royal violet `#6b21a8` (contrast >= 8.5:1), with high-contrast stable and balanced badges.
 3. Form Field Labels (`.td-field-label`): Upgraded washed-out `#cbd5e1` labels ("Number of Parallel Uploads", "Media Delivery Format") to bold Slate 700 `#334155` (contrast >= 9.5:1).

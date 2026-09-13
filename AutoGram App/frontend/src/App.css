@@ -40412,35 +40412,82 @@ button.td-confirm-icon.is-back-btn:active {
   box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 45%, transparent) !important;
 }
 
-/* Playback History Row & Actions */
-.td-playback-history-row {
-  margin-top: 16px !important;
-  padding-top: 16px !important;
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06)) !important;
+/* Select Control & Wrapper for Transfers & Settings */
+.td-select-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.td-select-control {
+  width: 100%;
+  height: 42px;
+  padding: 0 38px 0 14px;
+  border-radius: 10px;
+  background: var(--bg-card, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.12));
+  color: var(--text-primary, #f1f5f9);
+  font-size: 0.86rem;
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.td-select-control:focus {
+  border-color: var(--accent-primary, #38bdf8);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent);
+}
+
+.td-select-chevron {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+  color: var(--text-secondary, #94a3b8);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+/* Playback History Card & Actions */
+.td-playback-history-card {
+  margin-top: 14px !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  background: var(--bg-card, rgba(15, 23, 42, 0.45)) !important;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px !important;
+  gap: 16px !important;
   flex-wrap: wrap !important;
+  min-height: 48px !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .td-playback-history-title {
-  font-size: 0.88rem !important;
-  color: var(--text-primary) !important;
+  font-size: 0.85rem !important;
+  font-weight: 750 !important;
+  color: var(--text-primary, #f1f5f9) !important;
   display: block !important;
 }
 
 .td-playback-history-desc {
   margin: 2px 0 0 !important;
-  font-size: 0.8rem !important;
-  color: var(--text-secondary) !important;
+  font-size: 0.76rem !important;
+  color: var(--text-secondary, #94a3b8) !important;
+  line-height: 1.35 !important;
 }
 
 .td-clear-history-btn {
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 6px !important;
-  padding: 6px 12px !important;
+  padding: 8px 14px !important;
+  min-height: 38px !important;
   border-radius: 8px !important;
   background: rgba(239, 68, 68, 0.12) !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
@@ -40449,12 +40496,15 @@ button.td-confirm-icon.is-back-btn:active {
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 .td-clear-history-btn:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.2) !important;
   border-color: rgba(239, 68, 68, 0.5) !important;
   color: #fecaca !important;
+  transform: translateY(-1px) !important;
 }
 
 .td-clear-history-btn.is-success {
@@ -40463,10 +40513,26 @@ button.td-confirm-icon.is-back-btn:active {
   color: #86efac !important;
 }
 
-.td-playback-hint {
+.td-playback-hint-banner {
   margin-top: 14px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.07)) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.td-playback-hint-icon {
+  color: var(--accent-primary, #38bdf8) !important;
+  flex-shrink: 0 !important;
+}
+
+.td-playback-hint-text {
   font-size: 0.78rem !important;
-  color: var(--text-muted, #64748b) !important;
+  color: var(--text-secondary, #94a3b8) !important;
+  line-height: 1.4 !important;
 }
 
 /* Mobile & Compact Screen Responsive Layout (<= 600px) */

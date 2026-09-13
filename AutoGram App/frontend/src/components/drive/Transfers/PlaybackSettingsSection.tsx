@@ -1,4 +1,4 @@
-import { Check, Loader2, PlaySquare, Trash2 } from 'lucide-react';
+import { Check, Info, Loader2, PlaySquare, Trash2 } from 'lucide-react';
 
 export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string; ctx: Record<string, any> }) {
   const { t, draft, patch, embedded, clearingPlaybackHistory, clearedPlaybackSuccess, handleClearPlaybackHistory } = ctx;
@@ -69,7 +69,7 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                   </label>
                 </div>
 
-                <div className="td-playback-history-row">
+                <div className="td-playback-history-card td-playback-history-row">
                   <div className="td-playback-history-info">
                     <strong className="td-playback-history-title">
                       {t('drive.playback_history_cache_title')}
@@ -96,9 +96,12 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                 </div>
               </div>
 
-              <p className="td-xfer-hint td-playback-hint">
-                {t('drive.playback_hint_shortcut')}
-              </p>
+              <div className="td-playback-hint-banner">
+                <Info size={14} className="td-playback-hint-icon" aria-hidden />
+                <span className="td-playback-hint-text">
+                  {t('drive.playback_hint_shortcut')}
+                </span>
+              </div>
             </div>
           </div>
   ) : null;

@@ -1,4 +1,4 @@
-import { Download, Gauge, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronDown, Download, Gauge, ShieldCheck, Zap } from 'lucide-react';
 
 export function DownloadSettingsSection({ activeTab, ctx }: { activeTab: string; ctx: Record<string, any> }) {
   const { t, draft, patch, transferActive } = ctx;
@@ -40,9 +40,9 @@ export function DownloadSettingsSection({ activeTab, ctx }: { activeTab: string;
                 </div>
               </div>
 
-              {/* SUB-SECTION: PARALEL UNDUHAN */}
+              {/* SUB-SECTION 1.1: PARALEL UNDUH */}
               <div className="td-settings-subcard">
-                <label className="td-field-label">{t('ui.generated.jumlah_unduhan_paralel_download_slots_53a87b8')}</label>
+                <label className="td-field-label">{t('ui.generated.jumlah_unduhan_paralel_download_slots_a0640d2')}</label>
                 <div className="td-slider-row-box">
                   <input
                     type="range"
@@ -81,17 +81,20 @@ export function DownloadSettingsSection({ activeTab, ctx }: { activeTab: string;
               {/* SUB-SECTION: KONFLIK FILE & KEANDALAN */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
                 <label className="td-field-label">{t('ui.generated.kebijakan_konflik_nama_berkas_di_komputer_cccc51f')}</label>
-                <select
-                  value={draft.downloadConflictPolicy || 'ask'}
-                  disabled={!!transferActive}
-                  onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
-                  style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '10px', background: 'var(--input-bg, var(--bg-card))', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-                >
-                  <option value="ask">{t('ui.generated.tanyakan_sebelum_mengunduh_3820b14')}</option>
-                  <option value="rename">{t('ui.generated.ganti_nama_otomatis_tambah_angka_a0d1700')}</option>
-                  <option value="overwrite">{t('ui.generated.timpa_berkas_yang_ada_9047d33')}</option>
-                  <option value="skip">{t('ui.generated.lewati_berkas_99bd0e6')}</option>
-                </select>
+                <div className="td-select-wrapper">
+                  <select
+                    value={draft.downloadConflictPolicy || 'ask'}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
+                    className="td-select-control"
+                  >
+                    <option value="ask">{t('ui.generated.tanyakan_sebelum_mengunduh_3820b14')}</option>
+                    <option value="rename">{t('ui.generated.ganti_nama_otomatis_tambah_angka_a0d1700')}</option>
+                    <option value="overwrite">{t('ui.generated.timpa_berkas_yang_ada_9047d33')}</option>
+                    <option value="skip">{t('ui.generated.lewati_berkas_99bd0e6')}</option>
+                  </select>
+                  <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                </div>
 
                 <div className="td-switches-list" style={{ marginTop: '16px' }}>
                   <label className="td-switch-row">

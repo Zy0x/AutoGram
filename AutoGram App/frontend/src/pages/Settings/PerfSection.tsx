@@ -141,22 +141,24 @@ export const PerfSection = memo(function PerfSection() {
               <span className="settings-tier-radio" aria-hidden />
               <span className="settings-tier-content">
                 <span className="settings-tier-topline">
-                  <span className="settings-tier-name">
-                    <TierIcon size={17} strokeWidth={2} />
-                    {option.title}
-                  </span>
-                  <span className="settings-tier-badges">
-                    {option.id === 'mid' && (
-                      <span className="settings-badge settings-badge-default">
-                        {t('settings.perf_default_badge')}
-                      </span>
-                    )}
-                    {recommended && (
-                      <span className="settings-badge settings-badge-recommended">
-                        <Sparkles size={12} strokeWidth={2} />
-                        {t('settings.perf_recommended_badge')}
-                      </span>
-                    )}
+                  <span className="settings-tier-title-group">
+                    <span className="settings-tier-name">
+                      <TierIcon size={17} strokeWidth={2} />
+                      {option.title}
+                    </span>
+                    <span className="settings-tier-badges">
+                      {option.id === 'mid' && (
+                        <span className="settings-badge settings-badge-default">
+                          {t('settings.perf_default_badge')}
+                        </span>
+                      )}
+                      {recommended && (
+                        <span className="settings-badge settings-badge-recommended">
+                          <Sparkles size={12} strokeWidth={2} />
+                          {t('settings.perf_recommended_badge')}
+                        </span>
+                      )}
+                    </span>
                   </span>
                 </span>
                 <span className="settings-tier-desc">{option.desc}</span>
@@ -169,16 +171,23 @@ export const PerfSection = memo(function PerfSection() {
 
       {/* REAL ACCURATE PHYSICAL HARDWARE TELEMETRY BADGES */}
       <div className="settings-perf-status" role="status">
-        <div className="settings-perf-status-label">
-          <Cpu size={15} strokeWidth={2} className="settings-perf-status-icon" aria-hidden />
-          <span>{t('settings.perf_status_active')}</span>
-          <strong className="settings-perf-status-tier">
-            {tier === 'low'
-              ? t('settings.perf_tier_low_title')
-              : tier === 'high'
-                ? t('settings.perf_tier_high_title')
-                : t('settings.perf_tier_mid_title')}
-          </strong>
+        <div className="settings-perf-status-header">
+          <div className="settings-perf-status-label">
+            <Cpu size={15} strokeWidth={2} className="settings-perf-status-icon" aria-hidden />
+            <span>{t('settings.perf_status_active')}</span>
+            <strong className="settings-perf-status-tier">
+              {tier === 'low'
+                ? t('settings.perf_tier_low_title')
+                : tier === 'high'
+                  ? t('settings.perf_tier_high_title')
+                  : t('settings.perf_tier_mid_title')}
+            </strong>
+          </div>
+          <span className="settings-perf-live-pill">
+            <span className="settings-perf-pulse-dot" aria-hidden />
+            <ShieldCheck size={12} className="settings-perf-chip-icon" aria-hidden />
+            <span>{t('settings.perf_engine_rust')}</span>
+          </span>
         </div>
 
         <div className="settings-perf-chips-row">
@@ -197,11 +206,6 @@ export const PerfSection = memo(function PerfSection() {
           <span className={`settings-perf-chip settings-perf-chip-net ${profile.fastNet ? 'is-fast' : 'is-saver'}`}>
             <Wifi size={12} className="settings-perf-chip-icon" />
             <span>{profile.fastNet ? t('settings.perf_fast_net') : t('settings.perf_saver_net')}</span>
-          </span>
-
-          <span className="settings-perf-chip settings-perf-chip-engine">
-            <ShieldCheck size={12} className="settings-perf-chip-icon" />
-            <span>{t('settings.perf_engine_rust')}</span>
           </span>
         </div>
       </div>
