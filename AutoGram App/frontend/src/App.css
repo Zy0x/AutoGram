@@ -13736,11 +13736,20 @@ section.docx *,
 }
 
 /* RADIO TILES GRID & ENCODER TILES */
-.td-radio-tiles-grid,
-.td-encoder-4x-grid {
+.td-radio-tiles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
+}
+.td-encoder-4x-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .td-encoder-4x-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .td-radio-tile,
 .td-encoder-tile {
@@ -13754,6 +13763,13 @@ section.docx *,
   cursor: pointer;
   transition: all 0.18s ease;
   min-height: 44px;
+}
+.td-radio-tile input[type="radio"],
+.td-encoder-tile input[type="radio"] {
+  accent-color: var(--accent-primary, #38bdf8);
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .td-radio-tile:hover,
 .td-encoder-tile:hover {
@@ -40449,6 +40465,121 @@ button.td-confirm-icon.is-back-btn:active {
   color: var(--text-secondary, #94a3b8);
   flex-shrink: 0;
   transition: transform 0.2s ease;
+}
+
+.td-select-control option {
+  background: var(--bg-card, #0f172a);
+  color: var(--text-primary, #f1f5f9);
+  padding: 8px 12px;
+}
+
+/* Transcode Progressive Disclosure Container & Checklist */
+.td-transcode-options-box {
+  background: var(--bg-card, rgba(15, 23, 42, 0.45));
+  border: 1px solid var(--border-subtle, rgba(51, 65, 85, 0.5));
+  border-radius: 10px;
+}
+
+.td-transcode-checklist-divider {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.td-transcode-checklist-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.td-transcode-hint-text {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+/* Format Action Buttons: Select All / Deselect All */
+.td-format-action-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.td-format-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.td-format-action-btn.is-select-all {
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent);
+  color: var(--accent-primary, #7dd3fc);
+}
+
+.td-format-action-btn.is-select-all:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 28%, transparent);
+}
+
+.td-format-action-btn.is-deselect-all {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.td-format-action-btn.is-deselect-all:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Format Checkbox Grid & Chips */
+.td-format-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 6px;
+}
+
+.td-format-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  min-height: 32px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(51, 65, 85, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.td-format-chip:hover {
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, rgba(51, 65, 85, 0.4));
+}
+
+.td-format-chip.is-checked {
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent);
+}
+
+.td-format-chip input[type="checkbox"] {
+  accent-color: var(--accent-primary, #38bdf8);
+  cursor: pointer;
+}
+
+.td-format-chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.td-format-chip.is-checked .td-format-chip-label {
+  color: var(--accent-primary, #7dd3fc);
+  font-weight: 700;
 }
 
 /* Playback History Card & Actions */

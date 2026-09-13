@@ -1,13 +1,12 @@
-AutoGram Version: v4.1.1
+AutoGram Version: v4.1.2
 
 Current State:
-v4.1.1 Transfer Settings Layout & Conflict Select Polish, Playback History Action Card & Telemetry Hierarchy Architecture:
-1. Switch Row Checkboxes (`.td-switch-row input[type="checkbox"]`): Fixed invisible switch tracks on "Spoiler Media" and "Silent Delivery" with crisp Slate 200 track (`#e2e8f0`), Slate 300 border (`#cbd5e1`), clean white knob, and radiant accent blue active state.
-2. Throughput Concurrency Badges (`.td-concurrency-badge`): Replaced unreadable lavender text (`#e9d5ff`, contrast 1.2:1) on `[ ⚡ Maximum Throughput ]` with deep royal violet `#6b21a8` (contrast >= 8.5:1), with high-contrast stable and balanced badges.
-3. Form Field Labels (`.td-field-label`): Upgraded washed-out `#cbd5e1` labels ("Number of Parallel Uploads", "Media Delivery Format") to bold Slate 700 `#334155` (contrast >= 9.5:1).
-4. Caption Studio Master Toggle (`.td-caption-toggle-switch`): Replaced un-bordered toggle and pale text with elevated white pill, Slate 300 track, and Slate 600 bold text (`#475569`) for INACTIVE status.
-5. Caption Studio Off-State Notice (`.td-caption-off-hint`): Upgraded dark translucent card to soft Slate 50 with Slate 200 border and Slate 700 text.
-6. Media Delivery Radio Tiles (`.td-radio-tile`, `.td-encoder-tile`): Elevated cards on pure white with Slate 300 borders, Slate 900 titles, and luminous accent border when selected.
+v4.1.2 Video Encoder 2x2 Symmetrical Grid, Theme-Accented Radio Controls & Transcoding Select Component Harmonization:
+1. Video Encoding Grid (`.td-encoder-4x-grid`): Replaced asymmetrical 3+1 auto-fit with strict 2x2 symmetrical grid, pairing Automatic + GPU on Row 1 and CPU + Raw Passthrough on Row 2 with zero empty gaps.
+2. Native Radio Dot Accent: Enforced `accent-color: var(--accent-primary) !important` on `.td-encoder-tile input[type="radio"]` and `.td-radio-tile input[type="radio"]`, eliminating OS-default blue dot clash.
+3. Transcoding Select Controls: Converted all 7 raw HTML `<select>` elements in `EncodingSettingsSection.tsx` into `.td-select-wrapper` with `.td-select-control` and `ChevronDown` affordance.
+4. Dropdown Options Palette: Explicit theme-aware styling for `.td-select-control option` in light and dark modes.
+5. Format Checklist & Action Buttons: Replaced inline styles with semantic `.td-transcode-options-box`, `.td-format-chip`, and high-contrast `.td-format-action-btn` buttons.
 7. File Card Format Badges (`.td-tag-badge.drive-fmt`): Completely eliminated blurry dark drop-shadow halos around `[ MP4 ]` chips; enforced clean Slate 50 fills with bold Slate 900 text.
 8. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
 

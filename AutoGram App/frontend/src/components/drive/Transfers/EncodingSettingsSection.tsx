@@ -1,4 +1,4 @@
-import { Cpu, Film, Image, PlaySquare, ShieldAlert, Sliders, SlidersHorizontal, Upload, Zap } from 'lucide-react';
+import { ChevronDown, Cpu, Film, Image, PlaySquare, ShieldAlert, Sliders, SlidersHorizontal, Upload, Zap } from 'lucide-react';
 import type { ReencodeHardware } from '../../../lib/telegram/driveTypes';
 import { PerfSection } from '../../../pages/Settings/PerfSection';
 import { MediaSelect } from '../Navigation/MediaSelect';
@@ -198,33 +198,37 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
                   <label className="td-field-label">{t('drive.image_delivery_strategy_label')}</label>
-                  <select
-                    value={draft.imageTranscodeScope === 'none' ? 'raw' : 'transcode'}
-                    disabled={!!transferActive}
-                    onChange={(e) => {
-                      const isRaw = e.target.value === 'raw';
-                      if (isRaw) {
-                        patch({
-                          imageTranscodeScope: 'none',
-                          imageTranscodeFormats: [],
-                          albumIncompatImageMode: 'document',
-                          preventStickerConversion: false,
-                        });
-                      } else {
-                        const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                        patch({
-                          imageTranscodeScope: 'all_incompatible',
-                          imageTranscodeFormats: allImgs,
-                          imageTranscodeTarget: 'jpeg',
-                          albumIncompatImageMode: 'transcode',
-                          preventStickerConversion: true,
-                        });
-                      }
-                    }}
-                  >
-                    <option value="raw">{t('drive.image_delivery_strategy_raw')}</option>
-                    <option value="transcode">{t('drive.image_delivery_strategy_transcode')}</option>
-                  </select>
+                  <div className="td-select-wrapper">
+                    <select
+                      className="td-select-control"
+                      value={draft.imageTranscodeScope === 'none' ? 'raw' : 'transcode'}
+                      disabled={!!transferActive}
+                      onChange={(e) => {
+                        const isRaw = e.target.value === 'raw';
+                        if (isRaw) {
+                          patch({
+                            imageTranscodeScope: 'none',
+                            imageTranscodeFormats: [],
+                            albumIncompatImageMode: 'document',
+                            preventStickerConversion: false,
+                          });
+                        } else {
+                          const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                          patch({
+                            imageTranscodeScope: 'all_incompatible',
+                            imageTranscodeFormats: allImgs,
+                            imageTranscodeTarget: 'jpeg',
+                            albumIncompatImageMode: 'transcode',
+                            preventStickerConversion: true,
+                          });
+                        }
+                      }}
+                    >
+                      <option value="raw">{t('drive.image_delivery_strategy_raw')}</option>
+                      <option value="transcode">{t('drive.image_delivery_strategy_transcode')}</option>
+                    </select>
+                    <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                  </div>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {draft.imageTranscodeScope === 'none'
                       ? t('drive.image_delivery_strategy_raw_desc')
@@ -234,37 +238,41 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 {/* Tingkat 2, 3, & 4: Progressive Disclosure saat Konversi Aktif */}
                 {draft.imageTranscodeScope !== 'none' && (
-                  <div style={{ marginTop: '14px', padding: '12px', background: 'var(--bg-card, rgba(15, 23, 42, 0.45))', border: '1px solid var(--border-subtle, rgba(51, 65, 85, 0.5))', borderRadius: '10px' }}>
-                    <div>
-                      <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  <div className="td-transcode-options-box" style={{ marginTop: '14px', padding: '12px' }}>
+                    <div className="td-field-group">
+                      <label className="td-field-label" style={{ fontSize: '11px' }}>
                         {t('drive.image_transcode_scope_label')}
                       </label>
-                      <select
-                        value={draft.imageTranscodeScope || 'all_incompatible'}
-                        disabled={!!transferActive}
-                        onChange={(e) => {
-                          const nextScope = e.target.value as any;
-                          const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                          const commonImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl'];
-                          const graphicsImgs = ['tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
-                          let nextFormats = draft.imageTranscodeFormats || allImgs;
-                          if (nextScope === 'all_incompatible') nextFormats = allImgs;
-                          else if (nextScope === 'common_web') nextFormats = commonImgs;
-                          else if (nextScope === 'graphics_raw') nextFormats = graphicsImgs;
-                          else if (nextScope === 'none') nextFormats = [];
-                          patch({
-                            imageTranscodeScope: nextScope,
-                            imageTranscodeFormats: nextFormats,
-                            imageTranscodeTarget: 'jpeg',
-                            albumIncompatImageMode: nextScope === 'none' ? 'document' : 'transcode',
-                          });
-                        }}
-                      >
-                        <option value="all_incompatible">{t('drive.image_transcode_scope_all')}</option>
-                        <option value="common_web">{t('drive.image_transcode_scope_common')}</option>
-                        <option value="graphics_raw">{t('drive.image_transcode_scope_graphics')}</option>
-                        <option value="custom">{t('drive.image_transcode_scope_custom')}</option>
-                      </select>
+                      <div className="td-select-wrapper">
+                        <select
+                          className="td-select-control"
+                          value={draft.imageTranscodeScope || 'all_incompatible'}
+                          disabled={!!transferActive}
+                          onChange={(e) => {
+                            const nextScope = e.target.value as any;
+                            const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                            const commonImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl'];
+                            const graphicsImgs = ['tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
+                            let nextFormats = draft.imageTranscodeFormats || allImgs;
+                            if (nextScope === 'all_incompatible') nextFormats = allImgs;
+                            else if (nextScope === 'common_web') nextFormats = commonImgs;
+                            else if (nextScope === 'graphics_raw') nextFormats = graphicsImgs;
+                            else if (nextScope === 'none') nextFormats = [];
+                            patch({
+                              imageTranscodeScope: nextScope,
+                              imageTranscodeFormats: nextFormats,
+                              imageTranscodeTarget: 'jpeg',
+                              albumIncompatImageMode: nextScope === 'none' ? 'document' : 'transcode',
+                            });
+                          }}
+                        >
+                          <option value="all_incompatible">{t('drive.image_transcode_scope_all')}</option>
+                          <option value="common_web">{t('drive.image_transcode_scope_common')}</option>
+                          <option value="graphics_raw">{t('drive.image_transcode_scope_graphics')}</option>
+                          <option value="custom">{t('drive.image_transcode_scope_custom')}</option>
+                        </select>
+                        <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                      </div>
                       <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
                         {draft.imageTranscodeScope === 'common_web'
                           ? t('drive.image_transcode_scope_common_desc')
@@ -277,9 +285,9 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                     </div>
 
                     {/* Interactive Checklist saat Custom Scope */}
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.4)' }}>
+                    <div className="td-transcode-checklist-divider">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(226, 232, 240, 0.9)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <span className="td-transcode-checklist-title">
                           {t('drive.image_transcode_formats_label')}
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -290,7 +298,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                               const allImgs = ['png', 'webp', 'heic', 'heif', 'avif', 'jxl', 'tiff', 'bmp', 'svg', 'psd', 'tga', 'raw', 'dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
                               patch({ imageTranscodeScope: 'all_incompatible', imageTranscodeFormats: allImgs, imageTranscodeTarget: 'jpeg', albumIncompatImageMode: 'transcode' });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 40%, transparent)', color: 'var(--accent-primary, #7dd3fc)', cursor: 'pointer' }}
+                            className="td-format-action-btn is-select-all"
                           >
                             {t('drive.image_transcode_select_all')}
                           </button>
@@ -300,14 +308,14 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                             onClick={() => {
                               patch({ imageTranscodeScope: 'custom', imageTranscodeFormats: [], albumIncompatImageMode: 'document' });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', cursor: 'pointer' }}
+                            className="td-format-action-btn is-deselect-all"
                           >
                             {t('drive.image_transcode_deselect_all')}
                           </button>
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '6px' }}>
+                      <div className="td-format-checkbox-grid">
                         {[
                           { ext: 'png', key: 'image_transcode_fmt_png' },
                           { ext: 'webp', key: 'image_transcode_fmt_webp' },
@@ -335,19 +343,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                           return (
                             <label
                               key={ext}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '5px 8px',
-                                minHeight: '32px',
-                                background: isChecked ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 16%, transparent)' : 'rgba(30, 41, 59, 0.4)',
-                                border: isChecked ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 45%, transparent)' : '1px solid rgba(51, 65, 85, 0.4)',
-                                borderRadius: '6px',
-                                cursor: transferActive ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.15s ease',
-                                userSelect: 'none',
-                              }}
+                              className={`td-format-chip ${isChecked ? 'is-checked' : ''}`}
                             >
                               <input
                                 type="checkbox"
@@ -368,9 +364,8 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                     albumIncompatImageMode: next.length > 0 ? 'transcode' : 'document',
                                   });
                                 }}
-                                style={{ accentColor: 'var(--accent-primary, #38bdf8)', cursor: 'pointer' }}
                               />
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? 'var(--accent-primary, #7dd3fc)' : '#94a3b8' }}>
+                              <span className="td-format-chip-label">
                                 .{ext.toUpperCase()}
                               </span>
                             </label>
@@ -378,7 +373,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                         })}
                       </div>
 
-                      <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
+                      <div className="td-transcode-hint-text">
                         {t('drive.image_transcode_hint_active', {
                           count: (draft.imageTranscodeFormats || []).length,
                           total: 20,
@@ -401,14 +396,18 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
                   <label className="td-field-label">{t('drive.anim_delivery_strategy_label')}</label>
-                  <select
-                    value={draft.albumIncompatAnimMode || 'document'}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ albumIncompatAnimMode: e.target.value as any })}
-                  >
-                    <option value="document">{t('drive.anim_delivery_strategy_raw')}</option>
-                    <option value="transcode">{t('drive.anim_delivery_strategy_transcode')}</option>
-                  </select>
+                  <div className="td-select-wrapper">
+                    <select
+                      className="td-select-control"
+                      value={draft.albumIncompatAnimMode || 'document'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ albumIncompatAnimMode: e.target.value as any })}
+                    >
+                      <option value="document">{t('drive.anim_delivery_strategy_raw')}</option>
+                      <option value="transcode">{t('drive.anim_delivery_strategy_transcode')}</option>
+                    </select>
+                    <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                  </div>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {(draft.albumIncompatAnimMode || 'document') === 'document'
                       ? t('drive.anim_delivery_strategy_raw_desc')
@@ -429,22 +428,26 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 <div className="td-field-group" style={{ marginTop: '10px' }}>
                   <label className="td-field-label">{t('drive.video_delivery_strategy_label')}</label>
-                  <select
-                    value={draft.videoTranscodeScope === 'none' ? 'raw' : 'transcode'}
-                    disabled={!!transferActive || currentEncoderMode === 'disabled'}
-                    onChange={(e) => {
-                      const isRaw = e.target.value === 'raw';
-                      if (isRaw) {
-                        patch({ videoTranscodeScope: 'none', videoTranscodeFormats: [] });
-                      } else {
-                        const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
-                        patch({ videoTranscodeScope: 'all_non_mp4', videoTranscodeFormats: allFormats });
-                      }
-                    }}
-                  >
-                    <option value="transcode">{t('drive.video_delivery_strategy_transcode')}</option>
-                    <option value="raw">{t('drive.video_delivery_strategy_raw')}</option>
-                  </select>
+                  <div className="td-select-wrapper">
+                    <select
+                      className="td-select-control"
+                      value={draft.videoTranscodeScope === 'none' ? 'raw' : 'transcode'}
+                      disabled={!!transferActive || currentEncoderMode === 'disabled'}
+                      onChange={(e) => {
+                        const isRaw = e.target.value === 'raw';
+                        if (isRaw) {
+                          patch({ videoTranscodeScope: 'none', videoTranscodeFormats: [] });
+                        } else {
+                          const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
+                          patch({ videoTranscodeScope: 'all_non_mp4', videoTranscodeFormats: allFormats });
+                        }
+                      }}
+                    >
+                      <option value="transcode">{t('drive.video_delivery_strategy_transcode')}</option>
+                      <option value="raw">{t('drive.video_delivery_strategy_raw')}</option>
+                    </select>
+                    <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                  </div>
                   <p className="td-field-hint" style={{ marginTop: '6px' }}>
                     {draft.videoTranscodeScope === 'none'
                       ? t('drive.video_delivery_strategy_raw_desc')
@@ -454,31 +457,35 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
 
                 {/* Progressive Disclosure saat Transcode Video Aktif */}
                 {draft.videoTranscodeScope !== 'none' && currentEncoderMode !== 'disabled' && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-card, rgba(15, 23, 42, 0.45))', border: '1px solid var(--border-subtle, rgba(51, 65, 85, 0.5))', borderRadius: '10px' }}>
+                  <div className="td-transcode-options-box" style={{ marginTop: '12px', padding: '12px' }}>
                     <div className="td-field-group">
-                      <label className="td-field-label" style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <label className="td-field-label" style={{ fontSize: '11px' }}>
                         {t('drive.video_transcode_scope_label')}
                       </label>
-                      <select
-                        value={draft.videoTranscodeScope || 'all_non_mp4'}
-                        disabled={!!transferActive}
-                        onChange={(e) => {
-                          const nextScope = e.target.value as any;
-                          const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
-                          const commonFormats = ['mkv', 'mov', 'webm', 'avi', '3gp'];
-                          const legacyFormats = ['wmv', 'ts', 'flv', 'm2ts', 'vob', 'ogv', 'f4v', 'asf'];
-                          let nextFormats = draft.videoTranscodeFormats || allFormats;
-                          if (nextScope === 'all_non_mp4') nextFormats = allFormats;
-                          else if (nextScope === 'common_containers') nextFormats = commonFormats;
-                          else if (nextScope === 'legacy_broadcast') nextFormats = legacyFormats;
-                          patch({ videoTranscodeScope: nextScope, videoTranscodeFormats: nextFormats });
-                        }}
-                      >
-                        <option value="all_non_mp4">{t('drive.video_transcode_scope_all')}</option>
-                        <option value="common_containers">{t('drive.video_transcode_scope_common')}</option>
-                        <option value="legacy_broadcast">{t('drive.video_transcode_scope_legacy')}</option>
-                        <option value="custom">{t('drive.video_transcode_scope_custom')}</option>
-                      </select>
+                      <div className="td-select-wrapper">
+                        <select
+                          className="td-select-control"
+                          value={draft.videoTranscodeScope || 'all_non_mp4'}
+                          disabled={!!transferActive}
+                          onChange={(e) => {
+                            const nextScope = e.target.value as any;
+                            const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
+                            const commonFormats = ['mkv', 'mov', 'webm', 'avi', '3gp'];
+                            const legacyFormats = ['wmv', 'ts', 'flv', 'm2ts', 'vob', 'ogv', 'f4v', 'asf'];
+                            let nextFormats = draft.videoTranscodeFormats || allFormats;
+                            if (nextScope === 'all_non_mp4') nextFormats = allFormats;
+                            else if (nextScope === 'common_containers') nextFormats = commonFormats;
+                            else if (nextScope === 'legacy_broadcast') nextFormats = legacyFormats;
+                            patch({ videoTranscodeScope: nextScope, videoTranscodeFormats: nextFormats });
+                          }}
+                        >
+                          <option value="all_non_mp4">{t('drive.video_transcode_scope_all')}</option>
+                          <option value="common_containers">{t('drive.video_transcode_scope_common')}</option>
+                          <option value="legacy_broadcast">{t('drive.video_transcode_scope_legacy')}</option>
+                          <option value="custom">{t('drive.video_transcode_scope_custom')}</option>
+                        </select>
+                        <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                      </div>
                       <p className="td-field-hint" style={{ fontSize: '11px', marginTop: '4px' }}>
                         {draft.videoTranscodeScope === 'common_containers'
                           ? t('drive.video_transcode_scope_common_desc')
@@ -491,9 +498,9 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                     </div>
 
                     {/* Interactive Checklist saat Custom Scope */}
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(51, 65, 85, 0.4)' }}>
+                    <div className="td-transcode-checklist-divider">
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(226, 232, 240, 0.9)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <span className="td-transcode-checklist-title">
                           {t('drive.video_transcode_formats_label')}
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -504,7 +511,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                               const allFormats = ['mkv', 'mov', 'webm', 'avi', 'wmv', 'ts', 'm2ts', 'vob', 'flv', 'ogv', '3gp', 'f4v', 'asf', 'mpg', 'mxf', 'divx'];
                               patch({ videoTranscodeScope: 'all_non_mp4', videoTranscodeFormats: allFormats });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent)', color: 'var(--accent-primary, #93c5fd)', cursor: 'pointer' }}
+                            className="td-format-action-btn is-select-all"
                           >
                             {t('drive.video_transcode_select_all')}
                           </button>
@@ -514,14 +521,14 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                             onClick={() => {
                               patch({ videoTranscodeScope: 'custom', videoTranscodeFormats: [] });
                             }}
-                            style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', cursor: 'pointer' }}
+                            className="td-format-action-btn is-deselect-all"
                           >
                             {t('drive.video_transcode_deselect_all')}
                           </button>
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))', gap: '6px' }}>
+                      <div className="td-format-checkbox-grid">
                         {[
                           { ext: 'mkv', key: 'video_transcode_fmt_mkv' },
                           { ext: 'mov', key: 'video_transcode_fmt_mov' },
@@ -545,19 +552,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                           return (
                             <label
                               key={ext}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '5px 8px',
-                                minHeight: '32px',
-                                background: isChecked ? 'color-mix(in srgb, var(--accent-primary, #3b82f6) 16%, transparent)' : 'rgba(30, 41, 59, 0.4)',
-                                border: isChecked ? '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 45%, transparent)' : '1px solid rgba(51, 65, 85, 0.4)',
-                                borderRadius: '6px',
-                                cursor: transferActive ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.15s ease',
-                                userSelect: 'none',
-                              }}
+                              className={`td-format-chip ${isChecked ? 'is-checked' : ''}`}
                             >
                               <input
                                 type="checkbox"
@@ -576,9 +571,8 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                                     videoTranscodeFormats: next,
                                   });
                                 }}
-                                style={{ accentColor: 'var(--accent-primary, #3b82f6)', cursor: 'pointer' }}
                               />
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: isChecked ? 'var(--accent-primary, #93c5fd)' : '#94a3b8' }}>
+                              <span className="td-format-chip-label">
                                 .{ext.toUpperCase()}
                               </span>
                             </label>
@@ -586,7 +580,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                         })}
                       </div>
 
-                      <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(148, 163, 184, 0.85)' }}>
+                      <div className="td-transcode-hint-text">
                         {t('drive.video_transcode_hint_active', {
                           count: (draft.videoTranscodeFormats || []).length,
                           total: 16,
@@ -610,29 +604,37 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                 <div className="td-form-row-grid">
                   <div className="td-field-group">
                     <label className="td-field-label">{t('ui.generated.jumlah_encoder_paralel_1df6b4e')}</label>
-                    <select
-                      value={draft.encoderMaxParallel || 1}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
-                    >
-                      <option value={1}>{t('ui.generated.1_proses_stabil_bee7b71')}</option>
-                      <option value={2}>{t('ui.generated.2_proses_parallel_9b25c47')}</option>
-                      <option value={3}>{t('ui.generated.3_proses_parallel_d6b725d')}</option>
-                      <option value={4}>{t('ui.generated.4_proses_parallel_max_gpu_29ddcd2')}</option>
-                    </select>
+                    <div className="td-select-wrapper">
+                      <select
+                        className="td-select-control"
+                        value={draft.encoderMaxParallel || 1}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
+                      >
+                        <option value={1}>{t('ui.generated.1_proses_stabil_bee7b71')}</option>
+                        <option value={2}>{t('ui.generated.2_proses_parallel_9b25c47')}</option>
+                        <option value={3}>{t('ui.generated.3_proses_parallel_d6b725d')}</option>
+                        <option value={4}>{t('ui.generated.4_proses_parallel_max_gpu_29ddcd2')}</option>
+                      </select>
+                      <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                    </div>
                   </div>
 
                   <div className="td-field-group">
                     <label className="td-field-label">{t('ui.generated.resource_profile_efe8abb')}</label>
-                    <select
-                      value={draft.encoderResourceProfile || 'balanced'}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
-                    >
-                      <option value="eco">{t('ui.generated.hemat_daya_eco_b94e982')}</option>
-                      <option value="balanced">{t('ui.generated.seimbang_recommended_0e149f1')}</option>
-                      <option value="performance">{t('ui.generated.performa_maksimal_3d6c941')}</option>
-                    </select>
+                    <div className="td-select-wrapper">
+                      <select
+                        className="td-select-control"
+                        value={draft.encoderResourceProfile || 'balanced'}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
+                      >
+                        <option value="eco">{t('ui.generated.hemat_daya_eco_b94e982')}</option>
+                        <option value="balanced">{t('ui.generated.seimbang_recommended_0e149f1')}</option>
+                        <option value="performance">{t('ui.generated.performa_maksimal_3d6c941')}</option>
+                      </select>
+                      <ChevronDown size={16} className="td-select-chevron" aria-hidden />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1700,7 +1700,8 @@
   font-weight: 500 !important;
 }
 
-[data-color-scheme="light"] .td-radio-tile input[type="radio"] {
+[data-color-scheme="light"] .td-radio-tile input[type="radio"],
+[data-color-scheme="light"] .td-encoder-tile input[type="radio"] {
   accent-color: var(--accent-primary, #0284c7) !important;
 }
 

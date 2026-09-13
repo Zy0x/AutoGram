@@ -1,3 +1,54 @@
+## v4.1.2 — Video Encoder 2x2 Symmetrical Grid, Theme-Accented Radio Controls & Transcoding Select Component Harmonization
+
+### 1. Video Encoding & Acceleration Mode 2x2 Symmetrical Architecture
+- **Elimination of Orphaned 3+1 Card Layout**:
+  - *What changed*:
+    - Refactored `.td-encoder-4x-grid` from `repeat(auto-fit, minmax(240px, 1fr))` to a strict 2-column symmetrical grid: `grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;` with mobile fallback `grid-template-columns: 1fr;` at $\le 640\text{px}$.
+    - Naturally pairs the 4 video encoding modes into clean rows: Row 1 features *Automatic (Adaptive GPU)* and *GPU Hardware Acceleration*, while Row 2 features *CPU Software Coding* and *Turn off Re-encoding (Raw Passthrough)*.
+  - *Technical rationale*: The previous auto-fit minmax configuration created 3 columns on standard ~800px containers, leaving the 4th card orphaned on the second row with an awkward empty gap.
+  - *User impact*: Clean, harmonious, balanced visual layout with zero dead space across desktop, tablet, and mobile views.
+
+### 2. Native Radio Dot Theme Accent Unification
+- **Radio Indicator Accent Consistency**:
+  - *What changed*:
+    - Enforced `accent-color: var(--accent-primary, #38bdf8) !important;` in `App.css`, `themeLightMode.css`, and `themeLightTransfersSettings.css` for `.td-encoder-tile input[type="radio"]` and `.td-radio-tile input[type="radio"]`.
+    - Added `margin-top: 2px; flex-shrink: 0; cursor: pointer;` to align the radio dot precisely with the title typography.
+  - *Technical rationale*: Previously, `.td-encoder-tile input[type="radio"]` lacked an explicit `accent-color`, causing WebView2/Chromium to render the inner radio circle in Windows default OS blue (`#2563eb`), directly clashing with the active theme accent (orange/amber/sky).
+  - *User impact*: The selected radio button dot harmoniously matches the card border and theme accent color.
+
+### 3. Media Transcoding Select Component & Chevron Harmonization
+- **Universal `.td-select-wrapper` & `ChevronDown` Affordance**:
+  - *What changed*:
+    - Converted all 7 raw HTML `<select>` elements in `EncodingSettingsSection.tsx` into `.td-select-wrapper` containers equipped with `.td-select-control` and an integrated `ChevronDown` icon (`size={16}`):
+      1. Image Delivery Strategy (`imageTranscodeScope` raw vs transcode)
+      2. Image Transcode Scope Preset (`all_incompatible`, `common_web`, `graphics_raw`, `custom`)
+      3. Animation & Sticker Delivery Strategy (`albumIncompatAnimMode` document vs transcode)
+      4. Video Transcode Delivery Strategy (`videoTranscodeScope` raw vs transcode)
+      5. Video Transcode Scope Preset (`all_non_mp4`, `common_containers`, `legacy_broadcast`, `custom`)
+      6. Advanced Parallel Encoder Processes (`encoderMaxParallel` 1 to 4 processes)
+      7. Technical Resource Profile (`encoderResourceProfile` eco, balanced, performance)
+    - Added `.td-select-control option` styling in both Dark Mode (`App.css`) and Light Mode (`themeLightTransfersSettings.css`) with explicit backgrounds and high-contrast text to ensure opened dropdown lists are legible across OS palettes.
+  - *Technical rationale*: Raw HTML `<select>` tags had no dropdown chevron indicator, flat borders, and inconsistent height, breaking design continuity with Download Settings.
+  - *User impact*: All dropdowns across Transfers have identical, polished appearance, clear downward chevron visual cues, and readable options.
+
+### 4. Transcode Format Checklist & Quick-Action Button System
+- **Semantic Format Chips & High-Contrast Action Buttons**:
+  - *What changed*:
+    - Replaced raw inline styles in both Image and Video format checklists with semantic classes: `.td-transcode-options-box`, `.td-transcode-checklist-divider`, `.td-transcode-checklist-title`, `.td-format-action-btn`, `.td-format-checkbox-grid`, and `.td-format-chip`.
+    - Styled `[ Select All ]` with theme accent border/tint (`#0284c7` / `#38bdf8`) and `[ Deselect All ]` with Crimson `#b91c1c` on Red 50 `#fef2f2` in light mode (Rose tint in dark mode).
+    - Refined `.td-format-chip`: unselected cards render clean Slate borders, while checked cards display an elevated accent border, theme-accented check indicator, and bold extension label (`font-weight: 750`).
+  - *Technical rationale*: The previous inline styling caused washed-out red text and dark gray unselected tiles in Light Mode, hindering readability.
+  - *User impact*: Format selection chips are crisp, high-contrast, easy to tap, and instantly reflect checked state.
+
+### 5. Architectural Quality Gates & Code Limits Compliance
+- **Rule 15/17 Hard Line Limit Governance**:
+  - Verified `EncodingSettingsSection.tsx`: 645 physical lines ($\le 2,000$).
+  - Verified `themeLightTransfersSettings.css`: 497 physical lines ($\le 2,000$).
+  - Verified `themeLightMode.css`: 1,759 physical lines ($\le 2,000$).
+  - All 8 quality sentinel tests verified passing with zero regressions.
+
+---
+
 ## v4.1.1 — Transfer Settings Layout & Conflict Select Polish, Playback History Action Card & Telemetry Hierarchy Architecture
 
 ### 1. Download Settings & Computer File Conflict Policy Control

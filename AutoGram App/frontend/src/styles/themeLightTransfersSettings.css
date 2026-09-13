@@ -395,3 +395,102 @@
   border-color: #bbf7d0 !important;
   color: #15803d !important;
 }
+
+/* 49. Transcode Progressive Disclosure Container & Formats Checklist */
+[data-color-scheme="light"] .td-transcode-options-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-color-scheme="light"] .td-transcode-checklist-divider {
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+[data-color-scheme="light"] .td-transcode-checklist-title {
+  color: #334155 !important;
+}
+
+[data-color-scheme="light"] .td-transcode-hint-text {
+  color: #64748b !important;
+}
+
+[data-color-scheme="light"] .td-format-action-btn.is-select-all {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 10%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .td-format-action-btn.is-select-all:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 18%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-format-action-btn.is-deselect-all {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #b91c1c !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .td-format-action-btn.is-deselect-all:hover:not(:disabled) {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #991b1b !important;
+}
+
+[data-color-scheme="light"] .td-format-chip {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+[data-color-scheme="light"] .td-format-chip:hover {
+  background: #f8fafc !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #0284c7) 40%, #cbd5e1) !important;
+}
+
+[data-color-scheme="light"] .td-format-chip.is-checked {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 8%, #ffffff) !important;
+  border: 1.5px solid var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-primary, #0284c7) 15%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-format-chip input[type="checkbox"] {
+  accent-color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-format-chip-label {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .td-format-chip.is-checked .td-format-chip-label {
+  color: var(--accent-primary, #0284c7) !important;
+  font-weight: 750 !important;
+}
+
+/* 50. Encoder 2x2 Symmetrical Grid, Option Dropdowns & Radio Accent in Transfers */
+[data-color-scheme="light"] .td-encoder-4x-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 640px) {
+  [data-color-scheme="light"] .td-encoder-4x-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+[data-color-scheme="light"] .td-radio-tile input[type="radio"],
+[data-color-scheme="light"] .td-encoder-tile input[type="radio"] {
+  accent-color: var(--accent-primary, #0284c7) !important;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+[data-color-scheme="light"] .td-select-control option {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
