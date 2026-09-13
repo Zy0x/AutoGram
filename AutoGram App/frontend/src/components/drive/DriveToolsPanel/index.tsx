@@ -1394,7 +1394,7 @@ function DupTab({
               const isActive = filterType === tab.id;
               return (
                 <button
-                  className="td-tools-dup-category"
+                  className={`td-tools-dup-category${isActive ? ' is-active' : ''}`}
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterType(tab.id as any)}
@@ -1405,27 +1405,28 @@ function DupTab({
                     padding: '5px 11px',
                     borderRadius: '7px',
                     fontSize: '0.78rem',
-                    fontWeight: isActive ? 700 : 500,
+                    fontWeight: isActive ? 750 : 600,
                     background: isActive
                       ? 'linear-gradient(135deg, var(--accent-primary, #0ea5e9) 0%, var(--accent-secondary, #0284c7) 100%)'
                       : 'transparent',
                     border: 'none',
-                    color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #94a3b8)',
+                    color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #475569)',
                     cursor: 'pointer',
                     boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--accent-primary, #0ea5e9) 35%, transparent)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <IconComp size={13} style={{ color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #94a3b8)' }} />
+                  <IconComp size={13} style={{ color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-secondary, #475569)' }} />
                   <span>{tab.label}</span>
                   <span
+                    className="td-tools-dup-category-count"
                     style={{
                       fontSize: '0.68rem',
                       padding: '1px 5px',
                       borderRadius: '4px',
                       background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
-                      color: isActive ? '#ffffff' : 'var(--text-secondary, #64748b)',
-                      fontWeight: 700,
+                      color: isActive ? '#ffffff' : 'var(--text-secondary, #475569)',
+                      fontWeight: 750,
                     }}
                   >
                     {tab.count}
@@ -1438,7 +1439,7 @@ function DupTab({
           {/* ACTION BUTTONS ALIGNED RIGHT NEXT TO FILTERS */}
           <div className="td-tools-dup-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
             <button
-              className="td-tools-dup-action"
+              className="td-tools-dup-action is-smart"
               type="button"
               disabled={busy}
               onClick={applySmartAll}
@@ -1462,7 +1463,7 @@ function DupTab({
               <Check size={13} /> {t('ui.generated.seleksi_cerdas_44602fb')}
             </button>
             <button
-              className="td-tools-dup-action"
+              className="td-tools-dup-action is-cancel"
               type="button"
               disabled={busy}
               onClick={clearAllMarks}
@@ -1475,8 +1476,8 @@ function DupTab({
                 borderRadius: '8px',
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-default)',
-                color: 'var(--text-secondary, #cbd5e1)',
-                fontWeight: 600,
+                color: 'var(--text-secondary, #334155)',
+                fontWeight: 650,
                 fontSize: '0.78rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -1497,6 +1498,7 @@ function DupTab({
 
       {filteredGroups.length === 0 && (
         <div
+          className="td-tools-dup-empty-card"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -1526,11 +1528,11 @@ function DupTab({
           >
             <ShieldCheck size={26} style={{ color: '#4ade80' }} />
           </div>
-          <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
+          <h4 className="td-tools-dup-empty-title" style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #f8fafc)' }}>
             {t('ui.generated.semua_berkas_rapi_bebas_duplikat_2e94024')}
           </h4>
-          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary, #94a3b8)', maxWidth: '420px', lineHeight: 1.5 }}>
-            {t('ui.generated.tidak_ditemukan_salinan_ganda_pada_lokasi_7495108')} <strong style={{ color: 'var(--text-primary, #cbd5e1)' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} {t('ui.generated.berkas_ruang_penyimpanan_anda_dalam_kondisi_opti_47cb8d6')}
+          <p className="td-tools-dup-empty-desc" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary, #94a3b8)', maxWidth: '420px', lineHeight: 1.5 }}>
+            {t('ui.generated.tidak_ditemukan_salinan_ganda_pada_lokasi_7495108')} <strong className="td-tools-dup-empty-loc" style={{ color: 'var(--text-primary, #cbd5e1)' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} {t('ui.generated.berkas_ruang_penyimpanan_anda_dalam_kondisi_opti_47cb8d6')}
           </p>
         </div>
       )}

@@ -1,6 +1,15 @@
-AutoGram Version: v4.0.6
+AutoGram Version: v4.0.7
 
 Current State:
+v4.0.7 Cloud Drives Light Mode Primary CTA, Duplicate Finder & Form Controls Contrast:
+1. Primary CTA Buttons (`.td-btn-primary`, `.td-topbar .td-btn-primary`): Eliminated white text on light beige background by enforcing radiant solid primary accent buttons (`var(--accent-primary, #0284c7)`) with crisp white `#ffffff` text, bold font weight (750), and elegant elevation shadow.
+2. Duplicate Finder Filter Tabs & Counter Badges: Fixed white-on-white count bug on active filter pills (`[Photos 0]`) by adding solid accent count badges with high-contrast text. Upgraded inactive filter pills and count badges to high-contrast Slate 700 with Slate 100 fills.
+3. Duplicate Finder Action Buttons & Empty State: Fixed washed-out `#cbd5e1` text on the `[Cancel All]` button with deep Slate 900 (`#0f172a`, bold 700) on Slate 50. Styled `[✓ Smart Selection]` with vibrant accent border and high-contrast text. Standardized empty state card with crisp white background, Slate 300 dashed border, and Slate 900 typography.
+4. Drive Tools Tab Intro Header ("Space Usage"): Completely resolved near-invisible `#f8fafc` (white) header title and faint `#94a3b8` subtitle with bold Slate 900 (`#0f172a`, bold 750) and Slate 600 (`#475569`).
+5. Form Controls & Stepper Spinners: Enforced explicit `color-scheme: light !important;` across all `input`, `select`, `textarea`, `.td-tools-input`, and `input[type="number"]`, eliminating the disjointed black rectangle on native numeric stepper buttons.
+6. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, and master schema synchronization.
+
+Previous:
 v4.0.6 Cloud Drives Light Mode Precision Contrast & Surface Overhaul:
 1. Topbar Sort Scope & Index All Chip: Replaced near-invisible `#f1f5f9` (white) count on light beige chip with deep Slate 900 (`#0f172a`, bold 750), high-contrast accent badge label (`#0369a1`), crisp border, and high-visibility status indicators.
 2. Floating Multi-Select Batch Action Bar (`.td-selection-strip`): Transformed obsidian dark black container into a luminous, elevated white bar with Slate 300 border and subtle shadow. Eliminated white-on-white text defect in the Download action button (`#0f172a` bold 700 on Slate 50), and gave the Selection Count pill a vibrant cyan accent treatment.

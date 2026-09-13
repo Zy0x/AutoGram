@@ -1,3 +1,44 @@
+## v4.0.7 — Cloud Drives Light Mode Primary CTA, Duplicate Finder & Form Controls Contrast
+
+### 1. Primary CTA Buttons High-Contrast Architecture
+- **Elimination of White-on-Beige Button Defect**:
+  - *What changed*:
+    - Resolved critical contrast failure on `.td-btn-primary` and `.td-topbar .td-btn-primary` (`[↑ Upload]` button) where white `#ffffff` text and icons rendered on a faint 18% translucent beige background.
+    - Enforced a solid, vibrant primary accent button (`var(--accent-primary, #0284c7)`) with crisp white `#ffffff` text, font-weight 750, and polished elevation shadow (`box-shadow: 0 2px 8px color-mix(...)`).
+    - Standardized hover and active states with deep accent backgrounds (`color-mix(#0284c7 86%, #000)`) for tactile responsiveness.
+  - *Technical rationale*: `App.css` lines 33377 and 38030 conflicted by applying a 18% translucent background together with `color: #ffffff !important;`, leading to an unreadable 1.3:1 contrast ratio in Light Mode.
+  - *User impact*: The primary upload action button is bold, radiant, and immediately visible across all screen sizes.
+
+### 2. Duplicate Finder Filter Tabs, Counter Badges & Action Buttons
+- **Elimination of Invisible Counts and Washed-Out Actions**:
+  - *What changed*:
+    - Resolved critical white-on-white count bug on active filter pills (`[Photos 0]`) in `DriveToolsPanel`: active badges (`.td-tools-dup-category.is-active .td-tools-dup-category-count`) now feature an accent-tinted pill with deep blue text (`#0369a1`, font-weight 800) and 1.5px accent border.
+    - Standardized inactive filter tabs and count badges: crisp Slate 700 (`#334155`) text with Slate 100 fills (`#e2e8f0`) and `#cbd5e1` borders.
+    - Fixed washed-out text on the `[Cancel All]` action button (`.td-tools-dup-action.is-cancel`): upgraded from faint `#cbd5e1` to deep Slate 900 (`#0f172a`, font-weight 700) on Slate 50 (`#f8fafc`).
+    - Elevated `[✓ Smart Selection]` (`.td-tools-dup-action.is-smart`): vibrant accent border and deep accent text (`#0369a1`).
+    - Overhauled duplicate clean empty state (`.td-tools-dup-empty-card`): crisp white card with Slate 300 dashed border, Slate 900 title, and Slate 600 explanatory text.
+  - *Technical rationale*: `DriveToolsPanel/index.tsx` previously utilized hardcoded inline styles (`color: 'var(--text-secondary, #cbd5e1)'` and white active count styles) without dedicated Light Mode CSS class binding.
+  - *User impact*: Duplicate cleaning and media management workflows are fully legible, accessible, and intuitive.
+
+### 3. Drive Tools Tab Intro Header & Space Usage View
+- **Restoration of Legibility to "Space Usage" Header Title & Subtitle**:
+  - *What changed*:
+    - Completely eliminated the invisible white header defect in `.td-tools-tab-intro-copy h3` by assigning deep Slate 900 (`#0f172a !important; font-weight: 750;` contrast ratio $\ge 15:1$).
+    - Upgraded `.td-tools-tab-intro-copy p` from `#94a3b8` to Slate 600 (`#475569 !important; font-weight: 500;`).
+    - Styled container `.td-tools-tab-intro` as an elevated white card with Slate 300 border and subtle elevation.
+    - Enhanced intro icon container and metadata chips with crisp Slate 100 fills and accent-tinted tags.
+  - *Technical rationale*: `App.css` lines 21351–21353 hardcoded `.td-tools-tab-intro-copy h3 { color: #f8fafc; }` which caused the title to blend seamlessly into white card backgrounds in Light Mode.
+  - *User impact*: Space Usage, Duplicate Finder, and Media Album intros are immediately readable and clear.
+
+### 4. Form Controls, Inputs & Numeric Stepper Spinners
+- **Elimination of Disjointed Black Stepper Buttons on Numeric Inputs**:
+  - *What changed*:
+    - Enforced explicit `color-scheme: light !important;` across all `input`, `select`, `textarea`, `.td-tools-input`, and `.input-field`.
+    - Specifically configured `input[type="number"]` and its native pseudo-elements (`::-webkit-inner-spin-button`, `::-webkit-outer-spin-button`) with `color-scheme: light !important;`.
+    - Standardized focus rings with vibrant accent glow (`0 0 0 2px color-mix(...)`).
+  - *Technical rationale*: Chromium / WebView2 defaults to dark-mode native spinner controls if an explicit `color-scheme: light` is not set on the input element within a light container.
+  - *User impact*: Numeric inputs (e.g. file size filters, start indices) feature clean, native, seamless stepper controls that match the active theme.
+
 ## v4.0.6 — Cloud Drives Light Mode Precision Contrast, Batch Action Bar & Modal Surface Overhaul
 
 ### 1. Topbar Sort Scope & Index All Chip Contrast Perfection

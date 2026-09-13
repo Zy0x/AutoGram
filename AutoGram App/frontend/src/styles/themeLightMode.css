@@ -1198,3 +1198,193 @@
 [data-color-scheme="light"] .td-remote-foot-dest-plus {
   color: #64748b !important;
 }
+
+/* 26. Primary CTA Buttons (TopBar & Modals) High-Contrast Architecture */
+[data-color-scheme="light"] .td-btn-primary,
+[data-color-scheme="light"] .td-topbar .td-btn-primary,
+[data-color-scheme="light"] .td-topbar-actions .td-btn-primary {
+  background: var(--accent-primary, #0284c7) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 80%, #000000) !important;
+  color: #ffffff !important; /* Fixes white-on-beige defect with radiant solid accent */
+  font-weight: 750 !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #0284c7) 32%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-btn-primary:hover:not(:disabled),
+[data-color-scheme="light"] .td-topbar .td-btn-primary:hover:not(:disabled),
+[data-color-scheme="light"] .td-topbar-actions .td-btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 86%, #000000) !important;
+  border-color: color-mix(in srgb, var(--accent-primary, #0284c7) 70%, #000000) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 42%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-btn-primary svg,
+[data-color-scheme="light"] .td-topbar .td-btn-primary svg {
+  color: #ffffff !important;
+}
+
+/* 27. Duplicate Finder & Clean Copy View */
+[data-color-scheme="light"] .td-tools-dup-hero {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-hero-stat .td-stat-label,
+[data-color-scheme="light"] .td-tools-dup-preferences label {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category-bar {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category:not(.is-active) {
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category:not(.is-active):hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category.is-active {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 14%, #ffffff) !important;
+  border: 1.5px solid var(--accent-primary, #0284c7) !important;
+  color: #0f172a !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category.is-active svg {
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category.is-active .td-tools-dup-category-count {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 20%, #ffffff) !important;
+  color: var(--accent-primary, #0369a1) !important; /* Eliminates white-on-white count bug */
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-category:not(.is-active) .td-tools-dup-category-count {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-action.is-smart {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 14%, #ffffff) !important;
+  border: 1px solid var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0369a1) !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-action.is-smart:hover {
+  background: var(--accent-primary, #0284c7) !important;
+  color: #ffffff !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-action.is-cancel {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important; /* Fixes pale #cbd5e1 defect */
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-action.is-cancel:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-empty-card {
+  background: #ffffff !important;
+  border: 1px dashed #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-empty-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-empty-desc {
+  color: #475569 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-empty-loc {
+  color: #0f172a !important;
+  font-weight: 750 !important;
+}
+
+/* 28. Drive Tools Tab Intro Header & Space Usage View */
+[data-color-scheme="light"] .td-tools-tab-intro {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-tools-tab-intro-icon {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 14%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent) !important;
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-tools-tab-intro-copy h3 {
+  color: #0f172a !important; /* Fixes invisible white header in Space Usage */
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-tab-intro-copy p {
+  color: #475569 !important; /* Fixes faint subtitle */
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .td-tools-tab-intro-meta span {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-tools-tab-intro-meta span.accent {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 12%, #ffffff) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  color: var(--accent-primary, #0369a1) !important;
+}
+
+/* 29. Form Controls, Inputs & Stepper Spinners */
+[data-color-scheme="light"] input,
+[data-color-scheme="light"] select,
+[data-color-scheme="light"] textarea,
+[data-color-scheme="light"] .td-tools-input,
+[data-color-scheme="light"] .input-field {
+  color-scheme: light !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] input:focus,
+[data-color-scheme="light"] select:focus,
+[data-color-scheme="light"] textarea:focus,
+[data-color-scheme="light"] .td-tools-input:focus,
+[data-color-scheme="light"] .input-field:focus {
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #0284c7) 20%, transparent) !important;
+  outline: none !important;
+}
+
+[data-color-scheme="light"] input[type="number"] {
+  color-scheme: light !important;
+}
+
+[data-color-scheme="light"] input[type="number"]::-webkit-inner-spin-button,
+[data-color-scheme="light"] input[type="number"]::-webkit-outer-spin-button {
+  color-scheme: light !important;
+  cursor: pointer;
+}
