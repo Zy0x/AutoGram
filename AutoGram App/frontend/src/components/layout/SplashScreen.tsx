@@ -37,7 +37,9 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at center, var(--bg-card, #111827) 0%, var(--bg-primary, #060911) 100%)',
+        /* Splash screen is intentionally always-dark — branded boot experience,
+           same as iOS/Android splash screens. Must never inherit theme bg tokens. */
+        background: 'radial-gradient(circle at center, #1e293b 0%, #0c1223 100%)',
         color: '#f8fafc',
         userSelect: 'none',
         transition: 'opacity 0.35s ease, filter 0.35s ease',
@@ -109,7 +111,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
             background: 'rgba(255, 255, 255, 0.05)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             fontSize: '0.78rem',
-            color: '#94a3b8',
+            color: '#cbd5e1', /* always-light on dark splash bg, was #94a3b8 */
             fontWeight: 600,
           }}
         >
@@ -139,7 +141,7 @@ export function SplashScreen({ onFinish, durationMs = 1600 }: SplashScreenProps)
         />
       </div>
 
-      <p style={{ marginTop: '16px', fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+      <p style={{ marginTop: '16px', fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>
         {t('nav.splash_loading')}
       </p>
 

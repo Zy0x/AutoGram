@@ -425,7 +425,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
 
   if (loading) {
     return (
-      <div className="td-pptx-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#94a3b8' }}>
+      <div className="td-pptx-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: 'var(--text-muted, #64748b)' }}>
         <Loader2 size={36} className="spin text-orange-400" />
         <span style={{ fontSize: '13.5px', fontWeight: 500 }}>{t('ui.generated.membaca_slide_presentasi_powerpoint_39b62ef')}</span>
       </div>
@@ -436,8 +436,8 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
     return (
       <div className="td-pptx-error" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#f87171', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
         <Presentation size={40} className="text-orange-400" />
-        <strong style={{ fontSize: '15px', color: '#f8fafc' }}>Gagal Membuka Presentasi PPTX</strong>
-        <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: 0 }}>{error || 'Format berkas PPTX tidak valid atau slide kosong.'}</p>
+        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>Gagal Membuka Presentasi PPTX</strong>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || 'Format berkas PPTX tidak valid atau slide kosong.'}</p>
         {onOpenSystem && (
           <button
             type="button"
@@ -540,9 +540,9 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               gap: '5px',
               padding: '4px 10px',
               borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#cbd5e1',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
+              color: 'var(--text-secondary, #cbd5e1)',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
               fontSize: '11.5px',
               cursor: 'pointer',
               fontWeight: 500,
@@ -561,9 +561,9 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               alignItems: 'center',
               padding: '5px',
               borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#cbd5e1',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
+              color: 'var(--text-secondary, #cbd5e1)',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
               cursor: 'pointer',
             }}
             title="Layar Penuh (F11)"
@@ -777,7 +777,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 border: '1px solid rgba(249, 115, 22, 0.3)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#f8fafc',
+                color: 'var(--text-primary, #0f172a)',
                 fontSize: '12.5px',
                 lineHeight: '1.5',
                 maxHeight: '120px',

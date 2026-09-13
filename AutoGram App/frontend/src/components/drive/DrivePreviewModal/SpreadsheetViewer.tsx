@@ -296,7 +296,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             </thead>
             <tbody>
               {filteredData.map((row, rowIdx) => (
-                <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : rowIdx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }}>
+                <tr key={rowIdx} style={{ background: selectedCell?.row === rowIdx ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)' : rowIdx % 2 === 0 ? 'var(--bg-secondary, rgba(255,255,255,0.02))' : 'transparent' }}>
                   <td style={{ padding: '5px 10px', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', textAlign: 'center', fontWeight: 600, background: 'var(--bg-sidebar, var(--bg-card))', position: 'sticky', left: 0, zIndex: 5 }}>
                     {rowIdx + 1}
                   </td>
@@ -316,8 +316,8 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
                         }}
                         style={{
                           padding: '5px 14px',
-                          border: isSelected ? '2px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255,255,255,0.06)',
-                          color: isSelected ? '#ffffff' : '#e2e8f0',
+                          border: isSelected ? '2px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-default, rgba(255,255,255,0.06))',
+                          color: isSelected ? 'var(--text-primary, #0f172a)' : 'var(--text-secondary, #334155)',
                           background: isSelected ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 18%, transparent)' : 'transparent',
                           whiteSpace: 'nowrap',
                           cursor: 'cell',

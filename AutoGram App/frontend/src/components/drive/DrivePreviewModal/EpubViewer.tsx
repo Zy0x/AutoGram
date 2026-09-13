@@ -152,7 +152,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
 
   if (loading) {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#94a3b8' }}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: 'var(--text-muted, #64748b)' }}>
         <Loader2 size={36} className="spin text-cyan-400" />
         <span style={{ fontSize: '13.5px', fontWeight: 500 }}>Membuka buku digital EPUB...</span>
       </div>
@@ -163,8 +163,8 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#f87171', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
         <BookOpen size={40} className="text-cyan-400" />
-        <strong style={{ fontSize: '15px', color: '#f8fafc' }}>Gagal Membuka EPUB</strong>
-        <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: 0 }}>{error || 'Berkas EPUB tidak valid.'}</p>
+        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>Gagal Membuka EPUB</strong>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || 'Berkas EPUB tidak valid.'}</p>
       </div>
     );
   }

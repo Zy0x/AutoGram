@@ -411,7 +411,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#f8fafc',
+              color: 'var(--text-primary, #0f172a)',
               fontSize: '12px',
               width: '160px',
             }}

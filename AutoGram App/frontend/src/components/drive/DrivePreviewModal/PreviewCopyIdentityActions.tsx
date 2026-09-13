@@ -283,7 +283,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   gap: '6px',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#94a3b8',
+                  color: 'var(--text-muted, #94a3b8)',
                 }}
               >
                 <FolderTree size={13} className="text-sky-400" />
@@ -304,7 +304,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   fontSize: '11px',
-                  color: '#cbd5e1',
+                  color: 'var(--text-secondary, #cbd5e1)',
                 }}
               >
                 <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -360,7 +360,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   fontSize: '11px',
-                  color: '#cbd5e1',
+                  color: 'var(--text-secondary, #cbd5e1)',
                 }}
               >
                 <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

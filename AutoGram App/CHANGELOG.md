@@ -1,3 +1,43 @@
+## v4.1.8 — Universal Light Mode Readability, Color Clarity & Previews Overhaul
+
+### 1. Palette Light-Mode Text Tokens Neutralization
+- **Elimination of Palette-Tinted Secondary and Muted Text**:
+  - *What changed*: In `themeEngine.css` lines 1577–1614, neutralized `--text-secondary` and `--text-muted` across all non-neutral light palette variants (`crimson_velvet`/`anarchy_crimson`, `emerald_glow`/`emerald_forest`, and `cyberpunk_violet`/`tokyo_midnight`). Secondary text now defaults to deep Slate `#374151` and muted text to `#6b7280`.
+  - *Technical rationale*: Non-neutral light themes previously defined `--text-secondary` with vivid tinted values (such as `#4e3575` deep purple in Tokyo Midnight). This caused descriptions, hints, form subtexts, and secondary labels throughout Settings and Drive to appear with strong purple/red/green color casts instead of crisp, readable dark neutral text.
+  - *User impact*: All settings labels, subtext descriptions, and helper text render with optimal contrast and crystal-clear readability in light mode.
+
+### 2. Branded Splash Boot Screen — Always-Dark Background Invariant
+- **High-Contrast Splash Boot Screen**:
+  - *What changed*: In `SplashScreen.tsx`, hardcoded the radial gradient background to deep Slate/Navy (`#1e293b` to `#0c1223`) instead of relying on `var(--bg-card)` and `var(--bg-primary)`. Replaced badge and loading text colors with high-contrast `#cbd5e1` and `#94a3b8`.
+  - *Technical rationale*: In light mode, `var(--bg-card)` evaluates to pure white (`#ffffff`). Because the splash typography was hardcoded to `#f8fafc` and `#64748b`, the initial boot screen loaded as white-on-white text with an unreadable badge.
+  - *User impact*: The initial loading screen maintains a polished, branded, always-readable dark appearance regardless of the user's system or application color scheme.
+
+### 3. Native Select Dropdown Chevron Fix
+- **Elimination of Repeating Tiled Chevrons in Light Mode**:
+  - *What changed*: In `themeLightMode.css`, updated the universal select dropdown rules to include `appearance: none !important`, `-webkit-appearance: none`, `background-repeat: no-repeat !important`, `background-position: right 0.75rem center !important`, `background-size: 1.1rem !important`, and `padding-right: 2.5rem !important`.
+  - *Technical rationale*: Missing `appearance: none` and `background-repeat: no-repeat` caused the inline SVG chevron to tile horizontally across select elements while the operating system's native arrow was rendered simultaneously.
+  - *User impact*: Form dropdowns across Settings and Transfer configuration display a single, crisp, properly positioned chevron.
+
+### 4. Drive Previews, Audio, Zip & Document Viewers Light Mode Overhaul
+- **Comprehensive Elimination of Hardcoded Light-Invisible Inline Colors**:
+  - *What changed*:
+    - `PptxViewer.tsx`: Replaced `#f8fafc` and `#cbd5e1` in error titles, loading indicators, slide notes containers, and toolbar buttons with `var(--text-primary)`, `var(--text-secondary)`, and `var(--text-muted)`.
+    - `EpubViewer.tsx`: Replaced `#f8fafc` and `#94a3b8` in error headers and loading states with semantic CSS tokens.
+    - `JsonTreeViewer.tsx` & `CodeScriptViewer.tsx`: Replaced `#f8fafc` input search text with `var(--text-primary, #0f172a)`.
+    - `SpreadsheetViewer.tsx`: Replaced hardcoded `#ffffff` and `#e2e8f0` cell typography and light borders with `var(--text-primary)`, `var(--text-secondary)`, and `var(--border-default)`.
+    - `PreviewCopyIdentityActions.tsx`: Replaced pale `#cbd5e1` menu item text with `var(--text-secondary, #475569)`.
+    - `TransferPreflightDialog.tsx`: Replaced `#f8fafc` in preflight status banner with `var(--text-primary)`.
+    - `DriveExplorer.tsx`: Replaced `rgba(255, 255, 255, 0.8)` on "Scroll to Load More" pills with `var(--text-secondary)`.
+    - `LimitsRecoverySettingsSection.tsx`: Replaced `#e2e8f0` and `#f8fafc` on unselected session chips with `var(--text-secondary)` and `var(--text-primary)`.
+    - `RemoteUploadSinglePanel.tsx`: Replaced `#e2e8f0` and `#f1f5f9` on caption labels, textareas, and subtitle card titles with `var(--text-primary)`.
+    - `Accounts/index.tsx` & `AccountLoginWizard.tsx`: Replaced `#e2e8f0` OTP delivery banner text and `#cbd5e1` modal descriptions with `var(--text-primary)` and `var(--text-secondary)`.
+    - `SessionLauncher/index.tsx`: Replaced `#f8fafc` on hover triggers, `#e2e8f0` in session menu items, and `#f8fafc` in preview modals with `var(--text-primary)` and `var(--text-muted)`.
+    - `ApiSetupScreen/index.tsx`: Replaced `#f8fafc` full-page typography with `var(--text-primary)`.
+    - `themeLightTransfersSettings.css`: Added Section 62 providing overarching light-mode rules for `.drive-preview-banner-overlay`, `.drive-zip-browser.is-loading`, `.drive-audio-disk-container + div h3`, and `.td-location-badge`.
+  - *User impact*: All preview modals, document viewers, floating banners, and interactive controls are 100% legible, high-contrast, and visually crisp across all light palettes.
+
+---
+
 ## v4.1.7 — Extended Theme Audit: JobRuntime, SidebarView, EncodingSettings & Remote Upload Renderers
 
 ### 1. JobRuntime Execution Logs Icon Box — Purple Eliminated

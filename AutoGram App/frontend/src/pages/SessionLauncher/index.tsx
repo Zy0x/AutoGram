@@ -717,12 +717,12 @@ export function SessionLauncher({
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                          e.currentTarget.style.color = '#f8fafc';
+                          e.currentTarget.style.background = 'var(--hover-bg, rgba(255, 255, 255, 0.08))';
+                          e.currentTarget.style.color = 'var(--text-primary, #0f172a)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = '#94a3b8';
+                          e.currentTarget.style.color = 'var(--text-muted, #94a3b8)';
                         }}
                         title={t('accounts.session_menu')}
                       >
@@ -767,7 +767,7 @@ export function SessionLauncher({
                               background: 'transparent',
                               border: 'none',
                               borderRadius: '8px',
-                              color: '#e2e8f0',
+                              color: 'var(--text-primary, #0f172a)',
                               fontSize: '0.8rem',
                               fontWeight: 500,
                               cursor: 'pointer',
@@ -1136,9 +1136,9 @@ export function SessionLauncher({
                 width: '36px',
                 height: '36px',
                 borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#f8fafc',
+                background: 'var(--bg-secondary, rgba(255, 255, 255, 0.08))',
+                border: '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
+                color: 'var(--text-primary, #0f172a)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1171,10 +1171,10 @@ export function SessionLauncher({
               />
             </div>
 
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', textAlign: 'center' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary, #0f172a)', textAlign: 'center' }}>
               {previewPhoto.title}
             </h3>
-            <span style={{ fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted, #94a3b8)', textAlign: 'center' }}>
               {previewPhoto.subtitle}
             </span>
           </div>

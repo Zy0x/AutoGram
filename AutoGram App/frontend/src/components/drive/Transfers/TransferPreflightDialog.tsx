@@ -1049,7 +1049,7 @@ export function TransferPreflightDialog({
               style={{
                 background: partition.isSafe ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : 'rgba(245, 158, 11, 0.12)',
                 border: partition.isSafe ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)' : '1px solid rgba(245, 158, 11, 0.35)',
-                color: '#f8fafc',
+                color: 'var(--text-primary, #0f172a)',
                 padding: '10px 14px',
                 borderRadius: '8px',
                 display: 'flex',

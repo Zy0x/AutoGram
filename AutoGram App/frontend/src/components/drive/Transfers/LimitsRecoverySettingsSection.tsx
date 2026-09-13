@@ -276,9 +276,9 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '6px',
-                                  background: isSelected ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'rgba(255,255,255,0.04)',
-                                  border: isSelected ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid rgba(255,255,255,0.1)',
-                                  color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#e2e8f0',
+                                  background: isSelected ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : 'var(--bg-secondary, rgba(255,255,255,0.04))',
+                                  border: isSelected ? '1px solid var(--accent-primary, #38bdf8)' : '1px solid var(--border-default, rgba(255,255,255,0.1))',
+                                  color: isSelected ? 'var(--accent-primary, #38bdf8)' : 'var(--text-secondary, #475569)',
                                   padding: '6px 12px',
                                   borderRadius: '20px',
                                   fontSize: '12px',
@@ -288,7 +288,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                 }}
                               >
                                 <span>💎</span>
-                                <strong style={{ color: isSelected ? 'var(--accent-primary, #38bdf8)' : '#f8fafc' }}>
+                                <strong style={{ color: isSelected ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #0f172a)' }}>
                                   {cleanLabel}
                                 </strong>
                                 <span style={{ fontSize: '10px', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)', color: 'var(--accent-primary, #38bdf8)', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
@@ -298,7 +298,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                             );
                           })
                         ) : (
-                          <div style={{ fontSize: '12px', color: '#94a3b8', padding: '4px 0' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted, #94a3b8)', padding: '4px 0' }}>
                             {t('ui.generated.belum_ada_sesi_terdeteksi_secara_otomatis_silaka_1adac26')}
                           </div>
                         )}

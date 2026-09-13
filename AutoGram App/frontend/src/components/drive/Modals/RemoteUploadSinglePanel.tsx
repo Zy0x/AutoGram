@@ -215,12 +215,12 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                             }}
                             style={{ cursor: 'pointer', accentColor: 'var(--accent-primary, #38bdf8)', width: 15, height: 15 }}
                           />
-                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary, #0f172a)' }}>
                             {t('drive.remote_tiktok_include_caption', { defaultValue: 'Sertakan Caption Asli TikTok' })}
                           </span>
                         </label>
                         {includeCustomCaption && (
-                          <span style={{ fontSize: '0.72rem', color: (customCaption?.length || 0) > 1024 ? '#f87171' : '#94a3b8' }}>
+                          <span style={{ fontSize: '0.72rem', color: (customCaption?.length || 0) > 1024 ? '#f87171' : 'var(--text-muted, #94a3b8)' }}>
                             {(customCaption?.length || 0)} / 1.024
                           </span>
                         )}
@@ -237,9 +237,9 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                               padding: '8px 10px',
                               fontSize: '0.8rem',
                               lineHeight: 1.4,
-                              color: '#f1f5f9',
+                              color: 'var(--text-primary, #0f172a)',
                               background: 'var(--bg-card, rgba(15, 23, 42, 0.6))',
-                              border: (customCaption?.length || 0) > 1024 ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                              border: (customCaption?.length || 0) > 1024 ? '1px solid #ef4444' : '1px solid var(--border-default, rgba(255, 255, 255, 0.12))',
                               borderRadius: 8,
                               resize: 'vertical',
                               outline: 'none',
@@ -1761,7 +1761,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                 ) : (
                                   <div className="td-remote-empty-sub-card">
                                     <FileText size={28} style={{ color: '#64748b', opacity: 0.7, marginBottom: 8 }} />
-                                    <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600 }}>
+                                    <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: 'var(--text-primary, #0f172a)', fontWeight: 600 }}>
                                       {t('drive.remote_sub_empty_title')}
                                     </h5>
                                     <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '420px', textAlign: 'center' }}>
@@ -1838,7 +1838,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                       ) : (
                         <div className="td-remote-empty-sub-card">
                           <FileText size={28} style={{ color: '#64748b', opacity: 0.7, marginBottom: 8 }} />
-                          <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: '#f1f5f9', fontWeight: 600 }}>
+                          <h5 style={{ margin: '0 0 4px', fontSize: '0.85rem', color: 'var(--text-primary, #0f172a)', fontWeight: 600 }}>
                             {t('drive.remote_discovery_blocked')}
                           </h5>
                           <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.45, maxWidth: '420px', textAlign: 'center' }}>

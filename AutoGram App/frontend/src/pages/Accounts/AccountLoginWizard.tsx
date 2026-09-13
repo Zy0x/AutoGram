@@ -427,7 +427,7 @@ export function AccountLoginWizard({
                   }}
                 >
                   <Send size={18} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: 1.4 }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-primary, #0f172a)', lineHeight: 1.4 }}>
                     {t('accounts.code_delivery_info')}
                   </span>
                 </div>

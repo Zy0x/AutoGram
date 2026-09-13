@@ -1510,7 +1510,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     }}
                   >
                     <Send size={20} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', color: '#e2e8f0', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary, #0f172a)', lineHeight: 1.4 }}>
                       {t('accounts.code_delivery_info')}
                     </span>
                   </div>
@@ -1715,7 +1715,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
               </button>
             </div>
 
-            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1.55, margin: '0 0 20px' }}>
+            <p style={{ color: 'var(--text-secondary, #475569)', fontSize: '0.85rem', lineHeight: 1.55, margin: '0 0 20px' }}>
               {t('accounts.forgot_password_desc')}
             </p>
 

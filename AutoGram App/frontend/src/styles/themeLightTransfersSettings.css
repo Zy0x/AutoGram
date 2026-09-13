@@ -804,7 +804,42 @@
   border-color: color-mix(in srgb, var(--accent-secondary, #0284c7) 30%, transparent) !important;
 }
 
+/* 62. Drive Preview Modals, Video Overlays, Audio & Location Badges (Light Mode) */
+[data-color-scheme="light"] .drive-preview-banner-overlay {
+  background: var(--bg-card, #ffffff) !important;
+  color: var(--text-primary, #0f172a) !important;
+  border: 1px solid var(--border-default, #e2e8f0) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
 
+[data-color-scheme="light"] .drive-preview-banner-overlay span {
+  color: var(--text-primary, #0f172a) !important;
+}
 
+[data-color-scheme="light"] .drive-preview-banner-overlay button:last-child {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  color: var(--text-primary, #0f172a) !important;
+  border: 1px solid var(--border-default, #cbd5e1) !important;
+}
 
+[data-color-scheme="light"] .drive-zip-browser.is-loading p {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .drive-zip-browser.is-loading .drive-zip-hint {
+  color: var(--text-muted, #64748b) !important;
+}
+
+[data-color-scheme="light"] .drive-audio-disk-container + div h3 {
+  color: var(--text-primary, #0f172a) !important;
+}
+
+/* Sidebar location badges high-contrast overrides for light mode */
+[data-color-scheme="light"] .td-location-badge {
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-preflight-banner {
+  color: var(--text-primary, #0f172a) !important;
+}
 
