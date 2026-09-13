@@ -512,7 +512,7 @@ export function JobRuntime({
 
       <div className="glass-panel runtime-logs">
         <h3 className="runtime-logs-title">
-          <div style={{ padding: '8px', background: 'rgba(139, 92, 246, 0.15)', borderRadius: '10px', color: 'var(--accent)', display: 'flex', flexShrink: 0 }}>
+          <div style={{ padding: '8px', background: 'color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%, transparent)', borderRadius: '10px', color: 'var(--accent-secondary, #8b5cf6)', display: 'flex', flexShrink: 0 }}>
             <Terminal size={18} />
           </div>
           <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>{t('ui.generated.execution_logs_e116b87')}</span>

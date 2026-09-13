@@ -107,7 +107,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
         {type === 'delivery' && (
           <>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#c084fc' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--accent-secondary, #c084fc)' }}>
                 <Film size={10} /> {t('drive.remote_mode_uncompressed')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -732,7 +732,7 @@ export function renderMatrixTable({
                   <tr className="td-remote-matrix-group-header-row">
                     <td colSpan={7}>
                       <div className="td-remote-matrix-group-header">
-                        <Film size={12} style={{ color: '#a855f7' }} />
+                        <Film size={12} style={{ color: 'var(--accent-secondary, #a855f7)' }} />
                         <span>{t('drive.remote_matrix_group_other_video')}</span>
                         <span className="td-remote-matrix-group-badge">{rawOtherVideos.length}</span>
                       </div>
@@ -747,7 +747,7 @@ export function renderMatrixTable({
                   <tr className="td-remote-matrix-group-header-row">
                     <td colSpan={7}>
                       <div className="td-remote-matrix-group-header">
-                        <Music size={12} style={{ color: '#c084fc' }} />
+                        <Music size={12} style={{ color: 'var(--accent-secondary, #c084fc)' }} />
                         <span>{t('drive.remote_matrix_group_audio')}</span>
                         <span className="td-remote-matrix-group-badge">{rawAudioStreams.length}</span>
                       </div>

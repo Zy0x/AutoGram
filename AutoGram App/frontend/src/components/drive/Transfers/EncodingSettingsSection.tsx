@@ -387,7 +387,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
               {/* INNER SECTION 3: PILAR 2 — FORMAT ANIMASI & STIKER */}
               <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
                 <div className="td-card-head">
-                  <PlaySquare size={18} style={{ color: '#a855f7' }} />
+                  <PlaySquare size={18} style={{ color: 'var(--accent-secondary, #a855f7)' }} />
                   <div>
                     <h4>{t('drive.media_pillar_anim_title')}</h4>
                     <p>{t('drive.media_pillar_anim_desc')}</p>

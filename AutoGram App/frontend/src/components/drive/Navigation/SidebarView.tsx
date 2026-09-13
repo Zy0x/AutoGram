@@ -917,7 +917,7 @@ export function SidebarView({ ctx }: SidebarViewProps) {
                           marginLeft: '8px',
                           flexShrink: 0 as const,
                         };
-                        if (kindBadge === 'Groups - Forum') return { ...base, background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.45)', color: '#c4b5fd' };
+                        if (kindBadge === 'Groups - Forum') return { ...base, background: 'color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-secondary, #8b5cf6) 45%, transparent)', color: 'var(--accent-secondary, #c4b5fd)' };
                         if (kindBadge === 'Channel') return { ...base, background: 'rgba(6,182,212,0.13)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9' };
                         if (kindBadge === 'Group') return { ...base, background: 'rgba(34,197,94,0.13)', border: '1px solid rgba(34,197,94,0.4)', color: '#86efac' };
                         if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
@@ -1272,7 +1272,7 @@ export function SidebarView({ ctx }: SidebarViewProps) {
                       className={`td-type-dropdown-item ${chatTypeFilter === 'bot' ? 'is-selected' : ''}`}
                       onClick={() => { setChatTypeFilter('bot'); setTypeFilterMenuOpen(false); }}
                     >
-                      <Bot size={14} style={{ color: '#c084fc' }} />
+                      <Bot size={14} style={{ color: 'var(--accent-secondary, #c084fc)' }} />
                       <span>{t('drive.filter_bots')}</span>
                       {chatTypeFilter === 'bot' && <Check size={13} style={{ marginLeft: 'auto', color: '#f59e0b' }} />}
                     </button>

@@ -1,3 +1,32 @@
+## v4.1.7 — Extended Theme Audit: JobRuntime, SidebarView, EncodingSettings & Remote Upload Renderers
+
+### 1. JobRuntime Execution Logs Icon Box — Purple Eliminated
+- **Terminal Icon Container Now Follows Active Palette**:
+  - *What changed*: In `JobRuntime.tsx` line 515, replaced `background: 'rgba(139, 92, 246, 0.15)'` and `color: 'var(--accent)'` on the Execution Logs header icon box with `color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%, transparent)` and `color: 'var(--accent-secondary, #8b5cf6)'`.
+  - *User impact*: The Terminal icon container in the job runtime panel adapts correctly to the active palette in both light and dark modes.
+
+### 2. SidebarView Groups-Forum Badge & Bot Filter Icon — Purple Eliminated
+- **Sidebar Chat-Type Badges & Filter Icons Now Palette-Aware**:
+  - *What changed*:
+    - Line 920: `Groups - Forum` kind badge replaced hardcoded `rgba(139,92,246,0.15)` + `#c4b5fd` with `color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%/45%, transparent)` and `color: 'var(--accent-secondary, #c4b5fd)'`.
+    - Line 1275: Bot filter dropdown icon `#c084fc` → `var(--accent-secondary, #c084fc)`.
+  - *User impact*: The "Groups - Forum" badge in the sidebar channel list and the Bot filter icon in the type-filter dropdown now display the correct palette accent color.
+
+### 3. EncodingSettingsSection Animation Pillar Icon — Purple Eliminated
+- **Format Animation & Sticker Section Icon Now Palette-Aware**:
+  - *What changed*: In `EncodingSettingsSection.tsx` line 390, `PlaySquare` icon color `#a855f7` → `var(--accent-secondary, #a855f7)`.
+  - *User impact*: The animation/sticker format pillar header icon adapts to palette accent color.
+
+### 4. Remote Upload Renderers — Three Purple Icons/Text Eliminated
+- **Remote Upload Mode Label, Video Group Header & Audio Group Header Now Palette-Aware**:
+  - *What changed*: In `remoteUploadRenderers.tsx`:
+    - Line 110: Delivery mode key label `#c084fc` → `var(--accent-secondary, #c084fc)`.
+    - Line 735: Other Video group header `Film` icon `#a855f7` → `var(--accent-secondary, #a855f7)`.
+    - Line 750: Audio Streams group header `Music` icon `#c084fc` → `var(--accent-secondary, #c084fc)`.
+  - *User impact*: Remote upload matrix table group headers and delivery mode labels display correct theme colors in all palettes.
+
+---
+
 ## v4.1.6 — Full Theme Audit: Hardcoded Color Elimination & Deep Light Mode Consistency
 
 ### 1. Sidebar Search Button & Back Compact Button — Light Mode Override
