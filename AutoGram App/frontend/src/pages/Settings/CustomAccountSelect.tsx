@@ -119,7 +119,7 @@ export function CustomAccountSelect({ value, onChange, options, placeholder, onO
                           borderRadius: '5px',
                           background: 'rgba(245, 158, 11, 0.14)',
                           border: '1px solid rgba(245, 158, 11, 0.35)',
-                          color: '#f59e0b',
+                          color: 'var(--amber-text, #d97706)',
                           whiteSpace: 'nowrap',
                           letterSpacing: '0.02em',
                         }}

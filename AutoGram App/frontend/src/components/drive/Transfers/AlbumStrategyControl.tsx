@@ -287,7 +287,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
           >
             <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', flex: '1 1 auto' }}>
-              <strong style={{ color: '#fbbf24', fontSize: '0.78rem' }}>
+              <strong style={{ color: 'var(--amber-text, #d97706)', fontSize: '0.78rem' }}>
                 {t('drive.album_strategy_custom_warning_title')}
               </strong>
               <span style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>
@@ -504,7 +504,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                       gap: '8px',
                     }}
                   >
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fcd34d' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--amber-text, #b45309)' }}>
                       {t('drive.album_strategy_custom_warning_examples_title')}
                     </span>
                     <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
@@ -522,7 +522,7 @@ export const AlbumStrategyControl: React.FC<AlbumStrategyControlProps> = ({
                       alignItems: 'center',
                       gap: '8px',
                       fontSize: '0.78rem',
-                      color: '#34d399',
+                      color: 'var(--emerald-text, #047857)',
                       fontWeight: 600,
                       background: 'rgba(16, 185, 129, 0.08)',
                       border: '1px solid rgba(16, 185, 129, 0.25)',

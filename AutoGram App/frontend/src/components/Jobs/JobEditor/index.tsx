@@ -1125,7 +1125,7 @@ export function JobEditor({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Identity Section */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
+              <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)' }}>
                   <User size={18} /> <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)' }}>{t('ui.generated.job_identity_8e1be1d')}</h4>
                 </div>
@@ -1143,7 +1143,7 @@ export function JobEditor({
 
               {/* Routing Section */}
               <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
-                <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>{t('ui.generated.source_from_72bb312')}</span>
                   <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{sourceName || (sourceValue ? t('ui.generated.custom_source_a841c98') : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_source_5abce09')}</span>)}</div>
                   <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{sourceValue || t('ui.generated.no_id_3882321')}</div>
@@ -1153,7 +1153,7 @@ export function JobEditor({
                   <Play size={24} style={{ fill: 'var(--primary)' }} />
                 </div>
                 
-                <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
                   <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', display: 'block', marginBottom: '8px' }}>{t('ui.generated.destination_to_2778fe5')}</span>
                   <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '4px' }}>{destName || (destValue ? t('ui.generated.custom_destination_42b661e') : <span style={{ color: 'var(--danger)', fontStyle: 'italic' }}>{t('ui.generated.missing_destination_b9fbf32')}</span>)}</div>
                   <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.9rem', background: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>{destValue || t('ui.generated.no_id_3882321')}</div>
@@ -1303,8 +1303,8 @@ export function JobEditor({
                           gap: '8px',
                           padding: '12px 20px',
                           overflowX: 'auto',
-                          borderBottom: '1px solid rgba(255,255,255,0.05)',
-                          background: 'rgba(255,255,255,0.02)',
+                          borderBottom: '1px solid var(--border-default, var(--border))',
+                          background: 'var(--bg-card)',
                         }}
                       >
                         {chatFolders.map((folder) => {

@@ -473,7 +473,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 borderRadius: '10px',
                 background: 'rgba(239, 68, 68, 0.12)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#fca5a5',
+                color: 'var(--danger, #dc2626)',
                 fontSize: '0.78rem',
               }}
             >
@@ -807,7 +807,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 borderRadius: '12px',
                 background: 'rgba(239, 68, 68, 0.12)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#fca5a5',
+                color: 'var(--danger, #dc2626)',
                 fontSize: '0.82rem',
               }}
             >

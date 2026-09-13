@@ -235,9 +235,9 @@ export const SessionRelogModal: React.FC<SessionRelogModalProps> = ({
                 gap: '0.5rem',
                 padding: '0.65rem 1rem',
                 fontWeight: 500,
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#fff',
+                background: 'var(--bg-secondary, rgba(255, 255, 255, 0.06))',
+                border: '1px solid var(--border-default, rgba(255, 255, 255, 0.15))',
+                color: 'var(--text-primary, #fff)',
               }}
             >
               <LogIn size={16} />

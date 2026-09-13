@@ -451,7 +451,7 @@ export function SessionLauncher({
               borderRadius: '14px',
               background: 'rgba(239, 68, 68, 0.12)',
               border: '1px solid rgba(239, 68, 68, 0.35)',
-              color: '#fca5a5',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -802,7 +802,7 @@ export function SessionLauncher({
                               background: 'transparent',
                               border: 'none',
                               borderRadius: '8px',
-                              color: '#fca5a5',
+                              color: 'var(--danger, #dc2626)',
                               fontSize: '0.8rem',
                               fontWeight: 500,
                               cursor: 'pointer',
@@ -815,7 +815,7 @@ export function SessionLauncher({
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = '#fca5a5';
+                              e.currentTarget.style.color = 'var(--danger, #dc2626)';
                             }}
                           >
                             <Trash2 size={14} style={{ color: '#ef4444' }} />
@@ -1354,7 +1354,7 @@ export function SessionLauncher({
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('nav.modal_delete_step1_title')}
                 </h3>
-                <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--danger, #dc2626)', fontWeight: 600 }}>
                   {t('nav.modal_delete_step1_step_badge')}
                 </span>
               </div>
@@ -1461,7 +1461,7 @@ export function SessionLauncher({
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)' }}>
                   {t('nav.modal_delete_step2_title')}
                 </h3>
-                <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--danger, #dc2626)', fontWeight: 600 }}>
                   {t('nav.modal_delete_step2_step_badge')}
                 </span>
               </div>
@@ -1564,10 +1564,10 @@ export function SessionLauncher({
               >
                 {isDeleting && <Loader2 size={16} className="animate-spin" />}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fca5a5' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--danger, #dc2626)' }}>
                     {t('nav.modal_delete_with_cache')}
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: '#f87171', fontWeight: 400, opacity: 0.9 }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--danger, #b91c1c)', fontWeight: 500, opacity: 0.9 }}>
                     {t('nav.modal_delete_with_cache_sub')}
                   </span>
                 </div>

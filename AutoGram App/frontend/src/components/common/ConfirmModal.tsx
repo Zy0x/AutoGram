@@ -131,9 +131,9 @@ export function ConfirmModal({
             onClick={onCancel}
             disabled={isLoading}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: 'var(--text-muted, #94a3b8)',
+              background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
+              border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
+              color: 'var(--text-secondary, #94a3b8)',
               cursor: 'pointer',
               padding: '6px',
               borderRadius: '8px',

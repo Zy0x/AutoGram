@@ -1581,3 +1581,33 @@
     display: none !important;
   }
 }
+
+/* ─── LIGHT MODE SPECIFIC POLISH & CONTRAST (v4.1.9) ─── */
+[data-color-scheme="light"] .cache-modal-cancel-btn {
+  background: var(--bg-card, #ffffff) !important;
+  border: 1px solid var(--border-default, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .cache-modal-cancel-btn:hover:not(:disabled) {
+  background: var(--bg-secondary, #f1f5f9) !important;
+  border-color: var(--border-default, #94a3b8) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav-item {
+  color: var(--text-secondary, #475569) !important;
+}
+
+[data-color-scheme="light"] .settings-sidebar-nav-item:hover {
+  background: var(--bg-hover, #f1f5f9) !important;
+  color: var(--text-primary, #0f172a) !important;
+}
+
+[data-color-scheme="light"] .cache-option-card-wipe span:first-child {
+  color: #dc2626 !important;
+}
+
+[data-color-scheme="light"] .cache-option-card-wipe span:last-child {
+  color: #b91c1c !important;
+}

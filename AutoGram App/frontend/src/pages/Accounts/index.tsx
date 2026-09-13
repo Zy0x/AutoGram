@@ -94,7 +94,7 @@ const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }: 
                placeholder={t('accounts.search_country_ph')}
                value={search}
                onChange={e => setSearch(e.target.value)}
-               style={{ width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '4px', color: '#fff', outline: 'none' }}
+               style={{ width: '100%', padding: '8px 12px', background: 'var(--input-bg, rgba(0,0,0,0.2))', border: '1px solid var(--border-default, var(--border))', borderRadius: '4px', color: 'var(--text-primary, #fff)', outline: 'none' }}
              />
            </div>
            {options.filter((o: any) => o.label && o.label.toLowerCase().includes(search.toLowerCase())).map((o: any) => (

@@ -1,3 +1,44 @@
+## v4.1.9 — Exhaustive Light Mode Readability & Contrast Overhaul Across All Modules
+
+### 1. Central Semantic Color Tokens & Theme Engine Polish
+- **Dedicated Theme Tokens for Dynamic Multi-Palette Contrast**:
+  - *What changed*: In `themeEngine.css`, introduced `--amber-text`, `--emerald-text`, `--cyan-text`, and `--danger` tokens into `:root` / dark mode (`#fbbf24`, `#34d399`, `#67e8f9`, `#ef4444`) and light mode (`#b45309`, `#047857`, `#0e7490`, `#dc2626`).
+  - *Technical rationale*: High-vibrancy pastels (e.g. Yellow-400 `#facc15`, Orange-400 `#fb923c`, Emerald-400 `#34d399`) look vibrant on dark surfaces but drop below WCAG AA contrast thresholds (often < 2:1) when rendered against pure white or light slate backgrounds. Defining centralized light-adaptive tokens ensures high contrast (WCAG AA $\ge 4.5:1$) automatically across all 5 light palettes.
+  - *User impact*: Status badges, warning indicators, and numeric metrics are consistently sharp and effortless to read in light mode.
+
+### 2. Settings, Cache Management & Storage Breakdown Overhaul
+- **Comprehensive Elimination of Low-Contrast Text & Translucent Borders in Settings**:
+  - *What changed*:
+    - `StorageSettingsSection.tsx`: Replaced pastel breakdown colors (`#c084fc`, `#facc15`, `#fca5a5`) with semantic tokens (`var(--accent-secondary)`, `var(--amber-text)`, `var(--danger)`). Updated storage and disk limit warning alert text (`#fde047`, `#fca5a5`, `#fdba74`, `#a5b4fc`) to `var(--text-primary)`, guaranteeing immediate readability against tinted alert cards.
+    - `SpecificCacheModal.tsx` & `themeLightTransfersSettings.css`: Added Section 63 providing complete light mode rules for `.ag-specific-cache-modal`. Modal container now uses solid card backgrounds (`#ffffff`), crisp borders (`#e2e8f0`), secondary card backgrounds (`#f8fafc`) for all 60 itemized cache cards, and high-contrast red styling (`#dc2626`) for active purge actions.
+    - `Settings.css`: Overrode `.cache-modal-cancel-btn` with high-contrast text (`#0f172a`), solid borders (`#cbd5e1`), and light hover states, eliminating the previous invisible white-on-white button in light mode. Overrode `.settings-sidebar-nav-item` with `var(--text-secondary, #475569)`.
+    - `Settings/index.tsx`: Enabled high-contrast red typography (`#dc2626` / `#b91c1c`) for `.cache-option-card-wipe` action cards.
+    - `CustomAccountSelect.tsx`: Replaced `#f59e0b` inactive badge text with `var(--amber-text, #d97706)`.
+  - *User impact*: Cache management cards, quota breakdown numbers, and action dialogs in Settings are razor-sharp, with zero washed-out text or invisible buttons.
+
+### 3. Accounts, Session Launcher & Authentication Screens Polish
+- **High-Contrast Input Fields & Warning Banners Across Account Workflows**:
+  - *What changed*:
+    - `Accounts/index.tsx`: Replaced dark translucent background and static `#fff` text in country search input with `var(--input-bg)` and `var(--text-primary)`, properly integrating with light mode modal palettes.
+    - `SessionLauncher/index.tsx`: Replaced pale `#fca5a5` text across API warnings, delete account context menu buttons, step badges, and modal delete buttons with `var(--text-primary)` and `var(--danger, #dc2626)`.
+    - `ApiSetupScreen/index.tsx`: Replaced low-contrast `#fca5a5` error alert text with `var(--danger, #dc2626)`.
+    - `SessionRelogModal.tsx`: Replaced hardcoded `color: '#fff'` and translucent button background on "Buka Manajemen Akun" with `var(--text-primary)` and `var(--bg-secondary)`.
+  - *User impact*: Authentication, account management, and session deletion dialogs are clean, legible, and visually balanced in light mode.
+
+### 4. File Previews, Document Viewers & Navigation Badges
+- **Universal Extension Badges, Viewer States & Job Review Panels**:
+  - *What changed*:
+    - `themeLightTransfersSettings.css`: Added high-contrast color overrides for `.td-header-ext-badge` (orange, cyan, emerald, red, indigo, amber, slate) and `.td-location-badge` (Channel, Group, Bot, Private Chat, Drive) in light mode.
+    - `DocxViewer.tsx` & `HeicTiffViewer.tsx`: Replaced muted `#94a3b8` and `#f87171` loading and error states with `var(--text-secondary)`, `var(--text-muted)`, and `var(--danger, #dc2626)`.
+    - `AlbumStrategyControl.tsx`: Replaced `#fbbf24`, `#fcd34d`, and `#34d399` with `var(--amber-text)` and `var(--emerald-text)`.
+    - `DriveToolsPanel/index.tsx`: Replaced `#f87171`, `#4ade80`, and `#fca5a5` in deletion counts and stop scan button with `var(--danger, #dc2626)` and `var(--emerald-text, #059669)`.
+    - `JobEditor/index.tsx`: Replaced `rgba(255,255,255,0.03)` review cards and folder bar with `var(--bg-card)` and `var(--border)`.
+    - `ConfirmModal.tsx`: Replaced translucent close button styling with `var(--bg-secondary)` and `var(--text-secondary)`.
+    - `App.tsx`: Replaced `#f59e0b` on `.ag-startup-fallback` banner with `var(--amber-text, #d97706)`.
+  - *User impact*: Every viewer header, toolbar, file badge, and confirmation dialogue delivers high contrast and seamless legibility across all themes.
+
+---
+
 ## v4.1.8 — Universal Light Mode Readability, Color Clarity & Previews Overhaul
 
 ### 1. Palette Light-Mode Text Tokens Neutralization

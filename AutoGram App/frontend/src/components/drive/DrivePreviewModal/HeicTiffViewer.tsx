@@ -247,7 +247,7 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
 
   if (state === 'loading' || state === 'idle') {
     return (
-      <div className="td-heictiff-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100%', color: '#94a3b8' }}>
+      <div className="td-heictiff-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100%', color: 'var(--text-secondary, #64748b)' }}>
         <Loader2 size={32} className="spin" />
         <span style={{ fontSize: 13 }}>
           {isHeic ? t('drive.decoding_heic') : t('drive.decoding_tiff')}
@@ -258,7 +258,7 @@ export const HeicTiffViewer: React.FC<HeicTiffViewerProps> = ({
 
   if (state === 'error' || !blobUrl) {
     return (
-      <div className="td-heictiff-error" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100%', color: '#f87171' }}>
+      <div className="td-heictiff-error" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100%', color: 'var(--danger, #dc2626)' }}>
         <AlertTriangle size={32} />
         <span style={{ fontSize: 13, textAlign: 'center', maxWidth: 300 }}>
           {t('drive.decode_error')}: {errMsg}

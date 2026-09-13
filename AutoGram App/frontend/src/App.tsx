@@ -281,7 +281,7 @@ function App() {
               style={{
                 background: 'rgba(245, 158, 11, 0.15)',
                 borderBottom: '1px solid rgba(245, 158, 11, 0.35)',
-                color: '#f59e0b',
+                color: 'var(--amber-text, #d97706)',
                 padding: '10px 20px',
                 fontSize: '0.82rem',
                 fontWeight: 600,
@@ -300,7 +300,7 @@ function App() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#f59e0b',
+                  color: 'var(--amber-text, #d97706)',
                   fontSize: '1.1rem',
                   cursor: 'pointer',
                   padding: 0,

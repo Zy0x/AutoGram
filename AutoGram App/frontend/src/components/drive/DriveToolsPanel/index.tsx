@@ -1138,14 +1138,14 @@ function DupTab({
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.salinan_dihapus_37a5689')}</span>
-              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} {t('drive.tab_telegram_files')}</strong>
+              <strong style={{ fontSize: '1.15rem', color: 'var(--danger, #dc2626)', fontWeight: 800 }}>{idsToDelete.length} {t('drive.tab_telegram_files')}</strong>
             </div>
 
             <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle, rgba(255, 255, 255, 0.1))' }} />
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary, #94a3b8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('ui.generated.potensi_hemat_3815aa7')}</span>
-              <strong style={{ fontSize: '1.15rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
+              <strong style={{ fontSize: '1.15rem', color: 'var(--emerald-text, #059669)', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
             </div>
           </div>
 
@@ -1199,7 +1199,7 @@ function DupTab({
                   borderRadius: '9px',
                   background: 'rgba(239, 68, 68, 0.2)',
                   border: '1px solid rgba(239, 68, 68, 0.5)',
-                  color: '#fca5a5',
+                  color: 'var(--danger, #dc2626)',
                   fontWeight: 700,
                   fontSize: '0.8rem',
                   cursor: 'pointer',

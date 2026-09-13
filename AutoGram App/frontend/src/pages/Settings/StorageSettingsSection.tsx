@@ -259,10 +259,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                           gap: '3px',
                         }}
                       >
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           🖼️ {t('settings.cache_breakdown_thumbs')}
                         </span>
-                        <strong style={{ fontSize: '0.9rem', color: '#c084fc', fontWeight: 600 }}>
+                        <strong style={{ fontSize: '0.9rem', color: 'var(--accent-secondary, #9333ea)', fontWeight: 600 }}>
                           {formatBytes(cacheBreakdown.thumbsBytes)}
                         </strong>
                       </div>
@@ -278,10 +278,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                           gap: '3px',
                         }}
                       >
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           ⚡ {t('settings.cache_breakdown_temp')}
                         </span>
-                        <strong style={{ fontSize: '0.9rem', color: '#facc15', fontWeight: 600 }}>
+                        <strong style={{ fontSize: '0.9rem', color: 'var(--amber-text, #d97706)', fontWeight: 600 }}>
                           {formatBytes(cacheBreakdown.tempBytes)}
                         </strong>
                       </div>
@@ -298,10 +298,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                             gap: '3px',
                           }}
                         >
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #94a3b8)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             💾 {t('settings.cache_breakdown_local')}
                           </span>
-                          <strong style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
+                          <strong style={{ fontSize: '0.9rem', color: 'var(--emerald-text, #059669)', fontWeight: 600 }}>
                             {formatBytes(cacheBreakdown.localBytes)}
                           </strong>
                         </div>
@@ -319,10 +319,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                             gap: '3px',
                           }}
                         >
-                          <span style={{ fontSize: '0.72rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--danger, #dc2626)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             ⚠️ {t('settings.cache_breakdown_stale')}
                           </span>
-                          <strong style={{ fontSize: '0.9rem', color: '#fca5a5', fontWeight: 600 }}>
+                          <strong style={{ fontSize: '0.9rem', color: 'var(--danger, #dc2626)', fontWeight: 600 }}>
                             {formatBytes(cacheBreakdown.staleBytes)}
                           </strong>
                         </div>
@@ -552,7 +552,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     border: '1px solid rgba(234, 179, 8, 0.35)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#fde047',
+                    color: 'var(--text-primary)',
                     fontSize: '0.78rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -578,7 +578,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     border: '1px solid rgba(239, 68, 68, 0.4)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#fca5a5',
+                    color: 'var(--text-primary)',
                     fontSize: '0.78rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -603,7 +603,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     border: '1px solid rgba(249, 115, 22, 0.35)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#fdba74',
+                    color: 'var(--text-primary)',
                     fontSize: '0.78rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -627,7 +627,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     border: '1px solid rgba(99, 102, 241, 0.35)',
                     borderRadius: '8px',
                     padding: '8px 12px',
-                    color: '#a5b4fc',
+                    color: 'var(--text-primary)',
                     fontSize: '0.78rem',
                     display: 'flex',
                     alignItems: 'center',

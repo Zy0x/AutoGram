@@ -143,17 +143,17 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
         }}
       >
         {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: 'var(--text-secondary, #64748b)' }}>
             <Loader2 size={32} className="spin text-blue-400" />
             <span style={{ fontSize: '13px', fontWeight: 500 }}>Merender dokumen Word (.docx)...</span>
           </div>
         )}
 
         {error && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: '#f87171', maxWidth: '400px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: 'var(--danger, #dc2626)', maxWidth: '400px', textAlign: 'center' }}>
             <FileText size={36} />
             <span style={{ fontSize: '14px', fontWeight: 600 }}>Gagal Membaca Dokumen DOCX</span>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{error}</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>{error}</span>
             {onOpenSystem && (
               <button
                 type="button"

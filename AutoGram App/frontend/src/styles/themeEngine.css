@@ -27,6 +27,10 @@
   --text-main: var(--text-primary, #f8fafc);
   --td-text: var(--text-primary, #f8fafc);
   --td-sub: var(--text-secondary, #94a3b8);
+  --amber-text: #fbbf24;
+  --emerald-text: #34d399;
+  --cyan-text: #67e8f9;
+  --danger: #ef4444;
 
   --bg-primary: var(--bg-main, #090d16);
   --bg-secondary: var(--bg-card, rgba(22, 32, 54, 0.65));
@@ -59,6 +63,10 @@
   --text-main: #0f172a;
   --td-text: #0f172a;
   --td-sub: #475569;
+  --amber-text: #b45309;
+  --emerald-text: #047857;
+  --cyan-text: #0e7490;
+  --danger: #dc2626;
 
   --border-color: #e2e8f0;
   --border-default: #e2e8f0;
