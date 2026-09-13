@@ -1,3 +1,54 @@
+## v4.1.0 — Remote Upload Crawler Button, Tabs Contrast, Transfer Footer Layout, Playback History & Performance Cards Overhaul
+
+### 1. Remote Upload Header & Crawler Button Architecture
+- **Elimination of Unstyled Gray Button Defect and Header Wrapping Disorder**:
+  - *What changed*:
+    - Resolved critical visual bug on the Crawler launcher button (`[ ☊ Crawler ]`) in `RemoteLinkHeader.tsx` and `RemoteCrawlerLauncher`: replaced unstyled bare HTML button (`.td-btn`) which rendered with raw dark gray user-agent styling (`rgb(107, 107, 107)`) with a dedicated, elevated `.td-remote-crawler-btn` component.
+    - Wrapped the Crawler button and close `X` button into `.td-remote-head-actions` with `display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0;`, eliminating header wrapping misalignment.
+    - In Light Mode (`[data-color-scheme="light"]`), `.td-remote-crawler-btn` renders on crisp white (`#ffffff`) with a Slate 300 border (`#cbd5e1`), accent-colored text and icon (`var(--accent-primary, #0284c7)`), soft hover elevation, and a balanced 34px compact height that perfectly aligns with the modal title and close button.
+  - *Technical rationale*: `RemoteCrawlerLauncher` lacked custom CSS classes, causing browser user-agent buttons to render dark gray backgrounds. Placing it directly alongside flex elements without an action wrapper caused wrapping disorder.
+  - *User impact*: The Remote Upload modal header is orderly, clean, and professional with seamless access to the Public URL Crawler.
+
+### 2. Remote Upload Modal Tabs & Clipboard Actions
+- **Elimination of Faint Batch URLs Tab and Bleeding Tab Edges**:
+  - *What changed*:
+    - Overhauled `.td-remote-tabs` and `.td-remote-tab`: in Light Mode, the tab container renders on a soft Slate 100 surface (`#f1f5f9`) with a Slate 300 border (`#cbd5e1`), 10px rounded corners, and balanced 4px padding.
+    - Inactive tab text and icons (`Batch URLs`) now render in high-contrast Slate 600 (`#475569`, contrast $\ge 5.6:1$), eliminating the near-invisible pale text defect.
+    - Active tabs render with clean white elevation (`#ffffff`), subtle 1px accent border, and rich accent color (`var(--accent-primary, #0284c7)`).
+    - Overhauled `.td-remote-paste-action` (`[ ⎘ Paste ]`): clean white surface with Slate 300 border, accent text/icon, and subtle shadow.
+  - *Technical rationale*: `.td-remote-tab` previously relied on dark-mode `#94a3b8` without Light Mode contrast rules, resulting in washed-out labels on light surfaces.
+  - *User impact*: Switching between Single URL and Batch URLs is intuitive with clear active indicators and legible labels.
+
+### 3. Transfer Settings Workspace Footer & Balanced Action Buttons
+- **Harmonized Visual Weight, Equal Heights & Mud-Free Gradients**:
+  - *What changed*:
+    - Redesigned the action bar footer (`.td-xfer-footer`) and its primary/secondary buttons (`[ ↺ Reset Sub-menu ]` and `[ Done ]`): enforced identical 36px heights, matching 8px border-radii, and cohesive typography across both buttons.
+    - Eliminated dark muddy gradients on `.td-chip-primary`: replaced black-tinted mixes (`color-mix(in srgb, ... 75%, #000)`) in Light Mode with vibrant, clean accent gradients (`linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)`).
+    - Standardized `.td-chip-btn:not(.td-chip-primary)` (`Reset Sub-menu`): clean white background (`#ffffff`), Slate 300 border (`#cbd5e1`), Slate 600 text (`#475569`), and smooth accent hover state.
+    - Fixed footer border separation: clean top border (`1px solid #e2e8f0`) with balanced 14px 20px padding.
+  - *Technical rationale*: `themeEngine.css` previously mixed primary button gradients with `#000`, producing muddy brown buttons in Light Mode, while the secondary button lacked proper card elevation.
+  - *User impact*: Settings navigation and actions are symmetrical, balanced, and visually harmonious.
+
+### 4. Playback History Clear Action & High-Contrast Typography
+- **Elimination of Washed-Out Crimson Pill and Hardcoded Inline Colors**:
+  - *What changed*:
+    - Extracted hardcoded inline styles in `PlaybackSettingsSection.tsx` into modular CSS classes (`.td-playback-history-row`, `.td-clear-history-btn`, `.td-playback-hint`).
+    - Upgraded `.td-clear-history-btn` (`[ 🗑 Clear history ]`): replaced washed-out pale pink text (`#fca5a5`, contrast 1.6:1) with deep, crisp Crimson Red (`#b91c1c !important; font-weight: 600;` contrast $\ge 5.8:1$) on a soft Red 50 fill (`#fef2f2`) and Red 200 border (`#fecaca`).
+    - When successfully cleared, button smoothly transitions to Emerald Green (`#15803d` on `#f0fdf4`).
+    - Standardized separator border: crisp Slate 200 divider line (`#e2e8f0`) in Light Mode.
+  - *Technical rationale*: Inline hex color `#fca5a5` failed WCAG AA/AAA contrast on light backgrounds and was not responsive to theme changes.
+  - *User impact*: Playback cache clearing is clearly legible, safe, and provides reassuring visual feedback.
+
+### 5. Device Performance Optimization Cards, Telemetry Chips & RAM Bar
+- **Elimination of Inset Stripe Defect, Dark Radio Dot, and Invisible RAM Text**:
+  - *What changed*:
+    - Completely eliminated the awkward dark left stripe defect on selected performance cards (`.settings-tier-option.is-selected`) by removing `box-shadow: inset 3px 0 0 ...` and replacing it with an elegant 1.5px accent border and subtle card glow.
+    - Fixed the dark brown/black radio center defect (`.settings-tier-radio`): replaced hardcoded dark navy inset (`#102030`) with `box-shadow: inset 0 0 0 3px var(--bg-card, #ffffff)`, producing a clean white inner ring with an accent center.
+    - Overhauled performance telemetry chips: replaced dark-only inline pastel colors (`#bae6fd`, `#a7f3d0`, `#c7d2fe`) with high-contrast semantic chips (`.settings-perf-chip-cpu` #0369a1, `.settings-perf-chip-gpu` #15803d, `.settings-perf-chip-net` #b45309, `.settings-perf-chip-engine` #4338ca) with contrast $> 5:1$.
+    - Fixed invisible "Clear RAM Memory" section: replaced hardcoded white text (`#f1f5f9`) with Slate 900 (`#0f172a`, contrast 17.8:1), Slate 600 description (`#64748b`), and centered 36px action button with clean light elevation.
+  - *Technical rationale*: `PerfSection.tsx` contained hardcoded inline dark colors and `Settings.css` applied dark navy box-shadows to radios and inset borders to selected cards.
+  - *User impact*: Device performance tuning cards, hardware capabilities, and memory management controls are crisp, accessible, and tactile.
+
 ## v4.0.9 — Cloud Drives Light Mode Upload Settings, Switch Controls, Concurrency Badges & Format Chips Overhaul
 
 ### 1. Upload Settings Switches, Sliders & Concurrency Throughput Badges

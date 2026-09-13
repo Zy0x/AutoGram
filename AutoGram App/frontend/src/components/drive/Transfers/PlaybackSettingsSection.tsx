@@ -69,23 +69,12 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                   </label>
                 </div>
 
-                <div
-                  style={{
-                    marginTop: '16px',
-                    paddingTop: '16px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', display: 'block' }}>
+                <div className="td-playback-history-row">
+                  <div className="td-playback-history-info">
+                    <strong className="td-playback-history-title">
                       {t('drive.playback_history_cache_title')}
                     </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <p className="td-playback-history-desc">
                       {t('drive.playback_history_cache_desc')}
                     </p>
                   </div>
@@ -93,20 +82,7 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                     type="button"
                     onClick={handleClearPlaybackHistory}
                     disabled={clearingPlaybackHistory}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      background: clearedPlaybackSuccess ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                      border: clearedPlaybackSuccess ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(239, 68, 68, 0.3)',
-                      color: clearedPlaybackSuccess ? '#86efac' : '#fca5a5',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
+                    className={`td-clear-history-btn ${clearedPlaybackSuccess ? 'is-success' : ''}`}
                   >
                     {clearingPlaybackHistory ? (
                       <Loader2 size={13} className="spin" />
@@ -120,7 +96,7 @@ export function PlaybackSettingsSection({ activeTab, ctx }: { activeTab: string;
                 </div>
               </div>
 
-              <p className="td-xfer-hint" style={{ marginTop: '14px', fontSize: '0.78rem', color: '#64748b' }}>
+              <p className="td-xfer-hint td-playback-hint">
                 {t('drive.playback_hint_shortcut')}
               </p>
             </div>

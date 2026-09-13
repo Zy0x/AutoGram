@@ -169,10 +169,10 @@ export const PerfSection = memo(function PerfSection() {
 
       {/* REAL ACCURATE PHYSICAL HARDWARE TELEMETRY BADGES */}
       <div className="settings-perf-status" role="status">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Cpu size={15} strokeWidth={2} style={{ color: 'var(--accent-primary, #38bdf8)' }} aria-hidden />
+        <div className="settings-perf-status-label">
+          <Cpu size={15} strokeWidth={2} className="settings-perf-status-icon" aria-hidden />
           <span>{t('settings.perf_status_active')}</span>
-          <strong style={{ color: '#ffffff' }}>
+          <strong className="settings-perf-status-tier">
             {tier === 'low'
               ? t('settings.perf_tier_low_title')
               : tier === 'high'
@@ -181,133 +181,45 @@ export const PerfSection = memo(function PerfSection() {
           </strong>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginLeft: 'auto' }}>
-          <span
-            title={cpuName}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)',
-              color: '#bae6fd',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              maxWidth: '280px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Cpu size={12} style={{ color: 'var(--accent-primary, #38bdf8)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cpuName}</span>
+        <div className="settings-perf-chips-row">
+          <span title={cpuName} className="settings-perf-chip settings-perf-chip-cpu">
+            <Cpu size={12} className="settings-perf-chip-icon" />
+            <span className="settings-perf-chip-text">{cpuName}</span>
           </span>
 
           {gpuName && (
-            <span
-              title={gpuName}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: '#a7f3d0',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                maxWidth: '260px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <HardDrive size={12} style={{ color: '#10b981', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gpuName}</span>
+            <span title={gpuName} className="settings-perf-chip settings-perf-chip-gpu">
+              <HardDrive size={12} className="settings-perf-chip-icon" />
+              <span className="settings-perf-chip-text">{gpuName}</span>
             </span>
           )}
 
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              background: profile.fastNet ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent)' : 'rgba(245, 158, 11, 0.08)',
-              border: profile.fastNet ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 20%, transparent)' : '1px solid rgba(245, 158, 11, 0.25)',
-              color: profile.fastNet ? '#9bdcfb' : '#fde68a',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-            }}
-          >
-            <Wifi size={12} style={{ color: profile.fastNet ? 'var(--accent-primary, #38bdf8)' : '#f59e0b', flexShrink: 0 }} />
+          <span className={`settings-perf-chip settings-perf-chip-net ${profile.fastNet ? 'is-fast' : 'is-saver'}`}>
+            <Wifi size={12} className="settings-perf-chip-icon" />
             <span>{profile.fastNet ? t('settings.perf_fast_net') : t('settings.perf_saver_net')}</span>
           </span>
 
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              background: 'rgba(99, 102, 241, 0.08)',
-              border: '1px solid rgba(99, 102, 241, 0.25)',
-              color: '#c7d2fe',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-            }}
-          >
-            <ShieldCheck size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+          <span className="settings-perf-chip settings-perf-chip-engine">
+            <ShieldCheck size={12} className="settings-perf-chip-icon" />
             <span>{t('settings.perf_engine_rust')}</span>
           </span>
         </div>
       </div>
 
       {/* CLEAR RAM & FLUSH MEMORY BAR */}
-      <div
-        style={{
-          marginTop: '14px',
-          padding: '12px 16px',
-          borderRadius: '10px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.07)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '220px', flex: 1 }}>
-          <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f1f5f9' }}>
+      <div className="settings-perf-ram-bar">
+        <div className="settings-perf-ram-text">
+          <span className="settings-perf-ram-title">
             {t('settings.perf_clear_ram_btn')}
           </span>
-          <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.3 }}>
+          <span className="settings-perf-ram-desc">
             {t('settings.perf_clear_ram_desc')}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="settings-perf-ram-actions">
           {clearedSuccess && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                color: '#10b981',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-              }}
-            >
+            <span className="settings-perf-ram-success-badge">
               <CheckCircle2 size={13} />
               <span>{t('settings.perf_clear_ram_success')}</span>
             </span>
@@ -317,21 +229,7 @@ export const PerfSection = memo(function PerfSection() {
             type="button"
             disabled={clearingRam}
             onClick={handleClearRam}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '7px 14px',
-              borderRadius: '8px',
-              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)',
-              color: 'var(--accent-primary, #38bdf8)',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: clearingRam ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-              whiteSpace: 'nowrap',
-            }}
+            className="settings-perf-ram-btn"
           >
             {clearingRam ? (
               <>

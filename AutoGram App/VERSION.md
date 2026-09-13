@@ -1,4 +1,4 @@
-AutoGram Version: v4.0.9
+AutoGram Version: v4.1.0
 
 Current State:
 v4.0.9 Cloud Drives Light Mode Upload Settings, Switch Controls, Concurrency Badges & Format Chips Overhaul:
