@@ -1388,3 +1388,224 @@
   color-scheme: light !important;
   cursor: pointer;
 }
+
+/* 30. Storage Popover Status Badges & Metrics */
+[data-color-scheme="light"] .td-popover-status-badge.td-badge-accurate {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #065f46 !important; /* Deep emerald (contrast >= 8.2:1) */
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-popover-status-badge.td-badge-counting {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #92400e !important; /* Rich warm amber/brown (contrast >= 7.8:1) */
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-popover-status-badge.td-badge-syncing {
+  background: rgba(2, 132, 199, 0.12) !important;
+  color: #0369a1 !important; /* Vivid azure blue (contrast >= 7.1:1) */
+  border: 1px solid rgba(2, 132, 199, 0.4) !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-popover-status-badge.td-badge-normal {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-popover-status-badge svg {
+  color: inherit !important;
+}
+
+/* 31. Storage Splash Micro-Pill & Compact Trigger */
+[data-color-scheme="light"] .td-storage-splash-pill {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill.is-compact {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill.is-compact:hover,
+[data-color-scheme="light"] .td-storage-splash-pill.is-compact.active {
+  background: #f1f5f9 !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #0284c7) 20%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill .td-splash-text {
+  color: #0f172a !important;
+  font-weight: 650 !important;
+}
+
+[data-color-scheme="light"] .td-storage-info-icon.td-icon-status-accurate {
+  color: #059669 !important;
+  filter: none !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill:hover .td-storage-info-icon.td-icon-status-accurate {
+  color: #047857 !important;
+}
+
+[data-color-scheme="light"] .td-storage-info-icon.td-icon-status-counting {
+  color: #d97706 !important;
+  filter: none !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill:hover .td-storage-info-icon.td-icon-status-counting {
+  color: #b45309 !important;
+}
+
+[data-color-scheme="light"] .td-storage-info-icon.td-icon-status-syncing {
+  color: #0284c7 !important;
+  filter: none !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill:hover .td-storage-info-icon.td-icon-status-syncing {
+  color: #0369a1 !important;
+}
+
+[data-color-scheme="light"] .td-storage-info-icon.td-icon-status-normal {
+  color: #475569 !important;
+  filter: none !important;
+}
+
+[data-color-scheme="light"] .td-storage-splash-pill:hover .td-storage-info-icon.td-icon-status-normal {
+  color: #0f172a !important;
+}
+
+/* 32. Duplicate Finder Bottom Dock & Rows */
+[data-color-scheme="light"] .td-tools-dup-dock {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-maintained {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  color: #065f46 !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-maintained svg {
+  color: #065f46 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-maintained strong {
+  color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-delete-selection:disabled,
+[data-color-scheme="light"] .td-tools-dup-delete-selection[disabled] {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-delete-selection:disabled svg,
+[data-color-scheme="light"] .td-tools-dup-delete-selection[disabled] svg {
+  color: #64748b !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-badge.is-keep,
+[data-color-scheme="light"] .td-tools-dup-file.is-preferred-keep:not(.is-marked-delete) .td-tools-dup-badge.is-keep {
+  color: #047857 !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-badge.is-del {
+  color: #b91c1c !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-file.is-keep .td-tools-dup-row {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-file.is-marked-delete .td-tools-dup-row {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-check-ui {
+  border-color: #94a3b8 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-check input:checked + .td-tools-dup-check-ui {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+[data-color-scheme="light"] .td-tools-dup-thumb {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+/* 33. Drive Tools Scope Status Badges (Accurate, Counting, Loaded) */
+[data-color-scheme="light"] .td-tools-badge-ok {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  color: #065f46 !important; /* Deep emerald green (contrast >= 8.2:1) */
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-badge-busy {
+  background: rgba(2, 132, 199, 0.12) !important;
+  border: 1px solid rgba(2, 132, 199, 0.45) !important;
+  color: #0369a1 !important; /* Vivid azure blue (contrast >= 7.1:1) */
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-tools-badge-est {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  color: #92400e !important; /* Warm amber/brown (contrast >= 7.8:1) */
+  font-weight: 750 !important;
+}
+
+/* 34. Drive Tools Shortcut Hint Banner & Kbd */
+[data-color-scheme="light"] .td-tools-card-hint {
+  background: #fef3c7 !important;
+  border: 1px solid #fde68a !important;
+}
+
+[data-color-scheme="light"] .td-tools-hint-text {
+  color: #92400e !important; /* Rich amber/brown on warm yellow, contrast >= 7.8:1 */
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-tools-kbd {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  font-weight: 750 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-color-scheme="light"] .td-tools-hint {
+  color: #475569 !important;
+}

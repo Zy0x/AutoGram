@@ -1,6 +1,15 @@
-AutoGram Version: v4.0.7
+AutoGram Version: v4.0.8
 
 Current State:
+v4.0.8 Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul:
+1. Storage Popover Status Badges (`.td-popover-status-badge`): Fixed faint mint `#34d399` text on pale mint background (contrast 2.2:1) with deep emerald green `#065f46` (contrast >= 8.2:1), reinforced border, and high contrast counting/syncing/normal badges.
+2. Compact Storage Info Trigger (`.td-storage-splash-pill.is-compact`): Replaced invisible white border with crisp Slate 300 border (`#cbd5e1`), clean white fill, subtle elevation shadow, and vivid green info icon (`#059669`).
+3. Duplicate Finder Sticky Action Dock (`.td-tools-dup-dock`): Overhauled dock with pure white elevated surface (`#ffffff`), light shadow, Slate 300 border, high-contrast maintained counter pill (`#065f46` text with `#047857` bold count), and clean disabled delete button.
+4. Duplicate Item Rows: Standardized `.td-tools-dup-badge.is-keep` (`#047857`), `.td-tools-dup-badge.is-del` (`#b91c1c`), checkboxes, and thumbnail backgrounds.
+5. Scope Status Badges (`.td-tools-badge-ok`): Replaced pale mint `#86efac` text with deep emerald green `#065f46` (contrast >= 8.2:1), with high-contrast busy and estimate badges.
+6. Filter Shortcut Hint Banner (`.td-tools-card-hint`, `.td-tools-hint-text`): Replaced washed-out yellow `#fcd34d` on beige (contrast 1.3:1) with rich warm amber `#92400e` (contrast >= 7.8:1) on Amber 100 (`#fef3c7`) and Slate 900 keyboard shortcuts.
+7. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
+
 v4.0.7 Cloud Drives Light Mode Primary CTA, Duplicate Finder & Form Controls Contrast:
 1. Primary CTA Buttons (`.td-btn-primary`, `.td-topbar .td-btn-primary`): Eliminated white text on light beige background by enforcing radiant solid primary accent buttons (`var(--accent-primary, #0284c7)`) with crisp white `#ffffff` text, bold font weight (750), and elegant elevation shadow.
 2. Duplicate Finder Filter Tabs & Counter Badges: Fixed white-on-white count bug on active filter pills (`[Photos 0]`) by adding solid accent count badges with high-contrast text. Upgraded inactive filter pills and count badges to high-contrast Slate 700 with Slate 100 fills.

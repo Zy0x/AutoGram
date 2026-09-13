@@ -1,3 +1,34 @@
+## v4.0.8 — Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul
+
+### 1. Storage Popover Status Badges & Compact Trigger Button
+- **Elimination of Faint Mint and Invisible Trigger Defects**:
+  - *What changed*:
+    - Resolved critical contrast defect on the popover status pill `[✔ 100% Accurate (Final)]` (`.td-popover-status-badge.td-badge-accurate`) in `DriveStorageInfoBadge`: replaced pale mint text (`#34d399`, contrast 2.2:1) with deep emerald green (`#065f46`, font-weight 750, contrast $\ge 8.2:1$) on a clean translucent mint fill (`rgba(16, 185, 129, 0.12)`) and reinforced border (`rgba(16, 185, 129, 0.45)`).
+    - Upgraded `.td-badge-counting` (amber/brown `#92400e`, contrast $\ge 7.8:1$), `.td-badge-syncing` (deep azure blue `#0369a1`, contrast $\ge 7.1:1$), and `.td-badge-normal` (slate `#334155`) to guarantee WCAG AAA compliance across all storage states.
+    - Fixed un-bordered, blending compact info button `[ (i) ]` (`.td-storage-splash-pill.is-compact` and expanded state): replaced invisible white border (`rgba(255, 255, 255, 0.12)`) with a crisp Slate 300 border (`#cbd5e1`), clean white fill (`#ffffff`), subtle elevation (`box-shadow: 0 1px 3px rgba(0,0,0,0.08)`), and high-contrast green info icon (`#059669`).
+  - *Technical rationale*: `App.css` lines 38703 and 38955 utilized dark theme defaults (`border: 1px solid rgba(255, 255, 255, 0.12)` and `color: #34d399 !important;`) without dedicated Light Mode overrides.
+  - *User impact*: Storage status verification and permanent info triggers are sharp, tactile, and instantly readable.
+
+### 2. Duplicate Finder Bottom Action Dock & Row Status Indicators
+- **Elimination of Pale Green Maintained Pill and Obsidian Shadow Artifacts**:
+  - *What changed*:
+    - Overhauled sticky bottom dock (`.td-tools-dup-dock`): container now renders on a crisp white surface (`#ffffff`) with subtle light elevation shadow (`0 -4px 20px rgba(0, 0, 0, 0.08)`) and Slate 300 border (`#cbd5e1`).
+    - Fixed washed-out text on the maintained counter pill `[🛡 Maintained: 1 file]` (`.td-tools-dup-maintained`): replaced pale light green (`#4ade80`) with deep emerald green (`#065f46`, font-weight 750) and bold counter (`#047857`, font-weight 800) on soft emerald tint (`rgba(16, 185, 129, 0.12)` with `rgba(16, 185, 129, 0.45)` border).
+    - Refined disabled delete button (`.td-tools-dup-delete-selection:disabled`): clean Slate 100 fill (`#f1f5f9`), Slate 300 border, and Slate 500 text (`#64748b`).
+    - Standardized duplicate item rows in Light Mode: `.td-tools-dup-badge.is-keep` uses deep forest green (`#047857`), `.td-tools-dup-badge.is-del` uses deep crimson (`#b91c1c`), checkboxes use Slate 400 borders with crisp red checks, and thumbnail containers render on Slate 100 with Slate 300 borders.
+  - *Technical rationale*: Inline styles in `DriveToolsPanel/index.tsx` coupled with dark theme rules in `App.css` forced `#4ade80` and dark box-shadows onto light layouts.
+  - *User impact*: Duplicate review and bulk resolution workflows present clear, distinct actions and statuses with zero layout strain.
+
+### 3. Drive Tools Scope Badges & Advanced Filter Shortcut Banner
+- **Elimination of Washed-Out Scope Status and Faint Yellow Shortcut Notice**:
+  - *What changed*:
+    - Upgraded `.td-tools-badge-ok` (`[Accurate (Telegram Metadata)]` in Space Usage view): transformed pale mint `#86efac` into deep emerald green (`#065f46 !important; font-weight: 750;` contrast $\ge 8.2:1$).
+    - Upgraded `.td-tools-badge-busy` to deep azure `#0369a1` and `.td-tools-badge-est` to warm amber `#92400e`.
+    - Overhauled `.td-tools-card-hint` and `.td-tools-hint-text` (`[⚡ Shortcut: 1 MB ≈ 1,048,576 B ...]`): replaced near-invisible yellow `#fcd34d` on beige (contrast 1.3:1) with rich warm amber `#92400e` (contrast $\ge 7.8:1$) on Amber 100 fill (`#fef3c7`) and Amber 200 border (`#fde68a`).
+    - Standardized keyboard shortcut tags (`.td-tools-kbd`): pure white pill with Slate 300 border, Slate 900 bold text (`#0f172a`), and micro elevation.
+  - *Technical rationale*: `App.css` lines 18824 and 19130 hardcoded dark theme text colors `#86efac` and `#fcd34d` without corresponding Light Mode contrast rules.
+  - *User impact*: Advanced filtering shortcuts and metadata accuracy badges are legible at a glance.
+
 ## v4.0.7 — Cloud Drives Light Mode Primary CTA, Duplicate Finder & Form Controls Contrast
 
 ### 1. Primary CTA Buttons High-Contrast Architecture
