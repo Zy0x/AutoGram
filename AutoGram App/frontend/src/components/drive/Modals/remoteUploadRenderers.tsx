@@ -123,7 +123,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
               </span>
             </div>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#facc15' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--amber-text, #facc15)' }}>
                 <FileText size={10} /> {t('drive.remote_mode_doc')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -144,7 +144,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
               </span>
             </div>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#34d399' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--emerald-text, #34d399)' }}>
                 <Sparkles size={10} /> {t('drive_tools.remote_engine_cloud_fetch')}
               </span>
               <span className="td-remote-triplet-popover-desc">
@@ -152,7 +152,7 @@ export function createRemoteUploadRenderers(ctx: Record<string, any>) {
               </span>
             </div>
             <div className="td-remote-triplet-popover-item">
-              <span className="td-remote-triplet-popover-key" style={{ color: '#67e8f9' }}>
+              <span className="td-remote-triplet-popover-key" style={{ color: 'var(--cyan-text, #06b6d4)' }}>
                 <HardDrive size={10} /> {t('drive_tools.remote_engine_storage_local')}
               </span>
               <span className="td-remote-triplet-popover-desc">

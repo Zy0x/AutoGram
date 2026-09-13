@@ -793,7 +793,7 @@ export function TransferSettingsWorkspace({
 
   const telegramPreviewHtml = useMemo(() => {
     const text = draft.globalCaption || '';
-    if (!text) return '<span style="color: #64748b; font-style: italic;">Pratinjau caption kosong…</span>';
+    if (!text) return '<span style="color: var(--text-muted, #64748b); font-style: italic;">' + t('drive.caption_preview_empty') + '</span>';
     const mode = draft.captionParseMode || 'MarkdownV2';
 
     const parseInline = (str: string) => {
@@ -1014,7 +1014,7 @@ export function TransferSettingsWorkspace({
 
     patch(sectionFields);
     const catLabel = subMenuCategories.find((c) => c.id === cat)?.label || 'halaman ini';
-    triggerCaptionToast(`✨ Pengaturan ${catLabel} berhasil di-reset ke default.`);
+    triggerCaptionToast(t('drive.settings_category_reset_toast', { category: catLabel }));
   };
 
   const applyPreset = (presetSettings: Partial<DriveTransferSettings>) => {

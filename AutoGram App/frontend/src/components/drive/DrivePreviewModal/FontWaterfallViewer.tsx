@@ -57,21 +57,21 @@ export const FontWaterfallViewer: React.FC<Props> = ({ fontSrc, fileName }) => {
               className={`td-btn-secondary td-btn-xs ${activeTab === 'waterfall' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('waterfall')}
             >
-              Waterfall
+              {t('drive.font_waterfall')}
             </button>
             <button
               type="button"
               className={`td-btn-secondary td-btn-xs ${activeTab === 'tester' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('tester')}
             >
-              Uji Bebas
+              {t('drive.font_free_test')}
             </button>
             <button
               type="button"
               className={`td-btn-secondary td-btn-xs ${activeTab === 'glyphs' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('glyphs')}
             >
-              Peta Glyph ({glyphs.length})
+              {t('drive.font_glyph_map', { count: glyphs.length })}
             </button>
           </div>
         </div>
@@ -89,7 +89,7 @@ export const FontWaterfallViewer: React.FC<Props> = ({ fontSrc, fileName }) => {
           type="button"
           className="td-btn-secondary td-btn-xs"
           onClick={() => setSampleText(DEFAULT_TEXT)}
-          title="Reset Teks"
+          title={t('drive.font_reset_text')}
         >
           <RefreshCw size={12} />
         </button>
@@ -116,7 +116,7 @@ export const FontWaterfallViewer: React.FC<Props> = ({ fontSrc, fileName }) => {
           <div className="td-font-tester-view">
             <div className="td-font-size-slider-row">
               <Sliders size={14} className="text-slate-400" />
-              <span>Ukuran: {customSize}px</span>
+              <span>{t('drive.font_size_label')} {customSize}px</span>
               <input
                 type="range"
                 min="12"

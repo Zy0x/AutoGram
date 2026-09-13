@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import i18n from 'i18next';
 import { AlertTriangle, RefreshCw, FileCode, Binary } from 'lucide-react';
 
 interface Props {
@@ -40,9 +41,9 @@ export class PluginErrorBoundary extends Component<Props, State> {
               <AlertTriangle size={28} className="text-amber-400" />
             </div>
             <div className="td-plugin-error-content">
-              <h3>Format Viewer Degraded ({this.props.pluginName})</h3>
+              <h3>{i18n.t('drive.plugin_error_degraded', { plugin: this.props.pluginName })}</h3>
               <p className="td-plugin-error-msg">
-                {this.state.error?.message || 'An unexpected error occurred while parsing this file format.'}
+                {this.state.error?.message || i18n.t('drive.plugin_error_unexpected')}
               </p>
               <div className="td-plugin-error-actions">
                 <button
@@ -51,7 +52,7 @@ export class PluginErrorBoundary extends Component<Props, State> {
                   onClick={this.handleRetry}
                 >
                   <RefreshCw size={13} />
-                  <span>Coba Lagi</span>
+                  <span>{i18n.t('drive.plugin_retry')}</span>
                 </button>
                 {this.props.fallbackToRaw && (
                   <button
@@ -60,7 +61,7 @@ export class PluginErrorBoundary extends Component<Props, State> {
                     onClick={this.props.fallbackToRaw}
                   >
                     <FileCode size={13} />
-                    <span>Lihat Teks Mentah</span>
+                    <span>{i18n.t('drive.plugin_view_raw')}</span>
                   </button>
                 )}
                 {this.props.fallbackToHex && (
@@ -70,7 +71,7 @@ export class PluginErrorBoundary extends Component<Props, State> {
                     onClick={this.props.fallbackToHex}
                   >
                     <Binary size={13} />
-                    <span>Inspektor Hex</span>
+                    <span>{i18n.t('drive.plugin_hex_inspector')}</span>
                   </button>
                 )}
               </div>

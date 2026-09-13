@@ -138,7 +138,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                         borderRadius: '8px',
                         background: 'rgba(239, 68, 68, 0.12)',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#fca5a5',
+                        color: 'var(--danger, #dc2626)',
                         fontSize: '0.76rem',
                         display: 'flex',
                         alignItems: 'center',
@@ -175,10 +175,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.03))',
                     padding: '14px 16px',
                     borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-default, rgba(255, 255, 255, 0.06))',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -186,7 +186,7 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                       <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
                         {t('settings.cache_size_label')}
                       </strong>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #94a3b8)' }}>
                         {isCalculating ? t('settings.calculating_cache') : t('settings.cache_size_desc')}
                       </span>
                     </div>
@@ -335,10 +335,10 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                 <div
                   className="settings-cache-limit"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.02))',
                     padding: '14px 16px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-default, rgba(255, 255, 255, 0.05))',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
@@ -512,9 +512,9 @@ export function StorageSettingsSection(props: StorageSettingsSectionProps) {
                       type="button"
                       onClick={() => setIsCustomModalOpen(false)}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#94a3b8',
+                        background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
+                        border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
+                        color: 'var(--text-secondary, #94a3b8)',
                         borderRadius: '6px',
                         padding: '6px 10px',
                         fontSize: '0.78rem',

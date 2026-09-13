@@ -229,7 +229,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
           </div>
           <span className="td-ai-category-badge">{insight.categoryLabel}</span>
           <span className={`td-ai-complexity-badge is-${insight.complexityLevel.toLowerCase()}`}>
-            {insight.complexityLevel} Complexity
+            {t('drive.ai_complexity_level', { level: insight.complexityLevel })}
           </span>
         </div>
 
@@ -241,7 +241,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
               onClick={() => setActiveTab('summary')}
             >
               <BrainCircuit size={13} />
-              <span>Insight</span>
+              <span>{t('drive.ai_tab_insight')}</span>
             </button>
             <button
               type="button"
@@ -249,7 +249,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
               onClick={() => setActiveTab('entities')}
             >
               <Tag size={13} />
-              <span>Entitas</span>
+              <span>{t('drive.ai_tab_entities')}</span>
             </button>
             <button
               type="button"
@@ -257,7 +257,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
               onClick={() => setActiveTab('prompt')}
             >
               <FileText size={13} />
-              <span>Prompt AI</span>
+              <span>{t('drive.ai_tab_prompt')}</span>
             </button>
           </div>
 
@@ -267,7 +267,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
             onClick={activeTab === 'prompt' ? handleCopyPrompt : handleCopySummary}
           >
             {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copied ? t('drive.copied') : activeTab === 'prompt' ? 'Salin Prompt' : 'Salin Insight'}</span>
+            <span>{copied ? t('drive.copied') : activeTab === 'prompt' ? t('drive.ai_copy_prompt') : t('drive.ai_copy_insight')}</span>
           </button>
         </div>
       </div>
@@ -280,7 +280,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
             <div className="td-ai-insights-list">
               <div className="td-ai-section-title">
                 <Zap size={13} className="text-amber-400" />
-                <span>Poin Pemahaman Utama:</span>
+                <span>{t('drive.ai_key_insights')}</span>
               </div>
               <ul>
                 {insight.keyInsights.map((ki, idx) => (
@@ -295,7 +295,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
             <div className="td-ai-actions-list">
               <div className="td-ai-section-title">
                 <ShieldCheck size={13} className="text-emerald-400" />
-                <span>Rekomendasi Aksi:</span>
+                <span>{t('drive.ai_suggested_actions')}</span>
               </div>
               <div className="td-ai-action-chips">
                 {insight.suggestedActions.map((act, idx) => (
@@ -325,7 +325,7 @@ Tolong berikan ringkasan eksekutif, poin-poin penting, dan rekomendasi tindak la
           <div className="td-ai-prompt-view">
             <div className="td-ai-prompt-hint">
               <HelpCircle size={13} className="text-sky-400" />
-              <span>Prompt siap pakai untuk ditanyakan ke Claude, ChatGPT, atau Gemini:</span>
+              <span>{t('drive.ai_prompt_hint')}</span>
             </div>
             <pre className="td-ai-prompt-box font-mono">{promptTemplate}</pre>
           </div>

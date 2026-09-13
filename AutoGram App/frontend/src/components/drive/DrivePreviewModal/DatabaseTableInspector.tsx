@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Table } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   rawSqlOrText: string;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName: _fileName }) => {
+  const { t } = useTranslation();
 
   // Extract SQL Tables / CREATE TABLE Statements
   const tables = useMemo(() => {
@@ -38,7 +40,7 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
       <div className="td-db-content-layout">
         {/* Left Table Navigation */}
         <div className="td-db-tables-nav">
-          <div className="td-db-nav-header">Daftar Tabel ({tables.length})</div>
+          <div className="td-db-nav-header">{t('drive.db_tables_list', { count: tables.length })}</div>
           <div className="td-db-nav-list">
             {tables.map((tbl, idx) => (
               <button
@@ -60,8 +62,8 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
           {activeTable ? (
             <div className="td-db-columns-card">
               <div className="td-db-table-title-row">
-                <h3>Tabel: <code className="text-sky-400 font-mono">{activeTable.name}</code></h3>
-                <span className="td-db-columns-badge">{activeTable.columns.length} Kolom</span>
+                <h3>{t('drive.db_table_label')} <code className="text-sky-400 font-mono">{activeTable.name}</code></h3>
+                <span className="td-db-columns-badge">{t('drive.db_columns_count', { count: activeTable.columns.length })}</span>
               </div>
 
               <div className="td-db-cols-table-scroll">
@@ -69,7 +71,7 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
                   <thead>
                     <tr>
                       <th className="td-table-th-num">#</th>
-                      <th className="td-table-th">Definisi Kolom / Tipe Data</th>
+                      <th className="td-table-th">{t('drive.db_col_definition')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -84,13 +86,13 @@ export const DatabaseTableInspector: React.FC<Props> = ({ rawSqlOrText, fileName
               </div>
 
               <div className="td-db-raw-sql-box">
-                <div className="td-db-sql-label">DDL Schema:</div>
+                <div className="td-db-sql-label">{t('drive.db_ddl_schema')}</div>
                 <pre className="font-mono">{activeTable.rawSchema}</pre>
               </div>
             </div>
           ) : (
             <div className="td-db-empty-state">
-              <p>Tidak ditemukan definisi DDL CREATE TABLE terstruktur dalam file ini.</p>
+              <p>{t('drive.db_no_ddl_found')}</p>
             </div>
           )}
         </div>

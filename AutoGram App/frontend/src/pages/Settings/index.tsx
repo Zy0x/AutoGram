@@ -956,11 +956,11 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   <div
                     style={{
                       fontSize: '0.8rem',
-                      color: '#94a3b8',
+                      color: 'var(--text-secondary, #94a3b8)',
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'var(--bg-secondary, rgba(255, 255, 255, 0.02))',
+                      border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))',
                     }}
                   >
                     {t('settings.no_accounts_available')}
@@ -1593,10 +1593,10 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 onClick={() => void executeCacheMigration('wipe')}
                 disabled={isMigrating}
               >
-                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--danger, #dc2626)', display: 'block', lineHeight: 1.3 }}>
                   🧹 {t('settings.custom_cache_migrate_option_wipe')}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--danger, #b91c1c)', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_migrate_option_wipe_desc')}
                 </span>
               </button>
@@ -1716,10 +1716,10 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 onClick={() => void executeResetToDefault('wipe')}
                 disabled={isMigrating}
               >
-                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--danger, #dc2626)', display: 'block', lineHeight: 1.3 }}>
                   🧹 {t('settings.custom_cache_reset_option_wipe')}
                 </span>
-                <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--danger, #b91c1c)', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_reset_option_wipe_desc')}
                 </span>
               </button>

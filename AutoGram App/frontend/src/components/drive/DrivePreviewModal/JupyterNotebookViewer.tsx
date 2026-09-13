@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { BookOpen, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   rawJson: string;
@@ -24,6 +25,7 @@ interface NotebookCell {
 }
 
 export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fileName }) => {
+  const { t } = useTranslation();
   const [copiedCell, setCopiedCell] = useState<number | null>(null);
 
   const notebook = useMemo(() => {
@@ -48,7 +50,7 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
   if (!notebook) {
     return (
       <div style={{ padding: '24px', color: '#f87171', textAlign: 'center' }}>
-        Berkas bukan merupakan format Jupyter Notebook (.ipynb) JSON yang valid.
+        {t('drive.jupyter_invalid_json')}
       </div>
     );
   }
@@ -59,7 +61,11 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '16px', borderBottom: '1px solid var(--border-default)', marginBottom: '20px' }}>
         <BookOpen size={18} className="text-amber-400" />
         <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)', fontWeight: 600 }}>
-          Jupyter Notebook ({cells.length} cells: {cells.filter(c => c.cell_type === 'code').length} code, {cells.filter(c => c.cell_type === 'markdown').length} markdown)
+          {t('drive.jupyter_header_meta', {
+            total: cells.length,
+            code: cells.filter((c) => c.cell_type === 'code').length,
+            md: cells.filter((c) => c.cell_type === 'markdown').length,
+          })}
         </span>
       </div>
 
@@ -110,7 +116,7 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
                     style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
                     {copiedCell === idx ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                    <span>{copiedCell === idx ? 'Tersalin' : 'Salin'}</span>
+                    <span>{copiedCell === idx ? t('drive.copied') : t('drive.copy')}</span>
                   </button>
                 </div>
 
@@ -135,10 +141,10 @@ export const JupyterNotebookViewer: React.FC<Props> = ({ rawJson, fileName: _fil
                             </span>
                           )}
                           {imgPng && (
-                            <img src={`data:image/png;base64,${imgPng}`} alt="Output Plot" style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />
+                            <img src={`data:image/png;base64,${imgPng}`} alt={t('drive.jupyter_output_plot')} style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />
                           )}
                           {imgJpeg && (
-                            <img src={`data:image/jpeg;base64,${imgJpeg}`} alt="Output Plot" style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />
+                            <img src={`data:image/jpeg;base64,${imgJpeg}`} alt={t('drive.jupyter_output_plot')} style={{ maxWidth: '100%', borderRadius: '6px', margin: '8px 0' }} />
                           )}
                           {outText && (
                             <pre style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{outText}</pre>

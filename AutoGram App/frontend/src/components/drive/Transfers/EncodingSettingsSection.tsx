@@ -143,7 +143,7 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                       disabled={!!transferActive}
                       onChange={(val) => patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw: val as ReencodeHardware }))}
                       onOpen={fetchHardwareCapabilities}
-                      ariaLabel="Pilih Perangkat GPU Fisik"
+                      ariaLabel={t('drive.select_gpu_aria')}
                       options={hardwareOptions}
                     />
                   </div>

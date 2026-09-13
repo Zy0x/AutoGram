@@ -200,7 +200,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
 
                   {/* Caption Template Toggle & Editor (for Cloud / Telegram destinations) */}
                   {resolvedMedia && storagePolicy !== 'custom_disk' && (resolvedMedia.rawCaption || resolvedMedia.platform === 'tiktok') && (
-                    <div className="td-remote-caption-box" style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <div className="td-remote-caption-box" style={{ marginTop: 12, padding: '10px 14px', background: 'var(--bg-secondary, rgba(255, 255, 255, 0.03))', borderRadius: 10, border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: includeCustomCaption ? 8 : 0 }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', margin: 0 }}>
                           <input
@@ -395,7 +395,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                         if (nextFmt) setSelectedFormatId(nextFmt.id);
                                       }}
                                       title={t('drive.remote_carousel_prev', { defaultValue: 'Slide Sebelumnya' })}
-                                      aria-label="Previous Slide"
+                                      aria-label={t('drive.remote_carousel_prev', { defaultValue: 'Slide Sebelumnya' })}
                                     >
                                       <ChevronLeft size={20} />
                                     </button>
@@ -411,7 +411,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                         if (nextFmt) setSelectedFormatId(nextFmt.id);
                                       }}
                                       title={t('drive.remote_carousel_next', { defaultValue: 'Slide Berikutnya' })}
-                                      aria-label="Next Slide"
+                                      aria-label={t('drive.remote_carousel_next', { defaultValue: 'Slide Berikutnya' })}
                                     >
                                       <ChevronRight size={20} />
                                     </button>
@@ -457,7 +457,7 @@ export function RemoteUploadSinglePanel({ ctx }: { ctx: Record<string, any> }) {
                                               total: resolvedMedia.albumImages.length,
                                               defaultValue: `Slide ${activeSlideIndex + 1} / ${resolvedMedia.albumImages.length}`,
                                             })
-                                          : activeFormatForCanvas.badge || activeFormatForCanvas.resolution || 'Image'}
+                                          : activeFormatForCanvas.badge || activeFormatForCanvas.resolution || t('drive.type_image')}
                                       </span>
                                     </span>
                                   ) : (

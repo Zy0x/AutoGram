@@ -49,7 +49,7 @@ export const SidebarSessionHeader: React.FC<SidebarSessionHeaderProps> = ({
             value: s.session,
             label: s.label || getSessionDisplayName(s.session) || s.phone || s.session,
           }))}
-          ariaLabel="Pilih Sesi Telegram"
+          ariaLabel={t('drive.select_session_aria')}
         />
       </div>
 

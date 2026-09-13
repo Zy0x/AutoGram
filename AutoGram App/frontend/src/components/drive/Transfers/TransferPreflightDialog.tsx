@@ -636,7 +636,9 @@ function PreflightTransferInfoBento({
         </div>
         <div className="td-preflight-bento-value">
           <span className="td-preflight-bento-tag is-saved">
-            {item.duplicateMatch?.destinationId === 'me' ? 'Saved Messages' : (item.duplicateMatch?.destinationId || 'Saved Messages (Cloud)')}
+            {item.duplicateMatch?.destinationId === 'me'
+              ? t('drive.preflight_bento_saved_messages')
+              : (item.duplicateMatch?.destinationId || t('drive.preflight_bento_saved_messages_cloud'))}
           </span>
           <span className="td-preflight-bento-subtext">
             {creds?.session ? `${t('drive.session_label', { defaultValue: 'Sesi' })}: ${getSessionDisplayName(creds.session)}` : t('drive.preflight_bento_main_account', { defaultValue: 'Akun Utama • AutoGram MTProto' })}
@@ -654,7 +656,7 @@ function PreflightTransferInfoBento({
         </div>
         <div className="td-preflight-bento-value">
           <div className="td-preflight-bento-tags-row">
-            <span className="td-preflight-bento-tag is-ext">.{ext ? ext.toUpperCase() : 'FILE'}</span>
+            <span className="td-preflight-bento-tag is-ext">.{ext ? ext.toUpperCase() : t('drive.preflight_bento_tag_file')}</span>
             <span className="td-preflight-bento-mime">{mimeType}</span>
             <span className={`td-preflight-bento-tag ${isAlbum ? 'is-album' : 'is-single'}`}>
               {packagingLabel}
@@ -911,7 +913,7 @@ export function TransferPreflightDialog({
         </header>
 
         <div className="td-preflight-overview" role="status">
-          <div className="td-preflight-overview-stats" role="tablist" aria-label="Preflight item filter">
+          <div className="td-preflight-overview-stats" role="tablist" aria-label={t('drive.preflight_filter_all_label')}>
             <button
               type="button"
               role="tab"
@@ -1250,7 +1252,7 @@ export function TransferPreflightDialog({
                     {activePopover === 'caption' && t('drive.preflight_info_title_caption')}
                   </strong>
                 </div>
-                <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)} aria-label="Close">
+                <button type="button" className="td-icon-btn" onClick={() => setActivePopover(null)} aria-label={t('common.close')}>
                   <X size={15} />
                 </button>
               </div>
@@ -1301,7 +1303,7 @@ export function TransferPreflightDialog({
                       </div>
                       <span className="td-preflight-mode6-badge is-encoding">
                         {(transferSettings?.encoderStrategy ?? DEFAULT_TRANSFER_SETTINGS.encoderStrategy) === 'disable_reencode'
-                          ? 'No Re-encode'
+                          ? t('drive.preflight_modes_opt_no_reencode')
                           : (transferSettings?.reencodeHardware ?? DEFAULT_TRANSFER_SETTINGS.reencodeHardware)}
                         {' · '}
                         {(transferSettings?.reencodePreset ?? DEFAULT_TRANSFER_SETTINGS.reencodePreset)}
@@ -1380,7 +1382,7 @@ export function TransferPreflightDialog({
                       <span className="td-preflight-mode6-badge is-album">
                         {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum)
                           ? `Grid ${transferSettings?.albumGroupSize ?? DEFAULT_TRANSFER_SETTINGS.albumGroupSize} · ${transferSettings?.albumPacking ?? DEFAULT_TRANSFER_SETTINGS.albumPacking}`
-                          : 'Individual Files'}
+                          : t('drive.preflight_modes_opt_album_separate')}
                       </span>
                     </div>
 

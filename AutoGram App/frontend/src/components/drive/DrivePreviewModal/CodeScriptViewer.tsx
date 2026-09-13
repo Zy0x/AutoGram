@@ -354,7 +354,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
             title={t('drive.toggle_word_wrap')}
           >
             <WrapText size={12} />
-            <span>Wrap</span>
+            <span>{t('drive.code_wrap')}</span>
           </button>
 
           {/* In-File Search Toggle */}
@@ -365,7 +365,7 @@ export const CodeScriptViewer: React.FC<Props> = ({
             title={t('drive.search_placeholder')}
           >
             <Search size={12} />
-            <span>Cari</span>
+            <span>{t('drive.code_search')}</span>
           </button>
 
           {/* Copy Code */}

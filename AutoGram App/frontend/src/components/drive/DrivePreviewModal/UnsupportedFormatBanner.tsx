@@ -53,23 +53,6 @@ const RECOMMENDED_APPS: Record<string, string> = {
   '7z': '7-Zip / WinRAR',
 };
 
-const FORMAT_NOTES: Record<string, string> = {
-  avi: 'Format AVI (Audio Video Interleave) tidak didukung browser modern. Gunakan VLC untuk memutar.',
-  flv: 'Format Flash Video (FLV) tidak lagi didukung browser. Unduh dan putar dengan VLC.',
-  wmv: 'Format Windows Media Video (WMV) memerlukan codec khusus. Gunakan VLC atau Windows Media Player.',
-  heic: 'Format HEIC/HEIF (foto iPhone) memerlukan decoder. File sedang diproses...',
-  heif: 'Format HEIC/HEIF (foto iPhone) memerlukan decoder. File sedang diproses...',
-  tif: 'Format TIFF memerlukan decoder. File sedang diproses...',
-  tiff: 'Format TIFF memerlukan decoder. File sedang diproses...',
-  psd: 'Format Adobe Photoshop (PSD) memerlukan Photoshop atau GIMP untuk dibuka.',
-  doc: 'Format Microsoft Word lama (.doc) tidak sama dengan .docx modern. Unduh dan buka di Word atau LibreOffice.',
-  ppt: 'Format PowerPoint lama (.ppt) tidak sama dengan .pptx modern. Unduh dan buka di PowerPoint atau LibreOffice.',
-  wma: 'Format Windows Media Audio (WMA) tidak didukung browser. Unduh dan putar di VLC.',
-  amr: 'Format AMR (voice note) tidak didukung browser. Unduh dan putar di VLC.',
-  '7z': 'Format 7-Zip belum didukung explorer bawaan. Unduh dan buka dengan 7-Zip.',
-  tar: 'Format TAR belum didukung explorer bawaan. Unduh dan ekstrak dengan 7-Zip.',
-};
-
 export const UnsupportedFormatBanner: React.FC<UnsupportedFormatBannerProps> = ({
   fileName,
   ext,
@@ -80,7 +63,9 @@ export const UnsupportedFormatBanner: React.FC<UnsupportedFormatBannerProps> = (
   const { t } = useTranslation();
   const extLower = ext.toLowerCase().replace(/^\./, '');
   const recommendedApp = recommendedAppProp || RECOMMENDED_APPS[extLower];
-  const note = FORMAT_NOTES[extLower];
+  const note = t(`drive.format_note_${extLower}`, {
+    defaultValue: t('drive.unsupported_format_desc', { ext: extLower.toUpperCase() }),
+  });
 
   return (
     <div className="td-unsupported-banner">
@@ -91,9 +76,7 @@ export const UnsupportedFormatBanner: React.FC<UnsupportedFormatBannerProps> = (
         <h3 className="td-unsupported-title">
           {t('drive.unsupported_format_title', { ext: extLower.toUpperCase() })}
         </h3>
-        <p className="td-unsupported-subtitle">
-          {note || t('drive.unsupported_format_desc', { ext: extLower.toUpperCase() })}
-        </p>
+        <p className="td-unsupported-subtitle">{note}</p>
         <div className="td-unsupported-file-chip">
           <span className="td-unsupported-file-ext">{extLower.toUpperCase()}</span>
           <span className="td-unsupported-file-name">{fileName}</span>

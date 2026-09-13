@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Search, FileSpreadsheet, Loader2, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   data: ArrayBuffer | Uint8Array | Blob | string;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenSystem: _onOpenSystem }) => {
+  const { t } = useTranslation();
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [activeSheet, setActiveSheet] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
       } catch (err: any) {
         if (!cancelled) {
           console.error('[SpreadsheetViewer] Failed to parse:', err);
-          setError(err?.message || 'Gagal memproses berkas spreadsheet');
+          setError(err?.message || t('drive.spreadsheet_process_failed'));
           setLoading(false);
         }
       }
@@ -118,7 +120,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
               fontWeight: 600,
             }}
           >
-            {workbook?.SheetNames.length || 1} Sheet ({sheetData.length} baris)
+            {workbook?.SheetNames.length || 1} {t('drive.sheet_rows_count', { count: sheetData.length })}
           </span>
         </div>
 
@@ -129,7 +131,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari di spreadsheet..."
+              placeholder={t('drive.search_spreadsheet_placeholder')}
               style={{
                 padding: '4px 8px 4px 28px',
                 fontSize: '12px',
@@ -161,7 +163,7 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
             }}
           >
             {copied ? <Check size={13} /> : <Copy size={13} />}
-            <span>{copied ? 'Tersalin' : 'Salin CSV'}</span>
+            <span>{copied ? t('drive.copied') : t('drive.copy_csv')}</span>
           </button>
         </div>
       </div>
@@ -253,23 +255,23 @@ export const SpreadsheetViewer: React.FC<Props> = ({ data, fileName: _fileName, 
       {/* Main Grid View */}
       <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-main)', position: 'relative' }}>
         {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', color: 'var(--text-secondary, #94a3b8)' }}>
             <Loader2 size={32} className="spin text-emerald-400" />
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>Membaca lembar kerja spreadsheet...</span>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>{t('drive.spreadsheet_reading')}</span>
           </div>
         )}
 
         {error && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', color: '#f87171' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', color: 'var(--danger, #dc2626)' }}>
             <FileSpreadsheet size={36} />
-            <span style={{ fontSize: '14px', fontWeight: 600 }}>Gagal Membaca Spreadsheet</span>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{error}</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{t('drive.spreadsheet_failed')}</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted, #94a3b8)' }}>{error}</span>
           </div>
         )}
 
         {!loading && !error && filteredData.length === 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: '13px' }}>
-            Lembar kerja kosong atau data tidak ditemukan.
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #64748b)', fontSize: '13px' }}>
+            {t('drive.spreadsheet_empty')}
           </div>
         )}
 

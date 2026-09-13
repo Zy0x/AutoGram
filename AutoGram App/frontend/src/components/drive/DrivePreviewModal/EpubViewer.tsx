@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import JSZip from 'jszip';
 import { BookOpen, ChevronLeft, ChevronRight, List, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Chapter {
   id: string;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onOpenSystem }) => {
+  const { t } = useTranslation();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapterIdx, setCurrentChapterIdx] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -135,7 +137,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
       } catch (err: any) {
         if (!cancelled) {
           console.error('[EpubViewer] Failed to parse EPUB:', err);
-          setError(err?.message || 'Gagal membaca buku digital EPUB.');
+          setError(err?.message || t('drive.epub_read_failed'));
           setLoading(false);
         }
       }
@@ -154,17 +156,17 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: 'var(--text-muted, #64748b)' }}>
         <Loader2 size={36} className="spin text-cyan-400" />
-        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>Membuka buku digital EPUB...</span>
+        <span style={{ fontSize: '13.5px', fontWeight: 500 }}>{t('drive.epub_opening')}</span>
       </div>
     );
   }
 
   if (error || chapters.length === 0) {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#f87171', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: 'var(--danger, #dc2626)', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
         <BookOpen size={40} className="text-cyan-400" />
-        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>Gagal Membuka EPUB</strong>
-        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || 'Berkas EPUB tidak valid.'}</p>
+        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>{t('drive.epub_failed')}</strong>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || t('drive.epub_invalid_file')}</p>
       </div>
     );
   }
@@ -188,10 +190,10 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
             type="button"
             onClick={() => setShowToc((p) => !p)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '6px', background: showToc ? 'color-mix(in srgb, var(--accent-primary) 20%, transparent)' : 'var(--bg-card)', color: showToc ? 'var(--accent-primary)' : 'var(--text-secondary)', border: '1px solid var(--border-default)', fontSize: '11.5px', cursor: 'pointer', fontWeight: 500 }}
-            title="Daftar Isi Bab"
+            title={t('drive.epub_toc_title')}
           >
             <List size={13} />
-            <span>Daftar Isi</span>
+            <span>{t('drive.epub_toc')}</span>
           </button>
 
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: 'var(--bg-card)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border-default)' }}>
@@ -199,7 +201,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
               type="button"
               onClick={() => setFontSize((s) => Math.max(12, s - 2))}
               style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
-              title="Perkecil Font"
+              title={t('drive.epub_font_decrease')}
             >
               A-
             </button>
@@ -208,7 +210,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
               type="button"
               onClick={() => setFontSize((s) => Math.min(28, s + 2))}
               style={{ padding: '2px 6px', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
-              title="Perbesar Font"
+              title={t('drive.epub_font_increase')}
             >
               A+
             </button>
@@ -221,7 +223,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
         {/* TOC Sidebar */}
         {showToc && (
           <div style={{ width: '220px', background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px 8px', overflowY: 'auto', flexShrink: 0 }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '0 6px 6px' }}>Daftar Bab:</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '0 6px 6px' }}>{t('drive.epub_chapter_list')}</span>
             {chapters.map((ch, idx) => (
               <button
                 key={ch.id}
@@ -263,11 +265,11 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
           style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === 0 ? 'transparent' : 'var(--bg-primary)', color: currentChapterIdx === 0 ? 'var(--text-secondary)' : 'var(--text-primary)', border: '1px solid var(--border-default)', cursor: currentChapterIdx === 0 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, opacity: currentChapterIdx === 0 ? 0.4 : 1 }}
         >
           <ChevronLeft size={15} />
-          <span>Bab Sebelumnya</span>
+          <span>{t('drive.epub_prev_chapter')}</span>
         </button>
 
         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-          Bab <strong style={{ color: 'var(--text-primary)' }}>{currentChapterIdx + 1}</strong> dari <strong style={{ color: 'var(--text-primary)' }}>{chapters.length}</strong>
+          {t('drive.epub_chapter_counter', { current: currentChapterIdx + 1, total: chapters.length })}
         </span>
 
         <button
@@ -279,7 +281,7 @@ export const EpubViewer: React.FC<Props> = ({ data, fileName, onOpenSystem: _onO
           }}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '6px', background: currentChapterIdx === chapters.length - 1 ? 'transparent' : 'var(--bg-primary)', color: currentChapterIdx === chapters.length - 1 ? 'var(--text-secondary)' : 'var(--text-primary)', border: '1px solid var(--border-default)', cursor: currentChapterIdx === chapters.length - 1 ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, opacity: currentChapterIdx === chapters.length - 1 ? 0.4 : 1 }}
         >
-          <span>Bab Selanjutnya</span>
+          <span>{t('drive.epub_next_chapter')}</span>
           <ChevronRight size={15} />
         </button>
       </div>

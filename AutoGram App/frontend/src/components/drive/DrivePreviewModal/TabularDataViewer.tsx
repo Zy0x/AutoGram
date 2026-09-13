@@ -96,7 +96,7 @@ export const TabularDataViewer: React.FC<Props> = ({ rawCsv, delimiter = ',', fi
                   className="td-table-th is-sortable"
                 >
                   <div className="td-table-th-inner">
-                    <span>{h || `Kolom ${idx + 1}`}</span>
+                    <span>{h || t('drive.column_n', { n: idx + 1 })}</span>
                     <ArrowUpDown size={12} className="td-sort-icon" />
                   </div>
                 </th>

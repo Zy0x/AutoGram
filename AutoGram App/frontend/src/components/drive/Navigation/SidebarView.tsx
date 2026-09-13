@@ -162,7 +162,7 @@ export function SidebarView({ ctx }: SidebarViewProps) {
           compact
           options={sessions.length
             ? sessions.map((name) => ({ value: name, label: getSessionDisplayName(name) }))
-            : [{ value: '', label: 'Belum ada session', disabled: true }]}
+            : [{ value: '', label: t('drive.no_sessions_yet'), disabled: true }]}
         />
         {(!connected || pingState?.status === 'disconnected' || pingState?.status === 'offline') && (
           <div className="td-session-reconnect-bar" role="status">
@@ -201,10 +201,10 @@ export function SidebarView({ ctx }: SidebarViewProps) {
               className="td-rail-btn td-rail-tool td-btn-new-folder"
               title={
                 createIsSubfolder
-                  ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
-                  : 'Buat Drive baru (channel privat [TD] di root). Buka Drive/Folder dulu untuk membuat folder di dalamnya.'
+                  ? t('drive.create_subfolder_in', { name: activeDriveFolder?.name || 'lokasi ini' })
+                  : t('drive.create_drive_root')
               }
-              aria-label={createIsSubfolder ? 'Buat folder di dalam Drive/Folder' : 'Buat Drive baru'}
+              aria-label={createIsSubfolder ? t('drive.create_subfolder_aria') : t('drive.create_drive_aria')}
               onClick={() =>
                 onCreate(
                   createIsSubfolder && activePeerId != null
@@ -289,10 +289,10 @@ export function SidebarView({ ctx }: SidebarViewProps) {
               className="td-rail-btn td-rail-tool td-btn-new-folder is-full-width"
               title={
                 createIsSubfolder
-                  ? `Buat folder di dalam “${activeDriveFolder?.name || 'lokasi ini'}” (folder dalam Drive/Folder)`
-                  : 'Buat Drive baru (channel privat [TD] di root). Buka Drive/Folder dulu untuk membuat folder di dalamnya.'
+                  ? t('drive.create_subfolder_in', { name: activeDriveFolder?.name || 'lokasi ini' })
+                  : t('drive.create_drive_root')
               }
-              aria-label={createIsSubfolder ? 'Buat folder di dalam Drive/Folder' : 'Buat Drive baru'}
+              aria-label={createIsSubfolder ? t('drive.create_subfolder_aria') : t('drive.create_drive_aria')}
               onClick={() =>
                 onCreate(
                   createIsSubfolder && activePeerId != null
@@ -917,13 +917,13 @@ export function SidebarView({ ctx }: SidebarViewProps) {
                           marginLeft: '8px',
                           flexShrink: 0 as const,
                         };
-                        if (kindBadge === 'Groups - Forum') return { ...base, background: 'color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-secondary, #8b5cf6) 45%, transparent)', color: 'var(--accent-secondary, #c4b5fd)' };
-                        if (kindBadge === 'Channel') return { ...base, background: 'rgba(6,182,212,0.13)', border: '1px solid rgba(6,182,212,0.4)', color: '#67e8f9' };
-                        if (kindBadge === 'Group') return { ...base, background: 'rgba(34,197,94,0.13)', border: '1px solid rgba(34,197,94,0.4)', color: '#86efac' };
-                        if (kindBadge === 'Bot') return { ...base, background: 'rgba(16,185,129,0.13)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7' };
-                        if (kindBadge === 'Private Chat') return { ...base, background: 'rgba(148,163,184,0.13)', border: '1px solid rgba(148,163,184,0.4)', color: '#cbd5e1' };
-                        if (kindBadge === 'Drive') return { ...base, background: 'rgba(249,115,22,0.13)', border: '1px solid rgba(249,115,22,0.4)', color: '#fdba74' };
-                        if (kindBadge === 'Saved') return { ...base, background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 13%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent)', color: 'var(--accent-primary, #93c5fd)' };
+                        if (kindBadge === 'Groups - Forum') return { ...base, background: 'color-mix(in srgb, var(--accent-secondary, #8b5cf6) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-secondary, #8b5cf6) 45%, transparent)', color: 'var(--accent-secondary, #7c3aed)' };
+                        if (kindBadge === 'Channel') return { ...base, background: 'color-mix(in srgb, var(--cyan-text, #06b6d4) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--cyan-text, #06b6d4) 40%, transparent)', color: 'var(--cyan-text, #0e7490)' };
+                        if (kindBadge === 'Group') return { ...base, background: 'color-mix(in srgb, var(--emerald-text, #22c55e) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--emerald-text, #22c55e) 40%, transparent)', color: 'var(--emerald-text, #047857)' };
+                        if (kindBadge === 'Bot') return { ...base, background: 'color-mix(in srgb, var(--emerald-text, #10b981) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--emerald-text, #10b981) 40%, transparent)', color: 'var(--emerald-text, #047857)' };
+                        if (kindBadge === 'Private Chat') return { ...base, background: 'color-mix(in srgb, var(--text-secondary, #64748b) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--text-secondary, #64748b) 40%, transparent)', color: 'var(--text-secondary, #475569)' };
+                        if (kindBadge === 'Drive') return { ...base, background: 'color-mix(in srgb, var(--amber-text, #f97316) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--amber-text, #f97316) 40%, transparent)', color: 'var(--amber-text, #b45309)' };
+                        if (kindBadge === 'Saved') return { ...base, background: 'color-mix(in srgb, var(--accent-primary, #3b82f6) 13%, transparent)', border: '1px solid color-mix(in srgb, var(--accent-primary, #3b82f6) 40%, transparent)', color: 'var(--accent-primary, #2563eb)' };
                         return { ...base, border: '1px solid color-mix(in srgb, var(--accent-primary, var(--td-primary, #3b82f6)) 40%, var(--td-border))', color: 'color-mix(in srgb, var(--accent-primary, var(--td-primary, #3b82f6)) 85%, var(--td-fg))' };
                       })()}>
                         {kindBadge}

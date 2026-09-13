@@ -217,7 +217,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                     gap: '6px',
                                     background: 'rgba(239, 68, 68, 0.1)',
                                     border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: '#fca5a5',
+                                    color: 'var(--danger, #dc2626)',
                                     padding: '6px 12px',
                                     borderRadius: '20px',
                                     fontSize: '12px',
@@ -227,8 +227,8 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                   title={t('ui.generated.sesi_ini_bermasalah_atau_expired_tidak_dapat_dig_bf5427d')}
                                 >
                                   <span>🔴</span>
-                                  <strong style={{ color: '#fca5a5' }}>{cleanLabel}</strong>
-                                  <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>{t('ui.generated.bermasalah_20b37d7')}</span>
+                                  <strong style={{ color: 'var(--danger, #dc2626)' }}>{cleanLabel}</strong>
+                                  <span style={{ color: 'var(--danger, #dc2626)', fontSize: '10px', fontWeight: 600 }}>{t('ui.generated.bermasalah_20b37d7')}</span>
                                 </div>
                               );
                             }
@@ -242,9 +242,9 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '6px',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                    color: '#94a3b8',
+                                    background: 'var(--bg-secondary, rgba(255,255,255,0.02))',
+                                    border: '1px solid var(--border-default, rgba(255,255,255,0.06))',
+                                    color: 'var(--text-secondary, #94a3b8)',
                                     padding: '6px 12px',
                                     borderRadius: '20px',
                                     fontSize: '12px',
@@ -255,7 +255,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                 >
                                   <span>⚪</span>
                                   <span>{cleanLabel}</span>
-                                  <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#64748b', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
+                                  <span style={{ fontSize: '9px', background: 'var(--bg-card, rgba(255,255,255,0.05))', color: 'var(--text-muted, #64748b)', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
                                     {t('ui.generated.standar_2gb_non_premium_806fe3e')}
                                   </span>
                                 </div>
@@ -341,7 +341,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                               <span>{t('ui.generated.sistem_informasi_tidak_ada_akun_premium_aktif_sa_d22e47d')}</span>
                             </div>
                             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '11px' }}>
-                              {t('ui.generated.seluruh_sesi_terhubung_adalah_20bd1da')} <strong>{t('ui.generated.akun_standar_limit_2_gb_be2ff4a')}</strong>. Jika terdapat berkas berukuran &gt; 2 GB, pengunggahan utuh 4 GB tidak dapat dilakukan lewat pool ini. Sistem akan otomatis beralih ke skenario cadangan <strong>{t('ui.generated.pecah_berkas_split_parts_2_gb_ed7053d')}</strong> {t('ui.generated.atau_a713ae9')} <strong>{t('ui.generated.fit_to_limit_video_bitrate_compress_da6fbd4')}</strong> {t('ui.generated.agar_transfer_tetap_berhasil_tanpa_error_limit_t_ede2eb0')}
+                              {t('ui.generated.seluruh_sesi_terhubung_adalah_20bd1da')} <strong>{t('ui.generated.akun_standar_limit_2_gb_be2ff4a')}</strong>{t('drive.oversize_fallback_explanation')} <strong>{t('ui.generated.pecah_berkas_split_parts_2_gb_ed7053d')}</strong> {t('ui.generated.atau_a713ae9')} <strong>{t('ui.generated.fit_to_limit_video_bitrate_compress_da6fbd4')}</strong> {t('ui.generated.agar_transfer_tetap_berhasil_tanpa_error_limit_t_ede2eb0')}
                             </p>
                           </div>
                         );

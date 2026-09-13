@@ -88,21 +88,21 @@ export const LogViewer: React.FC<Props> = ({
               className={`td-log-filter-btn ${activeFilter === 'all' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter('all')}
             >
-              Semua
+              {t('drive.filter_all')}
             </button>
             <button
               type="button"
               className={`td-log-filter-btn is-error ${activeFilter === 'error' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter('error')}
             >
-              Error ({errorCount})
+              {t('drive.log_error_count', { count: errorCount })}
             </button>
             <button
               type="button"
               className={`td-log-filter-btn is-warn ${activeFilter === 'warn' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter('warn')}
             >
-              Warn ({warnCount})
+              {t('drive.log_warn_count', { count: warnCount })}
             </button>
           </div>
 

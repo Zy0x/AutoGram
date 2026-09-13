@@ -11,7 +11,7 @@ interface CaptionModalProps {
 }
 
 function parseTelegramMarkdown(text: string) {
-  if (!text) return '<span style="color: var(--text-muted, var(--text-secondary)); font-style: italic;">No caption provided</span>';
+  if (!text) return '<span style="color: var(--text-muted, var(--text-secondary)); font-style: italic;">' + i18n.t('drive.no_caption_provided') + '</span>';
   let html = text
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

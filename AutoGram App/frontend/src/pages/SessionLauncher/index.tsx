@@ -984,7 +984,7 @@ export function SessionLauncher({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <X size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.78rem', color: '#fca5a5', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--danger, #dc2626)', fontWeight: 500 }}>
                         {t('nav.session_expired_desc')}
                       </span>
                     </div>
@@ -1550,7 +1550,7 @@ export function SessionLauncher({
                   borderRadius: '12px',
                   background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.35) 100%)',
                   border: '1px solid rgba(248, 113, 113, 0.6)',
-                  color: '#fca5a5',
+                  color: 'var(--danger, #dc2626)',
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -1585,7 +1585,7 @@ export function SessionLauncher({
           borderTop: '1px solid rgba(255, 255, 255, 0.06)',
           background: 'rgba(6, 9, 17, 0.8)',
           fontSize: '0.78rem',
-          color: '#64748b',
+          color: 'var(--text-muted, #64748b)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -1605,7 +1605,7 @@ export function SessionLauncher({
                 borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.28))',
                 border: '1px solid rgba(245, 158, 11, 0.55)',
-                color: '#fef08a',
+                color: 'var(--amber-text, #b45309)',
                 fontWeight: 600,
                 fontSize: '0.78rem',
                 cursor: 'pointer',

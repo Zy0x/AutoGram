@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { renderAsync } from 'docx-preview';
 import { Loader2, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   data: ArrayBuffer | Uint8Array | Blob | string;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
       } catch (err: any) {
         if (!cancelled) {
           console.error('[DocxViewer] Render failed:', err);
-          setError(err?.message || 'Gagal merender dokumen DOCX');
+          setError(err?.message || t('drive.docx_render_failed'));
           setLoading(false);
         }
       }
@@ -145,14 +147,14 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: 'var(--text-secondary, #64748b)' }}>
             <Loader2 size={32} className="spin text-blue-400" />
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>Merender dokumen Word (.docx)...</span>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>{t('drive.docx_rendering')}</span>
           </div>
         )}
 
         {error && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: 'auto', gap: '12px', color: 'var(--danger, #dc2626)', maxWidth: '400px', textAlign: 'center' }}>
             <FileText size={36} />
-            <span style={{ fontSize: '14px', fontWeight: 600 }}>Gagal Membaca Dokumen DOCX</span>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>{t('drive.docx_failed')}</span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>{error}</span>
             {onOpenSystem && (
               <button
@@ -160,7 +162,7 @@ export const DocxViewer: React.FC<Props> = ({ data, onOpenSystem, zoom = 1 }) =>
                 onClick={onOpenSystem}
                 style={{ marginTop: '8px', padding: '6px 14px', borderRadius: '8px', background: 'var(--accent-primary, var(--primary))', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
               >
-                Buka di Microsoft Word
+                {t('drive.docx_open_word')}
               </button>
             )}
           </div>

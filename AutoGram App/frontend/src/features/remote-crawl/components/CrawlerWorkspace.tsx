@@ -30,8 +30,8 @@ export function CrawlerWorkspace({ initialUrl, onClose, onUseLinks }: CrawlerWor
   const state = useCrawlerWorkspace();
   const [setup, setSetup] = useState(() => !!initialUrl || !state.activeId);
   const [working, setWorking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [faultCode, setFaultCode] = useState<string | null>(null);
+  const [statusKey, setStatusKey] = useState<string | null>(null);
   const record = state.records.find(row => row.id === state.activeId);
   const busy = working || state.busy;
   const hasActive = state.records.some(row => row.native && isCrawlActive(row.snapshot.state));
@@ -51,14 +51,14 @@ export function CrawlerWorkspace({ initialUrl, onClose, onUseLinks }: CrawlerWor
     const code = (failure instanceof Error ? failure.message : typeof failure === 'string' ? failure : '')
       .replace(/^crawler\./, '').replace(/^remote_crawl_/, '');
     // Only locale identifiers are rendered; native messages may contain signed URLs.
-    setError(/^[a-z_]{1,80}$/.test(code) && i18n.exists(`crawler.${code}`) ? code : 'operation_failed');
+    setFaultCode(/^[a-z_]{1,80}$/.test(code) && i18n.exists(`crawler.${code}`) ? code : 'operation_failed');
   };
   const run = async (action: () => Promise<void>) => {
     if (operationLock.current) return;
     operationLock.current = true;
     setWorking(true);
-    setError(null);
-    setNotice(null);
+    setFaultCode(null);
+    setStatusKey(null);
     clearCrawlerError();
     try { await action(); } catch (failure) { reportError(failure); }
     finally { operationLock.current = false; setWorking(false); }
@@ -105,9 +105,9 @@ export function CrawlerWorkspace({ initialUrl, onClose, onUseLinks }: CrawlerWor
     if (!entries.length || entries.length > 100) throw new Error('download_limit');
     return [...new Set(entries.map(entry => canonicalCrawlUrl(entry.url)))];
   };
-  const displayedError = error || state.error;
-  const errorKey = displayedError && /^[a-z_]{1,80}$/.test(displayedError) && i18n.exists(`crawler.${displayedError}`)
-    ? displayedError : 'operation_failed';
+  const displayedFault = faultCode || state.error;
+  const faultI18nKey = displayedFault && /^[a-z_]{1,80}$/.test(displayedFault) && i18n.exists(`crawler.${displayedFault}`)
+    ? displayedFault : 'operation_failed';
 
   return createPortal(<div className="crawler-backdrop" onSubmit={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
     onMouseDown={event => event.stopPropagation()} onMouseUp={event => event.stopPropagation()}>
@@ -122,24 +122,24 @@ export function CrawlerWorkspace({ initialUrl, onClose, onUseLinks }: CrawlerWor
       </header>
       <div className="crawler-body">
         <CrawlerSidebar records={state.records} activeId={setup ? null : state.activeId} busy={busy}
-          onNew={() => { setSetup(true); setError(null); setNotice(null); clearCrawlerError(); }}
-          onSelect={recordId => { selectCrawlerRecord(recordId); setSetup(false); setError(null); setNotice(null); }}
+          onNew={() => { setSetup(true); setFaultCode(null); setStatusKey(null); clearCrawlerError(); }}
+          onSelect={recordId => { selectCrawlerRecord(recordId); setSetup(false); setFaultCode(null); setStatusKey(null); }}
           onImport={() => fileRef.current?.click()} />
         <main className="crawler-main">
-          {displayedError && <div className="crawler-notice crawler-error" role="alert"><span>{t(`crawler.${errorKey}`)}</span>
-            <button type="button" aria-label={t('crawler.dismiss')} onClick={() => { setError(null); clearCrawlerError(); }}><X size={16} aria-hidden="true" /></button></div>}
-          {notice && <p className="crawler-notice" role="status">{t(`crawler.${notice}`)}</p>}
+          {displayedFault && <div className="crawler-notice crawler-error" role="alert"><span>{t(`crawler.${faultI18nKey}`)}</span>
+            <button type="button" aria-label={t('crawler.dismiss')} onClick={() => { setFaultCode(null); clearCrawlerError(); }}><X size={16} aria-hidden="true" /></button></div>}
+          {statusKey && <p className="crawler-notice" role="status">{t(`crawler.${statusKey}`)}</p>}
           {setup || !record ? <><div className="crawler-intro"><h2>{t('crawler.setup_title')}</h2><p>{t('crawler.setup_description')}</p></div>
             <CrawlerSetup initialUrl={initialUrl} busy={busy} crawlActive={hasActive} onStart={start}
-              onBatch={(name, entries) => { setError(null); setNotice(null); addLinkBatch(name, entries); setSetup(false); }} onError={reportError} /></>
+              onBatch={(name, entries) => { setFaultCode(null); setStatusKey(null); addLinkBatch(name, entries); setSetup(false); }} onError={reportError} /></>
             : <>
               <CrawlerStatus record={record} busy={busy} hasActive={hasActive}
                 onControl={action => { void run(() => controlCrawl(record.id, action)); }}
                 onRescan={() => { if (record.request) void run(() => startCrawl(record.request!, record.name,
                   [...new Set([...record.baselineUrls, ...record.snapshot.entries.map(entry => entry.url)])], record.id)); }} />
               <CrawlerResults key={record.id} record={record} busy={busy}
-                onCopy={entries => { void run(async () => { await navigator.clipboard.writeText(selectedUrls(entries).join('\n')); setNotice('copied'); }); }}
-                onDownload={entries => { void run(async () => { selectedUrls(entries); if (await downloadCrawlerSelection(entries)) setNotice('download_started'); }); }}
+                onCopy={entries => { void run(async () => { await navigator.clipboard.writeText(selectedUrls(entries).join('\n')); setStatusKey('copied'); }); }}
+                onDownload={entries => { void run(async () => { selectedUrls(entries); if (await downloadCrawlerSelection(entries)) setStatusKey('download_started'); }); }}
                 onUse={entries => { void run(async () => { onUseLinks(selectedUrls(entries)); onClose(); }); }}
                 onExport={format => { void run(() => exportCrawlerFile(record, format)); }} />
             </>}

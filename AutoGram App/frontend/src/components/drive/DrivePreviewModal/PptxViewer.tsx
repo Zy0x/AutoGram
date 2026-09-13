@@ -357,7 +357,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
       } catch (err: any) {
         if (!cancelled) {
           console.error('[PptxViewer] Failed to parse PPTX:', err);
-          setError(err?.message || 'Gagal memproses berkas presentasi PowerPoint.');
+          setError(err?.message || t('drive.pptx_process_failed'));
           setLoading(false);
         }
       }
@@ -434,10 +434,10 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
 
   if (error || slides.length === 0) {
     return (
-      <div className="td-pptx-error" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#f87171', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
+      <div className="td-pptx-error" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: 'var(--danger, #dc2626)', padding: '24px', textAlign: 'center', margin: 'auto', maxWidth: '420px' }}>
         <Presentation size={40} className="text-orange-400" />
-        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>Gagal Membuka Presentasi PPTX</strong>
-        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || 'Format berkas PPTX tidak valid atau slide kosong.'}</p>
+        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #0f172a)' }}>{t('drive.pptx_failed')}</strong>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748b)', margin: 0 }}>{error || t('drive.pptx_invalid_format')}</p>
         {onOpenSystem && (
           <button
             type="button"
@@ -454,7 +454,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               fontSize: '12.5px',
             }}
           >
-            Buka di Microsoft PowerPoint
+            {t('drive.pptx_open_powerpoint')}
           </button>
         )}
       </div>
@@ -524,10 +524,10 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                 cursor: 'pointer',
                 fontWeight: 500,
               }}
-              title="Catatan Pembicara"
+              title={t('drive.pptx_speaker_notes_title')}
             >
               <MessageSquare size={13} />
-              <span>Notes</span>
+              <span>{t('drive.pptx_notes')}</span>
             </button>
           )}
 
@@ -547,10 +547,10 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               cursor: 'pointer',
               fontWeight: 500,
             }}
-            title="Salin Teks Slide"
+            title={t('drive.pptx_copy_slide_text_title')}
           >
             {copiedText ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-            <span>{copiedText ? 'Tersalin' : 'Salin Teks'}</span>
+            <span>{copiedText ? t('drive.copied') : t('drive.pptx_copy_text')}</span>
           </button>
 
           <button
@@ -566,7 +566,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               border: '1px solid var(--border-default, rgba(255, 255, 255, 0.1))',
               cursor: 'pointer',
             }}
-            title="Layar Penuh (F11)"
+            title={t('drive.fullscreen_title')}
           >
             {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
           </button>
@@ -629,7 +629,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 600, color: currentSlideIdx === idx ? '#fb923c' : '#94a3b8' }}>
-                  Slide {idx + 1}
+                  {t('drive.slide_counter')} {idx + 1}
                 </span>
               </div>
             </button>
@@ -691,7 +691,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
                       >
                         <img
                           src={shape.imageUrl}
-                          alt="Slide graphic"
+                          alt={t('drive.slide_graphic')}
                           style={{
                             maxWidth: '100%',
                             maxHeight: '100%',
@@ -786,7 +786,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
               }}
             >
               <strong style={{ color: '#fb923c', display: 'block', marginBottom: '4px', fontSize: '11.5px', textTransform: 'uppercase' }}>
-                Catatan Pembicara:
+                {t('drive.pptx_speaker_notes_colon')}
               </strong>
               {activeSlide.notes}
             </div>
@@ -825,11 +825,11 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
           }}
         >
           <ChevronLeft size={15} />
-          <span>Sebelumnya</span>
+          <span>{t('drive.pptx_previous')}</span>
         </button>
 
         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '100px', textAlign: 'center' }}>
-          Slide <strong style={{ color: 'var(--text-primary)' }}>{currentSlideIdx + 1}</strong> dari <strong style={{ color: 'var(--text-primary)' }}>{slides.length}</strong>
+          {t('drive.pptx_slide_counter', { current: currentSlideIdx + 1, total: slides.length })}
         </span>
 
         <button
@@ -850,7 +850,7 @@ export const PptxViewer: React.FC<Props> = ({ data, fileName: _fileName, onOpenS
             fontWeight: 600,
           }}
         >
-          <span>Selanjutnya</span>
+          <span>{t('drive.pptx_next')}</span>
           <ChevronRight size={15} />
         </button>
       </div>
