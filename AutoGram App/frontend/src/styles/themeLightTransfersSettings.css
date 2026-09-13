@@ -494,9 +494,20 @@
   cursor: pointer;
 }
 
+[data-color-scheme="light"] .td-select-control {
+  color-scheme: light !important;
+}
+
 [data-color-scheme="light"] .td-select-control option {
   background: #ffffff !important;
   color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-select-control option:checked,
+[data-color-scheme="light"] .td-select-control option:focus,
+[data-color-scheme="light"] .td-select-control option:hover {
+  background: var(--accent-primary, #0284c7) !important;
+  color: #ffffff !important;
 }
 
 /* 51. Master Encoding & Transcoding Container in Light Mode */
@@ -539,4 +550,100 @@
   border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 30%, transparent) !important;
   color: var(--accent-primary, #0284c7) !important;
 }
+
+/* 52. Universal Chip Buttons in Transfers Settings (Light Mode) */
+[data-color-scheme="light"] .td-chip-btn {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  font-weight: 600 !important;
+}
+
+[data-color-scheme="light"] .td-chip-btn:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+[data-color-scheme="light"] .td-chip-btn.td-chip-primary,
+[data-color-scheme="light"] .td-chip-btn.primary,
+[data-color-scheme="light"] .td-chip-btn.is-primary {
+  background: linear-gradient(135deg, var(--accent-primary, #0284c7) 0%, color-mix(in srgb, var(--accent-primary, #0284c7) 85%, #000) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #0284c7) 45%, transparent) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #0284c7) 25%, transparent) !important;
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-chip-btn.td-chip-primary:hover:not(:disabled),
+[data-color-scheme="light"] .td-chip-btn.primary:hover:not(:disabled),
+[data-color-scheme="light"] .td-chip-btn.is-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #0284c7) 88%, #fff) 0%, var(--accent-primary, #0284c7) 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #0284c7) 40%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-chip-btn.td-chip-danger,
+[data-color-scheme="light"] .td-chip-btn.danger,
+[data-color-scheme="light"] .td-chip-btn.is-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #b91c1c !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25) !important;
+  font-weight: 700 !important;
+}
+
+[data-color-scheme="light"] .td-chip-btn.td-chip-danger:hover:not(:disabled),
+[data-color-scheme="light"] .td-chip-btn.danger:hover:not(:disabled),
+[data-color-scheme="light"] .td-chip-btn.is-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
+/* 53. Plugin Section & Status Boxes in Light Mode */
+[data-color-scheme="light"] .td-plugin-status-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .td-plugin-status-runtime-row {
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+[data-color-scheme="light"] .td-plugin-status-runtime-row > span {
+  color: #475569 !important;
+  font-weight: 650 !important;
+}
+
+[data-color-scheme="light"] .td-plugin-status-runtime-row > strong {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #047857 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 54. Advanced Danger & Total Reset Card Contrast in Light Mode */
+[data-color-scheme="light"] .td-settings-card.td-danger-reset-card,
+[data-color-scheme="light"] .td-settings-card[style*="239, 68, 68"] {
+  background: #fff5f5 !important;
+  border-color: #fecaca !important;
+}
+
+[data-color-scheme="light"] .td-settings-card.td-danger-reset-card h4,
+[data-color-scheme="light"] .td-settings-card[style*="239, 68, 68"] h4 {
+  color: #dc2626 !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-settings-card.td-danger-reset-card p,
+[data-color-scheme="light"] .td-settings-card[style*="239, 68, 68"] p {
+  color: #7f1d1d !important;
+}
+
 

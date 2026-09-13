@@ -1,3 +1,33 @@
+## v4.1.4 — Plugin Overview Light Theme Contrast, Universal Chip Buttons & Advanced Total Reset Button Polish
+
+### 1. Plugin Section Light Theme & Contrast Overhaul
+- **Elimination of Dark Charcoal Slabs & Washed-Out Plugin Controls**:
+  - *What changed*:
+    - In `themeLightTransfersSettings.css`, styled `.td-plugin-status-box` with soft Slate 50 (`#f8fafc !important`), subtle Slate 200 border (`#e2e8f0 !important`), and soft shadow, eliminating the jarring dark `rgba(0, 0, 0, 0.28)` background slab in Light Mode.
+    - Updated `.td-plugin-status-runtime-row`: label text set to high-contrast Slate 600 (`#475569 !important`), and status indicators (`strong`) elevated to crisp white cards with emerald green `#047857` (contrast > 7:1) and subtle Slate 300 border.
+    - Standardized `.td-chip-btn` in `.td-plugin-action-group`: secondary action buttons ("Check now", "Check Status") styled with crisp white fills, deep Slate 800 text (`#1e293b`), and `#cbd5e1` borders. Primary action buttons ("Update plugin", "Download / Update FFmpeg Plugin") styled with vibrant accent gradient fills and pure white text.
+  - *Technical rationale*: The plugin section previously had hardcoded translucent dark backgrounds and lacked light-mode overrides for `.td-chip-btn`, causing text to render as `#e2e8f0` (pale white) on white backgrounds (contrast 1.18:1).
+  - *User impact*: Entire plugin overview panel is crisp, perfectly readable, and visually harmonious in Light Mode.
+
+### 2. Advanced Settings Total Reset Card & Danger Button Restoration
+- **Elimination of Faint / Invisible Total Reset Button**:
+  - *What changed*:
+    - In `AdvancedSettingsSection.tsx`, attached semantic class `.td-danger-reset-card` and updated icon/heading colors to high-contrast `#ef4444`.
+    - In `App.css` and `themeLightTransfersSettings.css`, defined `.td-chip-btn.td-chip-danger` with a bold ruby-red gradient (`linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important`), pure white text, crimson border, and subtle glow shadow.
+    - Styled `.td-danger-reset-card` in Light Mode with soft rose background (`#fff5f5 !important`), `#fecaca` border, `#dc2626` bold heading, and `#7f1d1d` description.
+  - *Technical rationale*: `.td-chip-danger` previously had no CSS definitions in stylesheets, falling back to base `.td-chip-btn` with white background and pale text, rendering the reset button completely washed out.
+  - *User impact*: The destructive reset action is immediately identifiable with clear warning aesthetics and readable text.
+
+### 3. Select Control & Checked Option Accent Styling
+- **Elimination of Dark Grey Highlight Bar on Native Select Dropdowns**:
+  - *What changed*:
+    - Enforced `color-scheme: light !important;` on `.td-select-control` in Light Mode.
+    - Set `.td-select-control option:checked, .td-select-control option:hover, .td-select-control option:focus` to `background: var(--accent-primary, #0284c7) !important; color: #ffffff !important;` in both `App.css` and `themeLightTransfersSettings.css`.
+  - *Technical rationale*: Chromium / WebView2 falls back to a generic dark grey `#555555` selection bar for checked options when un-styled.
+  - *User impact*: Active option highlights dynamically match the active theme accent color.
+
+---
+
 ## v4.1.3 — Master Encoding Container Light Theme Integration, Checkbox Visual State Repair & Contrast Polish
 
 ### 1. Master Encoding Container Light Mode Integration

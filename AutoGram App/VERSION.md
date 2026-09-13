@@ -1,13 +1,12 @@
-AutoGram Version: v4.1.3
+AutoGram Version: v4.1.4
 
 Current State:
-v4.1.3 Master Encoding Container Light Theme Integration, Checkbox Visual State Repair & Contrast Polish:
-1. Master Encoding Container (`.td-encoding-master-card`): Overrode dark charcoal linear-gradient with soft Slate 50 background (`#f8fafc`), crisp Slate 200 border, and elevated pure white header card with bold Slate 900 typography.
-2. Checkbox Visual State Restoration (`.td-format-chip input[type="checkbox"]`): Enforced `appearance: auto !important` and explicit 16px dimensions, eliminating blank white square glitch and restoring vibrant accent fill with white checkmark `✓`.
-3. Video Encoding Grid (`.td-encoder-4x-grid`): Strict 2x2 symmetrical layout with zero empty space.
-4. Radio Dot Accent: Enforced `accent-color: var(--accent-primary) !important` on `.td-encoder-tile` and `.td-radio-tile`.
-5. Transcoding Select Controls: Wrapped all 7 selects into `.td-select-wrapper` with `.td-select-control` and `ChevronDown` affordance.
-6. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
+v4.1.4 Plugin Overview Light Theme Contrast, Universal Chip Buttons & Advanced Total Reset Button Polish:
+1. Plugin Section Light Theme & Contrast: Replaced dark `rgba(0, 0, 0, 0.28)` slabs with soft Slate 50 background, crisp Slate 200 border, and elevated emerald status indicators.
+2. Universal Chip Buttons (`.td-chip-btn`, `.td-chip-primary`, `.td-chip-danger`): Eliminated washed-out `#e2e8f0` text on white cards with deep Slate 800 secondary buttons, radiant primary accent gradient buttons, and bold ruby-red danger buttons.
+3. Total Reset All System Settings (`.td-danger-reset-card`): Upgraded reset card to soft rose `#fff5f5` with crimson header and vibrant red gradient button.
+4. Select Controls Accent: Enforced `color-scheme: light` and theme-accented `option:checked` background across all select controls.
+5. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
 
 v4.0.8 Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul:
 1. Storage Popover Status Badges (`.td-popover-status-badge`): Fixed faint mint `#34d399` text on pale mint background (contrast 2.2:1) with deep emerald green `#065f46` (contrast >= 8.2:1), reinforced border, and high contrast counting/syncing/normal badges.

@@ -302,11 +302,11 @@ export function AdvancedSettingsSection({ activeTab, ctx }: { activeTab: string;
             </div>
 
             {/* 5. RESET TOTAL SELURUH PENGATURAN SYSTEM */}
-            <div className="td-settings-card" style={{ borderColor: 'rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.05)' }}>
+            <div className="td-settings-card td-danger-reset-card" style={{ borderColor: 'rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.05)' }}>
               <div className="td-card-head">
-                <RotateCcw size={18} style={{ color: '#f87171' }} />
+                <RotateCcw size={18} style={{ color: '#ef4444' }} />
                 <div>
-                  <h4 style={{ color: '#f87171' }}>{t('ui.generated.reset_total_seluruh_pengaturan_system_4daa4d2')}</h4>
+                  <h4 style={{ color: '#ef4444' }}>{t('ui.generated.reset_total_seluruh_pengaturan_system_4daa4d2')}</h4>
                   <p>{t('ui.generated.kembalikan_seluruh_parameter_konfigurasi_transfe_0b5e4d6')}</p>
                 </div>
               </div>
