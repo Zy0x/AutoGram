@@ -1,3 +1,33 @@
+## v4.0.9 — Cloud Drives Light Mode Upload Settings, Switch Controls, Concurrency Badges & Format Chips Overhaul
+
+### 1. Upload Settings Switches, Sliders & Concurrency Throughput Badges
+- **Elimination of Invisible Switch Track and Washed-Out Lavender Text Defects**:
+  - *What changed*:
+    - Resolved critical visibility failure on `.td-switch-row input[type="checkbox"]` (e.g. "Spoiler Media", "Silent Delivery"): replaced invisible translucent white track (`rgba(255, 255, 255, 0.12)`) and border with crisp Slate 200 fill (`#e2e8f0`), Slate 300 border (`#cbd5e1`), and clean white toggle knob (`#ffffff`) with subtle drop shadow. When toggled on, switches transition to radiant accent primary blue (`var(--accent-primary, #0284c7)`).
+    - Upgraded `.td-concurrency-badge.tier-high-speed` (`[ ⚡ Maximum Throughput ]`): replaced near-invisible light lavender text (`#e9d5ff`, contrast 1.2:1) with deep royal violet (`#6b21a8 !important; font-weight: 750;` contrast $\ge 8.5:1$) on a soft violet tint (`rgba(147, 51, 234, 0.12)`) and reinforced border (`rgba(147, 51, 234, 0.45)`).
+    - Standardized `.tier-stable` (deep emerald `#065f46`, contrast $\ge 8.2:1$) and `.tier-balanced` (deep azure `#0369a1`, contrast $\ge 7.1:1$).
+    - Overhauled `.td-field-label` across all transfer and settings forms: replaced faint `#cbd5e1` (contrast 1.5:1) with bold Slate 700 (`#334155 !important; font-weight: 750;` contrast $\ge 9.5:1$).
+    - Standardized slider value bars (`.td-slider-row-box`): crisp Slate 50 background (`#f8fafc`), Slate 200 border, bold Slate 900 value (`#0f172a`), and accent-colored range tracks.
+  - *Technical rationale*: `App.css` lines 13268, 14125, and 40118 hardcoded dark-mode specific colors (`#cbd5e1`, `#e9d5ff`, and `rgba(255, 255, 255, 0.12)`) that lacked Light Mode overrides.
+  - *User impact*: Transfer parallelism configuration, toggle switches, and throughput status indicators are sharp, distinct, and tactile.
+
+### 2. Caption Studio Master Toggle & Off-State Notice
+- **Elimination of Faint Inactive State and Blending Notice Banner**:
+  - *What changed*:
+    - Overhauled `.td-caption-toggle-switch`: styled with a crisp white pill (`#ffffff`), Slate 300 border (`#cbd5e1`), Slate 300 slider track, and high-contrast Slate 600 status text (`#475569 !important; font-weight: 800;` contrast $\ge 7:1$) for the `INACTIVE` state, transitioning to radiant accent blue on active.
+    - Upgraded `.td-caption-off-hint`: replaced dark translucent fill with soft Slate 50 background (`#f8fafc`), Slate 200 border (`#e2e8f0`), Slate 700 copy (`#334155`), and Slate 500 icon (`#64748b`).
+  - *Technical rationale*: `App.css` lines 22944 and 23007 used dark obsidian container fills and pale `#94a3b8` text without Light Mode adaptations.
+  - *User impact*: Caption studio availability and global caption status are unambiguous and legible.
+
+### 3. Media Delivery Format Radio Tiles & File Card Badges
+- **Elimination of Blurry Halos and Muddy Format Chips**:
+  - *What changed*:
+    - Overhauled `.td-radio-tile` and `.td-encoder-tile` ("High Quality", "Adaptive Stream", "Document"): unselected tiles render on pure white (`#ffffff`) with Slate 300 borders and Slate 900 titles (`#0f172a`, bold 750); selected tiles render with a luminous accent tint, 1.5px solid accent border, and subtle focus shadow.
+    - Completely eliminated the dark fuzzy halo defect on `.td-tag-badge.drive-fmt` (e.g. `[ MP4 ]` file card chips) by removing legacy 40%-50% black box-shadows and enforcing clean Slate 50 fills (`#f8fafc`), Slate 300 borders (`#cbd5e1`), and bold Slate 900 text (`#0f172a`, font-weight 800, contrast $\ge 15:1$).
+    - Overhauled `.td-settings-card` and `.td-settings-subcard`: clean white surface with Slate 300 borders and deep Slate 900 headings.
+  - *Technical rationale*: Legacy dark mode drop shadows in `App.css` lines 3778 and 7269 created dark blurry artifacts on light card thumbnails.
+  - *User impact*: File cards and delivery format options look crisp, modern, and high-precision.
+
 ## v4.0.8 — Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul
 
 ### 1. Storage Popover Status Badges & Compact Trigger Button

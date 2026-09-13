@@ -1609,3 +1609,227 @@
 [data-color-scheme="light"] .td-tools-hint {
   color: #475569 !important;
 }
+
+/* 35. Drive File Cards Format Badges (MP4, MKV, ZIP, PDF, etc.) */
+[data-color-scheme="light"] .td-tag-badge.drive-fmt,
+[data-color-scheme="light"] .td-file-card-sub-row .td-tag-badge.drive-fmt {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important; /* Crisp Slate 900, contrast >= 15:1 */
+  font-weight: 800 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-tag-badge {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 36. Form Field Labels (Parallel Uploads, Delivery Modes, Encoders) */
+[data-color-scheme="light"] .td-field-label {
+  color: #334155 !important; /* High-contrast Slate 700, contrast >= 9.5:1 */
+  font-weight: 750 !important;
+}
+
+/* 37. Concurrency Throughput Badges (Maximum Throughput, Stable, Balanced) */
+[data-color-scheme="light"] .td-concurrency-badge.tier-high-speed {
+  background: rgba(147, 51, 234, 0.12) !important;
+  color: #6b21a8 !important; /* Deep royal violet, contrast >= 8.5:1 */
+  border: 1px solid rgba(147, 51, 234, 0.45) !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+
+[data-color-scheme="light"] .td-concurrency-badge.tier-high-speed svg {
+  color: #6b21a8 !important;
+}
+
+[data-color-scheme="light"] .td-concurrency-badge.tier-stable {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #065f46 !important; /* Deep emerald green, contrast >= 8.2:1 */
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+
+[data-color-scheme="light"] .td-concurrency-badge.tier-stable svg {
+  color: #065f46 !important;
+}
+
+[data-color-scheme="light"] .td-concurrency-badge.tier-balanced {
+  background: rgba(2, 132, 199, 0.12) !important;
+  color: #0369a1 !important; /* Deep azure blue, contrast >= 7.1:1 */
+  border: 1px solid rgba(2, 132, 199, 0.45) !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+
+[data-color-scheme="light"] .td-concurrency-badge.tier-balanced svg {
+  color: #0369a1 !important;
+}
+
+/* 38. Radio Delivery Tiles & Encoder Tiles (High Quality, Adaptive, Document) */
+[data-color-scheme="light"] .td-radio-tile,
+[data-color-scheme="light"] .td-encoder-tile {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="light"] .td-radio-tile:hover,
+[data-color-scheme="light"] .td-encoder-tile:hover {
+  background: #f8fafc !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-radio-tile.is-selected,
+[data-color-scheme="light"] .td-encoder-tile.is-selected {
+  background: color-mix(in srgb, var(--accent-primary, #0284c7) 8%, #ffffff) !important;
+  border: 1.5px solid var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #0284c7) 16%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-radio-tile strong,
+[data-color-scheme="light"] .td-encoder-tile strong {
+  color: #0f172a !important; /* Slate 900, contrast >= 15:1 */
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-radio-tile p,
+[data-color-scheme="light"] .td-encoder-tile p {
+  color: #475569 !important; /* Slate 600, contrast >= 7:1 */
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .td-radio-tile input[type="radio"] {
+  accent-color: var(--accent-primary, #0284c7) !important;
+}
+
+/* 39. Caption Studio Master Toggle Switch & Off State Banner */
+[data-color-scheme="light"] .td-caption-toggle-switch {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-color-scheme="light"] .td-caption-toggle-switch:hover {
+  background: #f8fafc !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-toggle-slider {
+  background: #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-toggle-slider::before {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-color-scheme="light"] .td-caption-toggle-switch input:checked + .td-toggle-slider {
+  background: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-toggle-text {
+  color: #475569 !important;
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-caption-toggle-switch input:checked ~ .td-toggle-text {
+  color: var(--accent-primary, #0284c7) !important;
+}
+
+[data-color-scheme="light"] .td-caption-off-hint {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .td-caption-off-hint svg {
+  color: #64748b !important;
+}
+
+/* 40. Switch Rows & Sliders (Spoiler Media, Silent Delivery) */
+[data-color-scheme="light"] .td-switch-row {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+[data-color-scheme="light"] .td-switch-row:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-switch-row strong {
+  color: #0f172a !important;
+  font-weight: 750 !important;
+}
+
+[data-color-scheme="light"] .td-switch-row p {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .td-switch-row input[type="checkbox"] {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-color-scheme="light"] .td-switch-row input[type="checkbox"]::before {
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-color-scheme="light"] .td-switch-row input[type="checkbox"]:checked {
+  background: var(--accent-primary, #0284c7) !important;
+  border-color: var(--accent-primary, #0284c7) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #0284c7) 35%, transparent) !important;
+}
+
+[data-color-scheme="light"] .td-switch-row input[type="checkbox"]:checked::before {
+  background: #ffffff !important;
+}
+
+/* 41. Slider Boxes & Range Controls */
+[data-color-scheme="light"] .td-slider-row-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+[data-color-scheme="light"] .td-slider-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-slider-row-box input[type="range"] {
+  accent-color: var(--accent-primary, #0284c7) !important;
+}
+
+/* 42. Settings Cards & Subcards in Transfers */
+[data-color-scheme="light"] .td-settings-card,
+[data-color-scheme="light"] .td-xfer-focused-panel .td-settings-card {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-color-scheme="light"] .td-settings-card h4,
+[data-color-scheme="light"] .td-xfer-focused-panel .td-settings-card h4 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-color-scheme="light"] .td-settings-card p,
+[data-color-scheme="light"] .td-xfer-focused-panel .td-settings-card p {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+[data-color-scheme="light"] .td-settings-subcard {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}

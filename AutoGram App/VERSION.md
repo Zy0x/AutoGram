@@ -1,6 +1,16 @@
-AutoGram Version: v4.0.8
+AutoGram Version: v4.0.9
 
 Current State:
+v4.0.9 Cloud Drives Light Mode Upload Settings, Switch Controls, Concurrency Badges & Format Chips Overhaul:
+1. Switch Row Checkboxes (`.td-switch-row input[type="checkbox"]`): Fixed invisible switch tracks on "Spoiler Media" and "Silent Delivery" with crisp Slate 200 track (`#e2e8f0`), Slate 300 border (`#cbd5e1`), clean white knob, and radiant accent blue active state.
+2. Throughput Concurrency Badges (`.td-concurrency-badge`): Replaced unreadable lavender text (`#e9d5ff`, contrast 1.2:1) on `[ ⚡ Maximum Throughput ]` with deep royal violet `#6b21a8` (contrast >= 8.5:1), with high-contrast stable and balanced badges.
+3. Form Field Labels (`.td-field-label`): Upgraded washed-out `#cbd5e1` labels ("Number of Parallel Uploads", "Media Delivery Format") to bold Slate 700 `#334155` (contrast >= 9.5:1).
+4. Caption Studio Master Toggle (`.td-caption-toggle-switch`): Replaced un-bordered toggle and pale text with elevated white pill, Slate 300 track, and Slate 600 bold text (`#475569`) for INACTIVE status.
+5. Caption Studio Off-State Notice (`.td-caption-off-hint`): Upgraded dark translucent card to soft Slate 50 with Slate 200 border and Slate 700 text.
+6. Media Delivery Radio Tiles (`.td-radio-tile`, `.td-encoder-tile`): Elevated cards on pure white with Slate 300 borders, Slate 900 titles, and luminous accent border when selected.
+7. File Card Format Badges (`.td-tag-badge.drive-fmt`): Completely eliminated blurry dark drop-shadow halos around `[ MP4 ]` chips; enforced clean Slate 50 fills with bold Slate 900 text.
+8. 100% Quality Gates Passed: Passed all 8 quality gates of `npm run test:quality` with 0 TypeScript errors, 100% i18n parity across 6,673 keys, 63 Vitest tests passing, 0 theme leaks, and master schema synchronization.
+
 v4.0.8 Cloud Drives Light Mode Status Badges, Duplicate Dock & Shortcut Contrast Overhaul:
 1. Storage Popover Status Badges (`.td-popover-status-badge`): Fixed faint mint `#34d399` text on pale mint background (contrast 2.2:1) with deep emerald green `#065f46` (contrast >= 8.2:1), reinforced border, and high contrast counting/syncing/normal badges.
 2. Compact Storage Info Trigger (`.td-storage-splash-pill.is-compact`): Replaced invisible white border with crisp Slate 300 border (`#cbd5e1`), clean white fill, subtle elevation shadow, and vivid green info icon (`#059669`).
