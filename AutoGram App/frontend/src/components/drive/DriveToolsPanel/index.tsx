@@ -318,12 +318,14 @@ export function DriveToolsPanel({
             >
               <div className="td-header-toggle-icon">
                 <SlidersHorizontal size={18} />
-                <span className="td-toggle-arrow-badge">
-                  {isSidebarCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
-                </span>
               </div>
               <div className="td-tools-title-text">
-                <h2>{t('drive.tools_title')}</h2>
+                <div className="td-tools-title-row">
+                  <h2>{t('drive.tools_title')}</h2>
+                  <span className="td-toggle-arrow-badge" aria-hidden="true">
+                    {isSidebarCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+                  </span>
+                </div>
                 <div className="td-tools-sub" title={locationLabel}>
                   <span className="td-tools-loc-dot"></span>
                   <span>{locationLabel}</span>

@@ -8,8 +8,6 @@ html[data-color-scheme="light"] {
   color-scheme: light;
 }
 
-html,
-body,
 :root {
   /* Color Palette: Deep Dark Glassmorphism (Bridged to active theme tokens) */
   --bg-dark: var(--bg-main, #0e1621);
@@ -31,7 +29,6 @@ body,
   --text-main: var(--text-primary, #f8fafc);
   --text-muted: var(--text-secondary, #94a3b8);
   --text-dark: #1e293b;
-  --text-secondary: var(--text-secondary, #94a3b8);
   
   --border: var(--border-color, rgba(255, 255, 255, 0.08));
   --border-light: var(--border-color, rgba(255, 255, 255, 0.08));

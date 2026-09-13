@@ -1613,11 +1613,20 @@
 /* 35. Drive File Cards Format Badges (MP4, MKV, ZIP, PDF, etc.) */
 [data-color-scheme="light"] .td-tag-badge.drive-fmt,
 [data-color-scheme="light"] .td-file-card-sub-row .td-tag-badge.drive-fmt {
-  background: #f8fafc !important;
+  background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   color: #0f172a !important; /* Crisp Slate 900, contrast >= 15:1 */
-  font-weight: 800 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  font-size: 0.62rem !important;
+  font-weight: 750 !important;
+  padding: 1.5px 5px !important;
+  line-height: 1.15 !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.035em !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-color-scheme="light"] .td-tag-badge {

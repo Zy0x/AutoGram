@@ -1,3 +1,43 @@
+## v4.1.5 — Subpixel Format Badge Sharpness, Root Variable Cycle Repair, Header Sidebar Toggle Isolation & Plugin Icon Theme Harmony
+
+### 1. File Card Format Badge Sharpness & Vector Precision
+- **Elimination of Blurry Format Chips (`[ MP4 ]`, `[ JPG ]`, `[ PDF ]`) on Media Cards**:
+  - *What changed*:
+    - Removed static GPU layer promotion (`will-change: transform; transform: translate3d(0, 0, 0);`) from `.td-file-card` in `App.css`, restoring native ClearType subpixel text antialiasing and eliminating bilinear rasterization blur at fractional DPI scales (125%, 150%, 175%).
+    - Upgraded `.td-file-card-sub-row .td-tag-badge.drive-fmt` typography from `font-size: 0.54rem` (8.64px) with heavy `font-weight: 800` (which caused ink bleed) to crisp `font-size: 0.62rem` (~10px), `font-weight: 750`, `line-height: 1.15`, and explicit `-webkit-font-smoothing: subpixel-antialiased !important;`.
+    - Enforced `text-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;` to completely eliminate inherited dark blur shadows from `.td-file-card-sub`.
+    - Styled Light Mode format badges with pure white background (`#ffffff !important`), crisp Slate 300 border (`#cbd5e1 !important`), deep Slate 900 text (`#0f172a !important`), and soft 0.12 opacity drop shadow.
+  - *Technical rationale*: On Windows Chromium / WebView2, elements promoted to compositor layers rasterize text to GPU textures without subpixel ClearType. When rendered at fractional coordinates, text blurs. Removing static layer promotion and increasing font size slightly restores crystal-clear vector glyphs.
+  - *User impact*: Format badges (`[ MP4 ]`, `[ MKV ]`, `[ JPG ]`, `[ PDF ]`) are razor-sharp, readable, and beautifully rendered without blurriness or dirty drop shadows.
+
+### 2. Root Variable Cycle Elimination & Header Sub-Location Contrast Restoration
+- **Elimination of Invisible White-on-White Header Subtitle & Floating Rogue Dot**:
+  - *What changed*:
+    - In `index.css`, scoped root theme token defaults strictly to `:root` rather than `html, body, :root`, and eliminated the self-referential cycle `--text-secondary: var(--text-secondary, #94a3b8);`.
+    - In `themeLightTransfersSettings.css`, explicitly styled `.td-tools-sub`, `.td-tools-panel.is-unified .td-tools-sub`, and `.td-tools-sub span` with high-contrast `var(--text-secondary, #57534e) !important` and `font-weight: 600`.
+    - In `DriveToolsPanel/index.tsx`, structured the header hierarchy so the location indicator (`.td-tools-loc-dot` + `Saved Messages`) renders directly underneath the title with semantic class `.td-tools-loc-name`.
+  - *Technical rationale*: Declaring `--text-secondary: var(--text-secondary, ...)` under a selector matching `body` created a cyclic self-reference at computed-value time under CSS Custom Properties Level 1 specification, causing `--text-secondary` to reset to invalid/empty on `body` and all child elements. Child text inherited the user-agent button color (white), making "Saved Messages" completely invisible against light backgrounds, leaving only the accent dot visible.
+  - *User impact*: The header location indicator ("• Saved Messages") is immediately visible in high-contrast Stone 600, eliminating the confusing isolated dot.
+
+### 3. Drive Tools Header Toggle Isolation & Hover Contrast Polish
+- **Elimination of Overlapping Chevron Badge & Disappearing Sliders Icon**:
+  - *What changed*:
+    - Relocated `.td-toggle-arrow-badge` out of `.td-header-toggle-icon` into `.td-tools-title-row` beside the `<h2>` header title.
+    - Updated hover states in `App.css` and `themeLightTransfersSettings.css` so `.td-header-toggle-icon` retains its theme accent color (`var(--accent-primary) !important`) rather than turning pure white (`#ffffff`) on light backgrounds.
+    - Styled `.td-toggle-arrow-badge` as an inline rounded pill (`20px x 20px`, `border-radius: 6px`) that cleanly highlights in accent fill on hover.
+  - *Technical rationale*: The chevron badge was previously absolutely positioned at `bottom: -3px; right: -3px` over the icon box, obstructing the sliders graphic, while hover CSS forced `#ffffff` text/SVG fill on light cream/beige backgrounds.
+  - *User impact*: The Sliders icon remains completely unobstructed and legible in both normal and hovered states, and the sidebar collapse toggle is clearly positioned.
+
+### 4. Plugin Icon Harmonization & Color Consistency
+- **Elimination of Clashing Purple Icon Inside Peach Container**:
+  - *What changed*:
+    - In `TransferSettingsWorkspace.tsx`, replaced hardcoded `style={{ color: '#c084fc' }}` on the yt-dlp `Download` icon with `style={{ color: 'var(--accent-primary)' }}`.
+    - In `themeLightTransfersSettings.css`, added Section 56 to theme the yt-dlp icon box and SVG using `var(--accent-primary)`.
+  - *Technical rationale*: The yt-dlp card previously mixed a peach/orange container background with a hardcoded purple download arrow, clashing with the theme palette.
+  - *User impact*: Both plugin cards present balanced, deliberate, and palette-harmonious icon containers.
+
+---
+
 ## v4.1.4 — Plugin Overview Light Theme Contrast, Universal Chip Buttons & Advanced Total Reset Button Polish
 
 ### 1. Plugin Section Light Theme & Contrast Overhaul

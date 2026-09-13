@@ -1,4 +1,4 @@
-AutoGram Version: v4.1.4
+AutoGram Version: v4.1.5
 
 Current State:
 v4.1.4 Plugin Overview Light Theme Contrast, Universal Chip Buttons & Advanced Total Reset Button Polish:

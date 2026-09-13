@@ -1650,7 +1650,7 @@ export function TransferSettingsWorkspace({
                 <div className="td-plugin-card-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="td-plugin-icon-box">
-                      <Download size={18} style={{ color: '#c084fc' }} />
+                      <Download size={18} style={{ color: 'var(--accent-primary)' }} />
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>

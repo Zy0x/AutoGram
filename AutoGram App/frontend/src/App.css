@@ -3094,9 +3094,7 @@ body.td-dnd-external {
   -webkit-user-select: none;
   position: relative;
   z-index: 1;
-  contain: content;
-  will-change: transform;
-  transform: translate3d(0, 0, 0);
+  contain: layout style;
   transition: z-index 0s;
 }
 .td-file-card:hover {
@@ -3767,15 +3765,19 @@ body.td-dnd-external {
 }
 
 .td-file-card-sub-row .td-tag-badge.drive-fmt {
-  font-size: 0.54rem;
-  font-weight: 800;
-  padding: 1px 4px;
-  line-height: 1.1;
-  border-radius: 3px;
-  letter-spacing: 0.03em;
+  font-size: 0.62rem;
+  font-weight: 750;
+  padding: 1.5px 5px;
+  line-height: 1.15;
+  border-radius: 4px;
+  letter-spacing: 0.035em;
   text-transform: uppercase;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 /* ── Zoom-level meta density ── */
@@ -21648,28 +21650,33 @@ video.drive-zip-img {
   transform: scale(0.96) !important;
 }
 
-.td-toggle-arrow-badge {
-  position: absolute !important;
-  bottom: -3px !important;
-  right: -3px !important;
+.td-tools-title-row {
   display: flex !important;
   align-items: center !important;
+  gap: 8px !important;
+}
+
+.td-toggle-arrow-badge {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
   justify-content: center !important;
-  width: 18px !important;
-  height: 18px !important;
-  border-radius: 50% !important;
-  background: var(--bg-card, #09101a) !important;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent) !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent) !important;
   color: var(--accent-primary, #38bdf8) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
-  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+  transition: all 0.18s ease !important;
+  flex-shrink: 0 !important;
 }
 
 .td-header-sidebar-toggle:hover .td-toggle-arrow-badge {
   background: var(--accent-primary, #38bdf8) !important;
   color: #ffffff !important;
   border-color: var(--accent-primary, #38bdf8) !important;
-  transform: scale(1.15) !important;
+  transform: none !important;
 }
 
 /* ========================================================
