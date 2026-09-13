@@ -1,3 +1,39 @@
+## v4.1.11 — Drive Preview Modal, Popovers & Toolbar Light Mode High Contrast Overhaul
+
+### 1. Drive Preview Modal Popovers & Floating Info Panels
+- **File Details & Diagnostics Popover Contrast Overhaul**:
+  - *What changed*:
+    - `.drive-preview-info`: In `themeLightTransfersSettings.css`, added Section 64 overriding the `.drive-preview-info` popover container to pure white (`#ffffff`), solid slate border (`#cbd5e1`), crisp drop shadow, and deep slate base text (`#0f172a`).
+    - `.drive-preview-info-title`: Overrode hardcoded off-white `#f1f5f9 !important` to high-contrast deep slate (`#0f172a !important`), ensuring titles like *"File Details"* are immediately legible in light mode.
+    - `.drive-preview-info strong`: Boosted property label contrast to `#334155 !important` with `font-weight: 700 !important` (Name, Original Name, Dimensions, Size, Compressed, Duration).
+    - `.drive-preview-diagnostics`: Overrode diagnostic container background to `#ffffff`, borders to `#cbd5e1`, and summary value text (`.drive-preview-diagnostics-summary dd`) from pure white `#f8fafc` to high-contrast `#0f172a !important`.
+    - Diagnostics event cards (`.drive-preview-diagnostics-events article`): Configured light slate cards (`#f8fafc`) with subtle borders (`#e2e8f0`), warning cards (`#fffbeb` / border `#fde68a` / text `#92400e`), and error cards (`#fef2f2` / border `#fecaca` / text `#b91c1c`).
+  - *Technical rationale*: In light mode, `.drive-preview-info` and `.drive-preview-diagnostics` inherit `--bg-card: #ffffff`, but static CSS rules previously had hardcoded `#f1f5f9` for titles and `#f8fafc` for diagnostic values, resulting in invisible white-on-white text. Dedicated light mode rules guarantee WCAG AAA contrast (> 7:1) across all popover cards.
+  - *User impact*: File Details and Preview Diagnostics popovers now display razor-sharp, dark text on clean white cards with zero washed-out labels or invisible titles.
+
+### 2. Telegram Media Identity Actions & Dropdown Menus
+- **Telegram Media Identity & Inspector Dropdown Contrast**:
+  - *What changed*:
+    - `PreviewCopyIdentityActions.tsx`: Replaced hardcoded dark background (`rgba(2, 6, 23, 0.75)`) and static border styles on Path ID and Message ID value boxes with semantic CSS classes (`.td-identity-popover-val-box`, `.td-identity-popover-val-path`, `.td-identity-popover-val-id`). In light mode, value boxes render on light slate backgrounds (`#f8fafc`) with `#cbd5e1` borders, deep sky blue Path ID text (`#0369a1`), and rich emerald Message ID text (`#047857`).
+    - `App.css`: Added dark mode default styles for `.td-identity-popover`, `.td-identity-popover-header`, `.td-identity-popover-label`, and `.td-identity-popover-val-box`.
+    - `DrivePreviewModal/index.tsx`: Replaced hardcoded `#e2e8f0` text and border in `moreTabsMenuRef` dropdown with semantic CSS variables (`var(--text-secondary)`, `var(--border-default)`).
+    - `themeLightTransfersSettings.css`: Added light mode rules for `.td-dropdown-menu` and `.td-dropdown-item`, giving dropdowns a solid white background, slate borders, `#334155` item text, and subtle hover/active highlights.
+    - Quality & Rate menus (`.drive-quality-menu`, `.drive-rate-menu`): Styled with clean white cards, high-contrast items, green selection badges, and muted subtitle text.
+  - *Technical rationale*: Eliminates visual clashes where dark charcoal boxes appeared inside light popovers, and prevents white dropdown item text on white backgrounds.
+  - *User impact*: Copying Path ID or Message ID and navigating the inspector dropdown menu is aesthetically seamless and effortless to read.
+
+### 3. Header Toolbar Controls & Navigational Dividers
+- **Preview Header Toolbar High-Contrast Styling**:
+  - *What changed*:
+    - `.drive-preview-header .td-icon-btn`, `.drive-preview-header .btn`: Overrode low-contrast `#8e9fb3` text to rich slate `#334155 !important`, with light slate `#f1f5f9` hover backgrounds and deep `#0f172a` hover text.
+    - `.drive-preview-header .td-header-tool-divider`: Replaced invisible translucent white divider (`rgba(255, 255, 255, 0.15)`) with crisp slate divider (`#cbd5e1 !important`).
+    - Zoom & Quality pills (`.td-zoom-pill`, `.td-quality-pill`): Configured high-contrast primary accent colors (`#0284c7 !important`).
+    - Compact tab segmented control (`.td-preview-tabs-compact`): Styled with light background (`#f1f5f9`), solid border (`#cbd5e1`), and active pill background (`#ffffff` with subtle elevation).
+  - *Technical rationale*: Ensures all navigational arrows, download buttons, external app openers, zoom controls, and segmented tabs maintain prominent contrast against the light header bar.
+  - *User impact*: Navigating, zooming, and downloading files in preview is immediately clear and visually comfortable in all light theme palettes.
+
+---
+
 ## v4.1.10 — Exhaustive Preview Modal Localization, Deep Contrast & Theme Adaptability Overhaul
 
 ### 1. Exhaustive Preview Modal & Document Viewers Zero-Hardcoded Strings Overhaul

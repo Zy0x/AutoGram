@@ -253,7 +253,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   width: menuPos.width,
                   background: 'var(--bg-card, rgba(15, 23, 42, 0.98))',
                   backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  border: '1px solid var(--border-default, rgba(255, 255, 255, 0.15))',
                   borderRadius: '8px',
                   padding: '10px',
                   boxShadow: '0 12px 36px rgba(0, 0, 0, 0.75)',
@@ -268,12 +268,13 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
               >
             {/* Popover Header */}
             <div
+              className="td-identity-popover-header"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 paddingBottom: '6px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
               }}
             >
               <div
@@ -290,7 +291,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                 <span>{t('drive.preview_identity_menu_title')}</span>
               </div>
               {(copiedPath || copiedId) && (
-                <span style={{ fontSize: '10px', color: '#34d399', fontWeight: 600 }}>
+                <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 600 }}>
                   {t('drive.preview_identity_copied')}
                 </span>
               )}
@@ -299,6 +300,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
             {/* Path ID Row */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div
+                className="td-identity-popover-label"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -317,7 +319,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: copiedPath ? '#34d399' : 'var(--accent-primary, #38bdf8)',
+                    color: copiedPath ? '#10b981' : 'var(--accent-primary, #38bdf8)',
                     cursor: 'pointer',
                     fontSize: '11px',
                     display: 'inline-flex',
@@ -333,15 +335,13 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                 </button>
               </div>
               <div
+                className="td-identity-popover-val-box td-identity-popover-val-path"
                 onClick={() => void handleCopyPathId()}
                 style={{
                   fontFamily: 'monospace',
                   fontSize: '11px',
-                  background: 'rgba(2, 6, 23, 0.75)',
                   padding: '6px 8px',
                   borderRadius: '6px',
-                  border: '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 25%, transparent)',
-                  color: 'var(--accent-primary, #7dd3fc)',
                   wordBreak: 'break-all',
                   cursor: 'pointer',
                   userSelect: 'all',
@@ -355,6 +355,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
             {/* Message ID Row */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div
+                className="td-identity-popover-label"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -373,7 +374,7 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: copiedId ? '#34d399' : '#34d399',
+                    color: copiedId ? '#10b981' : '#10b981',
                     cursor: 'pointer',
                     fontSize: '11px',
                     display: 'inline-flex',
@@ -389,15 +390,13 @@ export const PreviewCopyIdentityActions: React.FC<PreviewCopyIdentityActionsProp
                 </button>
               </div>
               <div
+                className="td-identity-popover-val-box td-identity-popover-val-id"
                 onClick={() => void handleCopyId()}
                 style={{
                   fontFamily: 'monospace',
                   fontSize: '11px',
-                  background: 'rgba(2, 6, 23, 0.75)',
                   padding: '6px 8px',
                   borderRadius: '6px',
-                  border: '1px solid rgba(52, 211, 153, 0.2)',
-                  color: '#6ee7b7',
                   wordBreak: 'break-all',
                   cursor: 'pointer',
                   userSelect: 'all',
