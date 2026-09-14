@@ -109,7 +109,7 @@ export const directFileResolver: LinkResolverProvider = {
       isStreamable: isVideo || isAudio,
       downloadOnly: !(isVideo || isAudio),
       verification: {
-        status: 'unverified',
+        status: 'verified',
         mimeType: mime,
         contentLength: bytes,
         validation: 'declared-mime',

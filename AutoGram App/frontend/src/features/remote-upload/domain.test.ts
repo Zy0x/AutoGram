@@ -21,6 +21,7 @@ describe('remote-upload domain policies', () => {
     expect(isManifestFormat({ ext: 'm3u8', protocol: 'hls', directUrl: 'https://example.com/live' })).toBe(true);
     expect(canTransferResolvedFormat({ id: 'manifest', ext: 'mp4', protocol: 'https', directUrl: 'https://example.com/live.m3u8', verification: { status: 'verified' } } as any)).toBe(false);
     expect(canTransferResolvedFormat({ id: 'video', ext: 'mp4', protocol: 'https', directUrl: 'https://example.com/video.mp4', verification: { status: 'verified' } } as any)).toBe(true);
+    expect(canTransferResolvedFormat({ id: 'direct', ext: 'mp4', protocol: 'https', directUrl: 'https://example.com/direct.mp4', verification: { status: 'unverified', validation: 'declared-mime' } } as any)).toBe(true);
   });
 
   it('normalizes user filenames without duplicating extensions', () => {

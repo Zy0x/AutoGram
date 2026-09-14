@@ -7,6 +7,7 @@ interface DestinationOptions {
   storagePolicy?: string; customDiskPath?: string; customFilename?: string;
   customFilenames?: string[]; remoteMuxes?: Array<RemoteMuxSpec | null>;
   customCaption?: string;
+  referers?: Array<string | undefined>;
 }
 
 /** Destination policy wins over transport preference. Never pass Local to Telegram. */
@@ -29,5 +30,6 @@ export async function dispatchRemoteDestination<TDest, TOptions extends Destinat
     filename: options.customFilenames?.[index] || (urls.length === 1 ? options.customFilename : undefined) || 'media.bin',
     connections: loadTransferSettings().downloadConcurrency,
     mux: options.remoteMuxes?.[index],
+    referer: options.referers?.[index],
   })));
 }

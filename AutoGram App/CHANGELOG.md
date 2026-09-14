@@ -1,3 +1,32 @@
+## v4.1.12 — Remote URL Direct Media Resolution & Local Disk Pipeline Fix
+
+### 1. Remote URL Link Resolution & Direct File Fallback Pipeline
+- **Resolver Registry Fallback Unblocking**:
+  - *What changed*:
+    - `registry.ts`: In Step 2 (desktop native deep crawler), required `nativeResult && nativeResult.formats && nativeResult.formats.length > 0` before immediately terminating the resolution chain. If the crawler returns 0 candidates, execution now falls through to Step 3 (`directFileResolver`). If `directFileResolver` also finds no media, the crawler's diagnostic description and structured blocker reason are preserved.
+    - `directFileResolver.ts`: Changed `verification.status` from `'unverified'` to `'verified'` for all media formats validated by HTTP HEAD requests with confirmed MIME types (video, audio, image, PDF, ZIP, VTT).
+  - *Technical rationale*: Previously, when `nativeDeepResolver` inspected a URL that exposed no embedded DOM stream tags, it returned an object with `formats: []` and `requiresInteraction: true`. Because the returned object was truthy, `registry.ts` immediately returned empty formats, completely bypassing `directFileResolver`. Direct downloads were therefore blocked with spurious "No verified public media was found" errors.
+  - *User impact*: Direct file URLs (MP4, MKV, WebM, MP3, PDF, ZIP, etc.) and CDN media links resolve reliably and display immediately in the Remote Upload and Local Save interfaces.
+
+### 2. Remote Transfer Domain & Transferability Validation
+- **Transferability Policy Alignment (`canTransferResolvedFormat`)**:
+  - *What changed*:
+    - `domain.ts`: Updated `canTransferResolvedFormat` to accept verified formats as well as formats with `validation === 'declared-mime'`, ensuring that HTTP HEAD-verified direct streams can be handed to transfer and download engines.
+    - `domain.test.ts`: Added test cases verifying transferability of both verified video formats and declared-MIME direct downloads.
+  - *Technical rationale*: `canTransferResolvedFormat` previously rejected any format with `status === 'unverified'`. Even if `directFileResolver` inspected a media file, its hardcoded unverified status caused downstream transfer checks to reject the file.
+  - *User impact*: Users can seamlessly transfer and download media files resolved from universal HTTP/HTTPS links without spurious rejection banners.
+
+### 3. Remote Upload Modal Submit & Local Disk Downloader Dispatch
+- **Submit Handler Resiliency & Local Disk Referer Forwarding**:
+  - *What changed*:
+    - `remoteUploadSubmit.ts`: Removed premature rejection guard before inline resolution. If `resolvedMedia` is null or has no formats when submitted, `resolveRemoteMediaUrl` runs on-demand before validating transferability. In single format submission, if the chosen format ID is empty or points to a non-transferable format (e.g. HLS stream), the handler automatically falls back to the first transferable format in `activeResolved.formats`.
+    - `remoteUploadSubmit.ts`: Forwarded source page and candidate Referer headers to `submitToDestination` across single item, collection card, and batch submission modes.
+    - `dispatch.ts` & `dispatch.test.ts`: Extended `dispatchRemoteDestination` and `DestinationOptions` with optional `referers`, ensuring the local downloader engine (`startLocalDownloads`) passes sanitized source referers to Rust's `remote_download_start`.
+  - *Technical rationale*: When users quickly pasted a URL and clicked "Simpan ke Disk Lokal" before asynchronous debounce finished, or clicked save while previewing an HLS manifest, submission failed immediately with a generic interaction-required error. Automated on-demand resolution and transferable format fallback guarantee a smooth user experience, while Referer forwarding prevents HTTP 403 Forbidden errors on CDN endpoints.
+  - *User impact*: "Simpan ke Disk Lokal" operates smoothly and reliably for all supported direct, crawlable, and provider remote URLs.
+
+---
+
 ## v4.1.11 — Drive Preview Modal, Popovers & Toolbar Light Mode High Contrast Overhaul
 
 ### 1. Drive Preview Modal Popovers & Floating Info Panels

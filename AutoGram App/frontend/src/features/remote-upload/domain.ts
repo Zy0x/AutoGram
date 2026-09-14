@@ -73,7 +73,7 @@ export function canTransferResolvedFormat(format: StreamQualityFormat | null | u
       status !== 'blocked' &&
       status !== 'session-bound' &&
       status !== 'wrapper' &&
-      status !== 'unverified'
+      (status !== 'unverified' || format?.verification?.validation === 'declared-mime')
   );
 }
 

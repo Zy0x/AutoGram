@@ -12,9 +12,10 @@ describe('remote destination routing', () => {
     await dispatchRemoteDestination(['https://example.com/video'], { id: 'me' }, {
       storagePolicy: 'custom_disk', customDiskPath: 'F:\\Downloads', customFilenames: ['4k.mp4'],
       remoteMuxes: [{ videoUrl: 'https://example.com/video', audioUrl: 'https://example.com/audio', outputExt: 'mp4' }],
+      referers: ['https://example.com/page'],
     }, upload);
     expect(upload).not.toHaveBeenCalled();
-    expect(startLocalDownloads).toHaveBeenCalledWith([expect.objectContaining({ filename: '4k.mp4', directory: 'F:\\Downloads', connections: 6, mux: expect.objectContaining({ outputExt: 'mp4' }) })]);
+    expect(startLocalDownloads).toHaveBeenCalledWith([expect.objectContaining({ filename: '4k.mp4', directory: 'F:\\Downloads', connections: 6, mux: expect.objectContaining({ outputExt: 'mp4' }), referer: 'https://example.com/page' })]);
   });
   it('does not start anything when the directory picker is cancelled', async () => {
     vi.mocked(open).mockResolvedValue(null);

@@ -32,8 +32,19 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
       // transfer must originate from a resolver candidate that passed its
       // public validation, otherwise an advertising/wrapper page could be
       // handed to the transfer engine as if it were a media file.
-      if (!resolvedMedia || resolvedMedia.formats.length === 0) {
-        setErrorMsg(t('drive.remote_native_interaction_required'));
+      let activeResolved = resolvedMedia;
+      if (!activeResolved || activeResolved.formats.length === 0) {
+        setSubmitting(true);
+        try {
+          activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
+        } catch {
+          /* fallback */
+        }
+      }
+
+      if (!activeResolved || activeResolved.formats.length === 0) {
+        setSubmitting(false);
+        setErrorMsg(activeResolved?.description || t('drive.remote_native_interaction_required'));
         return;
       }
 
@@ -50,18 +61,23 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           const uploadFilenames: string[] = [];
           const uploadSizes: number[] = [];
           const uploadThumbs: string[] = [];
+          const uploadReferers: Array<string | undefined> = [];
           const remoteMuxes: Array<RemoteMuxSpec | null> = [];
 
           for (const item of selectedItems) {
             const chosenFmtId = itemSelectedFormats[item.id] || item.selectedFormatId || item.formats[0]?.id;
-            const chosenFmt = item.formats.find((f) => f.id === chosenFmtId);
+            let chosenFmt = item.formats.find((f) => f.id === chosenFmtId);
+            if (!canTransferResolvedFormat(chosenFmt)) {
+              chosenFmt = item.formats.find(canTransferResolvedFormat) || item.formats[0];
+            }
             if (canTransferResolvedFormat(chosenFmt)) {
               uploadUrls.push(chosenFmt.directUrl);
-              const origName = getEffectiveFormatFilename(chosenFmt, resolvedMedia) || item.title;
+              const origName = getEffectiveFormatFilename(chosenFmt, activeResolved) || item.title;
               const finalName = itemCustomNames[item.id]?.trim() || origName;
               uploadFilenames.push(finalName);
               uploadSizes.push(chosenFmt.mux?.estimatedSizeBytes || chosenFmt.filesizeBytes || 0);
-              uploadThumbs.push(chosenFmt.thumbnailUrl || item.thumbnailUrl || resolvedMedia?.thumbnailUrl || '');
+              uploadThumbs.push(chosenFmt.thumbnailUrl || item.thumbnailUrl || activeResolved?.thumbnailUrl || '');
+              uploadReferers.push(chosenFmt.headers?.Referer || activeResolved?.url || targetUrl);
               remoteMuxes.push(chosenFmt.mux || null);
             }
           }
@@ -100,6 +116,7 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
             customDiskPath: customDiskPath.trim() || undefined,
             customCaption: customCaption?.trim() || undefined,
             remoteMuxes,
+            referers: uploadReferers,
           });
         } catch (err: any) {
           setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
@@ -111,19 +128,13 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
 
       setSubmitting(true);
       try {
-        let activeResolved = resolvedMedia;
-        if (!activeResolved && hasKnownRemoteProvider(targetUrl)) {
-          try {
-            activeResolved = await resolveRemoteMediaUrl(targetUrl, undefined, { passcode });
-          } catch {
-            /* fallback */
-          }
-        }
-
-        const activeFormat =
-          activeResolved?.formats.find((f) => f.id === selectedFormatId);
+        let activeFormat =
+          (selectedFormatId ? activeResolved?.formats.find((f) => f.id === selectedFormatId) : undefined);
         if (!canTransferResolvedFormat(activeFormat)) {
-          setErrorMsg(t('drive.remote_native_interaction_required'));
+          activeFormat = activeResolved?.formats.find(canTransferResolvedFormat) || activeResolved?.formats[0];
+        }
+        if (!activeFormat || !canTransferResolvedFormat(activeFormat)) {
+          setErrorMsg(activeResolved?.description || t('drive.remote_native_interaction_required'));
           return;
         }
         const effectiveUrl = activeFormat.directUrl;
@@ -195,6 +206,7 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           customDiskPath: customDiskPath.trim() || undefined,
           customCaption: customCaption?.trim() || undefined,
           remoteMuxes,
+          referers: [activeFormat?.headers?.Referer || activeResolved?.url || targetUrl],
         });
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));
@@ -249,6 +261,7 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           storagePolicy,
           customDiskPath: customDiskPath.trim() || undefined,
           remoteMuxes,
+          referers: selectedBatchItems.map((it) => it.headers?.Referer || it.sourceUrl),
         });
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));

@@ -342,13 +342,15 @@ class LinkResolverRegistry {
     }
 
     // 2. Try desktop native deep crawler if in Tauri runtime
+    let pendingNativeResult: ResolvedMediaInfo | null = null;
     if (nativeDeepResolver.canHandle(cleanUrl)) {
       try {
         const nativeResult = await nativeDeepResolver.resolve(cleanUrl, signal, options);
-        if (nativeResult) {
+        if (nativeResult && nativeResult.formats && nativeResult.formats.length > 0) {
           const traced = this.withTrace(nativeResult, cleanUrl, nativeDeepResolver.name, 'validated');
           return enrichWithDurations(traced, signal);
         }
+        pendingNativeResult = nativeResult;
       } catch {
         /* ignore */
       }
@@ -363,6 +365,13 @@ class LinkResolverRegistry {
       }
     } catch {
       /* ignore */
+    }
+
+    // If native crawler inspected the page and produced structured diagnostics,
+    // preserve that diagnostic information when directFileResolver found no media.
+    if (pendingNativeResult) {
+      const traced = this.withTrace(pendingNativeResult, cleanUrl, nativeDeepResolver.name, 'validated');
+      return enrichWithDurations(traced, signal);
     }
 
     // 4. Do not manufacture a direct stream from a URL suffix. This is the
