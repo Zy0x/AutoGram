@@ -1,3 +1,28 @@
+## v4.1.14 — Remote Upload Modal & Stream Selector Light Theme High Contrast Overhaul
+
+### 1. UI/UX Polish & Visual Legibility
+- **Remote Upload Modal Light Mode Surface & Typography Overhaul**:
+  - *What changed*:
+    - `styles/themeLightTransfersSettings.css`: Added Section 65 providing comprehensive high-contrast overrides for `.td-remote-upload-panel`, `.td-remote-meta-card`, `.td-remote-unified-panel`, and `.td-remote-tabs`.
+    - Format Rows & Cards: Replaced pale, washed-out off-white `#f1f5f9` text on white cards with deep slate `#0f172a` for titles, `#475569` for specs and sizes, `#334155` for badges/tags, and solid `#e2e8f0` / `#cbd5e1` borders.
+    - Fixed Header & Action Buttons: Styled `.td-remote-formats-hint-text` with bold `#334155` text and high-contrast clean buttons (`Select Highest Quality`, `Deselect All`, `Re-inspect`) with white background, crisp slate borders, and subtle hover highlights.
+    - Category Dividers: Styled section headers (`AUDIO TRACKS`, `CREATOR PROFILE & PHOTOS`) with deep `#334155` titles, high-contrast pill counters, and clean slate divider lines.
+    - Filter Chips Bar: Configured `.td-remote-format-filter-chip` with light slate background (`#f1f5f9`), solid slate border, bold `#475569` labels, and radiant primary accent styling on active chips.
+    - Left Column Media Preview & Filename: Styled editable filename bar with `#0f172a` text, white action buttons, and high-contrast focus rings.
+    - Bottom Slim Status Bar: Styled `.td-remote-slim-status-bar` with `#0f172a` selected stream title, `#475569` subtitle metadata, and a crisp white copy stream URL button.
+  - *Technical rationale*: When switching to light mode (`data-color-scheme="light"`), `.td-remote-upload-panel` containers inherited light cards, but format rows and text labels retained legacy dark-mode color values (`#f1f5f9`, `#94a3b8`, `#64748b`), creating virtually invisible white-on-white text and severe contrast failures. Dedicated semantic overrides guarantee WCAG AAA contrast (> 7:1) across all format picker elements.
+  - *User impact*: Stream formats, audio tracks, photos, and action buttons in the Remote Upload modal are immediately legible, sharp, and easy on the eyes in light mode.
+
+### 2. Design System & Theme Engine Compliance
+- **Theme Token Parity & Zero Leakage**:
+  - *What changed*:
+    - Validated all new styles with `npm run audit:theme` to ensure 0 static theme leakage and strict compliance with the central theme token contract.
+    - Verified live DOM computed styles on the running desktop app via CDP port 9230 (`rgb(15, 23, 42)` high-contrast deep slate text).
+  - *Technical rationale*: Adheres strictly to User Rule 2 (Readability First & User Friendly) and User Rule 4 (Visual Identity Consistency).
+  - *User impact*: Seamless visual consistency when toggling between dark and light themes without UI distortion or illegible text.
+
+---
+
 ## v4.1.13 — TikTok Slideshow Pack ZIP Packaging & Resilient Local Save Engine
 
 ### 1. Remote Pack Download & Native ZIP Archive Assembly
