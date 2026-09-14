@@ -13,6 +13,7 @@
   "local_download_state_failed": "Failed",
   "local_download_phase_mux": "FFmpeg processing",
   "local_download_phase_verify": "Validating media",
+  "local_download_phase_zip": "Packaging ZIP archive",
   "local_download_unknown": "Size not yet known",
   "local_download_pause": "Pause",
   "local_download_resume": "Resume",

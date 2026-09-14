@@ -7,11 +7,13 @@ export interface LocalDownloadRequest {
   /** Public source-page URL; native code validates it and strips userinfo/fragment.
    * Omit to retain the downloader's existing provider/origin Referer defaults. */
   referer?: string;
+  /** Optional pack URLs to download and package into a ZIP archive. */
+  zipUrls?: string[];
 }
 export interface LocalDownloadSnapshot {
   id: string; filename: string; directory: string;
   state: 'queued' | 'downloading' | 'paused' | 'cancelling' | 'cancelled' | 'done' | 'failed';
-  phase: 'download' | 'mux' | 'verify'; downloaded: number; total: number; outputBytes: number; error?: string;
+  phase: 'download' | 'mux' | 'verify' | 'zip'; downloaded: number; total: number; outputBytes: number; error?: string;
 }
 export const isLocalDownloadTerminal = (state: LocalDownloadSnapshot['state']) => ['done', 'failed', 'cancelled'].includes(state);
 type LocalState = { jobs: LocalDownloadSnapshot[]; error: string; hidden: boolean };

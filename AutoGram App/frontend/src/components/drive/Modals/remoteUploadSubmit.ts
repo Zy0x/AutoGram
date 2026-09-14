@@ -137,14 +137,32 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           setErrorMsg(activeResolved?.description || t('drive.remote_native_interaction_required'));
           return;
         }
-        const effectiveUrl = activeFormat.directUrl;
-        const uploadUrls = (activeFormat?.isAlbumPack && activeFormat.allAlbumUrls && activeFormat.allAlbumUrls.length > 0)
-          ? activeFormat.allAlbumUrls
-          : [effectiveUrl];
-
         const effectiveFilename =
           customFilename.trim() ||
           getEffectiveFormatFilename(activeFormat, activeResolved);
+
+        const isAlbum = Boolean(activeFormat?.isAlbumPack && activeFormat.allAlbumUrls && activeFormat.allAlbumUrls.length > 0);
+        const isZipPack = isAlbum && (activeFormat?.ext === 'zip' || activeFormat?.id?.includes('pack'));
+        let uploadUrls: string[];
+        let uploadFilenames: string[];
+        let zipUrls: string[] | undefined = undefined;
+
+        if (isAlbum) {
+          if (storagePolicy === 'custom_disk' && isZipPack) {
+            uploadUrls = [activeFormat!.allAlbumUrls![0]];
+            const cleanZipName = effectiveFilename.toLowerCase().endsWith('.zip') ? effectiveFilename : `${effectiveFilename}.zip`;
+            uploadFilenames = [cleanZipName];
+            zipUrls = activeFormat!.allAlbumUrls!;
+          } else {
+            uploadUrls = activeFormat!.allAlbumUrls!;
+            const baseStem = effectiveFilename.replace(/\.[a-z0-9]+$/i, '');
+            const itemExt = activeFormat!.ext === 'zip' ? 'jpg' : (activeFormat!.ext || 'bin');
+            uploadFilenames = uploadUrls.map((_, i) => `${baseStem} - Part ${i + 1}.${itemExt}`);
+          }
+        } else {
+          uploadUrls = [activeFormat!.directUrl];
+          uploadFilenames = [effectiveFilename];
+        }
 
         const existingThumb = activeFormat?.thumbnailUrl || activeResolved?.thumbnailUrl;
         let liveVideoThumb: string | undefined = undefined;
@@ -176,6 +194,8 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
         const finalThumb = existingThumb || liveVideoThumb;
         const uploadThumbs = finalThumb ? [finalThumb] : undefined;
         const remoteMuxes: Array<RemoteMuxSpec | null> = [activeFormat?.mux || null];
+        const refererUrl = activeFormat?.headers?.Referer || activeResolved?.url || targetUrl;
+        const uploadReferers = uploadUrls.map(() => refererUrl);
 
         const effectiveQualityMode =
           deliveryMode === 'uncompressed'
@@ -194,8 +214,8 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
         onClose();
 
         await submitToDestination(uploadUrls, selectedDest, {
-          customFilename: effectiveFilename,
-          customFilenames: [effectiveFilename],
+          customFilename: uploadFilenames[0],
+          customFilenames: uploadFilenames,
           sourceSizes: uploadSizes,
           thumbnailUrls: uploadThumbs,
           asDocument: deliveryMode === 'document',
@@ -206,7 +226,8 @@ export function createRemoteUploadSubmitHandler(ctx: Record<string, any>) {
           customDiskPath: customDiskPath.trim() || undefined,
           customCaption: customCaption?.trim() || undefined,
           remoteMuxes,
-          referers: [activeFormat?.headers?.Referer || activeResolved?.url || targetUrl],
+          referers: uploadReferers,
+          zipUrls,
         });
       } catch (err: any) {
         setErrorMsg(err?.message || t('ui.generated.gagal_melakukan_remote_upload_9dd65cb'));

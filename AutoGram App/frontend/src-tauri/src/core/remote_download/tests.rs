@@ -147,7 +147,7 @@ fn cancellation_cleans_partial_and_never_publishes() {
     let server = server(payload(), "ranges", true);
     let temp = Temp::new();
     let job = job();
-    let request = DownloadRequest { url: server.url.clone(), filename: "result.bin".into(), directory: temp.0.to_string_lossy().into(), connections: Some(4), mux: None, referer: None };
+    let request = DownloadRequest { url: server.url.clone(), filename: "result.bin".into(), directory: temp.0.to_string_lossy().into(), connections: Some(4), mux: None, referer: None, zip_urls: None };
     std::thread::scope(|scope| {
         let running = scope.spawn(|| run(&request, &job));
         let deadline = Instant::now() + Duration::from_secs(10);
@@ -230,6 +230,7 @@ fn source_referer_survives_probe_parallel_ranges_redirects_and_retry_without_cre
         url: server.url.clone(), filename: "result.bin".into(), directory: temp.0.to_string_lossy().into(),
         connections: Some(4), mux: None,
         referer: Some("https://user:secret@93.184.216.34/Source/Page?Token=AbC#fragment".into()),
+        zip_urls: None,
     };
     run(&request, &job()).unwrap();
     assert_eq!(std::fs::read(temp.0.join("result.bin")).unwrap(), *data);
@@ -281,4 +282,39 @@ fn ffmpeg_2160p_two_stream_output_has_audio_and_preserves_dimensions() {
     assert!(std::fs::metadata(output).unwrap().len() > 1024);
     let wrong = MuxSpec { expected_height: Some(1080), ..spec };
     assert_eq!(mux::assemble(&video, &audio, &temp.0.join("wrong.mp4"), &wrong, &job).unwrap_err(), "remote_download_wrong_resolution");
+}
+
+#[test]
+fn zip_pack_downloads_multiple_urls_and_creates_valid_zip_archive() {
+    let data = Arc::new(vec![0x42; 2048]);
+    let server = server(data.clone(), "ranges", false);
+    let temp = Temp::new();
+    let request = DownloadRequest {
+        url: String::new(),
+        filename: "slideshow.zip".into(),
+        directory: temp.0.to_string_lossy().into(),
+        connections: Some(2),
+        mux: None,
+        referer: None,
+        zip_urls: Some(vec![format!("{}/img1.jpg", server.url), format!("{}/img2.png", server.url)]),
+    };
+    let job = job();
+    run(&request, &job).unwrap();
+    let zip_path = temp.0.join("slideshow.zip");
+    assert!(zip_path.exists());
+    let file = std::fs::File::open(&zip_path).unwrap();
+    let mut archive = zip::ZipArchive::new(file).unwrap();
+    assert_eq!(archive.len(), 2);
+    {
+        let mut entry1 = archive.by_name("Photo_01.jpg").unwrap();
+        let mut buf1 = Vec::new();
+        entry1.read_to_end(&mut buf1).unwrap();
+        assert_eq!(buf1, *data);
+    }
+    {
+        let mut entry2 = archive.by_name("Photo_02.png").unwrap();
+        let mut buf2 = Vec::new();
+        entry2.read_to_end(&mut buf2).unwrap();
+        assert_eq!(buf2, *data);
+    }
 }

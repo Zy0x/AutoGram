@@ -1,3 +1,36 @@
+## v4.1.13 — TikTok Slideshow Pack ZIP Packaging & Resilient Local Save Engine
+
+### 1. Remote Pack Download & Native ZIP Archive Assembly
+- **Native Scratch Archiving (`remote_download` Rust Engine)**:
+  - *What changed*:
+    - `core/remote_download/mod.rs`: Extended `DownloadRequest` with `pub zip_urls: Option<Vec<String>>`. In `remote_download_start`, added batch validation for `zip_urls` ensuring all URLs are public and destination filename terminates with `.zip`.
+    - `core/remote_download/mod.rs`: In `run()`, implemented the `zip_urls` pipeline. Sequential files are downloaded into an isolated scratch directory (`.autogram-{id}/item_{i}.part`), collected into `ZipCreateEntry` structs with sanitized entry names (`Photo_01.jpg`, `Photo_02.png`, etc.), and compressed into `output.zip` using `crate::core::zip_local::create_zip_from_files`. The finished archive is atomically published to the user's destination path.
+    - Added `zip` phase to `Job` and exposed it in `Snapshot` (`phase: 'zip'`).
+    - `Scratch::drop`: Implemented clean recursive scratch deletion to guarantee zero orphaned partial files or temp directories on failure, cancellation, or completion.
+    - `tests.rs`: Added comprehensive unit test `zip_pack_downloads_multiple_urls_and_creates_valid_zip_archive` validating multi-URL download, ZIP generation, and entry integrity.
+  - *Technical rationale*: Previously, when users selected an album or slideshow pack (e.g. TikTok Slideshow Pack) to save locally, the frontend expanded the album into multiple individual image URLs without a packaging pipeline. The first item was directly written to a `.zip` file without compression headers (resulting in an unopenable/corrupted 171 KB JPEG misnamed as `.zip`), while subsequent items fell back to `media.bin`. The native Rust packaging pipeline downloads all items in the pack and writes a standard, fully compliant ZIP archive.
+  - *User impact*: TikTok photo slideshows and album packs saved to local disk produce a 100% valid, standard `.zip` file openable by native Windows Explorer, WinRAR, and 7-Zip.
+
+### 2. Frontend Remote Upload Submit & Dispatch Orchestration
+- **Dual Telegram Album vs Local Disk Pack Semantics**:
+  - *What changed*:
+    - `remoteUploadSubmit.ts`: Differentiated between Telegram album uploads and local disk downloads for album packs (`isAlbumPack`). When saving to local disk with a ZIP pack format (`ext === 'zip'` or ID containing `pack`), the submit handler packages the album into `zipUrls` with a single `.zip` filename. For individual multi-item albums saved locally, clean numbered filenames (`${baseStem} - Part ${i + 1}.${ext}`) are generated for every item, eliminating fallback to `media.bin`.
+    - `dispatch.ts`: Added `zipUrls?: string[]` to `DestinationOptions`. When `options.zipUrls` is present, `dispatchRemoteDestination` dispatches a single download request to `startLocalDownloads` rather than splitting into multiple separate download jobs.
+    - `dispatch.test.ts`: Added unit test validating single ZIP pack dispatch routing when `zipUrls` is provided.
+    - `service.ts`: Updated `LocalDownloadRequest` with `zipUrls?: string[]` and `LocalDownloadSnapshot` phase union with `'zip'`.
+  - *Technical rationale*: Telegram MTProto and local disk downloads have divergent architecture: Telegram requires multiple individual media streams to compose a collage (`messages.sendMultiMedia`), whereas local disk requires either a single unified `.zip` archive or cleanly named individual files.
+  - *User impact*: The Local Downloads panel displays a single, clean progress item for the ZIP download with accurate aggregate byte counts, smooth progress tracking, and zero fragmented `media.bin` artifacts.
+
+### 3. UI/UX Polish & Localization Parity
+- **Download Phase Tracking & Translations**:
+  - *What changed*:
+    - `drive_tools.json` (ID & EN): Added `local_download_phase_zip` ("Membuat arsip ZIP" / "Packaging ZIP archive").
+    - `LocalDownloadsPanel.tsx`: Seamlessly displays the ZIP packaging phase to users during archive creation.
+  - *Technical rationale*: In accordance with Rule 7, all user-facing strings must have 100% parity across ID and EN locales with zero hardcoded text.
+  - *User impact*: Users receive clear real-time feedback when AutoGram is downloading photos and when it is finalizing the ZIP archive.
+
+---
+
 ## v4.1.12 — Remote URL Direct Media Resolution & Local Disk Pipeline Fix
 
 ### 1. Remote URL Link Resolution & Direct File Fallback Pipeline

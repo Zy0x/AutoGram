@@ -13,6 +13,7 @@
   "local_download_state_failed": "Gagal",
   "local_download_phase_mux": "Pemrosesan FFmpeg",
   "local_download_phase_verify": "Memvalidasi media",
+  "local_download_phase_zip": "Membuat arsip ZIP",
   "local_download_unknown": "Ukuran belum diketahui",
   "local_download_pause": "Jeda",
   "local_download_resume": "Lanjutkan",

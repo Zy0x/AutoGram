@@ -31,6 +31,9 @@ pub struct DownloadRequest {
     /// Optional public source page, sanitized before admission; never an auth header map.
     #[serde(default)]
     pub referer: Option<String>,
+    /// Optional pack URLs to download and package into a ZIP archive.
+    #[serde(default)]
+    pub zip_urls: Option<Vec<String>>,
 }
 
 #[derive(Clone, Serialize)]
@@ -91,7 +94,17 @@ pub async fn remote_download_start(mut requests: Vec<DownloadRequest>) -> Result
     if requests.is_empty() || requests.len() > 100 { return Err("remote_download_invalid_batch".into()); }
     for request in &mut requests {
         validate_filename(&request.filename)?;
-        http::validate_url(&request.url)?;
+        if let Some(zip_urls) = &request.zip_urls {
+            if zip_urls.is_empty() || zip_urls.len() > 100 { return Err("remote_download_invalid_batch".into()); }
+            for u in zip_urls {
+                http::validate_url(u)?;
+            }
+            if !request.filename.to_ascii_lowercase().ends_with(".zip") {
+                return Err("remote_download_invalid_filename".into());
+            }
+        } else {
+            http::validate_url(&request.url)?;
+        }
         request.referer = request.referer.as_deref().map(http::sanitize_referer).transpose()?;
         let directory = Path::new(&request.directory);
         if !directory.is_absolute() || !directory.is_dir() { return Err("remote_download_invalid_directory".into()); }
@@ -165,9 +178,10 @@ pub fn remote_download_control(id: String, action: String) -> Result<(), String>
 struct Scratch(PathBuf);
 impl Drop for Scratch {
     fn drop(&mut self) {
-        // No recursive cleanup: known files only. Never follow/delete arbitrary paths.
-        for name in ["video.part", "audio.part", "download.part", "output.mp4", "output.webm", "output.mkv"] {
-            let _ = std::fs::remove_file(self.0.join(name));
+        if let Ok(entries) = std::fs::read_dir(&self.0) {
+            for entry in entries.flatten() {
+                let _ = std::fs::remove_file(entry.path());
+            }
         }
         let _ = std::fs::remove_dir(&self.0);
     }
@@ -181,7 +195,38 @@ fn run(request: &DownloadRequest, job: &Job) -> Result<(), String> {
     std::fs::create_dir(&scratch).map_err(|_| "remote_download_disk_error")?;
     let scratch = Scratch(scratch);
     let connections = request.connections.unwrap_or(4).clamp(1, 8);
-    let output = if let Some(spec) = &request.mux {
+    let output = if let Some(zip_urls) = &request.zip_urls {
+        job.phase("download");
+        let mut entries = Vec::new();
+        for (i, zip_url) in zip_urls.iter().enumerate() {
+            job.checkpoint()?;
+            let ext = url::Url::parse(zip_url)
+                .ok()
+                .and_then(|u| {
+                    u.path_segments()
+                        .and_then(|mut s| s.next_back())
+                        .and_then(|p| p.split('.').next_back())
+                        .map(str::to_ascii_lowercase)
+                })
+                .filter(|e| !e.is_empty() && e.len() <= 5 && e.chars().all(|c| c.is_ascii_alphanumeric()))
+                .unwrap_or_else(|| "jpg".to_string());
+            let part_name = format!("item_{i}.part");
+            let part_file = scratch.0.join(&part_name);
+            http::download(zip_url, &part_file, connections, job, request.referer.as_deref())?;
+            entries.push(crate::core::zip_local::ZipCreateEntry {
+                source_path: part_file.to_string_lossy().to_string(),
+                archive_name: format!("Photo_{:02}.{}", i + 1, ext),
+            });
+        }
+        job.phase("zip");
+        job.checkpoint()?;
+        let zip_output = scratch.0.join("output.zip");
+        crate::core::zip_local::create_zip_from_files(
+            zip_output.to_str().ok_or("remote_download_disk_error")?,
+            &entries,
+        ).map_err(|e| format!("remote_download_zip_error:{e}"))?;
+        zip_output
+    } else if let Some(spec) = &request.mux {
         let video = scratch.0.join("video.part");
         let audio = scratch.0.join("audio.part");
         http::download(&spec.video_url, &video, connections, job, request.referer.as_deref())?;

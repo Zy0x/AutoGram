@@ -30,4 +30,22 @@ describe('remote destination routing', () => {
     expect(upload).toHaveBeenCalledOnce();
     expect(startLocalDownloads).not.toHaveBeenCalled();
   });
+  it('dispatches a single zip pack request when zipUrls is provided', async () => {
+    const upload = vi.fn();
+    await dispatchRemoteDestination(['https://example.com/img0'], { id: 'me' }, {
+      storagePolicy: 'custom_disk',
+      customDiskPath: 'F:\\Downloads',
+      customFilename: 'Slideshow Pack.zip',
+      zipUrls: ['https://example.com/img0', 'https://example.com/img1'],
+      referers: ['https://example.com/post'],
+    }, upload);
+    expect(upload).not.toHaveBeenCalled();
+    expect(startLocalDownloads).toHaveBeenCalledWith([expect.objectContaining({
+      filename: 'Slideshow Pack.zip',
+      directory: 'F:\\Downloads',
+      connections: 6,
+      zipUrls: ['https://example.com/img0', 'https://example.com/img1'],
+      referer: 'https://example.com/post',
+    })]);
+  });
 });
