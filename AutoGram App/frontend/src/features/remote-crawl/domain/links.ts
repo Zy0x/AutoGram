@@ -1,4 +1,5 @@
-import { CRAWL_KINDS, DEFAULT_CRAWL_REQUEST, MAX_LINKS, type CrawlEntry, type CrawlKind, type CrawlRecord, type CrawlRequest } from './types';
+import { CRAWL_KINDS, MAX_LINKS, type CrawlEntry, type CrawlKind, type CrawlRecord, type CrawlRequest } from './types';
+import { normalizeNetwork, normalizeRules } from './options';
 
 /** Renderer validation is only an early guard; native transport checks DNS and redirects. */
 export function canonicalCrawlUrl(raw: string): string {
@@ -111,12 +112,11 @@ export function validateCrawlRequest(input: CrawlRequest): CrawlRequest {
     if (typeof value !== 'string' || value.length > 500) throw new Error('invalid_options');
   }
   if (typeof input.sameOrigin !== 'boolean' || input.respectRobots !== true) throw new Error('invalid_options');
-  const network = { ...DEFAULT_CRAWL_REQUEST.network!, ...(input.network || {}) };
-  if (network.userAgent.length > 512 || network.timeoutSeconds < 5 || network.timeoutSeconds > 120
-    || network.retries < 0 || network.retries > 5 || Object.keys(network.headers).length > 5) throw new Error('invalid_options');
-  const rules = (input.rules || []).slice(0, 16);
-  if (rules.length !== (input.rules || []).length || rules.some(rule => !rule.selector || !rule.attribute || !CRAWL_KINDS.includes(rule.kind))) throw new Error('invalid_options');
-  return { ...input, network, rules, directoryMode: input.directoryMode === true, seeds: [...new Set(input.seeds.map(canonicalCrawlUrl))] };
+  const network = normalizeNetwork(input.network);
+  const rules = normalizeRules(input.rules);
+  const seeds = [...new Set(input.seeds.map(canonicalCrawlUrl))];
+  if (input.directoryMode && seeds.some(seed => !new URL(seed).pathname.endsWith('/'))) throw new Error('directory_seed');
+  return { ...input, network, rules, directoryMode: input.directoryMode === true, seeds };
 }
 
 export function exportCrawlerProject(record: CrawlRecord): string {

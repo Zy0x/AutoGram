@@ -1,3 +1,17 @@
+## v4.1.15 — Remote Crawler Queue and Boundary Reliability
+
+### 1. Native Crawl Scheduling & Discovery
+- **FIFO crawl queue**: Native jobs now wait in a bounded queue, preserve queued state through pause/resume, and keep cancellation from releasing the next job early. This allows several crawl batches to be submitted while the modal remains usable.
+- **BFS result integrity**: The final page wave is processed completely, queued URLs are deduplicated at insertion time, and page/result limits are reported only when work was actually truncated. This prevents missing media at the end of a crawl.
+- **Directory and robots policy**: Directory mode requires a directory seed and scopes both traversal and emitted results to that directory. Robots matching now uses the configured User-Agent.
+
+### 2. Network Controls & Result Workspace
+- **Validated request controls**: HTTP proxy, supported request headers, timeout, retries, and declarative extraction rules are exposed in the crawler modal with bounded validation before native work starts.
+- **Persistent result edits**: Filename overrides and removed URLs survive native polling and rescan refreshes, keeping review decisions stable while a crawl is running.
+
+### 3. Verification & Localization
+- **Quality coverage**: Added native regression coverage for queue ordering, cancellation, directory boundaries, page limits, robots identity, proxy/header validation, and declarative rules. Indonesian and English crawler locales remain key-parity compliant.
+
 ## v4.1.14 — Remote Upload Modal & Stream Selector Light Theme High Contrast Overhaul
 
 ### 1. UI/UX Polish & Visual Legibility

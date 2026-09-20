@@ -72,9 +72,11 @@ function addRecord(record: CrawlRecord) {
   }
   publish({ records, activeId: record.id, error: null });
 }
-function applySnapshot(record: CrawlRecord, snapshot: CrawlSnapshot): CrawlRecord {
+export function applySnapshot(record: CrawlRecord, snapshot: CrawlSnapshot): CrawlRecord {
   const baseline = new Set(record.baselineUrls);
-  const entries = snapshot.entries.filter(entry => !baseline.has(entry.url));
+  const removed = new Set(record.removedUrls || []);
+  const entries = snapshot.entries.filter(entry => !baseline.has(entry.url) && !removed.has(entry.url))
+    .map(entry => ({ ...entry, filename: record.filenameOverrides?.[entry.url] || entry.filename }));
   const previous = new Set(record.snapshot.entries.map(entry => entry.id));
   const selected = new Set(record.selected);
   for (const entry of entries) if (!previous.has(entry.id)) selected.add(entry.id);
@@ -123,6 +125,8 @@ export function renameCrawlerEntry(id: string, entryId: string, filename: string
   if (!safeName) return;
   publish({ records: state.records.map(record => record.id !== id ? record : {
     ...record,
+    filenameOverrides: { ...record.filenameOverrides, ...Object.fromEntries(record.snapshot.entries
+      .filter(entry => entry.id === entryId).map(entry => [entry.url, safeName])) },
     snapshot: { ...record.snapshot, entries: record.snapshot.entries.map(entry => entry.id === entryId
       ? { ...entry, filename: safeName } : entry) },
   }) });
@@ -132,6 +136,8 @@ export function removeCrawlerEntries(id: string, entryIds: string[]): void {
   const remove = new Set(entryIds);
   publish({ records: state.records.map(record => record.id !== id ? record : {
     ...record,
+    removedUrls: [...new Set([...(record.removedUrls || []), ...record.snapshot.entries
+      .filter(entry => remove.has(entry.id)).map(entry => entry.url)])],
     snapshot: { ...record.snapshot, entries: record.snapshot.entries.filter(entry => !remove.has(entry.id)) },
     selected: record.selected.filter(entryId => !remove.has(entryId)),
   }) });

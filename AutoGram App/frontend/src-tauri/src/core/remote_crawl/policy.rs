@@ -26,6 +26,9 @@ impl Policy {
             scraper::Selector::parse(&request.selector).map_err(|_| "remote_crawl_invalid_selector")?;
         }
         let seeds = request.seeds.iter().map(|s| parse_url(s)).collect::<Result<Vec<_>, _>>()?;
+        if request.directory_mode && seeds.iter().any(|seed| !seed.path().ends_with('/')) {
+            return Err("remote_crawl_directory_seed".into());
+        }
         let include = pattern(&request.include_pattern)?;
         let exclude = pattern(&request.exclude_pattern)?;
         Ok(Self { request, seeds, include, exclude })
@@ -33,7 +36,7 @@ impl Policy {
     pub fn in_scope(&self, url: &Url) -> bool {
         if self.request.directory_mode {
             return self.seeds.iter().any(|seed| seed.origin() == url.origin()
-                && url.path().starts_with(&directory_prefix(seed)));
+                && url.path().starts_with(seed.path()));
         }
         !self.request.same_origin || self.seeds.iter().any(|s| s.origin() == url.origin())
     }
@@ -43,13 +46,10 @@ impl Policy {
         self.exclude.as_ref().is_some_and(|r| r.is_match(url.as_str()))
     }
     pub fn accepts(&self, url: &Url, kind: &str) -> bool {
-        !self.excluded(url) && self.include.as_ref().is_none_or(|r| r.is_match(url.as_str()))
+        (!self.request.directory_mode || self.in_scope(url))
+            && !self.excluded(url) && self.include.as_ref().is_none_or(|r| r.is_match(url.as_str()))
             && (self.request.kinds.is_empty() || self.request.kinds.iter().any(|k| k == kind))
     }
-}
-fn directory_prefix(seed: &Url) -> String {
-    if seed.path().ends_with('/') { seed.path().to_string() }
-    else { format!("{}/", seed.path().rsplit_once('/').map(|(p, _)| p).unwrap_or("")) }
 }
 fn pattern(value: &str) -> Result<Option<Regex>, String> {
     if value.is_empty() { return Ok(None); }

@@ -133,7 +133,7 @@ export function CrawlerWorkspace({ initialUrl, onClose, onUseLinks }: CrawlerWor
             <CrawlerSetup initialUrl={initialUrl} busy={busy} crawlActive={hasActive} onStart={start}
               onBatch={(name, entries) => { setFaultCode(null); setStatusKey(null); addLinkBatch(name, entries); setSetup(false); }} onError={reportError} /></>
             : <>
-              <CrawlerStatus record={record} busy={busy} hasActive={hasActive}
+              <CrawlerStatus record={record} busy={busy}
                 onControl={action => { void run(() => controlCrawl(record.id, action)); }}
                 onRescan={() => { if (record.request) void run(() => startCrawl(record.request!, record.name,
                   [...new Set([...record.baselineUrls, ...record.snapshot.entries.map(entry => entry.url)])], record.id)); }} />

@@ -49,7 +49,7 @@ impl NetworkOptions {
         if self.proxy_url.len() > 4096 || self.proxy_url.chars().any(char::is_control) { return Err(fail()); }
         let url = Url::parse(&self.proxy_url).map_err(|_| fail())?;
         if url.scheme() != "http" || !url.username().is_empty() || url.password().is_some()
-            || url.port().is_none() || url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
+            || url.host().is_none() || url.path() != "/" || url.query().is_some() || url.fragment().is_some() {
             return Err(fail());
         }
         let loopback = url.host_str().is_some_and(|h| h.trim_matches(['[', ']'])

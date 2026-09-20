@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight, Globe2, List, Braces, ShieldCheck } from 'lucide-react';
 import { CRAWL_KINDS, DEFAULT_CRAWL_REQUEST, MAX_LINKS, type CrawlEntry, type CrawlRequest } from '../domain/types';
 import { generatePattern, parseLinkText, validateCrawlRequest } from '../domain/links';
+import { parseHeaderText, parseRuleText } from '../domain/options';
+import { CrawlerNetworkFields } from './CrawlerNetworkFields';
 
 type Mode = 'website' | 'list' | 'pattern';
 interface Props {
@@ -22,6 +24,7 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
   const [inputs, setInputs] = useState({ website: initialUrl, list: initialUrl, pattern: '' });
   const [request, setRequest] = useState<CrawlRequest>({ ...DEFAULT_CRAWL_REQUEST, kinds: [...DEFAULT_CRAWL_REQUEST.kinds] });
   const [rulesText, setRulesText] = useState('');
+  const [headersText, setHeadersText] = useState('');
   const modes = [{ value: 'website', icon: Globe2 }, { value: 'list', icon: List }, { value: 'pattern', icon: Braces }] as const;
   const limits = [
     { key: 'maxDepth', min: 0, max: 8, step: 1 },
@@ -44,9 +47,10 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
         if (request.selector) document.createDocumentFragment().querySelector(request.selector);
         const seeds = parseLinkText(inputs.website).map(entry => entry.url);
         if (seeds.length > 32) throw new Error('invalid_seeds');
-        let rules = [];
-        if (rulesText.trim()) { try { rules = JSON.parse(rulesText); } catch { throw new Error('crawler.invalid_rules'); } }
-        await onStart(validateCrawlRequest({ ...request, seeds, rules, respectRobots: true }), batchName);
+        const rules = parseRuleText(rulesText);
+        for (const rule of rules) document.createDocumentFragment().querySelector(rule.selector);
+        const network = { ...DEFAULT_CRAWL_REQUEST.network!, ...request.network, headers: parseHeaderText(headersText) };
+        await onStart(validateCrawlRequest({ ...request, seeds, rules, network, respectRobots: true }), batchName);
       } else {
         const entries = mode === 'pattern' ? generatePattern(inputs.pattern) : parseLinkText(inputs.list);
         if (!entries.length) throw new Error('crawler.empty_input');
@@ -96,15 +100,10 @@ export function CrawlerSetup({ initialUrl = '', busy, crawlActive = false, onSta
         <label className="crawler-check"><input type="checkbox" checked={request.directoryMode === true}
           onChange={event => setRequest(current => ({ ...current, directoryMode: event.target.checked }))} />
           <span>{t('crawler.directoryMode')}</span></label>
-        <label className="crawler-field" htmlFor={`${id}-user-agent`}><span>{t('crawler.userAgent')}</span>
-          <input id={`${id}-user-agent`} value={request.network?.userAgent || ''} maxLength={512}
-            onChange={event => setRequest(current => ({ ...current, network: { ...DEFAULT_CRAWL_REQUEST.network!, ...current.network, userAgent: event.target.value } }))} /></label>
-        <label className="crawler-field" htmlFor={`${id}-proxy`}><span>{t('crawler.proxy')}</span>
-          <input id={`${id}-proxy`} value={request.network?.proxyUrl || ''} placeholder={t('crawler.placeholder_proxy')}
-            onChange={event => setRequest(current => ({ ...current, network: { ...DEFAULT_CRAWL_REQUEST.network!, ...current.network, proxyUrl: event.target.value } }))} /></label>
-        <label className="crawler-field" htmlFor={`${id}-rules`}><span>{t('crawler.rules')}</span>
-          <textarea id={`${id}-rules`} value={rulesText} rows={3} maxLength={12000} spellCheck={false}
-            placeholder={t('crawler.placeholder_rules')} onChange={event => setRulesText(event.target.value)} /></label>
+        <p className="crawler-hint">{t('crawler.directory_hint')}</p>
+        <CrawlerNetworkFields value={request.network} headersText={headersText} rulesText={rulesText}
+          onChange={network => setRequest(current => ({ ...current, network }))}
+          onHeadersChange={setHeadersText} onRulesChange={setRulesText} />
         <fieldset className="crawler-kinds"><legend>{t('crawler.kinds')}</legend>
           {CRAWL_KINDS.map(kind => <label className="crawler-check" key={kind}>
             <input type="checkbox" checked={request.kinds.includes(kind)} onChange={event => setRequest(current => ({

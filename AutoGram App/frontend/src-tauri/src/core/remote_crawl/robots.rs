@@ -19,7 +19,7 @@ impl Rules {
 // Basic robots policy: most-specific user-agent group, longest allow/disallow
 // match (allow wins ties), * and terminal $, and crawl-delay. No claim of full
 // RFC 9309 octet normalization; malformed/oversized rules fail closed.
-pub fn parse(text: &str) -> Rules {
+pub fn parse(text: &str, user_agent: &str) -> Rules {
     #[derive(Default)]
     struct Group { agents: Vec<String>, lines: Vec<(String, String)> }
     let mut groups = Vec::new();
@@ -40,8 +40,9 @@ pub fn parse(text: &str) -> Rules {
         }
     }
     groups.push(group);
+    let user_agent = user_agent.to_ascii_lowercase();
     let score = |g: &Group| g.agents.iter().filter_map(|a| {
-        if a == "*" { Some(0) } else if !a.is_empty() && "autogramcrawler".contains(a.as_str()) { Some(a.len()) } else { None }
+        if a == "*" { Some(0) } else if !a.is_empty() && user_agent.contains(a.as_str()) { Some(a.len()) } else { None }
     }).max();
     let best = groups.iter().filter_map(&score).max();
     let mut rules = Rules::default();

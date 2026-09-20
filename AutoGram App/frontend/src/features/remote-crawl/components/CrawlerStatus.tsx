@@ -5,12 +5,11 @@ import { isCrawlActive, type CrawlRecord } from '../domain/types';
 interface Props {
   record: CrawlRecord;
   busy: boolean;
-  hasActive: boolean;
   onControl: (action: 'pause' | 'resume' | 'cancel') => void;
   onRescan: () => void;
 }
 
-export function CrawlerStatus({ record, busy, hasActive, onControl, onRescan }: Props) {
+export function CrawlerStatus({ record, busy, onControl, onRescan }: Props) {
   const { t } = useTranslation();
   const { snapshot } = record;
   const active = record.native && isCrawlActive(snapshot.state);
@@ -25,7 +24,7 @@ export function CrawlerStatus({ record, busy, hasActive, onControl, onRescan }: 
             {t(snapshot.state === 'paused' ? 'crawler.resume' : 'crawler.pause')}</button>
           <button type="button" disabled={busy} onClick={() => onControl('cancel')}><Square size={16} aria-hidden="true" />{t('crawler.cancel')}</button>
         </>}
-        {record.request && !active && <button type="button" disabled={busy || hasActive} onClick={onRescan}>
+        {record.request && !active && <button type="button" disabled={busy} onClick={onRescan}>
           <RefreshCw size={16} aria-hidden="true" />{t('crawler.rescan')}</button>}
       </div>
     </div>
@@ -37,6 +36,7 @@ export function CrawlerStatus({ record, busy, hasActive, onControl, onRescan }: 
     {record.request && !active && <p className="crawler-hint">{t('crawler.rescan_hint')}</p>}
     {!!record.baselineUrls.length && <p className="crawler-hint">{t('crawler.delta_hint')}</p>}
     {snapshot.state === 'limited' && <p className="crawler-notice">{t('crawler.limited_hint')}</p>}
-    {(snapshot.error || snapshot.state === 'failed') && <p role="alert" className="crawler-notice crawler-error">{t('crawler.crawl_failed')}</p>}
+    {(snapshot.error || snapshot.state === 'failed') && <p role="alert" className="crawler-notice crawler-error">
+      {t(snapshot.state === 'interrupted' ? 'crawler.restart_required' : 'crawler.crawl_failed')}</p>}
   </section>;
 }

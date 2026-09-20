@@ -48,6 +48,8 @@ export interface CrawlRecord {
   snapshot: CrawlSnapshot;
   selected: string[];
   baselineUrls: string[];
+  filenameOverrides?: Record<string, string>;
+  removedUrls?: string[];
 }
 export const DEFAULT_CRAWL_REQUEST: CrawlRequest = {
   seeds: [], maxDepth: 2, maxPages: 100, maxResults: 1000, delayMs: 500,

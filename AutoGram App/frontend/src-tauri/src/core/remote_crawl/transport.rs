@@ -24,7 +24,10 @@ impl Network {
         options.validate()?;
         let proxy = if options.proxy_url.is_empty() { None } else { Some(options.proxy()?) };
         let loopback_proxy = proxy.as_ref().and_then(|p| {
-            p.socket_addrs(|| None).ok().and_then(|a| a.first().copied()).filter(|a| a.ip().is_loopback())
+            // Only an explicitly entered loopback IP can opt into this exception.
+            // A public hostname resolving to localhost must still be rejected.
+            let ip = p.host_str()?.trim_matches(['[', ']']).parse::<std::net::IpAddr>().ok()?;
+            ip.is_loopback().then(|| SocketAddr::new(ip, p.port_or_known_default().unwrap_or(80)))
         });
         let timeout = Duration::from_secs(options.timeout_seconds);
         let mut builder = ureq::AgentBuilder::new().redirects(0).try_proxy_from_env(false)
@@ -149,7 +152,7 @@ impl<'a> Session<'a> {
                 let mime = response.mime.split(';').next().unwrap_or("").trim();
                 if !matches!(mime, "text/plain" | "text/x-robots") { return Ok(Rules::deny_all()); }
                 let body = read_text(response, robots::ROBOTS_BYTES, self.job)?;
-                return Ok(robots::parse(&body));
+                return Ok(robots::parse(&body, &self.policy.request.network.user_agent));
             }
             Ok(Rules::deny_all())
         })();

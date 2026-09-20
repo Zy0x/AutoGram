@@ -11,12 +11,14 @@ pub struct Job {
     // A cancelled snapshot is immediately visible, but the registry remains busy
     // until its workers exit. Otherwise repeated start/cancel could leak threads.
     pub active: std::sync::atomic::AtomicBool,
+    started: std::sync::atomic::AtomicBool,
 }
 impl Job {
     pub fn new(id: String) -> Self {
         Self { snapshot: Mutex::new(Snapshot { id, state: "running".into(), pages_visited: 0,
             pages_queued: 0, errors: 0, duplicates: 0, blocked: 0, entries: Vec::new(), error: None }),
-            wake: Condvar::new(), active: std::sync::atomic::AtomicBool::new(true) }
+            wake: Condvar::new(), active: std::sync::atomic::AtomicBool::new(true),
+            started: std::sync::atomic::AtomicBool::new(false) }
     }
     pub fn update(&self, f: impl FnOnce(&mut Snapshot)) { f(&mut lock(&self.snapshot)); }
     pub fn checkpoint(&self) -> Result<(), String> {
@@ -42,7 +44,12 @@ impl Job {
         if !matches!(action, "pause" | "resume" | "cancel") { return Err("remote_crawl_invalid_action".into()); }
         let mut snapshot = lock(&self.snapshot);
         if terminal(&snapshot.state) { return Ok(()); }
-        snapshot.state = match action { "pause" => "paused", "resume" => "running", _ => "cancelled" }.into();
+        snapshot.state = match action {
+            "pause" => "paused",
+            "resume" if !self.started.load(std::sync::atomic::Ordering::Acquire) => "queued",
+            "resume" => "running",
+            _ => "cancelled",
+        }.into();
         if action == "cancel" { snapshot.pages_queued = 0; }
         self.wake.notify_all();
         Ok(())
@@ -91,7 +98,7 @@ pub fn registry() -> &'static Mutex<Registry> {
 pub fn start(policy: Policy) -> Result<Snapshot, String> {
     use std::sync::atomic::{AtomicU64, Ordering};
     static SEQUENCE: AtomicU64 = AtomicU64::new(0);
-    let id = format!("crawl-{}-{}", std::process::id(), SEQUENCE.fetch_add(1, Ordering::Relaxed));
+    let id = format!("crawl-{}-{}-{}", std::process::id(), chrono::Utc::now().timestamp_micros(), SEQUENCE.fetch_add(1, Ordering::Relaxed));
     let job = Arc::new(Job::new(id));
     job.update(|s| s.state = "queued".into());
     let snapshot = lock(&job.snapshot).clone();
@@ -105,7 +112,11 @@ pub fn start(policy: Policy) -> Result<Snapshot, String> {
                 if lock(registry()).is_turn(&worker) { break; }
                 worker.wait(Duration::from_millis(100))?;
             }
-            worker.update(|s| { if s.state == "queued" { s.state = "running".into(); } });
+            worker.update(|s| {
+                worker.started.store(true, Ordering::Release);
+                if s.state == "queued" { s.state = "running".into(); }
+            });
+            worker.checkpoint()?;
             let network = Network::new(&policy)?;
             engine::run(&policy, &worker, &network)
         }));
