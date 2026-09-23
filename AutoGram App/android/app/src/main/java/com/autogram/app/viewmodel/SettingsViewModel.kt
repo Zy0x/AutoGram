@@ -2,6 +2,9 @@ package com.autogram.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,9 +33,9 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val accounts = getAccountScores()
-                val hardware = getHardwareProfiles()
-                val storage = getStorageBudget()
+                val (accounts, hardware, storage) = withContext(Dispatchers.IO) {
+                    Triple(getAccountScores(), getHardwareProfiles(), getStorageBudget())
+                }
                 _uiState.update {
                     it.copy(
                         accounts = accounts,
@@ -41,8 +44,12 @@ class SettingsViewModel : ViewModel() {
                         isLoading = false
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: LinkageError) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "native_runtime_unavailable") }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "settings_load_failed") }
             }
         }
     }

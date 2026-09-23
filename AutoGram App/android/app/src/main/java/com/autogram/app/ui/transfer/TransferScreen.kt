@@ -30,9 +30,22 @@ import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramStatusDot
+import com.autogram.app.ui.components.AutoGramErrorState
 import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.ui.drive.formatFileSize
 import com.autogram.app.viewmodel.*
+
+private fun formatEta(seconds: Long): String {
+    val safeSeconds = seconds.coerceAtLeast(0L)
+    val hours = safeSeconds / 3600
+    val minutes = (safeSeconds % 3600) / 60
+    val remaining = safeSeconds % 60
+    return if (hours > 0) {
+        "%02d:%02d:%02d".format(hours, minutes, remaining)
+    } else {
+        "%02d:%02d".format(minutes, remaining)
+    }
+}
 
 @Composable
 fun TransferScreen(
@@ -46,8 +59,10 @@ fun TransferScreen(
         modifier = modifier,
         onTogglePause = { task -> viewModel.togglePause(task) },
         onPauseAll = { viewModel.pauseAll() },
+        onCancel = { task -> viewModel.cancel(task) },
         onCancelAll = { viewModel.cancelAll() },
-        onClearCompleted = { viewModel.clearCompleted() }
+        onClearCompleted = { viewModel.clearCompleted() },
+        onRetry = { viewModel.loadTransfers() }
     )
 }
 
@@ -57,8 +72,10 @@ fun TransferScreenContent(
     modifier: Modifier = Modifier,
     onTogglePause: (TransferTaskItem) -> Unit = {},
     onPauseAll: () -> Unit = {},
+    onCancel: (TransferTaskItem) -> Unit = {},
     onCancelAll: () -> Unit = {},
-    onClearCompleted: () -> Unit = {}
+    onClearCompleted: () -> Unit = {},
+    onRetry: () -> Unit = {}
 ) {
     var selectedDetailTask by remember { mutableStateOf<TransferTaskItem?>(null) }
     var isCaptionModalOpen by remember { mutableStateOf(false) }
@@ -110,7 +127,7 @@ fun TransferScreenContent(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Transfer Menu",
+                                contentDescription = stringResource(R.string.transfer_menu),
                                 tint = TextSecondaryDark,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -171,6 +188,20 @@ fun TransferScreenContent(
                     }
                 }
 
+                state.errorCode?.let { code ->
+                    AutoGramErrorState(
+                        message = stringResource(
+                            if (code.endsWith("unsupported")) {
+                                R.string.transfer_operation_unavailable
+                            } else {
+                                R.string.transfer_operation_failed
+                            }
+                        ),
+                        onRetry = onRetry,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+
                 // =========================================================================
                 // 2. SCROLLABLE CONTENT (Master Telemetry + Active Queue + History)
                 // =========================================================================
@@ -195,13 +226,13 @@ fun TransferScreenContent(
                     // ACTIVE QUEUE SECTION (Cards matching Stitch HTML 1:1)
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            state.activeTasks.forEach { task ->
-                                StitchQueueItemCard(
-                                    task = task,
-                                    onClick = { selectedDetailTask = task },
-                                    onTogglePause = { onTogglePause(task) },
-                                    onCancel = { /* Cancel single task */ }
-                                )
+                                state.activeTasks.forEach { task ->
+                                    StitchQueueItemCard(
+                                        task = task,
+                                        onClick = { selectedDetailTask = task },
+                                        onTogglePause = { onTogglePause(task) },
+                                        onCancel = { onCancel(task) }
+                                    )
                             }
                         }
                     }
@@ -273,7 +304,7 @@ fun MasterTelemetryCardStitch(
     onCancelAll: () -> Unit
 ) {
     val animatedProgress by animateFloatAsState(
-        targetValue = if (aggregateProgress > 0f) aggregateProgress else 0.748f,
+        targetValue = aggregateProgress,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "TelemetryProgress"
     )
@@ -342,7 +373,7 @@ fun MasterTelemetryCardStitch(
                     // Speed & Destination Text
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (totalSpeedBps > 0) "${formatFileSize(totalSpeedBps)}/s" else "18.6 MB/s",
+                            text = if (totalSpeedBps > 0) "${formatFileSize(totalSpeedBps)}/s" else stringResource(R.string.transfer_idle),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold,
@@ -351,7 +382,7 @@ fun MasterTelemetryCardStitch(
                             color = MutedIceCyan
                         )
                         Text(
-                            text = "Ke Saved Messages",
+                            text = stringResource(R.string.transfer_saved_messages),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                             color = TextSecondaryDark
                         )
@@ -393,12 +424,12 @@ fun MasterTelemetryCardStitch(
                 ) {
                     StitchMetricBox(
                         label = stringResource(R.string.transfer_metrics_speed),
-                        value = "24.2 MB/s",
+                        value = if (totalSpeedBps > 0) "${formatFileSize(totalSpeedBps)}/s" else stringResource(R.string.transfer_idle),
                         modifier = Modifier.weight(1f)
                     )
                     StitchMetricBox(
                         label = stringResource(R.string.transfer_metrics_eta),
-                        value = "00:34",
+                        value = stringResource(R.string.transfer_not_available),
                         valueColor = GoldAccent,
                         modifier = Modifier.weight(1f)
                     )
@@ -410,18 +441,18 @@ fun MasterTelemetryCardStitch(
                 ) {
                     StitchMetricBox(
                         label = stringResource(R.string.transfer_metrics_progress),
-                        value = "1.45 / 1.94 GB",
+                        value = stringResource(R.string.transfer_not_available),
                         modifier = Modifier.weight(1f)
                     )
                     StitchMetricBox(
                         label = stringResource(R.string.transfer_metrics_status),
-                        value = "3/5 Selesai",
+                        value = stringResource(R.string.transfer_active_count, activeCount),
                         valueColor = MutedIceCyan,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
-                // 3 Action Controls (Jeda Semua, Batalkan, Buka Folder)
+                // Only expose actions backed by the Android transfer service.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -490,37 +521,6 @@ fun MasterTelemetryCardStitch(
                         }
                     }
 
-                    // Buka Folder
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { /* Open Folder */ },
-                        shape = RoundedCornerShape(8.dp),
-                        color = GoldAccent.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 7.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FolderOpen,
-                                contentDescription = null,
-                                tint = GoldAccent,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.transfer_action_open_folder),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = GoldAccent
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -578,7 +578,11 @@ fun StitchQueueItemCard(
     val isZip = task.fileName.endsWith(".zip", ignoreCase = true) || task.fileName.endsWith(".rar", ignoreCase = true)
     val isAudio = task.fileName.endsWith(".wav", ignoreCase = true) || task.fileName.endsWith(".mp3", ignoreCase = true)
 
-    val progress = if (task.totalBytes > 0) (task.transferredBytes.toFloat() / task.totalBytes.toFloat()).coerceIn(0f, 1f) else 0.82f
+    val progress = if (task.totalBytes > 0) {
+        (task.transferredBytes.toFloat() / task.totalBytes.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
     val percentInt = (progress * 100).toInt()
 
     Surface(
@@ -636,12 +640,7 @@ fun StitchQueueItemCard(
                     color = Color(0x26FFFFFF),
                     border = BorderStroke(0.5.dp, Color(0x1AFFFFFF))
                 ) {
-                    val extText = when {
-                        isZip -> "MKV ➔ MP4"
-                        isVideo -> "MP4"
-                        isAudio -> "WAV"
-                        else -> "DOC"
-                    }
+                    val extText = task.fileName.substringAfterLast('.', "FILE").uppercase()
                     Text(
                         text = extText,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
@@ -691,7 +690,7 @@ fun StitchQueueItemCard(
                                 border = BorderStroke(0.5.dp, MutedIceCyan.copy(alpha = 0.25f))
                             ) {
                                 Text(
-                                    text = "4K · 04:12",
+                                    text = task.stage.ifBlank { task.status }.take(22),
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                     color = MutedIceCyan
@@ -704,7 +703,7 @@ fun StitchQueueItemCard(
                                 border = BorderStroke(0.5.dp, GoldAccent.copy(alpha = 0.25f))
                             ) {
                                 Text(
-                                    text = "NVENC H.265 · 60 FPS",
+                                    text = task.stage.ifBlank { task.status }.take(22),
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp),
                                     color = GoldAccent
@@ -717,7 +716,7 @@ fun StitchQueueItemCard(
                                 border = BorderStroke(0.5.dp, Color(0x26FFFFFF))
                             ) {
                                 Text(
-                                    text = "Menunggu Antrean",
+                                    text = task.status.ifBlank { stringResource(R.string.transfer_not_available) },
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                     color = TextSecondaryDark
@@ -726,7 +725,11 @@ fun StitchQueueItemCard(
                         }
 
                         Text(
-                            text = if (isZip) "Transcoding · 2.4x Speed" else "12.8 MB/s · ETA 00:18",
+                        text = buildString {
+                            if (task.speedBps > 0) append(formatFileSize(task.speedBps)).append("/s")
+                            else append(stringResource(R.string.transfer_idle))
+                            if (task.etaSecs > 0) append(" · ").append(formatEta(task.etaSecs))
+                        },
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 9.5.sp,
                                 fontFamily = FontFamily.Monospace
@@ -778,7 +781,9 @@ fun StitchQueueItemCard(
                 ) {
                     Icon(
                         imageVector = if (task.paused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = "Pause/Resume",
+                        contentDescription = stringResource(
+                            if (task.paused) R.string.transfer_action_resume else R.string.transfer_action_pause
+                        ),
                         tint = TextSecondaryDark,
                         modifier = Modifier.size(15.dp)
                     )
@@ -790,7 +795,7 @@ fun StitchQueueItemCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cancel",
+                        contentDescription = stringResource(R.string.transfer_action_cancel),
                         tint = SoftCoral,
                         modifier = Modifier.size(15.dp)
                     )

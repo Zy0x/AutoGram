@@ -1,67 +1,24 @@
 package com.autogram.app.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import uniffi.autogram_android_bridge.BridgeTransferTask
-import uniffi.autogram_android_bridge.upsertTransferTask
 
-data class RemoteUrlUiState(
-    val url: String = "",
-    val host: String? = null,
-    val isSubmitting: Boolean = false,
-    val result: RemoteQueueResult? = null
-)
-
-enum class RemoteQueueResult { INVALID, QUEUED, FAILED }
+data class RemoteUrlUiState(val url: String = "", val host: String? = null)
 
 class RemoteUrlViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(RemoteUrlUiState())
-    val uiState: StateFlow<RemoteUrlUiState> = _uiState.asStateFlow()
+    private val mutableState = MutableStateFlow(RemoteUrlUiState())
+    val uiState: StateFlow<RemoteUrlUiState> = mutableState.asStateFlow()
 
     fun acceptSharedUrl(url: String) = updateUrl(url)
 
     fun updateUrl(value: String) {
-        val clean = value.trim()
-        _uiState.update { it.copy(url = value, host = RemoteUrlValidator.parseHost(clean), result = null) }
+        val bounded = value.take(8193)
+        mutableState.update { it.copy(url = bounded, host = RemoteUrlValidator.parseHost(bounded.trim())) }
     }
 
-    fun queue() {
-        val clean = _uiState.value.url.trim()
-        val host = RemoteUrlValidator.parseHost(clean)
-        if (host == null) {
-            _uiState.update { it.copy(result = RemoteQueueResult.INVALID) }
-            return
-        }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, result = null) }
-            try {
-                upsertTransferTask(
-                    BridgeTransferTask(
-                        id = "",
-                        fileName = host,
-                        sourceIdentity = clean,
-                        destinationIdentity = "remote-link",
-                        stage = "resolve",
-                        status = "queued",
-                        totalBytes = 0uL,
-                        processedBytes = 0uL,
-                        speedBps = 0uL,
-                        etaSeconds = 0uL,
-                        attempt = 0u,
-                        paused = false,
-                        errorCode = null,
-                        updatedMs = System.currentTimeMillis()
-                    )
-                )
-                _uiState.update { it.copy(isSubmitting = false, result = RemoteQueueResult.QUEUED) }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isSubmitting = false, result = RemoteQueueResult.FAILED) }
-            }
-        }
-    }
+    // Do not store an unconsumed remote-link task or signed URL in the Telegram queue.
+    // Direct downloads are owned exclusively by features/localdownload.
 }

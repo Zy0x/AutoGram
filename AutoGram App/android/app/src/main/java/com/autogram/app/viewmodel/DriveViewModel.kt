@@ -3,13 +3,13 @@ package com.autogram.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uniffi.autogram_android_bridge.deleteDriveItems
 import uniffi.autogram_android_bridge.listDriveItems
 
 data class DriveFileItem(
@@ -52,6 +52,7 @@ class DriveViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveUiState())
     val uiState: StateFlow<DriveUiState> = _uiState.asStateFlow()
+    private var loadGeneration = 0L
 
     init {
         loadFolder("/")
@@ -59,37 +60,22 @@ class DriveViewModel : ViewModel() {
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
         _uiState.update {
-            it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId, currentPath = "/")
+            it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
+                currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "")
         }
         loadFolder("/")
     }
 
     fun loadFolder(path: String) {
+        val generation = ++loadGeneration
+        val scope = _uiState.value
+        _uiState.update {
+            it.copy(isLoading = true, currentPath = path, selectedIds = emptySet(), errorCode = null)
+        }
         viewModelScope.launch {
-            val scope = _uiState.value
-            _uiState.update {
-                it.copy(isLoading = true, currentPath = path, selectedIds = emptySet(), errorCode = null)
-            }
             if (scope.sessionId.isBlank() || scope.peerId.isBlank()) {
-                // Populate default mockup items matching the user's reference design
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        items = listOf(
-                            DriveFileItem("1", "Untitled_Media", 2048000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
-                            DriveFileItem("2", "Processing...", 1024000, "application/octet-stream", false, 1700000000000, telegramCategory = "file"),
-                            DriveFileItem("3", "Promo_B_Roll.mp4", 15400000, "video/mp4", false, 1700000000000, telegramCategory = "video"),
-                            DriveFileItem("4", "Master_Archive.zip", 894000000, "application/zip", false, 1700000000000, telegramCategory = "archive"),
-                            DriveFileItem("5", "Logo_Draft.jpg", 1400000, "image/jpeg", false, 1700000000000, telegramCategory = "photo"),
-                            DriveFileItem("6", "Interview_Audio", 8200000, "audio/mp3", false, 1700000000000, telegramCategory = "audio"),
-                            DriveFileItem("7", "Project_Config.json", 14500, "application/json", false, 1700000000000, telegramCategory = "file"),
-                            DriveFileItem("8", "Archived_2023", 14, "folder", true, 1700000000000, telegramCategory = "folder"),
-                            DriveFileItem("9", "B-Roll_02.mp4", 24000000, "video/mp4", false, 1700000000000, telegramCategory = "video"),
-                            DriveFileItem("10", "Brand_Doc.pdf", 4500000, "application/pdf", false, 1700000000000, telegramCategory = "document"),
-                            DriveFileItem("11", "Audio_Stem.mp3", 6700000, "audio/mp3", false, 1700000000000, telegramCategory = "audio"),
-                            DriveFileItem("12", "Production_Vault", 38, "folder", true, 1700000000000, telegramCategory = "folder")
-                        )
-                    )
+                if (generation == loadGeneration) _uiState.update {
+                    it.copy(isLoading = false, items = emptyList())
                 }
                 return@launch
             }
@@ -98,6 +84,7 @@ class DriveViewModel : ViewModel() {
                     listDriveItems(scope.sessionId, scope.peerId, scope.topicId, path)
                 }
             }.onSuccess { records ->
+                if (generation != loadGeneration) return@onSuccess
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -105,7 +92,7 @@ class DriveViewModel : ViewModel() {
                             DriveFileItem(
                                 id = record.id,
                                 name = record.name,
-                                size = record.size.toLong(),
+                                size = record.size.coerceAtMost(Long.MAX_VALUE.toULong()).toLong(),
                                 mimeType = record.mimeType,
                                 isFolder = record.isFolder,
                                 modifiedMs = record.modifiedMs,
@@ -117,8 +104,10 @@ class DriveViewModel : ViewModel() {
                     )
                 }
             }.onFailure { error ->
+                if (error is CancellationException) throw error
+                if (generation != loadGeneration) return@onFailure
                 _uiState.update {
-                    it.copy(isLoading = false, items = emptyList(), errorCode = error.message ?: "drive_load_failed")
+                    it.copy(isLoading = false, items = emptyList(), errorCode = "drive_load_failed")
                 }
             }
         }
@@ -165,16 +154,10 @@ class DriveViewModel : ViewModel() {
     }
 
     fun deleteSelected() {
-        viewModelScope.launch {
-            val ids = _uiState.value.selectedIds.toList()
-            if (ids.isEmpty()) return@launch
-            runCatching {
-                withContext(Dispatchers.IO) { deleteDriveItems(ids) }
-            }.onSuccess {
-                loadFolder(_uiState.value.currentPath)
-            }.onFailure { error ->
-                _uiState.update { it.copy(errorCode = error.message ?: "drive_delete_failed") }
-            }
+        // The existing bridge only removes local rows by unscoped ID, not Telegram files.
+        // Keep records intact until scoped cloud deletion is available.
+        if (_uiState.value.selectedIds.isNotEmpty()) {
+            _uiState.update { it.copy(errorCode = "drive_delete_unavailable") }
         }
     }
 }

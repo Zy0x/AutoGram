@@ -2,34 +2,29 @@ package com.autogram.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autogram.app.transfer.domain.TransferErrors
+import com.autogram.app.transfer.domain.TransferRequestGuard
+import com.autogram.app.transfer.domain.summarizeTransfers
+import com.autogram.app.transfer.service.NativeTransferService
+import com.autogram.app.transfer.service.TransferResult
+import com.autogram.app.transfer.service.TransferService
+import com.autogram.app.transfer.service.updateTransferPause
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import uniffi.autogram_android_bridge.listTransferTasks
-import uniffi.autogram_android_bridge.setTransferPaused
 
-data class TransferTaskItem(
-    val id: String,
-    val fileName: String,
-    val totalBytes: Long,
-    val transferredBytes: Long,
-    val speedBps: Long,
-    val etaSecs: Long,
-    val status: String,
-    val stage: String,
-    val paused: Boolean,
-    val attempt: Int,
-    val sourceIdentity: String,
-    val destinationIdentity: String,
-    val errorCode: String? = null
-)
+// Keep existing screen imports compatible with the domain-owned record.
+typealias TransferTaskItem = com.autogram.app.transfer.domain.TransferTaskItem
 
 data class TransferUiState(
-    val isSmartRateActive: Boolean = true,
+    val isSmartRateActive: Boolean = false,
     val activeTasks: List<TransferTaskItem> = emptyList(),
     val completedTasks: List<TransferTaskItem> = emptyList(),
     val aggregateProgress: Float = 0f,
@@ -37,166 +32,85 @@ data class TransferUiState(
     val errorCode: String? = null
 )
 
-class TransferViewModel : ViewModel() {
-
+class TransferViewModel(
+    private val transfers: TransferService = NativeTransferService()
+) : ViewModel() {
     private val _uiState = MutableStateFlow(TransferUiState())
     val uiState: StateFlow<TransferUiState> = _uiState.asStateFlow()
+
+    // Serialize native reads/writes; only the latest request may publish a snapshot.
+    private val operations = Mutex()
+    private val requests = TransferRequestGuard()
+    private var errorRevision = 0L
 
     init {
         loadTransfers()
     }
 
-    fun loadTransfers() {
+    fun loadTransfers() = request(TransferErrors.LOAD_FAILED) {
+        TransferResult(transfers.list())
+    }
+
+    fun pauseAll() = changePaused(paused = true)
+
+    fun resumeAll() = changePaused(paused = false)
+
+    fun togglePause(task: TransferTaskItem) = changePaused(taskId = task.id)
+
+    fun cancel(@Suppress("UNUSED_PARAMETER") task: TransferTaskItem) =
+        reportUnsupported(TransferErrors.CANCEL_UNSUPPORTED)
+
+    fun cancelAll() = reportUnsupported(TransferErrors.CANCEL_UNSUPPORTED)
+
+    fun clearCompleted() = reportUnsupported(TransferErrors.CLEAR_UNSUPPORTED)
+
+    private fun reportUnsupported(code: String) {
+        // An in-flight refresh must not erase this actionable capability error.
+        errorRevision += 1
+        _uiState.update { it.copy(errorCode = code) }
+    }
+
+    private fun changePaused(paused: Boolean? = null, taskId: String? = null) =
+        request(TransferErrors.PAUSE_FAILED) {
+            updateTransferPause(transfers, paused, taskId)
+        }
+
+    private fun request(failureCode: String, operation: suspend () -> TransferResult) {
+        val requestId = requests.next()
+        val revision = ++errorRevision
+        _uiState.update { it.copy(isLoading = true, errorCode = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorCode = null) }
-            runCatching {
-                withContext(Dispatchers.IO) { listTransferTasks() }
-            }.onSuccess { records ->
-                val tasks = if (records.isNotEmpty()) {
-                    records.map { task ->
-                        TransferTaskItem(
-                            id = task.id,
-                            fileName = task.fileName,
-                            totalBytes = task.totalBytes.toLong(),
-                            transferredBytes = task.processedBytes.toLong(),
-                            speedBps = task.speedBps.toLong(),
-                            etaSecs = task.etaSeconds.toLong(),
-                            status = task.status,
-                            stage = task.stage,
-                            paused = task.paused,
-                            attempt = task.attempt.toInt(),
-                            sourceIdentity = task.sourceIdentity,
-                            destinationIdentity = task.destinationIdentity,
-                            errorCode = task.errorCode
-                        )
-                    }
-                } else {
-                    listOf(
-                        TransferTaskItem(
-                            id = "t-1",
-                            fileName = "Project_Nova_Master_4K.mp4",
-                            totalBytes = 840_000_000L,
-                            transferredBytes = 688_800_000L,
-                            speedBps = 12_800_000L,
-                            etaSecs = 18L,
-                            status = "uploading",
-                            stage = "upload",
-                            paused = false,
-                            attempt = 1,
-                            sourceIdentity = "Local Storage",
-                            destinationIdentity = "Saved Messages (#Media)"
-                        ),
-                        TransferTaskItem(
-                            id = "t-2",
-                            fileName = "Raw_Production_Footage.zip",
-                            totalBytes = 680_000_000L,
-                            transferredBytes = 353_600_000L,
-                            speedBps = 5_800_000L,
-                            etaSecs = 56L,
-                            status = "reencoding",
-                            stage = "reencode",
-                            paused = false,
-                            attempt = 1,
-                            sourceIdentity = "Local Storage",
-                            destinationIdentity = "Cloud Storage"
-                        ),
-                        TransferTaskItem(
-                            id = "t-3",
-                            fileName = "Podcast_Raw_Ep42.wav",
-                            totalBytes = 210_000_000L,
-                            transferredBytes = 0L,
-                            speedBps = 0L,
-                            etaSecs = 0L,
-                            status = "queued",
-                            stage = "scan",
-                            paused = false,
-                            attempt = 1,
-                            sourceIdentity = "Local Storage",
-                            destinationIdentity = "Channel VIP"
-                        ),
-                        TransferTaskItem(
-                            id = "t-4",
-                            fileName = "Keynote_Deck_2024.pdf",
-                            totalBytes = 14_200_000L,
-                            transferredBytes = 14_200_000L,
-                            speedBps = 0L,
-                            etaSecs = 0L,
-                            status = "completed",
-                            stage = "commit",
-                            paused = false,
-                            attempt = 1,
-                            sourceIdentity = "Local Storage",
-                            destinationIdentity = "Saved Messages"
-                        ),
-                        TransferTaskItem(
-                            id = "t-5",
-                            fileName = "Hero_Background.png",
-                            totalBytes = 4_100_000L,
-                            transferredBytes = 4_100_000L,
-                            speedBps = 0L,
-                            etaSecs = 0L,
-                            status = "skipped",
-                            stage = "verify",
-                            paused = false,
-                            attempt = 1,
-                            sourceIdentity = "Local Storage",
-                            destinationIdentity = "Saved Messages"
-                        )
-                    )
+            try {
+                val result = operations.withLock {
+                    withContext(Dispatchers.IO) { operation() }
                 }
-                val terminal = setOf("completed", "failed", "cancelled", "skipped")
-                val active = tasks.filterNot { it.status.lowercase() in terminal }
-                val completed = tasks.filter { it.status.lowercase() in terminal }
-                val total = tasks.sumOf { it.totalBytes.coerceAtLeast(0) }
-                val processed = tasks.sumOf { it.transferredBytes.coerceIn(0, it.totalBytes.coerceAtLeast(0)) }
-                val aggregate = if (total > 0) processed.toFloat() / total.toFloat() else 0.748f
+                if (!requests.isCurrent(requestId)) return@launch
+                val summary = result.tasks?.let(::summarizeTransfers)
                 _uiState.update {
                     it.copy(
-                        activeTasks = active,
-                        completedTasks = completed,
-                        aggregateProgress = aggregate.coerceIn(0f, 1f),
-                        isLoading = false
+                        activeTasks = summary?.activeTasks ?: it.activeTasks,
+                        completedTasks = summary?.completedTasks ?: it.completedTasks,
+                        aggregateProgress = summary?.aggregateProgress ?: it.aggregateProgress,
+                        errorCode = if (revision == errorRevision) result.errorCode else it.errorCode
                     )
                 }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoading = false, errorCode = error.message ?: "transfer_load_failed") }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: LinkageError) {
+                publishError(requestId, revision, TransferErrors.NATIVE_UNAVAILABLE)
+            } catch (_: Exception) {
+                publishError(requestId, revision, failureCode)
+            } finally {
+                if (requests.isCurrent(requestId)) {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
             }
         }
     }
 
-    fun pauseAll() {
-        _uiState.update { current ->
-            current.copy(activeTasks = current.activeTasks.map { it.copy(paused = true) })
-        }
-    }
-
-    fun resumeAll() {
-        _uiState.update { current ->
-            current.copy(activeTasks = current.activeTasks.map { it.copy(paused = false) })
-        }
-    }
-
-    fun cancelAll() {
-        _uiState.update { current ->
-            current.copy(activeTasks = emptyList())
-        }
-    }
-
-    fun clearCompleted() {
-        _uiState.update { current ->
-            current.copy(completedTasks = emptyList())
-        }
-    }
-
-    fun togglePause(task: TransferTaskItem) {
-        viewModelScope.launch {
-            runCatching {
-                withContext(Dispatchers.IO) { setTransferPaused(task.id, !task.paused) }
-            }.onSuccess { changed ->
-                if (changed) loadTransfers()
-            }.onFailure { error ->
-                _uiState.update { it.copy(errorCode = error.message ?: "transfer_pause_failed") }
-            }
+    private fun publishError(requestId: Long, revision: Long, code: String) {
+        if (requests.isCurrent(requestId) && revision == errorRevision) {
+            _uiState.update { it.copy(errorCode = code) }
         }
     }
 }

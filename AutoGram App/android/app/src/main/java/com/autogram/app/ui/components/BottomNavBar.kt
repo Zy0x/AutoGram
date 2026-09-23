@@ -1,15 +1,10 @@
 package com.autogram.app.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,78 +24,61 @@ fun BottomNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(bottom = 12.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp)) {
         Surface(
             modifier = Modifier
-                .wrapContentWidth()
-                .height(52.dp)
-                .clip(CircleShape),
-            shape = CircleShape,
-            color = Color(0xF00B1C30),
-            border = BorderStroke(1.dp, Color(0x26FFFFFF)),
-            shadowElevation = 20.dp
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
+            color = SurfaceDock.copy(alpha = 0.97f),
+            border = BorderStroke(1.dp, Color(0x2AFFFFFF)),
+            shadowElevation = 18.dp
         ) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .fillMaxWidth()
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Screen.items.forEach { screen ->
-                    val isSelected = currentRoute == screen.route
-
-                    // Icon selection matching the design in user screenshot
-                    val screenIcon = when (screen) {
-                        is Screen.Drive -> Icons.Default.Cloud
-                        is Screen.Transfer -> Icons.Default.SwapHoriz
-                        is Screen.Forwarder -> Icons.Default.SwapVert
-                        is Screen.Studio -> Icons.Default.Palette
-                        is Screen.Remote -> Icons.Default.Sensors
-                        is Screen.Settings -> Icons.Default.Settings
+                Screen.primaryItems.forEach { screen ->
+                    val isSelected = when {
+                        currentRoute == screen.route -> true
+                        currentRoute !in Screen.primaryItems.map { it.route } && screen is Screen.Tools -> true
+                        else -> false
                     }
-
-                    if (isSelected) {
-                        Surface(
-                            modifier = Modifier.size(38.dp),
-                            shape = CircleShape,
-                            color = GoldAccent.copy(alpha = 0.18f),
-                            border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f))
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = screenIcon,
-                                    contentDescription = stringResource(screen.titleRes),
-                                    tint = GoldAccent,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = rememberRipple(bounded = true, color = GoldAccent)
-                                ) {
-                                    if (currentRoute != screen.route) {
-                                        navigatePrimary(navController, screen.route, currentRoute)
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 64.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = true, color = NeonCyan)
+                            ) {
+                                navigatePrimary(navController, screen.route, currentRoute)
+                            },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) NeonCyan.copy(alpha = 0.14f) else Color.Transparent,
+                        border = if (isSelected) BorderStroke(1.dp, NeonCyan.copy(alpha = 0.28f)) else null
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = screenIcon,
+                                imageVector = screen.icon,
                                 contentDescription = stringResource(screen.titleRes),
-                                tint = TextSecondaryDark,
-                                modifier = Modifier.size(20.dp)
+                                tint = if (isSelected) NeonCyan else TextSecondaryDark,
+                                modifier = Modifier.size(21.dp)
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = stringResource(screen.titleRes),
+                                color = if (isSelected) TextPrimaryDark else TextSecondaryDark,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 2
                             )
                         }
                     }

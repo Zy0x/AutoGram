@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">AutoGram</string>
     <string name="app_tagline">Telegram Cloud Suite</string>
+    <string name="nav_home">Beranda</string>
     <string name="nav_drive">Drive</string>
     <string name="nav_transfer">Transfer</string>
     <string name="nav_forwarder">Forwarder</string>
@@ -12,7 +13,59 @@
     <string name="forwarder_security_note">Job berjalan memakai session Telegram terenkripsi di perangkat; credential tidak dikirim ke cloud.</string>
     <string name="nav_studio">Studio</string>
     <string name="nav_remote">Remote</string>
+    <string name="nav_tools">Alat</string>
+    <string name="nav_accounts">Akun</string>
+    <string name="nav_jobs">Jobs</string>
+    <string name="nav_automation">Otomasi</string>
+    <string name="nav_statistics">Statistik</string>
+    <string name="nav_profiles">Profil</string>
+    <string name="nav_sync">Sinkronisasi</string>
+    <string name="nav_api_setup">API Setup</string>
     <string name="nav_settings">Pengaturan</string>
+
+    <string name="tools_hub_title">Semua alat</string>
+    <string name="tools_subtitle">Akses lengkap fitur AutoGram desktop dari Android.</string>
+    <string name="tools_workspace">Workspace desktop</string>
+    <string name="tools_workspace_meta">Route dan modul native siap digunakan di perangkat ini.</string>
+    <string name="tools_open_module">Buka modul</string>
+    <string name="tools_module_ready">Native surface tersedia</string>
+    <string name="tools_module_meta">Data dan proses mengikuti runtime AutoGram.</string>
+    <string name="module_action_open_settings">Buka pengaturan</string>
+    <string name="module_action_open_drive">Buka Drive</string>
+    <string name="module_action_open_transfers">Buka transfer</string>
+    <string name="module_action_open_remote">Buka Remote Link</string>
+    <string name="module_action_open_studio">Buka Studio</string>
+    <string name="module_action_manage">Kelola sekarang</string>
+    <string name="module_accounts_subtitle">Kelola sesi Telegram, login, dan identitas akun.</string>
+    <string name="module_jobs_subtitle">Pantau job, checkpoint, retry, dan pemulihan.</string>
+    <string name="module_automation_subtitle">Jadwalkan pekerjaan berulang dan aturan forward.</string>
+    <string name="module_statistics_subtitle">Pantau performa transfer, storage, dan kesehatan akun.</string>
+    <string name="module_profiles_subtitle">Kelola profil transfer dan preset pemrosesan media.</string>
+    <string name="module_sync_subtitle">Sinkronisasi state drive dan cache antar perangkat.</string>
+    <string name="module_api_subtitle">Konfigurasi API Telegram dan koneksi runtime.</string>
+
+    <string name="home_greeting">Selamat malam</string>
+    <string name="home_subtitle">Semua media Telegram Anda, dalam satu ruang kerja.</string>
+    <string name="home_connected">Terhubung</string>
+    <string name="home_account_name">Akun utama</string>
+    <string name="home_account_status">Telegram aktif</string>
+    <string name="home_action_add_link">Tambah tautan</string>
+    <string name="home_action_open_drive">Buka Drive</string>
+    <string name="home_action_open_transfers">Lihat transfer</string>
+    <string name="home_action_open_remote">Remote Link</string>
+    <string name="home_action_open_studio">Buka Studio</string>
+    <string name="home_action_forwarder">Forwarder</string>
+    <string name="home_quick_actions">Akses cepat</string>
+    <string name="home_active_transfers">Transfer aktif</string>
+    <string name="home_active_transfers_meta">2 sedang berjalan · 5 menunggu</string>
+    <string name="home_active_transfers_file">Video kursus.mp4</string>
+    <string name="home_active_transfers_progress">68%</string>
+    <string name="home_recent_files">Berkas terbaru</string>
+    <string name="home_recent_files_meta">Diperbarui beberapa menit lalu</string>
+    <string name="home_drive_title">Telegram Drive</string>
+    <string name="home_drive_subtitle">Penyimpanan cloud Anda</string>
+    <string name="home_drive_usage">12.4 GB dari 50 GB</string>
+    <string name="home_drive_free">37.6 GB tersedia</string>
 
     <string name="drive_search_placeholder">Cari berkas atau folder…</string>
     <string name="drive_title">Cloud Drives</string>
@@ -85,6 +138,10 @@
     <string name="transfer_stage_value">Tahap: %1$s</string>
     <string name="transfer_action_pause">Jeda transfer</string>
     <string name="transfer_action_resume">Lanjutkan transfer</string>
+    <string name="transfer_action_cancel">Batalkan transfer</string>
+    <string name="transfer_idle">Tidak aktif</string>
+    <string name="transfer_not_available">—</string>
+    <string name="transfer_menu">Menu transfer</string>
 
     <string name="settings_title">Pengaturan AutoGram</string>
     <string name="settings_subtitle">Perangkat, penyimpanan, akun, dan preferensi aplikasi.</string>

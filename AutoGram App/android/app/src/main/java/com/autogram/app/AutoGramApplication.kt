@@ -2,6 +2,7 @@ package com.autogram.app
 
 import android.app.Application
 import android.util.Log
+import com.autogram.app.runtime.NativeRuntime
 import uniffi.autogram_android_bridge.*
 
 class AutoGramApplication : Application() {
@@ -14,16 +15,21 @@ class AutoGramApplication : Application() {
     private fun initRustCore() {
         try {
             val storageDir = filesDir.absolutePath
-            val result = initAutogramRuntime(storageDir)
-            Log.i("AutoGramApp", "Rust Core initialized: $result")
+            initAutogramRuntime(storageDir)
 
             registerEventListener(object : AutoGramEventListener {
                 override fun onEvent(eventType: String, payloadJson: String) {
-                    Log.d("AutoGramBridge", "Event received: [$eventType] -> $payloadJson")
+                    NativeRuntime.invalidate(eventType)
                 }
             })
+            NativeRuntime.ready()
+        } catch (_: LinkageError) {
+            // An APK missing the ABI library must still open and report unavailable features.
+            NativeRuntime.unavailable()
+            Log.e("AutoGramApp", "Native runtime library unavailable")
         } catch (e: Exception) {
-            Log.e("AutoGramApp", "Failed to initialize Rust Core: ${e.message}", e)
+            NativeRuntime.unavailable()
+            Log.e("AutoGramApp", "Native runtime initialization failed")
         }
     }
 }

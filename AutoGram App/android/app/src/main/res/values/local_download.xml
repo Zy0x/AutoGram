@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="local_download_title">Unduhan lokal</string>
+    <string name="local_download_scope">Unduh tautan HTTPS ke file media, PDF, atau arsip yang didukung. Tanpa pengurai situs, HLS/DASH, pemilihan format, login, atau jeda manual. Server harus mengizinkan pemeriksaan HEAD dan memberikan tipe file yang sesuai.</string>
+    <string name="local_download_storage">Disimpan di folder Downloads eksternal khusus aplikasi ini, bukan Downloads publik. File dihapus saat aplikasi dicopot. Android mengelola unduhan, termasuk melalui data seluler. AutoGram hanya menyimpan ID unduhan dan nama file; Android menyimpan URL sumber untuk menjalankan unduhan.</string>
+    <string name="local_download_url">URL file HTTPS langsung</string>
+    <string name="local_download_url_hint">https://example.com/file.mp4</string>
+    <string name="local_download_start">Unduh file</string>
+    <string name="local_download_working">Memproses…</string>
+    <string name="local_download_history">Di perangkat ini</string>
+    <string name="local_download_limits">Maksimal %1$d unduhan aktif dan %2$d catatan tersimpan. Hapus catatan yang selesai untuk menyediakan ruang.</string>
+    <string name="local_download_loading">Memeriksa unduhan Android…</string>
+    <string name="local_download_empty">Belum ada unduhan lokal.</string>
+    <string name="local_download_cancel_title">Batalkan unduhan ini?</string>
+    <string name="local_download_cancel_body">Hentikan %1$s dan hapus file parsialnya? Kirim ulang tautan untuk memulai lagi. Jika Android sudah melaporkan unduhan selesai, file akan dipertahankan.</string>
+    <string name="local_download_cancel_confirm">Batalkan unduhan</string>
+    <string name="local_download_keep">Lanjutkan unduhan</string>
+    <string name="local_download_cancel">Batalkan</string>
+    <string name="local_download_open">Buka file</string>
+    <string name="local_download_forget">Hapus dari daftar</string>
+    <string name="local_download_forget_hint">Menghapus catatan tidak menghapus file. Layar ini tidak dapat memulihkan catatan yang dihapus.</string>
+    <string name="local_download_progress_known">%1$s dari %2$s</string>
+    <string name="local_download_progress_unknown">%1$s diunduh · ukuran total belum diketahui</string>
+    <string name="local_download_failure_code">Kode kesalahan unduhan Android: %1$d</string>
+    <string name="local_download_pending">Dalam antrean Android</string>
+    <string name="local_download_running">Mengunduh</string>
+    <string name="local_download_waiting_network">Menunggu jaringan atau Wi-Fi</string>
+    <string name="local_download_waiting_retry">Android menunggu untuk mencoba lagi</string>
+    <string name="local_download_waiting_system">Menunggu Android melanjutkan unduhan</string>
+    <string name="local_download_completed">Selesai</string>
+    <string name="local_download_failed">Unduhan gagal. Kirim tautan langsung yang baru untuk mencoba lagi.</string>
+    <string name="local_download_missing">Catatan unduhan tidak lagi tersedia di Android.</string>
+    <string name="local_download_unsupported">Respons unduhan memiliki tipe file yang tidak didukung atau tidak diketahui. File tidak dapat dibuka di sini.</string>
+    <string name="local_download_error_url">Gunakan URL file HTTPS langsung lengkap dengan ekstensi yang didukung. Halaman tontonan, manifes, kredensial, fragmen, dan tautan tanpa ekstensi tidak didukung.</string>
+    <string name="local_download_error_probe">Tautan belum dapat diverifikasi. Periksa koneksi dan gunakan tautan baru dari server yang mendukung permintaan HEAD.</string>
+    <string name="local_download_error_redirect">Server mengalihkan pemeriksaan. Gunakan URL file HTTPS langsung yang menjadi tujuan akhir.</string>
+    <string name="local_download_error_content">Server mengembalikan HTML, manifes, tipe yang tidak diketahui, atau tipe yang tidak sesuai dengan ekstensi file.</string>
+    <string name="local_download_error_storage">Folder Downloads eksternal khusus aplikasi tidak tersedia atau tidak dapat ditulisi.</string>
+    <string name="local_download_error_service">Pengelola Unduhan Android tidak tersedia. Pastikan layanan tersebut aktif di perangkat ini.</string>
+    <string name="local_download_error_start">Android tidak dapat memulai unduhan. Periksa ruang penyimpanan dan Pengelola Unduhan.</string>
+    <string name="local_download_error_persist">Catatan unduhan tidak dapat disimpan. Periksa penyimpanan perangkat lalu coba lagi.</string>
+    <string name="local_download_error_refresh">Status unduhan Android belum dapat diperbarui. Pemeriksaan akan diulang selama layar ini aktif.</string>
+    <string name="local_download_error_cancel">Unduhan belum dapat dibatalkan. Memperbarui statusnya dari Android.</string>
+    <string name="local_download_error_open">File tidak dapat dibuka. File mungkin sudah dihapus atau belum ada aplikasi yang sesuai.</string>
+    <string name="local_download_error_limit">Batas unduhan tercapai. Tunggu unduhan aktif atau hapus catatan yang selesai dari daftar.</string>
+</resources>

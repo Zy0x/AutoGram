@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="local_download_title">Local downloads</string>
+    <string name="local_download_scope">Download an HTTPS link to a supported media file, PDF, or archive. No website resolution, HLS/DASH, format selection, login, or manual pause. Servers must allow a HEAD check and provide a matching file type.</string>
+    <string name="local_download_storage">Saved in this app’s external Downloads folder, not public Downloads. Files are removed when the app is uninstalled. Android manages transfers, including on mobile data. AutoGram stores only download IDs and filenames; Android retains the source URL to perform the download.</string>
+    <string name="local_download_url">Direct HTTPS file URL</string>
+    <string name="local_download_url_hint">https://example.com/file.mp4</string>
+    <string name="local_download_start">Download file</string>
+    <string name="local_download_working">Working…</string>
+    <string name="local_download_history">On this device</string>
+    <string name="local_download_limits">Up to %1$d active downloads and %2$d saved records. Remove finished records to make room.</string>
+    <string name="local_download_loading">Checking Android downloads…</string>
+    <string name="local_download_empty">No local downloads yet.</string>
+    <string name="local_download_cancel_title">Cancel this download?</string>
+    <string name="local_download_cancel_body">Stop %1$s and remove its partial file? You will need to submit the link again to restart. If Android has already reported completion, the file will be kept.</string>
+    <string name="local_download_cancel_confirm">Cancel download</string>
+    <string name="local_download_keep">Keep downloading</string>
+    <string name="local_download_cancel">Cancel</string>
+    <string name="local_download_open">Open file</string>
+    <string name="local_download_forget">Remove from list</string>
+    <string name="local_download_forget_hint">Removing a record keeps its file. This screen cannot restore a removed record.</string>
+    <string name="local_download_progress_known">%1$s of %2$s</string>
+    <string name="local_download_progress_unknown">%1$s downloaded · total size unknown</string>
+    <string name="local_download_failure_code">Android download error: %1$d</string>
+    <string name="local_download_pending">Queued by Android</string>
+    <string name="local_download_running">Downloading</string>
+    <string name="local_download_waiting_network">Waiting for network or Wi-Fi</string>
+    <string name="local_download_waiting_retry">Android is waiting to retry</string>
+    <string name="local_download_waiting_system">Waiting for Android to continue</string>
+    <string name="local_download_completed">Completed</string>
+    <string name="local_download_failed">Download failed. Submit a fresh direct link to retry.</string>
+    <string name="local_download_missing">Download record is no longer available in Android.</string>
+    <string name="local_download_unsupported">The downloaded response has an unsupported or unknown file type. Opening is disabled.</string>
+    <string name="local_download_error_url">Use a complete HTTPS direct-file URL with a supported extension. Watch pages, manifests, credentials, fragments, and extensionless links are not supported.</string>
+    <string name="local_download_error_probe">Could not verify this link. Check your connection and use a fresh link whose server supports HEAD requests.</string>
+    <string name="local_download_error_redirect">The server redirected the check. Use the final direct HTTPS file URL.</string>
+    <string name="local_download_error_content">The server returned HTML, a manifest, an unknown type, or a type that does not match the file extension.</string>
+    <string name="local_download_error_storage">The app’s external Downloads folder is unavailable or not writable.</string>
+    <string name="local_download_error_service">Android Download Manager is unavailable. Check that it is enabled on this device.</string>
+    <string name="local_download_error_start">Android could not start this download. Check available storage and Download Manager.</string>
+    <string name="local_download_error_persist">Could not save the download record. Check device storage and try again.</string>
+    <string name="local_download_error_refresh">Could not refresh Android download status. Status will be checked again while this screen is active.</string>
+    <string name="local_download_error_cancel">Could not cancel this download. Refreshing its Android status.</string>
+    <string name="local_download_error_open">Could not open this file. It may have been removed, or no compatible app is installed.</string>
+    <string name="local_download_error_limit">Download limit reached. Wait for active downloads or remove finished records from the list.</string>
+</resources>

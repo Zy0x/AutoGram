@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +30,7 @@ import com.autogram.app.theme.*
 internal fun navigatePrimary(navController: NavController, route: String, currentRoute: String?) {
     if (currentRoute == route) return
     navController.navigate(route) {
-        popUpTo(Screen.Drive.route) { saveState = true }
+        popUpTo(Screen.Home.route) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
@@ -55,8 +57,8 @@ fun AutoGramNavigationRail(navController: NavController) {
                 )
             }
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Screen.items.forEach { screen ->
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(Screen.items) { screen ->
                     val selected = currentRoute == screen.route
                     NavigationRailItem(
                         selected = selected,
@@ -81,7 +83,6 @@ fun AutoGramNavigationRail(navController: NavController) {
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }
