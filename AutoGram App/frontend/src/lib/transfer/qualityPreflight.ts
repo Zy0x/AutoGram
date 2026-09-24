@@ -107,3 +107,58 @@ export function getPreflightOversizeCount(report: QualityPreflightReport): numbe
   if (!isCloud || !report.effectiveMaxBytes) return 0;
   return report.items.filter((it) => it.sourceSize > report.effectiveMaxBytes).length;
 }
+
+export function createOptimisticPreflightReport(
+  paths: string[],
+  names: string[],
+  sourceSizes?: number[],
+  thumbnailUrls?: string[],
+  remoteEngineMode?: RemoteEngineMode,
+  storagePolicy?: StorageLocalPolicy
+): QualityPreflightReport {
+  const items: QualityPreflightItem[] = paths.map((p, idx) => {
+    const name = (names && names[idx]) ? names[idx] : p.split(/[/\\]/).pop() || p;
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const isVid = ['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', '3gp', 'flv', 'ts'].includes(ext);
+    const isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'avif'].includes(ext);
+    const isAud = ['mp3', 'm4a', 'flac', 'wav', 'ogg', 'opus', 'aac'].includes(ext);
+    const category = isVid ? 'mp4_video' : isImg ? (ext === 'png' ? 'png_image' : 'jpeg_image') : isAud ? 'audio' : 'unknown_binary';
+    const payloadClass: PreflightPayload = isVid || (isImg && ext !== 'png') ? 'native_visual' : isAud ? 'audio_group' : 'document_group';
+    return {
+      index: idx,
+      sourcePath: p,
+      sourceName: name,
+      sourceSize: (sourceSizes && sourceSizes[idx]) ? sourceSizes[idx] : 0,
+      category,
+      transform: 'pass_through',
+      payloadClass,
+      asDocument: payloadClass === 'document_group',
+      albumEligible: payloadClass === 'native_visual' || payloadClass === 'audio_group',
+      reasonCode: 'optimistic_preflight_loading',
+      warnings: [],
+      rejectedAlternatives: [],
+      requiresConfirmation: false,
+      duplicateMatch: null,
+      thumbnailUrl: (thumbnailUrls && thumbnailUrls[idx]) || null,
+    };
+  });
+
+  return {
+    schemaVersion: 4,
+    capabilitySource: 'cached',
+    engineMode: 'v4',
+    effectiveMaxBytes: 2147483648,
+    captionLimit: 1024,
+    captionLengthUtf16: 0,
+    captionSummaryIndex: null,
+    captionWarnings: [],
+    hasBlockingIssues: false,
+    items,
+    requiresConfirmation: false,
+    albumIsProvisional: false,
+    albumGridSize: 10,
+    plannedAlbumSizes: [],
+    remoteEngineMode: remoteEngineMode || 'auto',
+    storagePolicy: storagePolicy || 'telegram',
+  };
+}

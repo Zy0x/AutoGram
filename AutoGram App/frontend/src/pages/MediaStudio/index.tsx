@@ -16,6 +16,7 @@ import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTra
 import type { SubMenuCategory } from '../../components/drive/Transfers/transferSettingsSearchRegistry';
 import { TelegramMessagePreviewModal } from '../../components/drive/Modals/TelegramMessagePreviewModal';
 import {
+  createOptimisticPreflightReport,
   runQualityPreflight,
   type PreflightReviewDecision,
   type QualityPreflightReport,
@@ -6848,7 +6849,18 @@ function MediaDriveDesktop({
         remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
         storagePolicy: opts?.storagePolicy || 'telegram',
       };
-      const report = await runQualityPreflight({
+      // Instant Preflight: Mount dialog immediately with optimistic shell (< 16ms)
+      const optimisticReport = createOptimisticPreflightReport(
+        cleanPaths,
+        names,
+        opts?.sourceSizes,
+        opts?.thumbnailUrls,
+        opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+        opts?.storagePolicy || 'telegram'
+      );
+      const preflightDecisionPromise = reviewPreflight(optimisticReport);
+
+      const reportPromise = runQualityPreflight({
         session: creds.session,
         apiId: Number(creds.apiId) || 0,
         apiHash: creds.apiHash,
@@ -6874,21 +6886,36 @@ function MediaDriveDesktop({
         imageTranscodeScope: transferSettings.imageTranscodeScope,
         albumPacking: transferSettings.albumPacking,
       });
-      const enrichedReport: QualityPreflightReport = {
-        ...report,
-        remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
-        storagePolicy: opts?.storagePolicy || 'telegram',
-        items: report.items.map((item, idx) => ({
-          ...item,
-          sourceName: (names && names[idx]) ? names[idx] : item.sourceName,
-          sourceSize: (opts?.sourceSizes && opts.sourceSizes[idx]) ? opts.sourceSizes[idx] : item.sourceSize,
-          thumbnailUrl: item.thumbnailUrl || (opts?.thumbnailUrls && opts.thumbnailUrls[idx]) || null,
-        })),
-      };
-      const decision = await reviewPreflight(enrichedReport);
+
+      // Seamlessly enrich the existing preflight dialog as soon as Rust completes
+      reportPromise
+        .then((report) => {
+          const enrichedReport: QualityPreflightReport = {
+            ...report,
+            remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
+            storagePolicy: opts?.storagePolicy || 'telegram',
+            items: report.items.map((item, idx) => ({
+              ...item,
+              sourceName: (names && names[idx]) ? names[idx] : item.sourceName,
+              sourceSize: (opts?.sourceSizes && opts.sourceSizes[idx]) ? opts.sourceSizes[idx] : item.sourceSize,
+              thumbnailUrl: item.thumbnailUrl || (opts?.thumbnailUrls && opts.thumbnailUrls[idx]) || null,
+            })),
+          };
+          setPreflightReport(enrichedReport);
+        })
+        .catch((enrichErr) => {
+          console.warn('[AutoGram] Quality preflight enrichment warning:', enrichErr);
+        });
+
+      const decision = await preflightDecisionPromise;
       if (!decision.approved) {
         setStatusText(String(t('drive.preflight_cancelled')));
         return false;
+      }
+      try {
+        await reportPromise;
+      } catch {
+        /* proceed */
       }
       const skippedPaths = new Set(decision.skippedPaths);
       const retainedIndexes = cleanPaths

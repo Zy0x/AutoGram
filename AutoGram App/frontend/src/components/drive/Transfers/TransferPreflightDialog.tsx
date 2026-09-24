@@ -737,7 +737,11 @@ export function TransferPreflightDialog({
 
   useEffect(() => {
     if (report) {
-      setChoices(defaultDuplicateChoices(report));
+      setChoices((prev) => {
+        const nextDefaults = defaultDuplicateChoices(report);
+        if (Object.keys(prev).length === 0) return nextDefaults;
+        return { ...nextDefaults, ...prev };
+      });
       setIsConfirming(false);
     }
   }, [report]);
@@ -903,7 +907,28 @@ export function TransferPreflightDialog({
               <FileSearch size={18} aria-hidden />
             </div>
             <div className="td-preflight-head-text">
-              <h2 id="transfer-preflight-title">{t('drive.preflight_title')}</h2>
+              <h2 id="transfer-preflight-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>{t('drive.preflight_title')}</span>
+                {report.items.some((i) => i.reasonCode === 'optimistic_preflight_loading') && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.72rem',
+                      fontWeight: 500,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: '#60a5fa',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                    }}
+                  >
+                    <Loader2 size={11} className="animate-spin" aria-hidden />
+                    <span>{t('drive.preflight_running')}</span>
+                  </span>
+                )}
+              </h2>
               <p>{t('drive.preflight_review_help')}</p>
             </div>
           </div>

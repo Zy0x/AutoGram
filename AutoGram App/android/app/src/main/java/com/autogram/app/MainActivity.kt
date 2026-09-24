@@ -31,6 +31,7 @@ import com.autogram.app.runtime.NativeRuntime
 import com.autogram.app.features.localdownload.LocalDownloadScreen
 import com.autogram.app.ui.components.AutoGramNavigationRail
 import com.autogram.app.ui.components.BottomNavBar
+import com.autogram.app.ui.accounts.AccountsScreen
 import com.autogram.app.ui.drive.DriveScreen
 import com.autogram.app.ui.home.HomeScreen
 import com.autogram.app.ui.remote.RemoteUrlScreen
@@ -42,6 +43,7 @@ import com.autogram.app.ui.tools.NativeModuleScreen
 import com.autogram.app.ui.tools.ToolsScreen
 import com.autogram.app.ui.tools.nativeModuleSpec
 import com.autogram.app.viewmodel.DriveViewModel
+import com.autogram.app.viewmodel.AccountsViewModel
 import com.autogram.app.viewmodel.RemoteUrlViewModel
 import com.autogram.app.viewmodel.SettingsViewModel
 import com.autogram.app.viewmodel.TransferViewModel
@@ -80,9 +82,11 @@ class MainActivity : ComponentActivity() {
 fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit = {}) {
     val navController = rememberNavController()
     val driveViewModel: DriveViewModel = viewModel()
+    val accountsViewModel: AccountsViewModel = viewModel()
     val transferViewModel: TransferViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val remoteUrlViewModel: RemoteUrlViewModel = viewModel()
+    val remoteState by remoteUrlViewModel.uiState.collectAsState()
     val driveState by driveViewModel.uiState.collectAsState()
     val transferState by transferViewModel.uiState.collectAsState()
     val runtimeStatus by NativeRuntime.status.collectAsState()
@@ -143,13 +147,13 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                         })
                     }
                     composable(Screen.LocalDownloads.route) {
-                        LocalDownloadScreen(initialUrl = remoteUrlViewModel.uiState.value.url)
+                        LocalDownloadScreen(initialUrl = remoteState.url)
                     }
                     composable(Screen.Tools.route) {
                         ToolsScreen(navController = navController)
                     }
                     composable(Screen.Accounts.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Accounts))
+                        AccountsScreen(viewModel = accountsViewModel)
                     }
                     composable(Screen.Jobs.route) {
                         NativeModuleScreen(navController, nativeModuleSpec(Screen.Jobs))

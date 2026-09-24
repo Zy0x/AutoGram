@@ -59,6 +59,13 @@ pub struct AccountCapabilityResult {
     pub max_file_size: u64,
 }
 
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct BridgeSessionSummary {
+    pub name: String,
+    pub status: String,
+    pub source: String,
+}
+
 #[uniffi::export(callback_interface)]
 pub trait AutoGramEventListener: Send + Sync {
     fn on_event(&self, event_type: String, payload_json: String);
@@ -209,6 +216,57 @@ pub fn get_runtime_status() -> Result<BridgeRuntimeStatus, AutoGramBridgeError> 
         database_path: path.to_string_lossy().into_owned(),
         schema_version: 2,
     })
+}
+
+/// Offline session inventory only. It never opens a session, contacts Telegram,
+/// or returns credentials. Authorization remains a separate explicit operation.
+#[uniffi::export]
+pub fn list_session_summaries() -> Result<Vec<BridgeSessionSummary>, AutoGramBridgeError> {
+    let root = STORAGE_DIR
+        .read()
+        .as_ref()
+        .map(|path| path.join("sessions"))
+        .ok_or_else(|| AutoGramBridgeError::InternalError {
+            msg: "runtime_not_initialized".to_string(),
+        })?;
+    let mut names = std::collections::BTreeMap::<String, (bool, bool)>::new();
+    let entries = match std::fs::read_dir(&root) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => {
+            return Err(AutoGramBridgeError::InternalError {
+                msg: format!("session_inventory_failed:{error}"),
+            })
+        }
+    };
+    for entry in entries.flatten() {
+        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        if let Some(name) = file_name.strip_suffix(".grammers.json") {
+            if !name.is_empty() && !name.ends_with("_preview") {
+                names.entry(name.to_string()).or_default().0 = true;
+            }
+        } else if let Some(name) = file_name.strip_suffix(".session") {
+            if !name.is_empty() && !name.ends_with("_preview") {
+                names.entry(name.to_string()).or_default().1 = true;
+            }
+        }
+    }
+    Ok(names
+        .into_iter()
+        .map(|(name, (native, legacy))| BridgeSessionSummary {
+            name,
+            status: if native { "checking" } else { "migration_required" }.to_string(),
+            source: match (native, legacy) {
+                (true, true) => "grammers+migration_source",
+                (true, false) => "grammers",
+                (false, true) => "telethon_migration_source",
+                _ => "unknown",
+            }
+            .to_string(),
+        })
+        .collect())
 }
 
 #[uniffi::export]
@@ -622,6 +680,32 @@ mod tests {
             .expect("task persisted");
         assert!(task.paused);
         assert_eq!(task.status, "paused");
+
+        std::fs::remove_dir_all(&root).expect("remove isolated test directory");
+    }
+
+    #[test]
+    fn lists_only_safe_session_metadata_without_credentials() {
+        let root = std::env::current_dir()
+            .expect("bridge cwd")
+            .join("target")
+            .join("test-data")
+            .join(uuid::Uuid::new_v4().to_string());
+        let sessions = root.join("sessions");
+        std::fs::create_dir_all(&sessions).expect("sessions directory");
+        std::fs::write(sessions.join("Primary.grammers.json"), b"secret-session-payload")
+            .expect("native marker");
+        std::fs::write(sessions.join("Legacy.session"), b"legacy-payload")
+            .expect("legacy marker");
+        init_autogram_runtime(root.to_string_lossy().into_owned()).expect("runtime init");
+
+        let summaries = list_session_summaries().expect("session inventory");
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[0].name, "Legacy");
+        assert_eq!(summaries[0].status, "migration_required");
+        assert_eq!(summaries[1].name, "Primary");
+        assert_eq!(summaries[1].source, "grammers");
+        assert!(summaries.iter().all(|item| !item.name.contains("secret")));
 
         std::fs::remove_dir_all(&root).expect("remove isolated test directory");
     }

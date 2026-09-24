@@ -4,6 +4,39 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val nativeAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val nativeLibraries = nativeAbis.map { abi ->
+    abi to layout.projectDirectory.file("src/main/jniLibs/$abi/libautogram_android_bridge.so").asFile
+}
+
+// Kotlin-only compilation is useful, but a distributable APK must contain the engine.
+val verifyNativeEngine by tasks.registering {
+    group = "verification"
+    description = "Reject missing or wrong-architecture AutoGram native libraries before APK packaging"
+    val libraries = nativeLibraries
+    inputs.files(libraries.map { it.second })
+    doLast {
+        val machines = mapOf("arm64-v8a" to 183, "armeabi-v7a" to 40, "x86_64" to 62, "x86" to 3)
+        libraries.forEach { (abi, library) ->
+            check(library.isFile) {
+                "Missing AutoGram engine for $abi. Run android/build_android.ps1 before packaging."
+            }
+            val header = library.inputStream().use { it.readNBytes(20) }
+            check(header.size == 20 && header.take(4) == listOf<Byte>(127, 69, 76, 70)) {
+                "Invalid ELF engine for $abi: ${library.name}"
+            }
+            val expectedClass = if (abi in listOf("arm64-v8a", "x86_64")) 2 else 1
+            val machine = (header[18].toInt() and 255) or ((header[19].toInt() and 255) shl 8)
+            check(header[4].toInt() == expectedClass && header[5].toInt() == 1 && machine == machines[abi]) {
+                "AutoGram engine architecture does not match $abi"
+            }
+        }
+    }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("NativeLibs") }.configureEach {
+    dependsOn(verifyNativeEngine)
+}
+
 android {
     namespace = "com.autogram.app"
     compileSdk = 34
@@ -21,7 +54,7 @@ android {
         }
 
         ndk {
-            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86"))
+            abiFilters.addAll(nativeAbis)
         }
     }
 
@@ -53,7 +86,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+            include(*nativeAbis.toTypedArray())
             isUniversalApk = true
         }
     }

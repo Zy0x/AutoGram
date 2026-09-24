@@ -37,4 +37,13 @@
     <string name="remote_engine_unavailable">Site resolvers, crawler, and Telegram upload are not yet integrated on Android. Use local downloads for direct HTTPS file links.</string>
     <string name="remote_open_local">Open local downloads</string>
     <string name="native_close">Close</string>
+    <string name="accounts_title">Local accounts</string>
+    <string name="accounts_subtitle">Session inventory on this device</string>
+    <string name="accounts_refresh">Refresh session inventory</string>
+    <string name="accounts_security_note">Only session-file name, source, and status are shown. AutoGram never displays credentials and does not treat a local inventory as an active Telegram login.</string>
+    <string name="accounts_empty_title">No local sessions yet</string>
+    <string name="accounts_empty_description">Add a session through the Android login flow when it is available. The local folder stays empty until then.</string>
+    <string name="accounts_source_status">Source: %1$s · Status: %2$s</string>
+    <string name="accounts_local_badge">LOCAL</string>
+    <string name="account_inventory_failed">The session inventory could not be loaded. Refresh to try again.</string>
 </resources>

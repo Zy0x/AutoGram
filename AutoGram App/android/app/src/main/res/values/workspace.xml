@@ -37,4 +37,13 @@
     <string name="remote_engine_unavailable">Pengurai situs, crawler, dan upload Telegram belum terintegrasi di Android. Gunakan unduhan lokal untuk tautan file HTTPS langsung.</string>
     <string name="remote_open_local">Buka unduhan lokal</string>
     <string name="native_close">Tutup</string>
+    <string name="accounts_title">Akun lokal</string>
+    <string name="accounts_subtitle">Inventaris sesi di perangkat ini</string>
+    <string name="accounts_refresh">Segarkan inventaris sesi</string>
+    <string name="accounts_security_note">Hanya nama, asal, dan status file sesi yang ditampilkan. AutoGram tidak menampilkan kredensial dan belum menganggap inventaris lokal sebagai login Telegram aktif.</string>
+    <string name="accounts_empty_title">Belum ada sesi lokal</string>
+    <string name="accounts_empty_description">Tambahkan sesi melalui alur login Android saat tersedia. Folder lokal tetap kosong sampai itu dilakukan.</string>
+    <string name="accounts_source_status">Asal: %1$s · Status: %2$s</string>
+    <string name="accounts_local_badge">LOKAL</string>
+    <string name="account_inventory_failed">Inventaris sesi belum dapat dimuat. Segarkan untuk mencoba lagi.</string>
 </resources>

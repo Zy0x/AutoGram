@@ -2,6 +2,20 @@
 
 An exhaustive technical breakdown of the features, algorithms, and engineering capabilities powering AutoGram.
 
+## Android preview: current availability
+
+Android remains a development preview, not a feature-complete desktop replacement.
+The native engine is packaged for arm64-v8a, armeabi-v7a, x86_64, and x86; choose the
+matching APK, or the larger universal APK. Local engine readiness does not mean
+that a Telegram account is signed in.
+
+Available workflows include navigation, local queue records, folder-cache summaries,
+and direct HTTPS file downloads managed by Android. Telegram sign-in, cloud transfer
+execution, provider crawlers, sparse archive streaming, and automation still need
+Android integration. A visible page or control is not a guarantee of support.
+If the app reports that its native engine is unavailable, use a rebuilt APK for
+your device architecture; never copy session files from another installation.
+
 ---
 
 ## 🌟 Feature Overview Matrix

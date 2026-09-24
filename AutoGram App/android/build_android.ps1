@@ -73,8 +73,8 @@ if (-not $SkipNative) {
     New-Item -ItemType Directory -Force -Path $jniRoot | Out-Null
     Push-Location $bridgeRoot
     try {
-        $nativeArgs = @("-o", $jniRoot, "-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64", "-t", "x86")
-        if ($Variant -eq "Release") { $nativeArgs += @("build", "--release") } else { $nativeArgs += @("build") }
+        $nativeArgs = @("-o", $jniRoot, "--platform", "24", "-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64", "-t", "x86")
+        if ($Variant -eq "Release") { $nativeArgs += @("build", "--lib", "--release") } else { $nativeArgs += @("build", "--lib") }
         & $env:CARGO ndk @nativeArgs
         if ($LASTEXITCODE -ne 0) { throw "Android Rust library build failed" }
     } finally {
@@ -95,6 +95,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Android APK assembly failed" }
 
     $apkFolder = Join-Path $PSScriptRoot "app\build\outputs\apk\$($Variant.ToLowerInvariant())"
+    & (Join-Path $PSScriptRoot "tools\verify_native_apks.ps1") -ApkDirectory $apkFolder
     Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk" | ForEach-Object {
         Write-Host "APK: $($_.FullName) ($([math]::Round($_.Length / 1MB, 2)) MB)"
     }

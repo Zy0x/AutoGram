@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use super::{
-    analyze_media, classify_prepared_delivery, is_nonstandard_image_ext, normalize_caption, utf16_len, CaptionOverflowPolicy,
+    analyze_media_fast, classify_prepared_delivery, is_nonstandard_image_ext, normalize_caption, utf16_len, CaptionOverflowPolicy,
     MediaCategory, PayloadClass, QualityMode, TransferFeatureFlags, TransformAction,
 };
 
@@ -170,23 +170,25 @@ pub fn build_quality_preflight(
         request.presentation_override.as_deref(),
         Some("force_native_media") | Some("native") | Some("original")
     );
+    let resolved_sizes: Vec<u64> = request
+        .paths
+        .iter()
+        .enumerate()
+        .map(|(idx, path)| {
+            if is_remote(path) {
+                0
+            } else if let Some(sz) = request.source_sizes.as_ref().and_then(|s| s.get(idx).copied()).filter(|&s| s > 0) {
+                sz
+            } else {
+                std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0)
+            }
+        })
+        .collect();
+
     let duplicate_check_enabled = duplicate_probe_enabled(request);
     let ledger_candidates: std::collections::HashMap<u64, Vec<super::store::LedgerCandidate>> =
         if duplicate_check_enabled && request.destination_id.is_some() {
-            let sizes: Vec<u64> = request
-                .paths
-                .iter()
-                .enumerate()
-                .filter_map(|(idx, path)| {
-                    if is_remote(path) {
-                        return None;
-                    }
-                    if let Some(sz) = request.source_sizes.as_ref().and_then(|s| s.get(idx).copied()).filter(|&s| s > 0) {
-                        return Some(sz);
-                    }
-                    std::fs::metadata(path).ok().map(|m| m.len()).filter(|&s| s > 0)
-                })
-                .collect();
+            let sizes: Vec<u64> = resolved_sizes.iter().copied().filter(|&s| s > 0).collect();
             if sizes.is_empty() {
                 std::collections::HashMap::new()
             } else if let Ok(conn) = super::store::open() {
@@ -218,20 +220,7 @@ pub fn build_quality_preflight(
             .filter(|name| !name.trim().is_empty())
             .cloned()
             .unwrap_or_else(|| source_name(source, index));
-        let resolved_size = request
-            .source_sizes
-            .as_ref()
-            .and_then(|sizes| sizes.get(index).copied())
-            .filter(|&size| size > 0);
-        let source_size = if let Some(size) = resolved_size {
-            size
-        } else if remote {
-            0
-        } else {
-            std::fs::metadata(source_path)
-                .map(|metadata| metadata.len())
-                .unwrap_or(0)
-        };
+        let source_size = resolved_sizes.get(index).copied().unwrap_or(0);
         let thumbnail_url = request
             .thumbnail_urls
             .as_ref()
@@ -244,7 +233,7 @@ pub fn build_quality_preflight(
             super::classify_media(source_path)
         };
         let analysis = if !remote && matches!(category, MediaCategory::Mp4Video | MediaCategory::OtherVideo) {
-            Some(analyze_media(source_path))
+            Some(analyze_media_fast(source_path, category))
         } else {
             None
         };
@@ -493,9 +482,13 @@ pub fn build_quality_preflight(
             request.destination_id.as_deref().and_then(|destination_id| {
                 let candidates = ledger_candidates.get(&source_size)?;
                 let name_candidate = candidates.iter().find(|c| c.filename == resolved_name);
-                let exact_candidate = super::sha256_file(source_path).ok().and_then(|source_sha256| {
-                    candidates.iter().find(|c| c.prepared_sha256 == source_sha256)
-                });
+                let exact_candidate = if candidates.iter().any(|c| !c.prepared_sha256.is_empty()) {
+                    super::sha256_file(source_path).ok().and_then(|source_sha256| {
+                        candidates.iter().find(|c| c.prepared_sha256 == source_sha256)
+                    })
+                } else {
+                    None
+                };
 
                 if let Some(cand) = exact_candidate {
                     Some(QualityPreflightDuplicateMatch {

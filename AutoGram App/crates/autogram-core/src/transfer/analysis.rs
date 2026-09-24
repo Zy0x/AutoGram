@@ -200,10 +200,14 @@ pub fn analysis_cache_key(path: &Path) -> (String, u64, i64) {
         .and_then(|value| value.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|value| value.as_millis() as i64)
         .unwrap_or(0);
-    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let path_buf = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+    };
     let identity = format!(
         "{}|{source_size}|{source_mtime_ms}|probe:{}|v{ANALYSIS_SCHEMA_VERSION}",
-        canonical.display(),
+        path_buf.display(),
         ffprobe_path().is_some()
     );
     (
@@ -232,6 +236,31 @@ pub fn analyze_media(path: &Path) -> MediaAnalysis {
         &analysis,
     );
     analysis
+}
+
+/// Instant media analysis for preflight modal: Checks persisted cache, but if uncached,
+/// constructs a lightweight synthetic analysis without spawning blocking child processes.
+/// This prevents CPU saturation and eliminates multi-second stalls when dropping 200-1000+ files.
+pub fn analyze_media_fast(path: &Path, category: MediaCategory) -> MediaAnalysis {
+    let (cache_key, source_size, source_mtime_ms) = analysis_cache_key(path);
+    if let Ok(Some(cached)) = super::load_media_analysis::<MediaAnalysis>(
+        &cache_key,
+        ANALYSIS_SCHEMA_VERSION,
+        source_size,
+        source_mtime_ms,
+    ) {
+        return cached;
+    }
+
+    MediaAnalysis {
+        schema_version: ANALYSIS_SCHEMA_VERSION,
+        category,
+        format_name: None,
+        duration_seconds: None,
+        streams: Vec::new(),
+        probe_available: true,
+        probe_error: None,
+    }
 }
 
 impl MediaAnalysis {
