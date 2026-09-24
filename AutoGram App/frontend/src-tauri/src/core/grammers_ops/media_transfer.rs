@@ -796,45 +796,16 @@ pub fn upload_prepared_album_blocking_with_app(
                         .map(|m| m.len())
                         .unwrap_or(size);
 
-                    let uploaded = if let Ok(file) = tokio::fs::File::open(&effective_upload_path).await {
-                        let _traffic_worker = crate::core::traffic_governor::acquire_worker(
-                            crate::core::traffic_governor::TransferDirection::Upload,
-                        );
-                        let mut reader = ProgressAsyncReader {
-                            inner: file,
-                            stage: "upload".into(),
-                            total_bytes: upload_size,
-                            current_bytes: 0,
-                            last_emit_time: Instant::now(),
-                            last_emit_bytes: 0,
-                            app_handle: app_handle.clone(),
-                            item_index: item.index,
-                            transfer_id: transfer_id.clone(),
-                        };
-                        client
-                            .upload_stream(&mut reader, upload_size as usize, filename.clone())
-                            .await
-                            .map_err(|error| {
-                                if transfer_id
-                                    .as_deref()
-                                    .is_some_and(crate::core::job_queue::is_transfer_cancelled)
-                                {
-                                    TgError::new(
-                                        TgErrorCode::Cancelled,
-                                        "transfer cancelled by user",
-                                    )
-                                } else {
-                                    TgError::new(
-                                        TgErrorCode::Io,
-                                        format!("upload_stream: {error}"),
-                                    )
-                                }
-                            })?
-                    } else {
-                        client.upload_file(&effective_upload_path).await.map_err(|error| {
-                            TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
-                        })?
-                    };
+                    let uploaded = super::uploader::upload_file_resilient(
+                        client,
+                        &effective_upload_path,
+                        filename.clone(),
+                        "upload",
+                        item.index,
+                        transfer_id.as_deref(),
+                        app_handle.as_ref(),
+                    )
+                    .await?;
 
                     if is_temp_faststart {
                         let _ = std::fs::remove_file(&effective_upload_path);
@@ -1502,32 +1473,16 @@ fn upload_prepared_album_blocking_with_app_legacy(
                         );
                     }
 
-                    let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(path_buf).await {
-                        let _traffic_worker = crate::core::traffic_governor::acquire_worker(
-                            crate::core::traffic_governor::TransferDirection::Upload,
-                        );
-                        let mut progress_reader = ProgressAsyncReader {
-                            inner: tokio_file,
-                            stage: "upload".to_string(),
-                            total_bytes: size,
-                            current_bytes: 0,
-                            last_emit_time: Instant::now(),
-                            last_emit_bytes: 0,
-                            app_handle: app_handle_inner,
-                            item_index,
-                            transfer_id: tid_inner,
-                        };
-                        client
-                            .upload_stream(&mut progress_reader, size as usize, filename.clone())
-                            .await
-                            .map_err(|e| {
-                                TgError::new(TgErrorCode::Io, format!("upload_stream: {e}"))
-                            })?
-                    } else {
-                        client.upload_file(path_buf).await.map_err(|e| {
-                            TgError::new(TgErrorCode::Io, format!("upload_file: {e}"))
-                        })?
-                    };
+                    let uploaded = super::uploader::upload_file_resilient(
+                        client,
+                        path_buf,
+                        filename.clone(),
+                        "upload",
+                        item_index,
+                        tid_inner.as_deref(),
+                        app_handle_inner.as_ref(),
+                    )
+                    .await?;
                     let ext = path_buf
                         .extension()
                         .and_then(|s| s.to_str())
@@ -2123,25 +2078,18 @@ pub fn upload_remote_url_blocking_topic_with_app(
                     if total == 0 || total > 4 * 1024 * 1024 * 1024 {
                         return Err(TgError::new(TgErrorCode::Io, "remote object has an invalid or unsupported size"));
                     }
-                    let reader = RemoteUrlReader { inner: Box::new(response.into_reader()) };
-                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
-                        crate::core::traffic_governor::TransferDirection::Upload,
-                    );
-                    let mut progress = ProgressAsyncReader {
-                        inner: reader,
-                        stage: "upload".into(),
-                        total_bytes: total,
-                        current_bytes: 0,
-                        last_emit_time: Instant::now(),
-                        last_emit_bytes: 0,
-                        app_handle: app_handle.clone(),
-                        item_index: index,
-                        transfer_id: transfer_id.clone(),
-                    };
-                    let uploaded = client
-                        .upload_stream(&mut progress, total as usize, filename.clone())
-                        .await
-                        .map_err(|error| TgError::new(TgErrorCode::Io, format!("remote upload_stream: {error}")))?;
+                    let mut reader = RemoteUrlReader { inner: Box::new(response.into_reader()) };
+                    let uploaded = super::uploader::upload_stream_resilient(
+                        client,
+                        &mut reader,
+                        total,
+                        filename.clone(),
+                        "upload",
+                        index,
+                        transfer_id.as_deref(),
+                        app_handle.as_ref(),
+                    )
+                    .await?;
 
                     if is_photo {
                         msg = msg.photo(uploaded);
@@ -2431,31 +2379,16 @@ pub fn upload_file_blocking_topic_with_app(
                     ),
                 );
 
-                let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(&path_buf).await {
-                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
-                        crate::core::traffic_governor::TransferDirection::Upload,
-                    );
-                    let mut progress_reader = ProgressAsyncReader {
-                        inner: tokio_file,
-                        stage: "upload".to_string(),
-                        total_bytes: size,
-                        current_bytes: 0,
-                        last_emit_time: Instant::now(),
-                        last_emit_bytes: 0,
-                        app_handle: app_handle_inner,
-                        item_index: index,
-                        transfer_id: tid_inner,
-                    };
-                    client
-                        .upload_stream(&mut progress_reader, size as usize, filename.clone())
-                        .await
-                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_stream: {e}")))?
-                } else {
-                    client
-                        .upload_file(&path_buf)
-                        .await
-                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?
-                };
+                let uploaded = super::uploader::upload_file_resilient(
+                    client,
+                    &path_buf,
+                    filename.clone(),
+                    "upload",
+                    index,
+                    tid_inner.as_deref(),
+                    app_handle_inner.as_ref(),
+                )
+                .await?;
 
                 let ext = path_buf
                     .extension()
@@ -2859,32 +2792,16 @@ pub fn upload_file_blocking_topic_with_delivery(
                     filename.clone()
                 };
 
-                let uploaded = if let Ok(file) = tokio::fs::File::open(&path).await {
-                    let _traffic_worker = crate::core::traffic_governor::acquire_worker(
-                        crate::core::traffic_governor::TransferDirection::Upload,
-                    );
-                    let mut reader = ProgressAsyncReader {
-                        inner: file,
-                        stage: "upload".into(),
-                        total_bytes: size,
-                        current_bytes: 0,
-                        last_emit_time: Instant::now(),
-                        last_emit_bytes: 0,
-                        app_handle: app_handle.clone(),
-                        item_index: index,
-                        transfer_id: transfer_id.clone(),
-                    };
-                    client
-                        .upload_stream(&mut reader, size as usize, display_filename.clone())
-                        .await
-                        .map_err(|error| {
-                            TgError::new(TgErrorCode::Io, format!("upload_stream: {error}"))
-                        })?
-                } else {
-                    client.upload_file(&path).await.map_err(|error| {
-                        TgError::new(TgErrorCode::Io, format!("upload_file: {error}"))
-                    })?
-                };
+                let uploaded = super::uploader::upload_file_resilient(
+                    client,
+                    &path,
+                    display_filename.clone(),
+                    "upload",
+                    index,
+                    transfer_id.as_deref(),
+                    app_handle.as_ref(),
+                )
+                .await?;
                 let effective_text = if is_raw_hash_token {
                     String::new()
                 } else {

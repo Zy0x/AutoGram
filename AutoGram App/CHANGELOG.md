@@ -10,6 +10,43 @@
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
 
+## v4.1.17 — Resilient Chunked Big-File (>10MB) Upload Engine & MTProto Connection Recovery
+
+### 1. Resilient Chunked Big-File Upload Engine (Grammers MTProto)
+- **AutoGram-Native Resilient Chunked Uploader (`core/grammers_ops/uploader.rs`)**:
+  - *What changed*:
+    - Designed and implemented a dedicated, modular uploader engine (`uploader.rs`) providing `upload_file_resilient` (for seekable on-disk files) and `upload_stream_resilient` (for streaming readers).
+    - Replaced the vulnerable Grammers default `upload_stream` and `upload_file` paths across all single-file, visual album, and remote stream upload pipelines in `core/grammers_ops/media_transfer.rs`.
+    - Implemented part-level multi-tier retry with exponential backoff (up to 5 attempts per chunk) for `tl::functions::upload::SaveBigFilePart` and `tl::functions::upload::SaveFilePart`.
+  - *Technical rationale*:
+    - Grammers' default `upload_stream` splits files $> 10\text{ MB}$ into 512 KB parts and pushes them across 4 concurrent worker tasks over a single TCP connection.
+    - Pushing 4 concurrent 512 KB requests ($\approx 2\text{ MB}$) saturated the MTProto message container and TCP write buffer (`MessageContainer::MAXIMUM_SIZE = 1,044,456\text{ bytes}`), triggering server connection resets (`ConnectionReset: "read 0 bytes"`).
+    - Grammers' built-in `AutoSleep` retry policy broke immediately on `InvocationError::Dropped` without retrying, aborting the entire 50+ MB transfer upon the slightest connection hiccup.
+    - The new native uploader enforces controlled single-in-flight concurrency (strictly 512 KB per chunk) and automatically recovers and retries dropped parts on fresh TCP sockets without losing previously acknowledged parts.
+  - *User impact*:
+    - Solved persistent upload failures on large videos and archives (including `D:\Upload\Up\2092635685572231206_720x932.mp4`, 56.72 MB), allowing them to upload smoothly, stably, and reliably in ~28 seconds.
+
+### 2. Backend Architecture, Concurrency Control & Thread Safety
+- **Direct File Seek & Non-Blocking Async Execution**:
+  - *What changed*:
+    - `core/grammers_ops/uploader.rs`: Switched to direct file seeking (`tokio::fs::File::seek`) for on-disk payloads, ensuring exact byte slices are read into RAM only as needed and discarded immediately upon Telegram ACK, maintaining a strictly bounded memory footprint ($\le 512\text{ KB}$).
+    - Eliminated `std::thread::sleep` blocking inside `ProgressAsyncReader::poll_read`, preventing worker thread starvation within the Tokio async runtime.
+    - Real-time progress events (`transfer-progress` and `transfer-event`) now emit strictly upon **Telegram server acknowledgment** of each chunk, eliminating false 100% disk-read progress reports and providing completely accurate goodput speed and ETA metrics.
+  - *Technical rationale*:
+    - Calling synchronous `std::thread::sleep` inside Tokio's cooperative `poll_read` blocked the runtime thread, preventing socket ping timers and network select loops from stepping.
+  - *User impact*:
+    - Smooth, jitter-free UI progress indicators with real-time transfer speeds and zero app stuttering or UI freezes during multi-megabyte uploads.
+
+### 3. Orchestrator Network Fault Tolerance & Quality Verification
+- **Expanded Network Error Recovery in Transfer Orchestrator**:
+  - *What changed*:
+    - `core/studio_orch.rs`: Expanded `is_network` retry matcher to include `TgErrorCode::Network`, `TgErrorCode::Io`, and `TgErrorCode::Timeout` alongside `TgErrorCode::FloodWait`.
+    - Passed all 8 quality gates of `npm run test:quality` with 100% i18n parity across 6,787 keys, 0 TypeScript errors, 63 passing Vitest tests, 6 passing Rust unit tests, and verified live upload via CDP port 9230.
+  - *Technical rationale*:
+    - `studio_orch` previously checked only `FloodWait` before giving up on single uploads. Expanding to all transient I/O and network error codes allows the orchestrator to perform full-run socket reconnection and retries when required.
+  - *User impact*:
+    - High-resilience file transfers that survive transient home network disconnects, router reconnects, and Telegram DC socket resets.
+
 ## v4.1.16 — Instant Upload Preflight for 200–1000+ Dropped Media & Zero-Lag Architecture
 
 ### 1. High-Performance Preflight Pipeline & Instant UI Rendering

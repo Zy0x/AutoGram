@@ -2269,6 +2269,9 @@ fn run_intelligent_album(
                     let is_network = matches!(
                         err.code(),
                         crate::core::tg_error::TgErrorCode::FloodWait
+                            | crate::core::tg_error::TgErrorCode::Network
+                            | crate::core::tg_error::TgErrorCode::Io
+                            | crate::core::tg_error::TgErrorCode::Timeout
                     );
                     if is_network && single_attempts <= 3 {
                         let wait_secs = err
