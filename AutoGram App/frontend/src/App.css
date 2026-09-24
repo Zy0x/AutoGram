@@ -40745,9 +40745,9 @@ button.td-confirm-icon.is-back-btn:active {
   bottom: clamp(10px, 2vw, 16px) !important;
   left: auto !important;
   z-index: 13000 !important;
-  width: min(360px, calc(100vw - 20px)) !important;
-  max-width: 360px !important;
-  max-height: min(46vh, 420px) !important;
+  width: min(390px, calc(100vw - 20px)) !important;
+  max-width: 390px !important;
+  max-height: min(58vh, 520px) !important;
   display: flex !important;
   flex-direction: column !important;
   border-radius: 12px !important;
@@ -40856,8 +40856,9 @@ button.td-confirm-icon.is-back-btn:active {
 
 /* Compact Items List */
 .tm-list {
-  max-height: min(28vh, 220px) !important;
+  max-height: min(34vh, 280px) !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   padding: 0 0 4px !important;
 }
 
@@ -40894,10 +40895,11 @@ button.td-confirm-icon.is-back-btn:active {
     bottom: 8px !important;
     width: auto !important;
     max-width: none !important;
-    max-height: min(42vh, 320px) !important;
+    max-height: min(52vh, 400px) !important;
   }
   .tm-list {
-    max-height: min(22vh, 160px) !important;
+    max-height: min(30vh, 220px) !important;
+    overflow-x: hidden !important;
   }
 }
 

@@ -23,12 +23,13 @@ type Props = {
 export function parseDetailedError(
   errStr: string | undefined,
   t: (k: string, opt?: any) => string
-): { title: string; explanation: string; raw: string } {
+): { title: string; explanation: string; raw: string; tag: string } {
   if (!errStr) {
     return {
       title: t('drive.tm_stat_failed'),
       explanation: t('drive.tm_failed_unknown_explanation'),
       raw: '',
+      tag: 'ERROR',
     };
   }
   const s = String(errStr);
@@ -38,6 +39,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_dropped_title'),
       explanation: t('drive.tm_error_dropped_desc'),
       raw: s,
+      tag: 'DROPPED',
     };
   }
   if (/flood_wait|floodwait|Rpc\(420\)/i.test(s)) {
@@ -45,6 +47,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_flood_title'),
       explanation: t('drive.tm_error_flood'),
       raw: s,
+      tag: 'FLOODWAIT',
     };
   }
   if (/status code 404|404 not found/i.test(s)) {
@@ -52,6 +55,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_404_title'),
       explanation: t('drive.tm_error_404'),
       raw: s,
+      tag: '404',
     };
   }
   if (/status code 403|403 forbidden/i.test(s)) {
@@ -59,6 +63,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_403_title'),
       explanation: t('drive.tm_error_403'),
       raw: s,
+      tag: '403',
     };
   }
   if (/timeout|timed out|econnreset|econnrefused/i.test(s)) {
@@ -66,6 +71,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_timeout_title'),
       explanation: t('drive.tm_error_timeout'),
       raw: s,
+      tag: 'TIMEOUT',
     };
   }
   if (/database is locked|sqlite_busy/i.test(s)) {
@@ -73,6 +79,7 @@ export function parseDetailedError(
       title: t('drive.tm_error_db_locked_title'),
       explanation: t('drive.tm_error_db_locked'),
       raw: s,
+      tag: 'DB LOCKED',
     };
   }
 
@@ -80,6 +87,7 @@ export function parseDetailedError(
     title: t('drive.tm_stat_failed'),
     explanation: s.length > 120 ? `${s.slice(0, 117)}...` : s,
     raw: s,
+    tag: 'ERROR',
   };
 }
 
@@ -139,9 +147,12 @@ export function TransferFailedDetailCard({
     >
       {/* Human-Readable Error Banner */}
       <div className="tm-failed-banner">
-        <AlertCircle size={15} className="tm-failed-banner-ico" aria-hidden />
+        <AlertCircle size={14} className="tm-failed-banner-ico" aria-hidden />
         <div className="tm-failed-banner-content">
-          <div className="tm-failed-banner-title">{errorInfo.title}</div>
+          <div className="tm-failed-banner-header">
+            <span className="tm-failed-tag">{errorInfo.tag}</span>
+            <span className="tm-failed-banner-title">{errorInfo.title}</span>
+          </div>
           <div className="tm-failed-banner-desc">{errorInfo.explanation}</div>
         </div>
       </div>
@@ -150,7 +161,7 @@ export function TransferFailedDetailCard({
       <div className="tm-failed-meta-grid">
         <div className="tm-failed-meta-item">
           <span className="tm-failed-meta-label">
-            <FileCode size={12} className="tm-meta-ico" />
+            <FileCode size={11} className="tm-meta-ico" />
             {t('drive.tm_failed_file_path')}:
           </span>
           <span className="tm-failed-meta-val" title={filePath || item.name}>
@@ -180,7 +191,7 @@ export function TransferFailedDetailCard({
             onClick={() => onRetryItem(item)}
             title={t('drive.tm_retry_item_tooltip')}
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
             <span>{t('drive.tm_retry_item')}</span>
           </button>
         )}
@@ -192,7 +203,7 @@ export function TransferFailedDetailCard({
             onClick={handleReveal}
             title={t('drive.tm_open_in_explorer')}
           >
-            <FolderOpen size={13} />
+            <FolderOpen size={12} />
             <span>{t('drive.tm_open_in_explorer')}</span>
           </button>
         )}
@@ -204,9 +215,9 @@ export function TransferFailedDetailCard({
           title={copied ? t('drive.zip_btn_copied') : t('drive.tm_copy_error_msg')}
         >
           {copied ? (
-            <Check size={13} className="text-emerald-400" />
+            <Check size={12} className="text-emerald-400" />
           ) : (
-            <Copy size={13} />
+            <Copy size={12} />
           )}
           <span>{copied ? t('drive.zip_btn_copied') : t('drive.tm_copy_error_msg')}</span>
         </button>
@@ -218,7 +229,7 @@ export function TransferFailedDetailCard({
             onClick={() => onOpenDiagnostics(item)}
             title={t('drive.tm_view_full_log')}
           >
-            <FileText size={13} />
+            <FileText size={12} />
             <span>{t('drive.tm_view_full_log')}</span>
           </button>
         )}

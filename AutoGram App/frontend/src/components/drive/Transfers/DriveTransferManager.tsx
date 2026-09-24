@@ -598,10 +598,10 @@ export function DriveTransferManager({
 
           {!session.active && (
             <div className="tm-controls">
-              {canRetryFailed && onRetryFailed && counts.failed > 0 && (
+              {(canRetryFailed ?? true) && onRetryFailed && counts.failed > 0 && (
                 <button
                   type="button"
-                  className="tm-btn primary"
+                  className="tm-btn primary tm-btn-retry-all"
                   onClick={onRetryFailed}
                   title={t('drive.retry_failed_files')}
                 >
@@ -652,150 +652,163 @@ export function DriveTransferManager({
               return (
                 <li
                   key={it.id}
-                  className={`tm-row status-${it.status} ${isExpanded ? 'is-failed-expanded' : ''} ${isFailed ? 'is-failed-expandable' : ''}`}
+                  className={`tm-item-wrap status-${it.status} ${isExpanded ? 'is-expanded' : ''}`}
                 >
-                  <StatusIcon status={it.status} />
                   <div
-                    className="tm-row-body"
-                    onClick={() => {
-                      if (isFailed) toggleExpandFailed(it.id);
+                    className={`tm-row ${isFailed ? 'is-failed-expandable' : ''}`}
+                    onClick={(e) => {
+                      if (isFailed && !(e.target as HTMLElement).closest('.tm-row-actions')) {
+                        toggleExpandFailed(it.id);
+                      }
                     }}
-                    style={isFailed ? { cursor: 'pointer' } : undefined}
                   >
-                    <div className="tm-row-name-container">
-                      <div className="tm-row-name" title={it.name}>
-                        {it.name}
+                    <StatusIcon status={it.status} />
+                    <div className="tm-row-body">
+                      <div className="tm-row-name-container">
+                        <div className="tm-row-name" title={it.name}>
+                          {it.name}
+                        </div>
+                        {destInfo.label && (
+                          <span
+                            className={`tm-row-dest ${destInfo.isSaved ? 'is-saved' : ''}`}
+                            title={t('drive.tm_dest_tooltip', { dest: destInfo.label })}
+                          >
+                            {destInfo.isSaved && <Bookmark size={10} className="tm-dest-ico" />}
+                            {destInfo.label}
+                          </span>
+                        )}
                       </div>
-                      {destInfo.label && (
-                        <span
-                          className={`tm-row-dest ${destInfo.isSaved ? 'is-saved' : ''}`}
-                          title={t('drive.tm_dest_tooltip', { dest: destInfo.label })}
-                        >
-                          {destInfo.isSaved && <Bookmark size={10} className="tm-dest-ico" />}
-                          {destInfo.label}
-                        </span>
-                      )}
-                    </div>
-                    <div className="tm-row-meta">
-                      {(it.status === 'done' || it.status === 'skipped') && <span>{t('drive.status_done')}</span>}
-                      {it.status === 'skipped' && (
-                        <span
-                          className="tm-skip-badge-pill"
-                          title={it.note || t('drive.file_exists_no_reupload')}
-                          aria-label={t('drive.tm_skipped_aria', { reason: it.note || t('drive.tm_duplicate_short') })}
-                        >
-                          <SkipForward size={9} />
-                          {t('drive.tm_stat_skipped')}
-                        </span>
-                      )}
-                      {it.status === 'failed' && (
-                        <span className="tm-err-text" title={errInfo.detail || undefined}>
-                          {errInfo.summary}
-                        </span>
-                      )}
-                      {it.status === 'cancelled' && <span>{t('drive.tm_status_cancelled')}</span>}
-                      {it.status === 'uploaded' && <span>{t('drive.tm_status_media_registered')}</span>}
-                      {it.status === 'waiting_commit' && <span>{t('drive.tm_status_waiting_commit')}</span>}
-                      {it.status === 'committing' && <span>{t('drive.tm_status_committing')}</span>}
-                      {it.status === 'needs_verification' && (
-                        <span className="tm-err-text">{t('drive.tm_status_needs_verify')}</span>
-                      )}
-                      {it.status === 'queued' && <span>{t('drive.tm_status_queued')}</span>}
-                      {it.status === 'paused' && <span>{t('jobs.status_paused')}</span>}
-                      {it.status === 'preparing' && (
-                        <span>{it.phase === 'reencode' ? t('drive.preflight_transform_reencode') : t('drive.tm_phase_prepare')}</span>
-                      )}
+                      <div className="tm-row-meta">
+                        {(it.status === 'done' || it.status === 'skipped') && <span>{t('drive.status_done')}</span>}
+                        {it.status === 'skipped' && (
+                          <span
+                            className="tm-skip-badge-pill"
+                            title={it.note || t('drive.file_exists_no_reupload')}
+                            aria-label={t('drive.tm_skipped_aria', { reason: it.note || t('drive.tm_duplicate_short') })}
+                          >
+                            <SkipForward size={9} />
+                            {t('drive.tm_stat_skipped')}
+                          </span>
+                        )}
+                        {it.status === 'failed' && (
+                          <span className="tm-err-text" title={errInfo.detail || undefined}>
+                            {errInfo.summary}
+                          </span>
+                        )}
+                        {it.status === 'cancelled' && <span>{t('drive.tm_status_cancelled')}</span>}
+                        {it.status === 'uploaded' && <span>{t('drive.tm_status_media_registered')}</span>}
+                        {it.status === 'waiting_commit' && <span>{t('drive.tm_status_waiting_commit')}</span>}
+                        {it.status === 'committing' && <span>{t('drive.tm_status_committing')}</span>}
+                        {it.status === 'needs_verification' && (
+                          <span className="tm-err-text">{t('drive.tm_status_needs_verify')}</span>
+                        )}
+                        {it.status === 'queued' && <span>{t('drive.tm_status_queued')}</span>}
+                        {it.status === 'paused' && <span>{t('jobs.status_paused')}</span>}
+                        {it.status === 'preparing' && (
+                          <span>{it.phase === 'reencode' ? t('drive.preflight_transform_reencode') : t('drive.tm_phase_prepare')}</span>
+                        )}
+                        {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
+                          <>
+                            <span>{it.percent.toFixed(0)}%</span>
+                            {it.phase === 'reencode' && (it.encoderBackend || it.encoderName) && (
+                              <span className="tm-encoder-badge" title={it.fallbackReason || undefined}>
+                                {encoderLabel(it)}
+                              </span>
+                            )}
+                            {it.phase === 'reencode' && !!it.fps && <span>{it.fps.toFixed(0)} FPS</span>}
+                            {it.phase === 'reencode' && !!it.encodeSpeed && (
+                              <span>{it.encodeSpeed.toFixed(2)}x</span>
+                            )}
+                            {it.phase === 'reencode' && !!it.estimatedOutputBytes && (
+                              <span>≈ {formatDriveBytes(it.estimatedOutputBytes)}</span>
+                            )}
+                            {it.phase !== 'reencode' && (it.transferred > 0 || it.total > 0) && (
+                              <span>
+                                {formatDriveBytes(it.transferred)}
+                                {it.total > 0 ? ` / ${formatDriveBytes(it.total)}` : ''}
+                              </span>
+                            )}
+                            {it.phase !== 'reencode' && it.speed_mb_s > 0.02 && (
+                              <span>{formatTransferSpeed(it.speed_mb_s)}</span>
+                            )}
+                          </>
+                        )}
+                      </div>
                       {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
-                        <>
-                          <span>{it.percent.toFixed(0)}%</span>
-                          {it.phase === 'reencode' && (it.encoderBackend || it.encoderName) && (
-                            <span className="tm-encoder-badge" title={it.fallbackReason || undefined}>
-                              {encoderLabel(it)}
-                            </span>
-                          )}
-                          {it.phase === 'reencode' && !!it.fps && <span>{it.fps.toFixed(0)} FPS</span>}
-                          {it.phase === 'reencode' && !!it.encodeSpeed && (
-                            <span>{it.encodeSpeed.toFixed(2)}x</span>
-                          )}
-                          {it.phase === 'reencode' && !!it.estimatedOutputBytes && (
-                            <span>≈ {formatDriveBytes(it.estimatedOutputBytes)}</span>
-                          )}
-                          {it.phase !== 'reencode' && (it.transferred > 0 || it.total > 0) && (
-                            <span>
-                              {formatDriveBytes(it.transferred)}
-                              {it.total > 0 ? ` / ${formatDriveBytes(it.total)}` : ''}
-                            </span>
-                          )}
-                          {it.phase !== 'reencode' && it.speed_mb_s > 0.02 && (
-                            <span>{formatTransferSpeed(it.speed_mb_s)}</span>
-                          )}
-                        </>
+                        <div className="tm-mini-bar">
+                          <div
+                            className={`tm-mini-fill stage-${phaseClass(it)}`}
+                            style={{ width: `${Math.min(100, Math.max(0, it.percent))}%` }}
+                          />
+                        </div>
                       )}
                     </div>
-                    {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
-                      <div className="tm-mini-bar">
-                        <div
-                          className={`tm-mini-fill stage-${phaseClass(it)}`}
-                          style={{ width: `${Math.min(100, Math.max(0, it.percent))}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="tm-row-actions">
-                    {isFailed && (
-                      <button
-                        type="button"
-                        className="tm-row-btn"
-                        onClick={() => toggleExpandFailed(it.id)}
-                        title={t('drive.tm_toggle_failed_detail')}
-                        aria-label={t('drive.tm_toggle_failed_detail')}
-                      >
-                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      </button>
-                    )}
-                    {it.status === 'failed' && it.error && (
-                      <button
-                        type="button"
-                        className="tm-row-btn"
-                        onClick={() => {
-                          void copyTextWithFallback(it.error).then((ok: boolean) => {
-                            if (ok) {
-                              setCopiedItemErrorId(it.id);
-                              window.setTimeout(() => setCopiedItemErrorId(null), 1500);
-                            }
-                          });
-                        }}
-                        title={copiedItemErrorId === it.id ? t('drive.zip_btn_copied') : t('drive.tm_copy_error_tooltip')}
-                        aria-label={t('drive.tm_copy_error_tooltip')}
-                      >
-                        {copiedItemErrorId === it.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                      </button>
-                    )}
-                    {onRetryItem && it.status === 'failed' && (
-                      <button
-                        type="button"
-                        className="tm-row-btn"
-                        onClick={() => onRetryItem(it)}
-                        title={t('drive.tm_retry_item_tooltip')}
-                        aria-label={t('drive.tm_retry_item_tooltip')}
-                      >
-                        <RotateCcw size={12} />
-                      </button>
-                    )}
-                    {onRemoveItem && !session.active && (
-                      <button
-                        type="button"
-                        className="tm-row-btn hover-danger"
-                        onClick={() => onRemoveItem(it.id)}
-                        title={t('drive.tm_remove_item_tooltip')}
-                        aria-label={t('drive.tm_remove_item_tooltip')}
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
+                    <div className="tm-row-actions">
+                      {isFailed && (
+                        <button
+                          type="button"
+                          className="tm-row-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandFailed(it.id);
+                          }}
+                          title={t('drive.tm_toggle_failed_detail')}
+                          aria-label={t('drive.tm_toggle_failed_detail')}
+                        >
+                          {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+                      )}
+                      {it.status === 'failed' && it.error && (
+                        <button
+                          type="button"
+                          className="tm-row-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void copyTextWithFallback(it.error).then((ok: boolean) => {
+                              if (ok) {
+                                setCopiedItemErrorId(it.id);
+                                window.setTimeout(() => setCopiedItemErrorId(null), 1500);
+                              }
+                            });
+                          }}
+                          title={copiedItemErrorId === it.id ? t('drive.zip_btn_copied') : t('drive.tm_copy_error_tooltip')}
+                          aria-label={t('drive.tm_copy_error_tooltip')}
+                        >
+                          {copiedItemErrorId === it.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      )}
+                      {onRetryItem && it.status === 'failed' && (
+                        <button
+                          type="button"
+                          className="tm-row-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRetryItem(it);
+                          }}
+                          title={t('drive.tm_retry_item_tooltip')}
+                          aria-label={t('drive.tm_retry_item_tooltip')}
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      )}
+                      {onRemoveItem && !session.active && (
+                        <button
+                          type="button"
+                          className="tm-row-btn hover-danger"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveItem(it.id);
+                          }}
+                          title={t('drive.tm_remove_item_tooltip')}
+                          aria-label={t('drive.tm_remove_item_tooltip')}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {isFailed && isExpanded && (
-                    <div style={{ width: '100%', flexBasis: '100%' }}>
+                    <div className="tm-failed-card-wrapper">
                       <TransferFailedDetailCard
                         item={it}
                         onRetryItem={onRetryItem}

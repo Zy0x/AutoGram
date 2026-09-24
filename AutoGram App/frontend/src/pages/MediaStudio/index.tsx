@@ -10607,11 +10607,7 @@ function MediaDriveDesktop({
             }
             canRetryFailed={
               !transfer.active &&
-              (transfer.items || []).some((i) => i.status === 'failed') &&
-              (
-                (transfer.direction === 'download' && !!lastDownloadRetryRef.current) ||
-                (transfer.direction === 'upload' && (!!lastUploadRetryRef.current || (transfer.items || []).some((i) => i.status === 'failed' && Boolean(i.path))))
-              )
+              (transfer.items || []).some((i) => i.status === 'failed')
             }
             onRemoveItem={(itemId) => {
               setTransfer((t) => removeTransferItem(t, itemId));
@@ -10633,11 +10629,14 @@ function MediaDriveDesktop({
                   };
                   void runUploadPaths([targetPath], retryOpts);
                 } else {
-                  setError(`Tidak dapat menemukan berkas lokal untuk ${item.name}`);
+                  setError(t('drive.tm_no_local_files_retry'));
                 }
               } else if (transfer.direction === 'download') {
                 const r = lastDownloadRetryRef.current;
-                if (!r || !creds) return;
+                if (!r || !creds) {
+                  setError(t('drive.tm_download_retry_unavailable'));
+                  return;
+                }
                 const matchIdx = r.names.findIndex((n) => n === item.name);
                 const msgId = matchIdx >= 0 ? r.ids[matchIdx] : item.messageId;
                 if (msgId != null) {
@@ -10669,7 +10668,7 @@ function MediaDriveDesktop({
                           items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'done' as const, percent: 100 } : it)),
                         }));
                       } else {
-                        const errTxt = res?.userMessage || res?.error?.message || 'Gagal retry';
+                        const errTxt = res?.userMessage || res?.error?.message || t('drive.tm_stat_failed');
                         setTransfer((prev) => ({
                           ...prev,
                           items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'failed' as const, error: errTxt } : it)),
@@ -10709,12 +10708,15 @@ function MediaDriveDesktop({
                   };
                   void runUploadPaths(pathsToRetry, retryOpts);
                 } else {
-                  setError('Tidak ada berkas lokal yang ditemukan untuk diunggah ulang.');
+                  setError(t('drive.tm_no_local_files_retry'));
                 }
                 return;
               }
               const r = lastDownloadRetryRef.current;
-              if (!r || !creds) return;
+              if (!r || !creds) {
+                setError(t('drive.tm_download_retry_unavailable'));
+                return;
+              }
               setSelectedIds(r.ids);
               void (async () => {
                 if (transfer.active) {

@@ -10,6 +10,42 @@
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
 
+## v4.1.19 — Compact Minimalist Transfer Manager Redesign, DOM Containment & Zero-Overflow Layout Audit
+
+### 1. Layout Containment & Vertical DOM Decoupling
+- **Decoupled Item Architecture (`components/drive/Transfers/DriveTransferManager.tsx` & `styles/transferFailedDetail.css`)**:
+  - *What changed*:
+    - Completely restructured the list item hierarchy from a monolithic horizontal flex row (`.tm-row`) to a vertically stacked composite container (`.tm-item-wrap`).
+    - Decoupled the expandable failure card (`.tm-failed-card-wrapper`) so it renders cleanly below the item row rather than competing horizontally inside `.tm-row`.
+    - Enforced strict `overflow-x: hidden !important;` across `.tm-list`, `.tm-item-wrap`, and `.tm-failed-card-wrapper`, completely eliminating the horizontal blowout and scrollbars observed on failed transfers.
+  - *Technical rationale*:
+    - Placing expandable cards inside a horizontal flex row with child items squished the file name to near 0px, crammed the row action buttons to the left, and forced wide horizontal scroll on the entire list container.
+  - *User impact*:
+    - Clean, stable, and pixel-perfect row alignments with zero unintended horizontal scrolling, even on long file paths or dense error traces.
+
+### 2. Compact Minimalist Failure Detail Card & Visual Aesthetics
+- **Sleek, Anti-Bloat Card Polish (`components/drive/Transfers/TransferFailedDetailCard.tsx` & `App.css`)**:
+  - *What changed*:
+    - Redesigned the failure card to be ultra-compact, minimalist, and readable without bulky borders or tall banners.
+    - Added a sleek error category tag pill (`DROPPED`, `FLOODWAIT`, `404`, `TIMEOUT`, `DB LOCKED`, `ERROR`) paired with a single-line high-contrast title and concise explanation.
+    - Optimized action buttons to a sleek 26px height with 12px clean icons (`RotateCcw`, `FolderOpen`, `Copy`, `FileText`).
+    - Expanded desktop panel bounds to `min(390px, calc(100vw - 20px))` and `max-height: min(58vh, 520px)` with responsive mobile scaling ($\le 520\text{px}$) for comfortable readability on small laptop screens and mobile devices.
+  - *Technical rationale*:
+    - Aligns with Rule 1 (Presisi Tampilan Antar-Platform & Mobile-First) and Rule 2 (User Friendly & Readability First) by prioritizing clean hierarchy and eliminating visual slop.
+  - *User impact*:
+    - Instant readability and effortless access to error diagnostics without obscuring background content or overwhelming the screen.
+
+### 3. Top Action Bar Reliability & 100% Multi-Language Parity
+- **Persistent Batch Recovery & Zero Hardcoded Strings (`pages/MediaStudio/index.tsx` & `locales/*/drive.json`)**:
+  - *What changed*:
+    - Updated `DriveTransferManager` and `MediaStudio` so the top *"Retry X Failed Files"* button (`.tm-btn-retry-all`) reliably renders whenever failed items exist, regardless of session direction or recovered session states.
+    - Added graceful feedback notifications when retry contexts expire instead of failing silently.
+    - Extracted all remaining user-facing error and retry strings (`file_size_unknown`, `tm_no_local_files_retry`, `tm_download_retry_unavailable`) into `id/drive.json` and `en/drive.json`, maintaining 100% key parity (6,811 keys each).
+  - *Technical rationale*:
+    - Satisfies AutoGram Rule 7 (Zero Hardcoded Strings) and Autonomous Quality Sentinel criteria.
+  - *User impact*:
+    - Predictable one-click recovery and fully localized, professional messaging across both Indonesian and English.
+
 ## v4.1.18 — Resilient Transfer Manager Retry Engine, Expandable Failure Accordions & Diagnostic Modal
 
 ### 1. Dual-Scope Transfer Retry Engine (Upload & Download)
