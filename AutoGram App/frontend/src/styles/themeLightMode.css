@@ -1767,8 +1767,4 @@
   color: #64748b !important;
 }
 
-/* 40. Transfers, Remote Upload & Performance Settings (Modularized)
-   See themeLightTransfersSettings.css for complete modular component rules. */
-@import './themeLightTransfersSettings.css';
-
 

@@ -2521,10 +2521,6 @@ function MediaDriveDesktop({
 
   const refreshLocations = useCallback(async () => {
     if (!creds) return;
-    if (isTransferJobActive()) {
-      setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
-      return;
-    }
     // Staged load: paint chats/folders/files as each RPC finishes (never wait for all).
     // Warm session uses 3 parallel cmds; one-shot falls back to bootstrap.
     invalidateAvatarFailures();
@@ -3358,10 +3354,6 @@ function MediaDriveDesktop({
 
   const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean; bypassCache?: boolean }) => {
     if (!creds) return;
-    if (isTransferJobActive()) {
-      setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
-      return;
-    }
     const gen = ++peerGen.current;
     const shouldBypassCache = opts?.bypassCache !== false; // Default true on explicit refresh
     // Self-Healing Connection Recovery: reset circuit breaker on manual refresh
@@ -5342,10 +5334,16 @@ function MediaDriveDesktop({
   }, [creds]);
 
   const powerRefresh = useCallback(async () => {
-    if (!creds || isTransferJobActive()) {
-      if (isTransferJobActive()) {
-        setStatusText(t('ui.generated.transfer_aktif_refresh_ditunda_099d58a'));
-      }
+    if (!creds) return;
+    if (isTransferJobActive()) {
+      // During active transfers, avoid destructive thumbnail/preview cache purges,
+      // but fulfill the refresh request by reloading the active location media.
+      setStatusText(t('drive.ctx_menu_refresh'));
+      await Promise.allSettled([
+        refreshFiles(0, { preserveError: true, bypassCache: true }),
+        softRefreshSidebar(),
+        peerId != null ? loadTopicsForPeer(peerId) : Promise.resolve(),
+      ]);
       return;
     }
 

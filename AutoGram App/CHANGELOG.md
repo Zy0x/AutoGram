@@ -9,6 +9,37 @@
 
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
+## v4.1.21 — Non-Blocking Topic & Chat Navigation Engine, Deadlock Elimination & Concurrent MTProto Transfer Governance
+
+### 1. Topic & Chat Navigation Resilience During Active Transfers
+- **Elimination of Transfer Lockout Aborts (`pages/MediaStudio/index.tsx`)**:
+  - *What changed*:
+    - Completely removed obsolete `if (isTransferJobActive()) return;` guard clauses from the core location refresh routines `refreshFiles` and `refreshLocations`.
+    - Allowed users to click and freely switch between topics (e.g., `#Gudang / Anime NSFW`, `#Gudang / VAM 3D`, `General`) and sidebar chats/groups without interruption, even while active batch uploads are in-flight in Transfer Manager.
+  - *Technical rationale*:
+    - The guard clause was a legacy relic from the single-threaded Telethon Python daemon era designed to avoid concurrent SQLite lock collisions. In AutoGram's modern architecture, Rust Grammers MTProto utilizes a concurrent client connection pool (`client_pool.rs`) where read operations (`tg_list_media`, topic fetching) and streaming uploads acquire shared `RwLock::read()` locks concurrently without mutual blocking.
+  - *User impact*:
+    - Seamless and instant navigation across all topics and groups at any time, even during 100+ file uploads, without app stalls or forced waiting.
+
+### 2. Elimination of Universal Zero-Ghost Deadlock & Loading Overlay Stalls
+- **Lifecycle Invariant Guard (`pages/MediaStudio/index.tsx`)**:
+  - *What changed*:
+    - Fixed a critical state deadlock where topic change handlers (`handleTopicFilterChange`) wiped the active view (`files = []`) and initiated loading state (`loadingFiles = true`), but subsequent early aborts in `refreshFiles` prevented the authoritative Grammers head response and skipped the `finally { setLoadingFiles(false) }` completion block.
+    - Guaranteed that `setLoadingFiles(false)` is always reached upon completion or error, preventing `CenteredGlassmorphicProgress` from getting permanently stuck on `"Loading Catalog 98% Almost done..."`.
+  - *Technical rationale*:
+    - In `DriveExplorer.tsx`, the condition `loading && files.length === 0` renders the full-screen glassmorphic loading overlay. When `refreshFiles` returned prematurely without updating files or clearing the loading flag, the interpolated progress simulation capped out at 98% and remained stranded indefinitely until the transfer ended.
+  - *User impact*:
+    - Immediate display of media grids and zero permanent loading card freezes when browsing library contents during active transfers.
+
+### 3. Non-Destructive Power Refresh & PostCSS Cleanliness
+- **Safe In-Flight Refresh Strategy & CSS Hygiene (`pages/MediaStudio/index.tsx` & `styles/themeLightMode.css`)**:
+  - *What changed*:
+    - Upgraded `powerRefresh` to gracefully distinguish between idle and transfer states. When transfers are active, it performs non-destructive reloads (`refreshFiles`, `softRefreshSidebar`, `loadTopicsForPeer`) while preserving thumbnail, preview, and ZIP in-memory caches to avoid unnecessary network bandwidth spikes.
+    - Removed redundant trailing `@import './themeLightTransfersSettings.css';` from the bottom of `themeLightMode.css` (already imported globally in `main.tsx`), completely eliminating Vite/PostCSS specification warnings during production builds.
+  - *Technical rationale*:
+    - PostCSS strictly mandates that `@import` rules precede all other CSS statements. Removing the redundant trailing import ensures 100% compliant CSS bundling.
+  - *User impact*:
+    - Responsive toolbar refresh button during transfers and cleaner, faster application bundling.
 
 ## v4.1.20 — Resilient Transfer Metrics Engine, Fair Weighted Batch Progress, Anti-Collapse Commit Tracking & Unified Multi-Stage Pipeline
 
