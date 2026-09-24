@@ -200,12 +200,13 @@ export function DriveTransferManager({
     (item: any) => item.phase === 'reencode' && item.status === 'preparing'
   );
   const displayPercent = session?.overallPercent ?? 0;
-  const phaseClass = (item: any): 'prepare' | 'convert' | 'reencode' | 'remux' | 'upload' | 'download' | 'commit' => {
+  const phaseClass = (item: any): 'prepare' | 'preflight' | 'convert' | 'reencode' | 'remux' | 'upload' | 'download' | 'commit' => {
     const phase = String(item?.phase || '').toLowerCase();
     if (item?.status === 'committing' || item?.status === 'waiting_commit' || phase.includes('commit')) return 'commit';
     if (phase.includes('convert') || phase.includes('transcode')) return 'convert';
     if (phase.includes('reencode') || phase === 'encode') return 'reencode';
     if (phase.includes('remux')) return 'remux';
+    if (phase.includes('preflight') || phase.includes('duplicate')) return 'preflight';
     if (phase === 'download' || item?.direction === 'download') return 'download';
     if (phase === 'upload' || phase === 'media_registering') return 'upload';
     return 'prepare';
@@ -532,10 +533,22 @@ export function DriveTransferManager({
               <div className="tm-bytes">
                 {t('drive.tm_estimated_output', { bytes: formatDriveBytes(encodeItem.estimatedOutputBytes) })}
               </div>
-            ) : (session.transferred > 0 || session.total > 0) && (
+            ) : (session.transferred > 0 || session.total > 0 || (session.estimatedTotalBytes || 0) > 0) && (
               <div className="tm-bytes">
                 {formatDriveBytes(session.transferred)}
-                {session.total > 0 ? ` / ${formatDriveBytes(session.total)}` : ''}
+                {session.estimatedTotalBytes && session.knownCount != null && session.knownCount < counts.total && session.estimatedTotalBytes > session.total ? (
+                  <>
+                    {` / ~${formatDriveBytes(session.estimatedTotalBytes)} `}
+                    <span
+                      className="tm-bytes-est-hint opacity-75 text-[0.72rem]"
+                      title={t('drive.tm_est_total_hint', { count: counts.total, known: session.knownCount })}
+                    >
+                      ({session.knownCount}/{counts.total})
+                    </span>
+                  </>
+                ) : session.total > 0 ? (
+                  ` / ${formatDriveBytes(session.total)}`
+                ) : ''}
               </div>
             )}
             {session.banner && (
@@ -705,7 +718,13 @@ export function DriveTransferManager({
                         {it.status === 'queued' && <span>{t('drive.tm_status_queued')}</span>}
                         {it.status === 'paused' && <span>{t('jobs.status_paused')}</span>}
                         {it.status === 'preparing' && (
-                          <span>{it.phase === 'reencode' ? t('drive.preflight_transform_reencode') : t('drive.tm_phase_prepare')}</span>
+                          <span>
+                            {it.phase === 'reencode'
+                              ? t('drive.preflight_transform_reencode')
+                              : (it.phase === 'preflight' || it.phase === 'duplicate_check')
+                                ? t('drive.tm_phase_preflight')
+                                : t('drive.tm_phase_prepare')}
+                          </span>
                         )}
                         {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                           <>
@@ -730,6 +749,9 @@ export function DriveTransferManager({
                             )}
                             {it.phase !== 'reencode' && it.speed_mb_s > 0.02 && (
                               <span>{formatTransferSpeed(it.speed_mb_s)}</span>
+                            )}
+                            {it.phase !== 'reencode' && it.etaSeconds != null && it.etaSeconds > 0 && (
+                              <span>{t('drive.tm_eta', { eta: formatTransferEta(it.etaSeconds) })}</span>
                             )}
                           </>
                         )}

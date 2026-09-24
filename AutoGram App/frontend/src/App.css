@@ -16818,6 +16818,9 @@ section.docx *,
 .tm-bar-fill.stage-prepare, .tm-mini-fill.stage-prepare {
   background: linear-gradient(90deg, #64748b, #94a3b8 70%, #cbd5e1) !important;
 }
+.tm-bar-fill.stage-preflight, .tm-mini-fill.stage-preflight {
+  background: linear-gradient(90deg, #0284c7, #06b6d4 70%, #38bdf8) !important;
+}
 .tm-bar-fill.stage-convert, .tm-mini-fill.stage-convert {
   background: linear-gradient(90deg, #7c3aed, #d946ef 70%, #f0abfc) !important;
 }

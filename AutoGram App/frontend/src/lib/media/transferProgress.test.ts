@@ -197,3 +197,71 @@ describe('debug log deduplication and stream stability', () => {
   });
 });
 
+describe('batch estimation, commit byte stability and ETA handling', () => {
+  it('does NOT jump to 98% when only 1 out of 100 files is completed with unprobed items', () => {
+    // 100 items: Item 0 is 50 MB and done. Items 1..99 are queued with unprobed total: 0.
+    const items: TransferItem[] = [
+      item({ id: 'done-0', index: 0, total: 50_000_000, transferred: 50_000_000, status: 'done', percent: 100 }),
+      ...Array.from({ length: 99 }, (_, i) =>
+        item({ id: `queued-${i + 1}`, index: i + 1, total: 0, transferred: 0, status: 'queued', percent: 0 })
+      ),
+    ];
+    const res = recomputeOverall(session(items));
+    // 1 out of 100 done should be exactly 1%, NOT 98%+
+    expect(res.overallPercent).toBe(1);
+    expect(res.transferred).toBe(50_000_000);
+    // Estimated batch total should be 100 * 50 MB = 5,000,000,000 bytes
+    expect(res.estimatedTotalBytes).toBe(5_000_000_000);
+    expect(res.knownCount).toBe(1);
+  });
+
+  it('keeps transferred bytes intact without collapsing to 0 during committing phase', () => {
+    const itm = item({
+      id: 'active-item',
+      total: 30_000_000,
+      transferred: 30_000_000,
+      status: 'committing',
+      phase: 'commit',
+      percent: 100,
+    });
+    const res = recomputeOverall(session([itm]));
+    expect(res.transferred).toBe(30_000_000);
+    expect(res.overallPercent).toBe(98);
+  });
+
+  it('keeps transferred bytes intact for waiting_commit and uploaded items', () => {
+    const items = [
+      item({ id: 'item-1', total: 20_000_000, transferred: 20_000_000, status: 'uploaded', phase: 'upload', percent: 100 }),
+      item({ id: 'item-2', total: 20_000_000, transferred: 20_000_000, status: 'waiting_commit', phase: 'commit', percent: 100 }),
+    ];
+    const res = recomputeOverall(session(items));
+    expect(res.transferred).toBe(40_000_000);
+    expect(res.overallPercent).toBe(95);
+  });
+
+  it('distinguishes batch ETA from active item ETA in multi-item transfers', () => {
+    const items: TransferItem[] = [
+      item({ id: 'item-0', index: 0, total: 10_000_000, transferred: 5_000_000, status: 'active', percent: 50 }),
+      item({ id: 'item-1', index: 1, total: 10_000_000, transferred: 0, status: 'queued', percent: 0 }),
+    ];
+    let s = session(items);
+    s.speed_mb_s = 2; // 2 MB/s
+    // apply progress event with item eta_s = 2.5s (5MB remaining for item 0 at 2MB/s)
+    s = applyTransferEvent(s, {
+      type: 'StudioProgress',
+      item_index: 0,
+      transferred: 5_000_000,
+      item_current: 5_000_000,
+      item_total: 10_000_000,
+      total: 20_000_000,
+      speed_mb_s: 2,
+      eta_s: 3,
+    } as any);
+
+    // Active item 0 gets its specific eta (3s)
+    expect(s.items[0].etaSeconds).toBe(3);
+    // Session batch ETA reflects total remaining (15MB at 2MB/s ~ 7.15s), NOT overwriting with 3s
+    expect(s.etaSeconds).toBeGreaterThanOrEqual(7);
+  });
+});
+

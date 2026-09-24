@@ -96,8 +96,13 @@ export function transferItemOverallPercent(item: TransferItem): number {
   ) {
     return 5 + (percent * 0.25);
   }
-  if (phase === 'probe' || phase === 'preflight' || phase === 'prepare') {
-    return Math.min(5, percent);
+  if (
+    phase === 'probe' ||
+    phase === 'preflight' ||
+    phase === 'duplicate_check' ||
+    phase === 'prepare'
+  ) {
+    return Math.min(5, Math.max(1, percent * 0.05));
   }
   return percent;
 }
@@ -137,13 +142,45 @@ export function recomputeOverall(session: TransferSession): TransferSession {
   let overall = session.overallPercent;
 
   if (n > 0) {
-    const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
-    total = itemTotals > 0 ? itemTotals : total;
+    let knownBytesSum = 0;
+    let knownCount = 0;
+    for (const item of items) {
+      if (item.total && item.total > 0) {
+        knownBytesSum += item.total;
+        knownCount++;
+      }
+    }
 
-    // Bytes are meaningful only for network transfer phases. Re-encode frame
-    // counters must never be added to upload bytes.
+    // Fair average weight for unprobed / zero-byte items:
+    // When some items have known size, unprobed items assume the average known size
+    // to prevent active items from monopolizing the progress bar (e.g. jumping to 98% with 2/392 files).
+    const avgKnownWeight = knownCount > 0 ? knownBytesSum / knownCount : 1;
+    const estimatedTotalBytes =
+      knownCount > 0
+        ? Math.round(knownBytesSum + (n - knownCount) * avgKnownWeight)
+        : total > 0
+          ? total
+          : 0;
+
+    total =
+      knownBytesSum > 0
+        ? knownCount === n
+          ? knownBytesSum
+          : Math.max(total, knownBytesSum)
+        : total;
+
+    // Bytes transferred must accumulate terminal items AND items in commit phase
+    // Bytes are meaningful only for network transfer phases.
+    // When an item enters 'uploaded', 'waiting_commit', or 'committing', its payload bytes
+    // are already transferred to Telegram MTProto storage; NEVER collapse transferred bytes to 0!
     transferred = items.reduce((sum, item) => {
-      if (TERMINAL_SUCCESS_STATUSES.has(item.status)) return sum + (item.total || 0);
+      const isCommittedOrCommitting =
+        item.status === 'uploaded' ||
+        item.status === 'waiting_commit' ||
+        item.status === 'committing';
+      if (TERMINAL_SUCCESS_STATUSES.has(item.status) || isCommittedOrCommitting) {
+        return sum + (item.total || item.transferred || 0);
+      }
       if (item.status === 'failed' || item.status === 'cancelled') return sum;
       const phase = String(item.phase || '').toLowerCase();
       return phase === 'upload' || phase === 'download'
@@ -153,15 +190,29 @@ export function recomputeOverall(session: TransferSession): TransferSession {
 
     const weighted = items.reduce(
       (acc, item) => {
-        const weight = item.total && item.total > 0 ? item.total : 1;
+        const weight = item.total && item.total > 0 ? item.total : avgKnownWeight;
         return {
-          progress: acc.progress + (transferItemOverallPercent(item) * weight),
+          progress: acc.progress + transferItemOverallPercent(item) * weight,
           weight: acc.weight + weight,
         };
       },
       { progress: 0, weight: 0 }
     );
     overall = weighted.weight > 0 ? weighted.progress / weighted.weight : 0;
+
+    const effectiveTotal = estimatedTotalBytes > 0 ? estimatedTotalBytes : total;
+    const batchEta = computeEta(transferred, effectiveTotal, session.speed_mb_s);
+
+    return {
+      ...session,
+      transferred,
+      total,
+      estimatedTotalBytes,
+      knownCount,
+      overallPercent: Math.round(overall * 100) / 100,
+      etaSeconds: batchEta,
+      batchEtaSeconds: batchEta,
+    };
   }
 
   return {
@@ -654,7 +705,15 @@ export function applyTransferEvent(
     if (p.eta_s != null && p.eta_s !== '') {
       const eta = num(p.eta_s, -1);
       if (eta >= 0) {
-        return { ...next, etaSeconds: eta };
+        if (items.length <= 1) {
+          return { ...next, etaSeconds: eta, batchEtaSeconds: eta };
+        }
+        // In a multi-item batch, worker-computed ETA is for the active item, NOT the entire batch.
+        // Update the item's individual ETA while preserving the batch ETA on session.
+        const updatedItems = next.items.map((it, idx) =>
+          idx === index ? { ...it, etaSeconds: eta } : it
+        );
+        return { ...next, items: updatedItems };
       }
     }
     return next;

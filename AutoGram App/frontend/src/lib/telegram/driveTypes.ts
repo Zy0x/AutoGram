@@ -896,6 +896,8 @@ export type TransferItem = {
   error?: string;
   /** Short human-readable note (e.g. "Duplikat dilewati") */
   note?: string;
+  /** Active transfer ETA in seconds for this item */
+  etaSeconds?: number | null;
   /** Telegram message id after successful commit — locks status as done */
   messageId?: number;
   /** Destination name (e.g. Chat/Folder Title or Local save path) */
@@ -932,11 +934,17 @@ export type TransferSession = {
   peak_mb_s: number;
   transferred: number;
   total: number;
+  /** Estimated total bytes for entire batch when unprobed queued files exist */
+  estimatedTotalBytes?: number;
+  /** Count of files with known/probed byte size */
+  knownCount?: number;
   /** Upload byte metrics stay separate from ordered commit/terminal progress. */
   uploadedBytes?: number;
   committedCount?: number;
   needsVerificationCount?: number;
   etaSeconds: number | null;
+  /** Overall batch ETA in seconds */
+  batchEtaSeconds?: number | null;
   label: string;
   banner?: string;
   items: TransferItem[];

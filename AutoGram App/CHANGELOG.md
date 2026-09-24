@@ -10,6 +10,41 @@
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
 
+## v4.1.20 — Resilient Transfer Metrics Engine, Fair Weighted Batch Progress, Anti-Collapse Commit Tracking & Unified Multi-Stage Pipeline
+
+### 1. Fair Weighted Progress Calculation & Elimination of False 98% Spikes
+- **Proportional Sample Weighting (`lib/media/transferProgress.ts`)**:
+  - *What changed*:
+    - Completely replaced the naive default weight of `1` byte for unprobed files with dynamic sample-mean weighting: $w_{\text{unprobed}} = \frac{\sum \text{knownBytes}}{\text{knownCount}}$.
+    - Added `estimatedTotalBytes` and `knownCount` telemetry tracking to `TransferSession` to extrapolate overall batch size smoothly as files are probed ($N \times \bar{w}$).
+    - Verified with automated test suites that a 100-file or 392-file queue with only 1 file completed renders exactly ~1% progress, completely eliminating premature jumps to 85%–98%.
+  - *Technical rationale*:
+    - Previously, unprobed queued files defaulted to a weight of `1` byte, allowing 1–2 completed active videos (e.g. 50 MB each) to disproportionately dominate $99.9\%$ of the weighted progress equation ($\frac{50,000,000 \times 100}{50,000,390} \approx 98\%$), resulting in extreme progress "rollercoasters".
+  - *User impact*:
+    - True, proportional, and rock-steady progress indication that accurately reflects the exact percentage of completed batch work without false early finishes.
+
+### 2. Anti-Collapse Transferred Byte Accounting in Commit Phase
+- **Continuous Network Byte Retention (`lib/media/transferProgress.ts` & `driveTypes.ts`)**:
+  - *What changed*:
+    - Extended cumulative transferred bytes tracking in `recomputeOverall` to include items in `'uploaded'`, `'waiting_commit'`, and `'committing'` statuses alongside terminal successes.
+    - Preserved full payload byte counts while Telegram MTProto confirms document metadata and dispatches message IDs.
+  - *Technical rationale*:
+    - Previously, `transferred` only accumulated `item.status === 'done'` or `phase === 'upload'`. When files finished chunk transmission and transitioned to the commit phase, their phase changed to `'commit'`, causing transferred bytes to abruptly reset to `0 B / X MB` while waiting for the Telegram message ID.
+  - *User impact*:
+    - Transferred bytes stay solid and never drop to zero during message dispatch and album finalization.
+
+### 3. Unified Multi-Stage Pipeline & Accurate Batch vs Item ETA Engine
+- **Multi-Stage Lifecycle Representation & Dual-Scope ETAs (`components/drive/Transfers/DriveTransferManager.tsx`, `App.css`, & `locales/*/drive.json`)**:
+  - *What changed*:
+    - Engineered clear multi-stage representation covering Preflight/Duplicate Check (`.stage-preflight`), Video Re-encode/GPU transcode (`.stage-reencode`), Chunked Upload (`.stage-upload`), and Commit (`.stage-commit`).
+    - Added dedicated active item ETA tracking (`it.etaSeconds`) alongside whole-session batch ETA (`session.etaSeconds` / `session.batchEtaSeconds`).
+    - Enhanced the header byte counter to display estimated batch volume (e.g., `45.2 MB / ~1.85 GB (5/392)`) when unprobed files exist, removing mystery around creeping byte totals.
+    - Added localized strings for preflight inspection (`tm_phase_preflight`) and batch estimation hints (`tm_est_total_hint`) across Indonesian and English with 100% key parity (6,813 keys each).
+  - *Technical rationale*:
+    - Prevents single-file worker micro-ETAs (e.g. 7s remaining for an individual chunk) from incorrectly overwriting the whole-job ETA for a 392-file queue.
+  - *User impact*:
+    - Realistic batch completion estimates, transparent total size forecasts, and granular phase indicators for every transfer stage.
+
 ## v4.1.19 — Compact Minimalist Transfer Manager Redesign, DOM Containment & Zero-Overflow Layout Audit
 
 ### 1. Layout Containment & Vertical DOM Decoupling
