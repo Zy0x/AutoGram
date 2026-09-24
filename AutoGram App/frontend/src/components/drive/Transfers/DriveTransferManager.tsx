@@ -13,6 +13,7 @@ import {
   Loader2,
   Clock,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Copy,
   FolderInput,
@@ -22,6 +23,9 @@ import {
   Bookmark,
   Trash2,
 } from 'lucide-react';
+import '../../../styles/transferFailedDetail.css';
+import { TransferFailedDetailCard } from './TransferFailedDetailCard';
+import { TransferDiagnosticModal } from './TransferDiagnosticModal';
 import type { TransferSession } from '../../../lib/telegram/driveTypes';
 import {
   formatDriveBytes,
@@ -274,6 +278,20 @@ export function DriveTransferManager({
   const [showLogs, setShowLogs] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [copiedItemErrorId, setCopiedItemErrorId] = useState<string | null>(null);
+  const [expandedFailedIds, setExpandedFailedIds] = useState<Set<string>>(new Set());
+  const [diagItem, setDiagItem] = useState<TransferSession['items'][number] | null>(null);
+
+  const toggleExpandFailed = (id: string) => {
+    setExpandedFailedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
   const debugLogs = session.debugLogs || [];
 
   useEffect(() => {
@@ -628,10 +646,22 @@ export function DriveTransferManager({
               const destInfo = formatDestination(it.destination, t);
               const errInfo = formatItemError(it.error, t);
 
+              const isFailed = it.status === 'failed';
+              const isExpanded = isFailed && expandedFailedIds.has(it.id);
+
               return (
-                <li key={it.id} className={`tm-row status-${it.status}`}>
+                <li
+                  key={it.id}
+                  className={`tm-row status-${it.status} ${isExpanded ? 'is-failed-expanded' : ''} ${isFailed ? 'is-failed-expandable' : ''}`}
+                >
                   <StatusIcon status={it.status} />
-                  <div className="tm-row-body">
+                  <div
+                    className="tm-row-body"
+                    onClick={() => {
+                      if (isFailed) toggleExpandFailed(it.id);
+                    }}
+                    style={isFailed ? { cursor: 'pointer' } : undefined}
+                  >
                     <div className="tm-row-name-container">
                       <div className="tm-row-name" title={it.name}>
                         {it.name}
@@ -712,6 +742,17 @@ export function DriveTransferManager({
                     )}
                   </div>
                   <div className="tm-row-actions">
+                    {isFailed && (
+                      <button
+                        type="button"
+                        className="tm-row-btn"
+                        onClick={() => toggleExpandFailed(it.id)}
+                        title={t('drive.tm_toggle_failed_detail')}
+                        aria-label={t('drive.tm_toggle_failed_detail')}
+                      >
+                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      </button>
+                    )}
                     {it.status === 'failed' && it.error && (
                       <button
                         type="button"
@@ -753,6 +794,15 @@ export function DriveTransferManager({
                       </button>
                     )}
                   </div>
+                  {isFailed && isExpanded && (
+                    <div style={{ width: '100%', flexBasis: '100%' }}>
+                      <TransferFailedDetailCard
+                        item={it}
+                        onRetryItem={onRetryItem}
+                        onOpenDiagnostics={(failedItem) => setDiagItem(failedItem)}
+                      />
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -805,6 +855,14 @@ export function DriveTransferManager({
           )}
         </div>
       )}
+
+      <TransferDiagnosticModal
+        isOpen={Boolean(diagItem)}
+        item={diagItem}
+        sessionLogs={debugLogs}
+        onClose={() => setDiagItem(null)}
+        onRetry={onRetryItem}
+      />
     </div>
   );
 }

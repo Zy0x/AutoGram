@@ -181,6 +181,7 @@ export type SeedTransferOpts = {
   jobKey?: string;
   destination?: string;
   destinations?: string[];
+  paths?: string[];
 };
 
 /** Create a fresh session when user starts an upload/download. */
@@ -198,6 +199,7 @@ export function seedTransferSession(opts: SeedTransferOpts): TransferSession {
     total: opts.totals?.[index] ?? 0,
     speed_mb_s: 0,
     destination: opts.destinations?.[index] ?? opts.destination ?? opts.label ?? '',
+    path: opts.paths?.[index],
   }));
   const total = items.reduce((s, i) => s + (i.total || 0), 0);
   return {

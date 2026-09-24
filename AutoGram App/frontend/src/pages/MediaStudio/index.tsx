@@ -667,6 +667,14 @@ function MediaDriveDesktop({
     saveDir: string;
     names: string[];
   } | null>(null);
+  const lastUploadRetryRef = useRef<{
+    paths: string[];
+    names: string[];
+    targetFolderId?: number | null;
+    targetLabel?: string;
+    topicId?: number | null;
+    options?: any;
+  } | null>(null);
   /** Prevents concurrent ZIP-all downloads from overlapping */
   const isDownloadingZipRef = useRef(false);
   const [zipPreflight, setZipPreflight] = useState<{
@@ -7066,6 +7074,15 @@ function MediaDriveDesktop({
       startIndex,
     };
 
+    lastUploadRetryRef.current = {
+      paths: cleanPaths,
+      names,
+      targetFolderId: uploadPeer,
+      targetLabel: destLabel,
+      topicId: (options.topic_id as number | null) ?? (opts?.topicId ?? null),
+      options,
+    };
+
     // If no active transfer, seed the session
     if (!isActive) {
       if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
@@ -7076,6 +7093,7 @@ function MediaDriveDesktop({
           names,
           label,
           destination: destLabel,
+          paths: cleanPaths,
         })
       );
     } else {
@@ -7092,6 +7110,7 @@ function MediaDriveDesktop({
           total: 0,
           speed_mb_s: 0,
           destination: destLabel,
+          path: cleanPaths[index],
         }));
         return {
           ...prev,
@@ -10588,14 +10607,112 @@ function MediaDriveDesktop({
             }
             canRetryFailed={
               !transfer.active &&
-              !!lastDownloadRetryRef.current &&
-              transfer.direction === 'download' &&
-              (transfer.items || []).some((i) => i.status === 'failed')
+              (transfer.items || []).some((i) => i.status === 'failed') &&
+              (
+                (transfer.direction === 'download' && !!lastDownloadRetryRef.current) ||
+                (transfer.direction === 'upload' && (!!lastUploadRetryRef.current || (transfer.items || []).some((i) => i.status === 'failed' && Boolean(i.path))))
+              )
             }
             onRemoveItem={(itemId) => {
               setTransfer((t) => removeTransferItem(t, itemId));
             }}
+            onRetryItem={(item) => {
+              if (transfer.active) {
+                setError(t('ui.generated.transfer_masih_berjalan_6258539'));
+                return;
+              }
+              if (transfer.direction === 'upload') {
+                const targetPath = item.path || lastUploadRetryRef.current?.paths.find((p) => p.endsWith(item.name) || p.includes(item.name));
+                if (targetPath) {
+                  const retryOpts = {
+                    ...lastUploadRetryRef.current?.options,
+                    targetFolderId: lastUploadRetryRef.current?.targetFolderId,
+                    targetLabel: lastUploadRetryRef.current?.targetLabel,
+                    topicId: lastUploadRetryRef.current?.topicId,
+                    presentationOverride: 'original' as const,
+                  };
+                  void runUploadPaths([targetPath], retryOpts);
+                } else {
+                  setError(`Tidak dapat menemukan berkas lokal untuk ${item.name}`);
+                }
+              } else if (transfer.direction === 'download') {
+                const r = lastDownloadRetryRef.current;
+                if (!r || !creds) return;
+                const matchIdx = r.names.findIndex((n) => n === item.name);
+                const msgId = matchIdx >= 0 ? r.ids[matchIdx] : item.messageId;
+                if (msgId != null) {
+                  const name = item.name || `msg_${msgId}`;
+                  const destFile = `${r.saveDir.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
+                  void (async () => {
+                    setTransfer((prev) => ({
+                      ...prev,
+                      active: true,
+                      items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'active' as const, percent: 30, error: undefined } : it)),
+                    }));
+                    try {
+                      const res = await tgDownloadFile({
+                        session: creds.session,
+                        apiId: Number(creds.apiId) || 0,
+                        apiHash: creds.apiHash,
+                        chatId: String(peerId ?? 'me'),
+                        messageId: msgId,
+                        destPath: destFile,
+                        conflictPolicy: transferSettings.downloadConflictPolicy,
+                        resumePartial: transferSettings.downloadResumePartial,
+                        integrity: transferSettings.downloadIntegrity,
+                        transferId: `download-retry:${msgId}`,
+                        itemIndex: item.index,
+                      });
+                      if (res?.ok) {
+                        setTransfer((prev) => ({
+                          ...prev,
+                          items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'done' as const, percent: 100 } : it)),
+                        }));
+                      } else {
+                        const errTxt = res?.userMessage || res?.error?.message || 'Gagal retry';
+                        setTransfer((prev) => ({
+                          ...prev,
+                          items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'failed' as const, error: errTxt } : it)),
+                        }));
+                      }
+                    } catch (e: any) {
+                      setTransfer((prev) => ({
+                        ...prev,
+                        items: prev.items.map((it) => (it.id === item.id ? { ...it, status: 'failed' as const, error: String(e?.message || e) } : it)),
+                      }));
+                    } finally {
+                      setTransfer((prev) => (prev.active ? markTransferFinished(prev, 'done') : prev));
+                    }
+                  })();
+                }
+              }
+            }}
             onRetryFailed={() => {
+              if (transfer.active) {
+                setError(t('ui.generated.transfer_masih_berjalan_6258539'));
+                return;
+              }
+              if (transfer.direction === 'upload') {
+                const failedItems = (transfer.items || []).filter((i) => i.status === 'failed');
+                if (!failedItems.length) return;
+                const pathsToRetry: string[] = [];
+                for (const it of failedItems) {
+                  const p = it.path || lastUploadRetryRef.current?.paths.find((x) => x.endsWith(it.name) || x.includes(it.name));
+                  if (p && !pathsToRetry.includes(p)) pathsToRetry.push(p);
+                }
+                if (pathsToRetry.length > 0) {
+                  const retryOpts = {
+                    ...lastUploadRetryRef.current?.options,
+                    targetFolderId: lastUploadRetryRef.current?.targetFolderId,
+                    targetLabel: lastUploadRetryRef.current?.targetLabel,
+                    topicId: lastUploadRetryRef.current?.topicId,
+                  };
+                  void runUploadPaths(pathsToRetry, retryOpts);
+                } else {
+                  setError('Tidak ada berkas lokal yang ditemukan untuk diunggah ulang.');
+                }
+                return;
+              }
               const r = lastDownloadRetryRef.current;
               if (!r || !creds) return;
               setSelectedIds(r.ids);

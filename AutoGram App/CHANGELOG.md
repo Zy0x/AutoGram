@@ -10,6 +10,43 @@
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
 
+## v4.1.18 — Resilient Transfer Manager Retry Engine, Expandable Failure Accordions & Diagnostic Modal
+
+### 1. Dual-Scope Transfer Retry Engine (Upload & Download)
+- **Universal Retry Capabilities (`components/drive/Transfers/DriveTransferManager.tsx` & `pages/MediaStudio/index.tsx`)**:
+  - *What changed*:
+    - Engineered two-tier retry capabilities for both Upload and Download operations: a prominent top action button (*"Retry X Berkas Gagal"*) for batch recovery and inline per-item retry buttons (`RotateCcw`) on every failed row.
+    - Lifted previous download-only restrictions on `canRetryFailed` and added `onRetryItem` handler support throughout `MediaStudio`.
+    - Implemented adaptive batch reconstitution: retrying multiple failed visual media preserves original album grouping rules, while individual file retries execute as clean standalone uploads without re-triggering the preflight dialog.
+  - *Technical rationale*:
+    - Previously, `canRetryFailed` was hardcoded exclusively to download operations, and `onRetryItem` was never connected to the transfer manager UI, leaving users without any way to retry failed uploads or inspect individual items.
+  - *User impact*:
+    - Users can now recover from failed uploads or downloads in a single click, either for all failed files at once or individually per file.
+
+### 2. Expandable Failure Accordions & Local Explorer Integration
+- **Inline Failed Item Inspection (`components/drive/Transfers/TransferFailedDetailCard.tsx`)**:
+  - *What changed*:
+    - Created a dedicated modular component `TransferFailedDetailCard.tsx` with smooth 200ms accordion transitions and minimum 44×44px touch targets.
+    - Clicking on any failed transfer row or its chevron toggle smoothly expands an inline card showing a human-readable error banner, full local/remote file path, formatted file size, and quick action buttons.
+    - Integrated native Windows File Explorer revealing via `revealInFolder` (`@tauri-apps/plugin-opener` / `open_path_safe`), allowing users to jump directly to the failed file on disk.
+    - Added one-click copy actions for error messages and technical traces with animated copied feedback states.
+  - *Technical rationale*:
+    - Failed transfer items previously truncated error strings to a few characters with no contextual explanation, leaving users confused about why a transfer failed or where the file was located.
+  - *User impact*:
+    - Clear, friendly explanations of network and MTProto errors with instant access to file locations and troubleshooting actions.
+
+### 3. Deep Technical Diagnostic Modal & Multi-Language Localization
+- **Diagnostic Log Pop-up & Parity Gate (`components/drive/Transfers/TransferDiagnosticModal.tsx`)**:
+  - *What changed*:
+    - Created `TransferDiagnosticModal.tsx` displaying a glassmorphic terminal interface with syntax-highlighted logs (`[INFO]`, `[WARN]`, `[ERROR]`) filtered specifically for the selected file.
+    - Added keyboard navigation (`Esc` to close) and a *"Salin Semua Log"* action for streamlined bug reporting.
+    - Extracted 100% of user-facing strings across all new components into `src/locales/id/drive.json` and `src/locales/en/drive.json` with 100% key parity (6,808 keys).
+    - Passed all 8 dimensions of `npm run test:quality` with 0 TypeScript errors and 0 lint warnings.
+  - *Technical rationale*:
+    - Complies with AutoGram Rule 1 (Mobile & Touch-First), Rule 7 (Zero Hardcoded Strings), and Rule 15 (Modular Architecture $\le 2000$ LOC).
+  - *User impact*:
+    - Developer and power-user friendly diagnostics without cluttering the normal transfer interface.
+
 ## v4.1.17 — Resilient Chunked Big-File (>10MB) Upload Engine & MTProto Connection Recovery
 
 ### 1. Resilient Chunked Big-File Upload Engine (Grammers MTProto)

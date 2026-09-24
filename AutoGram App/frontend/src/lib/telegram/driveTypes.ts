@@ -900,6 +900,7 @@ export type TransferItem = {
   messageId?: number;
   /** Destination name (e.g. Chat/Folder Title or Local save path) */
   destination?: string;
+  path?: string;
   /** True when this file was re-uploaded (deleted from destination then re-sent) */
   reuploaded?: boolean;
   /** Why the file was re-uploaded */
