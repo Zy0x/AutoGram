@@ -83,7 +83,14 @@ export function useTopicDrop({
 
   useEffect(() => {
     const unsub = subscribeDriveDragUi(() => {
-      const dragActive = isPointerDriveDragActive() || !!getActiveDriveDrag();
+      const dragActive =
+        isPointerDriveDragActive() ||
+        !!getActiveDriveDrag() ||
+        isExternalDragActiveRef.current ||
+        (typeof document !== 'undefined' && (
+          document.body.classList.contains('td-dnd-external') ||
+          document.querySelector('.td-shell.is-os-dnd') != null
+        ));
       const k = getLastHoverDropKey();
       if (!dragActive || !k) {
         setPointerHoverKey(null);
@@ -175,6 +182,27 @@ export function useTopicDrop({
     };
   }, [clearSpringTimer]);
 
+  // Listen to native OS drag move/end events emitted from Tauri onNativeDrag
+  useEffect(() => {
+    const onOsDragMove = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { clientX: number; clientY: number } | undefined;
+      if (detail && typeof detail.clientX === 'number') {
+        cursorRef.current = { x: detail.clientX, y: detail.clientY };
+        isExternalDragActiveRef.current = true;
+      }
+    };
+    const onOsDragEnd = () => {
+      isExternalDragActiveRef.current = false;
+      clearSpringTimer();
+    };
+    window.addEventListener('autogram-os-drag-move', onOsDragMove);
+    window.addEventListener('autogram-os-drag-end', onOsDragEnd);
+    return () => {
+      window.removeEventListener('autogram-os-drag-move', onOsDragMove);
+      window.removeEventListener('autogram-os-drag-end', onOsDragEnd);
+    };
+  }, [clearSpringTimer]);
+
   // Continuous edge auto-scroll loop while drag is active (internal or external)
   useEffect(() => {
     let rafId: number | null = null;
@@ -184,7 +212,10 @@ export function useTopicDrop({
         isPointerDriveDragActive() ||
         !!getActiveDriveDrag() ||
         isExternalDragActiveRef.current ||
-        (typeof document !== 'undefined' && document.body.classList.contains('td-dnd-external'));
+        (typeof document !== 'undefined' && (
+          document.body.classList.contains('td-dnd-external') ||
+          document.querySelector('.td-shell.is-os-dnd') != null
+        ));
       const el = topicPillsRef?.current;
 
       if (dragActive && el && el.scrollWidth > el.clientWidth) {

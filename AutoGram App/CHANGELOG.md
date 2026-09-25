@@ -9,6 +9,41 @@
 
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
+## v4.1.23 — External OS File Drag Hit Testing, Spring-Loaded Topic Activation & Receptive Visual Styling
+
+### 1. Native External OS Drag Target Resolution & Spring-Loaded Activation
+- **Tauri Native Drag Hit-Testing & Coordinate Resolution (`pages/MediaStudio/index.tsx` & `components/drive/Navigation/useTopicDrop.ts`)**:
+  - *What changed*:
+    - Fixed `onNativeDrag` handler in `MediaStudio/index.tsx` where native drag-and-drop coordinates from Tauri (`payload.position`) were previously resolving drop targets but discarding the return value (`void t`).
+    - Integrated multi-coordinate candidate resolution via `physicalToClient(pos.x, pos.y)`, CSS pixel scaling (`devicePixelRatio`), and `pickDropKeyAtPoint(x, y)`.
+    - Wired resolved target keys into `setLastHoverDropKey(resolvedKey)` and `pendingOsDropTargetRef.current = resolvedTarget` during external OS drag hover.
+    - Added custom window events (`autogram-os-drag-move` and `autogram-os-drag-end`) emitted from the native Tauri loop into `useTopicDrop.ts` to bridge desktop OS drag coordinates into the UI thread.
+  - *Technical rationale*:
+    - In Tauri 2 on Windows, dragging files directly from Windows Explorer or the Desktop bypasses standard browser HTML5 `dragover` events on child DOM elements like `<button class="td-topic-pill">`. Tauri delivers native OLE `IDropTarget` events at the HWND window level. Without explicit coordinate mapping and listener bridging, the UI had no awareness of cursor position over topic pills during external file drags, causing spring-loaded timers and drop target recognition to fail.
+  - *User impact*:
+    - Dragging external files from Windows Explorer onto any topic pill in the top bar now reliably highlights the target pill, triggers the 550ms spring-loaded hover timer to open that topic automatically, and routes dropped files directly into the chosen topic.
+
+### 2. High-Fidelity Receptive Visual Styling for External Drags
+- **Consistent Receptive CSS Indicators (`src/index.css`)**:
+  - *What changed*:
+    - Extended the dashed receptive styling rules in `index.css` to include `.td-shell.is-os-dnd .td-topic-pill` alongside `body.td-dnd-external .td-topic-pill`.
+    - Synchronized `is-drag-over`, `is-drop-over`, and `is-spring-hovering` class specificity so that external file drags render identical dashed green borders (`rgba(74, 222, 128, 0.65)`), solid green hover highlights with soft scaling (`scale(1.04)`), and glowing blue spring-switch indicators (`rgba(56, 189, 248, 0.95)`).
+  - *Technical rationale*:
+    - Previously, the dashed border rule only matched `.td-shell.is-media-dnd .td-topic-pill` (internal card drags). When dragging files from external folders, `mediaDragActive` was false, resulting in no receptive dashed border and giving the visual impression that topic pills could not receive external files.
+  - *User impact*:
+    - Immediate and clear visual feedback the instant an external file is dragged into the app window, signaling that all forum topics are valid drop targets.
+
+### 3. Continuous Edge Auto-Scroll & Cleanup Lifecycle
+- **Real-Time 60fps Edge Scrolling for External Drags (`components/drive/Navigation/useTopicDrop.ts`)**:
+  - *What changed*:
+    - Updated the edge auto-scroll loop in `useTopicDrop.ts` to recognize `isExternalDragActiveRef.current`, `.td-shell.is-os-dnd`, and `body.td-dnd-external`.
+    - Hooked the continuous RAF tick to `autogram-os-drag-move` coordinate feeds, smoothly scrolling the topic pills horizontally (left or right) whenever external dragged files hover within 80px of either edge.
+    - Ensured robust cleanup on drag cancel/leave/drop by clearing spring timers, resetting hover keys, and dispatching `autogram-os-drag-end`.
+  - *Technical rationale*:
+    - Prevents cursor tracking deadzones and ensures consistent 60fps horizontal scrolling whether dragging internal media cards or external OS files.
+  - *User impact*:
+    - Users can fluidly navigate from the first to the last topic in channels with dozens of topics while holding external files, without getting stuck or dropping prematurely.
+
 ## v4.1.22 — Direct Targeted Topic Drag-and-Drop Upload, Spring-Loaded Topic Switching & Continuous Horizontal Auto-Scroll
 
 ### 1. Targeted Topic Drag-and-Drop Upload Engine

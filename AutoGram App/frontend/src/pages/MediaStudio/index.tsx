@@ -9984,8 +9984,35 @@ function MediaDriveDesktop({
             document.body.classList.remove('td-dnd-internal');
             setDragActive(true);
             if (payload.position) {
-              const t = await resolveDropTargetAt(payload.position);
-              void t;
+              const { clientX, clientY, factor } = await physicalToClient(payload.position.x, payload.position.y);
+              window.dispatchEvent(new CustomEvent('autogram-os-drag-move', { detail: { clientX, clientY } }));
+
+              const candidates: Array<[number, number]> = [
+                [clientX, clientY],
+                [payload.position.x, payload.position.y],
+                [payload.position.x / (window.devicePixelRatio || 1), payload.position.y / (window.devicePixelRatio || 1)],
+                [payload.position.x / factor, payload.position.y / factor],
+              ];
+              let resolvedKey: string | null = null;
+              let resolvedTarget: DriveDropTarget | null = null;
+              for (const [x, y] of candidates) {
+                const k = pickDropKeyAtPoint(x, y);
+                if (!k) continue;
+                const target = resolveDropRef.current(k);
+                if (target) {
+                  resolvedKey = k;
+                  resolvedTarget = target;
+                  break;
+                }
+              }
+
+              if (resolvedTarget && resolvedKey) {
+                pendingOsDropTargetRef.current = resolvedTarget;
+                setLastHoverDropKey(resolvedKey);
+              } else {
+                pendingOsDropTargetRef.current = null;
+                setLastHoverDropKey(null);
+              }
             }
             return;
           }
@@ -9993,17 +10020,21 @@ function MediaDriveDesktop({
           if (payload.type === 'leave' || payload.type === 'cancel') {
             setDragActive(false);
             document.body.classList.remove('td-dnd-external');
+            setLastHoverDropKey(null);
+            pendingOsDropTargetRef.current = null;
+            window.dispatchEvent(new CustomEvent('autogram-os-drag-end'));
             // Do NOT clear paths immediately — drop often follows leave by a few ms
             window.setTimeout(() => {
               if (!dropLockRef.current && !handling) clearLastOsPaths();
             }, 900);
-            // Keep pendingOsDropTarget a bit for drop resolution
             return;
           }
 
           if (payload.type === 'drop') {
             setDragActive(false);
             document.body.classList.remove('td-dnd-external');
+            setLastHoverDropKey(null);
+            window.dispatchEvent(new CustomEvent('autogram-os-drag-end'));
             // Ignore during internal media drag (forward handled by pointer/HTML5 path)
             if (isInternalMediaDragActive()) {
               clearLastOsPaths();

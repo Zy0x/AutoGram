@@ -106,6 +106,7 @@ select,
 
 /* Topic Pills Drag and Drop State Indicators */
 .td-shell.is-media-dnd .td-topic-pill,
+.td-shell.is-os-dnd .td-topic-pill,
 body.td-dnd-external .td-topic-pill {
   border-style: dashed !important;
   border-color: rgba(74, 222, 128, 0.65) !important;
@@ -117,6 +118,8 @@ body.td-dnd-external .td-topic-pill {
 .td-topic-pill.is-drop-over,
 .td-shell.is-media-dnd .td-topic-pill.is-drag-over,
 .td-shell.is-media-dnd .td-topic-pill.is-drop-over,
+.td-shell.is-os-dnd .td-topic-pill.is-drag-over,
+.td-shell.is-os-dnd .td-topic-pill.is-drop-over,
 body.td-dnd-external .td-topic-pill.is-drag-over,
 body.td-dnd-external .td-topic-pill.is-drop-over,
 button.td-topic-pill.is-drag-over,
