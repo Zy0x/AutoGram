@@ -29,9 +29,17 @@ export function useTopicDrop({
   const cursorRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
   const isExternalDragActiveRef = useRef(false);
   const springTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const leaveGraceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastHoveredTopicRef = useRef<number | 'all' | null>(null);
 
+  const onTopicHoverSwitchRef = useRef(onTopicHoverSwitch);
+  onTopicHoverSwitchRef.current = onTopicHoverSwitch;
+
   const clearSpringTimer = useCallback(() => {
+    if (leaveGraceTimerRef.current) {
+      clearTimeout(leaveGraceTimerRef.current);
+      leaveGraceTimerRef.current = null;
+    }
     if (springTimerRef.current) {
       clearTimeout(springTimerRef.current);
       springTimerRef.current = null;
@@ -92,12 +100,30 @@ export function useTopicDrop({
           document.querySelector('.td-shell.is-os-dnd') != null
         ));
       const k = getLastHoverDropKey();
-      if (!dragActive || !k) {
+      if (!dragActive) {
         setPointerHoverKey(null);
         setActiveDragTopicId(null);
         clearSpringTimer();
         return;
       }
+      if (!k) {
+        setPointerHoverKey(null);
+        setActiveDragTopicId(null);
+        // Micro-grace timer before clearing spring state (avoids cancelling on 1px pill border transitions)
+        if (!leaveGraceTimerRef.current && springTimerRef.current) {
+          leaveGraceTimerRef.current = setTimeout(() => {
+            leaveGraceTimerRef.current = null;
+            clearSpringTimer();
+          }, 120);
+        }
+        return;
+      }
+
+      if (leaveGraceTimerRef.current) {
+        clearTimeout(leaveGraceTimerRef.current);
+        leaveGraceTimerRef.current = null;
+      }
+
       setPointerHoverKey(k);
       if (k.startsWith('topic:')) {
         const idPart = k.slice('topic:'.length);
@@ -105,15 +131,15 @@ export function useTopicDrop({
         const validKey = parsedKey === 'all' ? 'all' : Number.isFinite(parsedKey) ? parsedKey : null;
         setActiveDragTopicId(validKey);
 
-        // Spring-loaded topic switch during internal pointer drags
-        if (onTopicHoverSwitch && validKey != null && lastHoveredTopicRef.current !== validKey) {
+        // Spring-loaded topic switch with calibrated 550ms debounce
+        if (validKey != null && lastHoveredTopicRef.current !== validKey) {
           if (springTimerRef.current) clearTimeout(springTimerRef.current);
           lastHoveredTopicRef.current = validKey;
           setSpringHoverTopicId(validKey);
           springTimerRef.current = setTimeout(() => {
             springTimerRef.current = null;
             setSpringHoverTopicId(null);
-            onTopicHoverSwitch(validKey === 'all' ? null : validKey);
+            onTopicHoverSwitchRef.current?.(validKey === 'all' ? null : validKey);
           }, 550);
         }
       } else {
@@ -125,7 +151,7 @@ export function useTopicDrop({
       unsub();
       clearSpringTimer();
     };
-  }, [clearSpringTimer, onTopicHoverSwitch]);
+  }, [clearSpringTimer]);
 
   // Track global cursor coordinates for smooth edge auto-scrolling during drag
   useEffect(() => {
@@ -189,6 +215,21 @@ export function useTopicDrop({
       if (detail && typeof detail.clientX === 'number') {
         cursorRef.current = { x: detail.clientX, y: detail.clientY };
         isExternalDragActiveRef.current = true;
+
+        // Instantaneous hit-test on topic pills during native OS drag
+        const hit = typeof document !== 'undefined' ? document.elementFromPoint(detail.clientX, detail.clientY) : null;
+        const pill = hit?.closest<HTMLElement>('.td-topic-pill[data-drop-key]');
+        if (pill) {
+          const k = pill.getAttribute('data-drop-key');
+          if (k) {
+            setLastHoverDropKey(k);
+          }
+        } else {
+          const currentKey = getLastHoverDropKey();
+          if (currentKey && currentKey.startsWith('topic:')) {
+            setLastHoverDropKey(null);
+          }
+        }
       }
     };
     const onOsDragEnd = () => {
@@ -299,36 +340,49 @@ export function useTopicDrop({
       } catch {
         /* ignore */
       }
+      if (leaveGraceTimerRef.current) {
+        clearTimeout(leaveGraceTimerRef.current);
+        leaveGraceTimerRef.current = null;
+      }
       const targetKey: number | 'all' = topicId == null ? 'all' : topicId;
       setLastHoverDropKey(topicId == null ? 'topic:all' : `topic:${topicId}`);
       setActiveDragTopicId((prev) => (prev === targetKey ? prev : targetKey));
 
-      // Spring-loaded topic hover switch: start 550ms timer if hovered over a new topic
-      if (onTopicHoverSwitch && lastHoveredTopicRef.current !== targetKey) {
+      // Spring-loaded topic hover switch: start 550ms debounce timer if hovered over a new topic
+      if (lastHoveredTopicRef.current !== targetKey) {
         if (springTimerRef.current) clearTimeout(springTimerRef.current);
         lastHoveredTopicRef.current = targetKey;
         setSpringHoverTopicId(targetKey);
         springTimerRef.current = setTimeout(() => {
           springTimerRef.current = null;
           setSpringHoverTopicId(null);
-          onTopicHoverSwitch(topicId);
+          onTopicHoverSwitchRef.current?.(topicId);
         }, 550);
       }
     },
-    [onTopicHoverSwitch]
+    []
   );
 
   const handleDragLeave = useCallback(
     (topicId: number | null, e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      // Ignore if pointer merely entered a child element inside the pill button
+      if (e.currentTarget && e.relatedTarget && (e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
+        return;
+      }
       const targetKey: number | 'all' = topicId == null ? 'all' : topicId;
       if (getLastHoverDropKey() === (topicId == null ? 'topic:all' : `topic:${topicId}`)) {
         setLastHoverDropKey(null);
       }
       setActiveDragTopicId((prev) => (prev === targetKey ? null : prev));
       if (lastHoveredTopicRef.current === targetKey) {
-        clearSpringTimer();
+        if (!leaveGraceTimerRef.current && springTimerRef.current) {
+          leaveGraceTimerRef.current = setTimeout(() => {
+            leaveGraceTimerRef.current = null;
+            clearSpringTimer();
+          }, 120);
+        }
       }
     },
     [clearSpringTimer]

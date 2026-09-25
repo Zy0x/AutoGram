@@ -371,7 +371,7 @@ export function DriveTopBar({
     handleDrop,
   } = useTopicDrop({
     onDropOnTopic,
-    onTopicHoverSwitch: (tid) => onTopicFilter?.(tid),
+    onTopicHoverSwitch: onTopicFilter,
     topicPillsRef,
     topicsCount: topics?.length ?? 0,
   });

@@ -9,6 +9,41 @@
 
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
+## v4.1.24 — Spring-Loaded Topic Hover Debounce Resilience, Instantaneous OS Drag Hit-Testing & Unmount Cancellation Elimination
+
+### 1. Spring-Loaded Topic Hover Debounce & Re-render Isolation
+- **Ref Isolation & Hysteresis Protection (`components/drive/Navigation/useTopicDrop.ts` & `DriveTopBar.tsx`)**:
+  - *What changed*:
+    - Encapsulated `onTopicHoverSwitch` in an internal React ref (`onTopicHoverSwitchRef`) inside `useTopicDrop.ts`, removing it from the `useEffect` dependency array that subscribes to `subscribeDriveDragUi`.
+    - Passed memoized `onTopicFilter` directly from `DriveTopBar.tsx` instead of creating an inline arrow function on every render cycle.
+    - Added a 120ms leave grace timer (`leaveGraceTimerRef`) that prevents momentary 1px pill border transitions or mouse jitter from prematurely resetting the spring timer.
+    - Updated `handleDragLeave` to ignore dragleave events that enter child DOM nodes inside the topic button (`e.currentTarget.contains(e.relatedTarget)`).
+  - *Technical rationale*:
+    - Previously, when a user hovered over a topic pill, setting `springHoverTopicId` triggered a re-render of `DriveTopBar`. Because `DriveTopBar` passed an inline unmemoized function `(tid) => onTopicFilter?.(tid)`, the function reference changed on every render. React's effect cleanup executed `clearSpringTimer()`, killing the 550ms timer on the exact same frame it was started. By isolating the callback through a ref and adding a grace period, the timer runs continuously without cancellation while dwelling.
+  - *User impact*:
+    - Lingering / hovering over any topic pill for 550ms now reliably triggers the spring-loaded action and opens the topic's contents. Swiping or dragging past quickly (< 200ms) will never accidentally open topics that the user merely brushed past.
+
+### 2. Instantaneous Native OS Drag Hit-Testing & Leave Detection
+- **Direct Hit-Testing on Custom Coordinate Events (`components/drive/Navigation/useTopicDrop.ts`)**:
+  - *What changed*:
+    - Augmented the `autogram-os-drag-move` event listener in `useTopicDrop.ts` with direct `elementFromPoint(clientX, clientY)` hit-testing for topic pill elements (`.td-topic-pill[data-drop-key]`).
+    - When the cursor hovers over a topic pill during an external OS drag, `setLastHoverDropKey` is immediately updated to that topic.
+    - When the cursor moves away from the topic strip, `setLastHoverDropKey(null)` is called, immediately cancelling the dwell timer and preventing unintentional switches.
+  - *Technical rationale*:
+    - Windows Explorer file drag events do not trigger HTML5 dragover events on individual DOM buttons. Relying solely on `MediaStudio`'s top-level loop caused edge-case misses when the cursor moved across elements. Directly evaluating hit coordinates in `useTopicDrop.ts` provides instant 0ms feedback and accurate leave detection.
+  - *User impact*:
+    - External files dragged from desktop or Windows Explorer now show immediate hover feedback and cleanly switch topics when paused over them, while completely ignoring topics that were quickly traversed.
+
+### 3. Synchronous Coordinate Scaling & Race Condition Elimination
+- **Zero-Latency DPR Conversion (`pages/MediaStudio/index.tsx` & `src/index.css`)**:
+  - *What changed*:
+    - Replaced the asynchronous `physicalToClient` function (which previously performed dynamic `import('@tauri-apps/api/window')` and an IPC call to `getCurrentWindow().scaleFactor()` on every 60Hz mousemove) with synchronous `window.devicePixelRatio` scaling.
+    - Added `pointer-events: none;` to `.td-topic-pill *` in `src/index.css` so child text and icons never generate detached drag events.
+  - *Technical rationale*:
+    - Firing 60 asynchronous IPC promises per second created severe out-of-order execution, where an older event's `null` resolution could arrive after a newer event's valid topic hit, causing constant timer flapping. Synchronous coordinate mapping guarantees strict FIFO event processing.
+  - *User impact*:
+    - Completely smooth, lag-free cursor tracking during external file drag and drop with zero jitter or flickering.
+
 ## v4.1.23 — External OS File Drag Hit Testing, Spring-Loaded Topic Activation & Receptive Visual Styling
 
 ### 1. Native External OS Drag Target Resolution & Spring-Loaded Activation

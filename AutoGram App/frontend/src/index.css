@@ -104,6 +104,10 @@ select,
   -webkit-touch-callout: none;
 }
 
+.td-topic-pill * {
+  pointer-events: none;
+}
+
 /* Topic Pills Drag and Drop State Indicators */
 .td-shell.is-media-dnd .td-topic-pill,
 .td-shell.is-os-dnd .td-topic-pill,

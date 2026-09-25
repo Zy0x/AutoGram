@@ -9913,27 +9913,17 @@ function MediaDriveDesktop({
     let cancelled = false;
     let handling = false;
 
-    const physicalToClient = async (x: number, y: number) => {
-      try {
-        const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        const factor = await getCurrentWindow().scaleFactor();
-        const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || factor : factor;
-        // Prefer window scaleFactor; fall back to DPR
-        const f = factor > 0 ? factor : dpr;
-        return { clientX: x / f, clientY: y / f, factor: f };
-      } catch {
-        const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-        return { clientX: x / dpr, clientY: y / dpr, factor: dpr };
-      }
+    const physicalToClient = (x: number, y: number) => {
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      return { clientX: x / dpr, clientY: y / dpr, factor: dpr };
     };
 
-    const resolveDropTargetAt = async (pos: { x: number; y: number }) => {
+    const resolveDropTargetAt = (pos: { x: number; y: number }) => {
       // Try several coordinate spaces — WebView2/Tauri position can be physical or CSS
-      const { clientX, clientY, factor } = await physicalToClient(pos.x, pos.y);
+      const { clientX, clientY, factor } = physicalToClient(pos.x, pos.y);
       const candidates: Array<[number, number]> = [
         [clientX, clientY],
         [pos.x, pos.y],
-        [pos.x / (window.devicePixelRatio || 1), pos.y / (window.devicePixelRatio || 1)],
         [pos.x / factor, pos.y / factor],
       ];
       for (const [x, y] of candidates) {
@@ -9984,13 +9974,12 @@ function MediaDriveDesktop({
             document.body.classList.remove('td-dnd-internal');
             setDragActive(true);
             if (payload.position) {
-              const { clientX, clientY, factor } = await physicalToClient(payload.position.x, payload.position.y);
+              const { clientX, clientY, factor } = physicalToClient(payload.position.x, payload.position.y);
               window.dispatchEvent(new CustomEvent('autogram-os-drag-move', { detail: { clientX, clientY } }));
 
               const candidates: Array<[number, number]> = [
                 [clientX, clientY],
                 [payload.position.x, payload.position.y],
-                [payload.position.x / (window.devicePixelRatio || 1), payload.position.y / (window.devicePixelRatio || 1)],
                 [payload.position.x / factor, payload.position.y / factor],
               ];
               let resolvedKey: string | null = null;
