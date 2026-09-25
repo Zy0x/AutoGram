@@ -358,6 +358,7 @@ export function DriveTopBar({
   const topicPillsRef = useRef<HTMLDivElement>(null);
   const {
     activeDragTopicId,
+    springHoverTopicId,
     pointerHoverKey,
     canScrollLeft,
     canScrollRight,
@@ -370,6 +371,7 @@ export function DriveTopBar({
     handleDrop,
   } = useTopicDrop({
     onDropOnTopic,
+    onTopicHoverSwitch: (tid) => onTopicFilter?.(tid),
     topicPillsRef,
     topicsCount: topics?.length ?? 0,
   });
@@ -948,7 +950,8 @@ export function DriveTopBar({
                 data-location-kind="topic"
                 data-topic-id="all"
                 className={`td-topic-pill ${topicFilter == null ? 'active' : ''} ${
-                  activeDragTopicId === 'all' || pointerHoverKey === 'topic:all' ? 'is-drag-over is-drop-over' : ''
+                  (activeDragTopicId === 'all' || pointerHoverKey === 'topic:all' ? 'is-drag-over is-drop-over' : '') +
+                  (springHoverTopicId === 'all' ? ' is-spring-hovering' : '')
                 }`}
                 onClick={() => onTopicFilter?.(null)}
                 onDragOver={(e) => handleDragOver(null, e)}
@@ -971,6 +974,7 @@ export function DriveTopBar({
                 if (topicFilter === tp.id) classes.push('active');
                 if (tp.closed) classes.push('is-closed');
                 if (isOver) classes.push('is-drag-over', 'is-drop-over');
+                if (springHoverTopicId === tp.id || springHoverTopicId === String(tp.id)) classes.push('is-spring-hovering');
                 return (
                   <button
                     key={tp.id}

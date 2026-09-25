@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getActiveDriveDrag,
-  getDriveDragData,
   getLastHoverDropKey,
   isPointerDriveDragActive,
   setLastHoverDropKey,
@@ -10,17 +9,36 @@ import {
 
 export interface UseTopicDropOpts {
   onDropOnTopic?: (topicId: number | null, topicTitle: string, e: React.DragEvent) => void;
+  onTopicHoverSwitch?: (topicId: number | null) => void;
   topicPillsRef?: React.RefObject<HTMLDivElement | null>;
   topicsCount?: number;
 }
 
-export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseTopicDropOpts = {}) {
+export function useTopicDrop({
+  onDropOnTopic,
+  onTopicHoverSwitch,
+  topicPillsRef,
+  topicsCount,
+}: UseTopicDropOpts = {}) {
   const [activeDragTopicId, setActiveDragTopicId] = useState<number | 'all' | null>(null);
+  const [springHoverTopicId, setSpringHoverTopicId] = useState<number | 'all' | null>(null);
   const [pointerHoverKey, setPointerHoverKey] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const cursorRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
+  const isExternalDragActiveRef = useRef(false);
+  const springTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastHoveredTopicRef = useRef<number | 'all' | null>(null);
+
+  const clearSpringTimer = useCallback(() => {
+    if (springTimerRef.current) {
+      clearTimeout(springTimerRef.current);
+      springTimerRef.current = null;
+    }
+    setSpringHoverTopicId(null);
+    lastHoveredTopicRef.current = null;
+  }, []);
 
   const updateScrollState = useCallback(() => {
     const el = topicPillsRef?.current;
@@ -70,24 +88,37 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
       if (!dragActive || !k) {
         setPointerHoverKey(null);
         setActiveDragTopicId(null);
+        clearSpringTimer();
         return;
       }
       setPointerHoverKey(k);
       if (k.startsWith('topic:')) {
         const idPart = k.slice('topic:'.length);
-        if (idPart === 'all' || idPart === 'null') {
-          setActiveDragTopicId('all');
-        } else {
-          const num = Number(idPart);
-          if (Number.isFinite(num)) setActiveDragTopicId(num);
-          else setActiveDragTopicId(null);
+        const parsedKey: number | 'all' = idPart === 'all' || idPart === 'null' ? 'all' : Number(idPart);
+        const validKey = parsedKey === 'all' ? 'all' : Number.isFinite(parsedKey) ? parsedKey : null;
+        setActiveDragTopicId(validKey);
+
+        // Spring-loaded topic switch during internal pointer drags
+        if (onTopicHoverSwitch && validKey != null && lastHoveredTopicRef.current !== validKey) {
+          if (springTimerRef.current) clearTimeout(springTimerRef.current);
+          lastHoveredTopicRef.current = validKey;
+          setSpringHoverTopicId(validKey);
+          springTimerRef.current = setTimeout(() => {
+            springTimerRef.current = null;
+            setSpringHoverTopicId(null);
+            onTopicHoverSwitch(validKey === 'all' ? null : validKey);
+          }, 550);
         }
       } else {
         setActiveDragTopicId(null);
+        clearSpringTimer();
       }
     });
-    return unsub;
-  }, []);
+    return () => {
+      unsub();
+      clearSpringTimer();
+    };
+  }, [clearSpringTimer, onTopicHoverSwitch]);
 
   // Track global cursor coordinates for smooth edge auto-scrolling during drag
   useEffect(() => {
@@ -102,12 +133,58 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
     };
   }, []);
 
-  // Continuous edge auto-scroll loop while drag is active
+  // Track external OS file drag states
+  useEffect(() => {
+    const onDragEnter = (e: DragEvent) => {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+        isExternalDragActiveRef.current = true;
+      }
+    };
+    const onDragOver = (e: DragEvent) => {
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+        isExternalDragActiveRef.current = true;
+      }
+    };
+    const onDragLeave = (e: DragEvent) => {
+      if (
+        e.clientX <= 0 ||
+        e.clientY <= 0 ||
+        e.clientX >= window.innerWidth ||
+        e.clientY >= window.innerHeight
+      ) {
+        isExternalDragActiveRef.current = false;
+        clearSpringTimer();
+      }
+    };
+    const onDropEnd = () => {
+      isExternalDragActiveRef.current = false;
+      clearSpringTimer();
+    };
+    window.addEventListener('dragenter', onDragEnter, { capture: true, passive: true });
+    window.addEventListener('dragover', onDragOver, { capture: true, passive: true });
+    window.addEventListener('dragleave', onDragLeave, { capture: true, passive: true });
+    window.addEventListener('drop', onDropEnd, { capture: true, passive: true });
+    window.addEventListener('dragend', onDropEnd, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter, { capture: true });
+      window.removeEventListener('dragover', onDragOver, { capture: true });
+      window.removeEventListener('dragleave', onDragLeave, { capture: true });
+      window.removeEventListener('drop', onDropEnd, { capture: true });
+      window.removeEventListener('dragend', onDropEnd, { capture: true });
+    };
+  }, [clearSpringTimer]);
+
+  // Continuous edge auto-scroll loop while drag is active (internal or external)
   useEffect(() => {
     let rafId: number | null = null;
 
     const tick = () => {
-      const dragActive = isPointerDriveDragActive() || !!getActiveDriveDrag();
+      const dragActive =
+        isPointerDriveDragActive() ||
+        !!getActiveDriveDrag() ||
+        isExternalDragActiveRef.current ||
+        (typeof document !== 'undefined' && document.body.classList.contains('td-dnd-external'));
       const el = topicPillsRef?.current;
 
       if (dragActive && el && el.scrollWidth > el.clientWidth) {
@@ -115,7 +192,7 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
         if (x >= 0 && y >= 0) {
           const rect = el.getBoundingClientRect();
           // Check if cursor is vertically over / near the topic pills strip
-          if (y >= rect.top - 20 && y <= rect.bottom + 25) {
+          if (y >= rect.top - 25 && y <= rect.bottom + 30) {
             const edgeZone = 80;
             // Right edge hover zone -> auto scroll right
             if (x >= rect.right - edgeZone && x <= rect.right + 40) {
@@ -141,16 +218,20 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
   }, [topicPillsRef]);
 
   const handlePillsWheel = useCallback(
-    (_e: React.WheelEvent<HTMLDivElement>) => {
-      // Native horizontal delta is handled natively by the browser.
-      // Vertical mouse wheel delta is handled globally and smoothly by handleHorizontalWheel.
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      const el = topicPillsRef?.current;
+      if (!el) return;
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY;
+      }
     },
-    []
+    [topicPillsRef]
   );
 
   const handlePillsDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      cursorRef.current = { x: e.clientX, y: e.clientY };
       const el = topicPillsRef?.current;
       if (!el || el.scrollWidth <= el.clientWidth) return;
       const rect = el.getBoundingClientRect();
@@ -175,30 +256,52 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
     [topicPillsRef]
   );
 
-  const handleDragOver = useCallback((topicId: number | null, e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = 'copy';
+  const handleDragOver = useCallback(
+    (topicId: number | null, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+      try {
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = 'copy';
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
-    const targetKey = topicId == null ? 'all' : topicId;
-    setLastHoverDropKey(topicId == null ? 'topic:all' : `topic:${topicId}`);
-    setActiveDragTopicId((prev) => (prev === targetKey ? prev : targetKey));
-  }, []);
+      const targetKey: number | 'all' = topicId == null ? 'all' : topicId;
+      setLastHoverDropKey(topicId == null ? 'topic:all' : `topic:${topicId}`);
+      setActiveDragTopicId((prev) => (prev === targetKey ? prev : targetKey));
 
-  const handleDragLeave = useCallback((topicId: number | null, e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const targetKey = topicId == null ? 'all' : topicId;
-    if (getLastHoverDropKey() === (topicId == null ? 'topic:all' : `topic:${topicId}`)) {
-      setLastHoverDropKey(null);
-    }
-    setActiveDragTopicId((prev) => (prev === targetKey ? null : prev));
-  }, []);
+      // Spring-loaded topic hover switch: start 550ms timer if hovered over a new topic
+      if (onTopicHoverSwitch && lastHoveredTopicRef.current !== targetKey) {
+        if (springTimerRef.current) clearTimeout(springTimerRef.current);
+        lastHoveredTopicRef.current = targetKey;
+        setSpringHoverTopicId(targetKey);
+        springTimerRef.current = setTimeout(() => {
+          springTimerRef.current = null;
+          setSpringHoverTopicId(null);
+          onTopicHoverSwitch(topicId);
+        }, 550);
+      }
+    },
+    [onTopicHoverSwitch]
+  );
+
+  const handleDragLeave = useCallback(
+    (topicId: number | null, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetKey: number | 'all' = topicId == null ? 'all' : topicId;
+      if (getLastHoverDropKey() === (topicId == null ? 'topic:all' : `topic:${topicId}`)) {
+        setLastHoverDropKey(null);
+      }
+      setActiveDragTopicId((prev) => (prev === targetKey ? null : prev));
+      if (lastHoveredTopicRef.current === targetKey) {
+        clearSpringTimer();
+      }
+    },
+    [clearSpringTimer]
+  );
 
   const handleDrop = useCallback(
     (topicId: number | null, topicTitle: string, e: React.DragEvent) => {
@@ -206,24 +309,21 @@ export function useTopicDrop({ onDropOnTopic, topicPillsRef, topicsCount }: UseT
       e.stopPropagation();
       setLastHoverDropKey(null);
       setActiveDragTopicId(null);
+      clearSpringTimer();
 
       // Pointer internal drag: Cloud Drives pointerup in MediaStudio owns completion
       if (isPointerDriveDragActive()) return;
 
-      const internal = getActiveDriveDrag() || getDriveDragData(e.dataTransfer);
-      if (!internal || !internal.messageIds || !internal.messageIds.length) {
-        return;
-      }
-
       onDropOnTopic?.(topicId, topicTitle, e);
     },
-    [onDropOnTopic]
+    [onDropOnTopic, clearSpringTimer]
   );
 
   const { createHoldProps: createTopicHoldProps } = useHoldToScroll(topicPillsRef);
 
   return {
     activeDragTopicId,
+    springHoverTopicId,
     pointerHoverKey,
     canScrollLeft,
     canScrollRight,

@@ -9,6 +9,41 @@
 
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
+## v4.1.22 — Direct Targeted Topic Drag-and-Drop Upload, Spring-Loaded Topic Switching & Continuous Horizontal Auto-Scroll
+
+### 1. Targeted Topic Drag-and-Drop Upload Engine
+- **Direct Drop on Topic Pills (`components/drive/Navigation/useTopicDrop.ts` & `pages/MediaStudio/index.tsx`)**:
+  - *What changed*:
+    - Removed legacy early abort in `useTopicDrop.ts` that previously blocked drop events when internal media ID payloads were absent.
+    - Updated `handleDrop` to dispatch `onDropOnTopic(topicId, topicTitle, e)` for both internal media card moves and external OS file uploads (from Windows Explorer / Desktop).
+    - Fixed upload target resolution in `MediaStudio/index.tsx` so that dropping onto a topic pill (`target.kind === 'topic'`) routes files with `targetFolderId: peerId`, `topicId: target.id`, and `skipTopic: target.id == null`, targeting the selected forum topic directly.
+  - *Technical rationale*:
+    - Previously, users were required to manually click and open a topic before uploading files into it. Dropping files directly on topic pills previously failed because `useTopicDrop` returned early on missing `messageIds`, and the drop orchestrator treated `target.id` as a folder/chat peer ID rather than an MTProto topic ID.
+  - *User impact*:
+    - Users can now drag files directly from Windows Explorer or desktop onto any specific topic pill in the top bar to immediately upload or preflight into that topic without switching views first.
+
+### 2. Spring-Loaded Topic Hover Switching (550ms Calibrated Debounce)
+- **Fluid Hover-to-Switch Interaction (`components/drive/Navigation/useTopicDrop.ts` & `DriveTopBar.tsx`)**:
+  - *What changed*:
+    - Implemented spring-loaded folder/topic mechanics: hovering a dragged item over a topic pill for 550ms continuously automatically switches the active view to that topic.
+    - If the user drops the file before 550ms, the file uploads directly into that topic without forcing a full navigation switch.
+    - Added `is-spring-hovering` CSS class and animation that provides an active blue glow and gentle pulse while the spring timer is ticking down.
+  - *Technical rationale*:
+    - Modeled after native macOS/Windows Explorer spring-loaded folder behavior, giving users maximum flexibility: immediate drop targets the topic silently, while hovering previews the destination contents before dropping.
+  - *User impact*:
+    - Effortless folder and topic exploration while dragging files without having to cancel or restart the drag operation.
+
+### 3. Continuous Horizontal Edge Auto-Scroll & Mouse Wheel Navigation
+- **Bidirectional Edge Scrolling & Wheel Handling (`components/drive/Navigation/useTopicDrop.ts` & `index.css`)**:
+  - *What changed*:
+    - Added a 60fps `requestAnimationFrame` auto-scroll loop that detects cursor coordinates near the left or right edges (80px zone) of the topic pills container during active drag (supporting both internal pointer drag and external OS file drag).
+    - Enabled vertical mouse wheel translation (`handlePillsWheel`) on the topic bar to scroll horizontally left and right while dragging files.
+    - Added responsive drag-receptive visual states in `src/index.css` (`body.td-dnd-external .td-topic-pill`) with dashed border outlines and drop highlight feedback.
+  - *Technical rationale*:
+    - On forum chats with dozens of topics (e.g. 20+ topic channels), pills exceed container width. Edge hover detection and wheel scrolling allow users to effortlessly reach early and late topics while holding files.
+  - *User impact*:
+    - Full access to all topics across lengthy topic strips without getting blocked at scroll boundaries.
+
 ## v4.1.21 — Non-Blocking Topic & Chat Navigation Engine, Deadlock Elimination & Concurrent MTProto Transfer Governance
 
 ### 1. Topic & Chat Navigation Resilience During Active Transfers

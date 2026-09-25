@@ -9745,6 +9745,7 @@ function MediaDriveDesktop({
 
     let paths = extractOsPaths(e.dataTransfer);
     if (!paths.length && e.dataTransfer && hasOsFiles(e.dataTransfer)) {
+      pendingOsDropTargetRef.current = { kind: 'topic', id: targetTopicId, label: targetTopicTitle };
       paths = await waitForOsPaths(500);
     }
     if (paths.length) {
@@ -9762,6 +9763,11 @@ function MediaDriveDesktop({
       } finally {
         dropLockRef.current = false;
       }
+      return;
+    }
+
+    if (e.dataTransfer && hasOsFiles(e.dataTransfer)) {
+      pendingOsDropTargetRef.current = { kind: 'topic', id: targetTopicId, label: targetTopicTitle };
       return;
     }
 
@@ -9866,12 +9872,21 @@ function MediaDriveDesktop({
       const pending = pendingOsDropTargetRef.current;
       pendingOsDropTargetRef.current = null;
       if (pending) {
-        const toId = pending.kind === 'saved' ? null : pending.id;
-        await runUploadPaths(paths, {
-          targetFolderId: toId,
-          targetLabel: pending.label,
-          skipTopic: true,
-        });
+        if (pending.kind === 'topic') {
+          await runUploadPaths(paths, {
+            targetFolderId: peerId,
+            targetLabel: pending.label,
+            topicId: pending.id,
+            skipTopic: pending.id == null,
+          });
+        } else {
+          const toId = pending.kind === 'saved' ? null : pending.id;
+          await runUploadPaths(paths, {
+            targetFolderId: toId,
+            targetLabel: pending.label,
+            skipTopic: true,
+          });
+        }
       } else {
         await runUploadPaths(paths);
       }
@@ -10040,12 +10055,21 @@ function MediaDriveDesktop({
               clearLastOsPaths();
 
               if (target) {
-                const toId = target.kind === 'saved' ? null : target.id;
-                await runUploadRef.current(uploadPaths, {
-                  targetFolderId: toId,
-                  targetLabel: target.label,
-                  skipTopic: true,
-                });
+                if (target.kind === 'topic') {
+                  await runUploadRef.current(uploadPaths, {
+                    targetFolderId: peerId,
+                    targetLabel: target.label,
+                    topicId: target.id,
+                    skipTopic: target.id == null,
+                  });
+                } else {
+                  const toId = target.kind === 'saved' ? null : target.id;
+                  await runUploadRef.current(uploadPaths, {
+                    targetFolderId: toId,
+                    targetLabel: target.label,
+                    skipTopic: true,
+                  });
+                }
               } else {
                 // Drop on explorer / empty area → current folder
                 await runUploadRef.current(uploadPaths);
