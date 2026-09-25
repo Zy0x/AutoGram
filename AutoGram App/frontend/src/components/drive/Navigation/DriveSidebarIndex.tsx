@@ -21,24 +21,16 @@ import {
   getSessionMetadata,
   applyDropEffect,
   beginFolderDrag,
-  canAcceptDriveDrop,
-  noteSidebarDragHover,
-  noteSidebarDragScroll,
   shouldBlockDriveDrop,
-  clearSidebarDragScrollGuard,
   endDriveDrag,
   endFolderDrag,
   getActiveFolderDrag,
   getDragSourceFolderId,
   hasOsFiles,
   isDropKeySameAsSource,
-  getLastHoverDropKey,
   isFolderReparentDragActive,
   isInternalMediaDragActive,
   isPointerDriveDragActive,
-  pickDropKeyAtPoint,
-  setLastHoverDropKey,
-  subscribeDriveDragUi,
 } from '../../../lib/telegram';
 import {
   chatFolderDropKey,
@@ -60,6 +52,7 @@ import {
   wouldCreateFolderCycle,
 } from '../../../lib/telegram';
 import { SidebarView } from './SidebarView';
+import { useSidebarDrop, type SidebarTab } from './useSidebarDrop';
 import {
   getSidebarLayoutModel,
   subscribeSidebarLayoutModel,
@@ -372,6 +365,7 @@ type DropRowProps = {
   onContextMenu?: (e: React.MouseEvent) => void;
   /** Make row a drag source for Drive/Folder reparent */
   folderDragSource?: { folderId: number; folderName: string } | null;
+  isSpringHovering?: boolean;
 };
 
 function DropRow({
@@ -379,6 +373,7 @@ function DropRow({
   className,
   title,
   isOver,
+  isSpringHovering,
   invalidTarget,
   dragLive,
   folderDragLive,
@@ -409,7 +404,7 @@ function DropRow({
       draggable={!!folderDragSource}
       className={`${className}${isOver && !invalidTarget ? ' is-drop-over' : ''}${
         isOver && invalidTarget ? ' is-drop-invalid' : ''
-      }${anyDrag ? ' dnd-ready' : ''}${invalidTarget && anyDrag ? ' dnd-self' : ''}${
+      }${isSpringHovering && !invalidTarget ? ' is-spring-hovering' : ''}${anyDrag ? ' dnd-ready' : ''}${invalidTarget && anyDrag ? ' dnd-self' : ''}${
         folderDragSource && getActiveFolderDrag()?.folderId === folderDragSource.folderId
           ? ' is-folder-dragging'
           : ''
@@ -610,7 +605,6 @@ export function DriveSidebar({
   }, []);
 
   // Active tab for Model A / B (saved|recent|drives|chats|home|pins)
-  type SidebarTab = 'saved' | 'recent' | 'drives' | 'chats' | 'home' | 'pins';
   const [activeTab, setActiveTab] = useState<SidebarTab>('drives');
 
   // Keep sidebar tab in sync when location changes
@@ -691,19 +685,49 @@ export function DriveSidebar({
     cancelChatFolderSwitch();
   }, []);
 
-  const [overKey, setOverKey] = useState<string | null>(null);
   const [, setMetaTick] = useState(0);
   useEffect(() => {
     const handleUpdate = () => setMetaTick((t) => t + 1);
     window.addEventListener('autogram_session_metadata_updated', handleUpdate);
     return () => window.removeEventListener('autogram_session_metadata_updated', handleUpdate);
   }, []);
-  /** Immediate flag — does not wait for React setState after dragstart */
-  const [liveInternalDrag, setLiveInternalDrag] = useState(() => isInternalMediaDragActive());
-  const [liveFolderDrag, setLiveFolderDrag] = useState(() => isFolderReparentDragActive());
+
   /** Section expand — more space when one list is collapsed (Google Drive–style) */
   const [foldersOpen, setFoldersOpen] = useState(() => readSecOpen(LS_SEC_FOLDERS, true));
   const [chatsOpen, setChatsOpen] = useState(() => readSecOpen(LS_SEC_CHATS, true));
+
+  const openFoldersSection = useCallback(() => {
+    setFoldersOpen((prev) => {
+      if (prev) return prev;
+      writeSecOpen(LS_SEC_FOLDERS, true);
+      return true;
+    });
+  }, []);
+
+  const openChatsSection = useCallback(() => {
+    setChatsOpen((prev) => {
+      if (prev) return prev;
+      writeSecOpen(LS_SEC_CHATS, true);
+      return true;
+    });
+  }, []);
+
+  const toggleFolders = useCallback(() => {
+    setFoldersOpen((prev) => {
+      const next = !prev;
+      writeSecOpen(LS_SEC_FOLDERS, next);
+      return next;
+    });
+  }, []);
+
+  const toggleChats = useCallback(() => {
+    setChatsOpen((prev) => {
+      const next = !prev;
+      writeSecOpen(LS_SEC_CHATS, next);
+      return next;
+    });
+  }, []);
+
   /** Expanded parent folders in the Drive tree (folder-in-folder) */
   const [treeExpanded, setTreeExpanded] = useState<Set<number>>(() => new Set());
   const navRef = useRef<HTMLElement | null>(null);
@@ -712,6 +736,7 @@ export function DriveSidebar({
   const chatFolderScrollRef = useRef<Map<number, number>>(new Map());
   const lastChatFolderRef = useRef(activeChatFolderId);
   const folderStackRef = useRef<HTMLDivElement | null>(null);
+  const chatFoldersScrollerRef = useRef<HTMLDivElement | null>(null);
   const labelMap = useRef<Map<string, string>>(new Map());
   const sourceFolder =
     dragSourceFolderId !== undefined
@@ -732,6 +757,54 @@ export function DriveSidebar({
     }
     return sourceFolder !== undefined && isDropKeySameAsSource(key, sourceFolder ?? null);
   };
+
+  const {
+    overKey,
+    springHoverKey,
+    dragLive,
+    folderDragLive,
+    anyDragLive,
+    acceptDrop,
+    handleHover,
+    handleDropKey,
+  } = useSidebarDrop({
+    folders,
+    activePeerId,
+    locationKind,
+    onSelectSaved,
+    onSelectDrive,
+    onSelectChat,
+    setTreeExpanded,
+    openFoldersSection,
+    openChatsSection,
+    sidebarRef,
+    navRef,
+    chatListRef,
+    folderStackRef,
+    chatFoldersScrollerRef,
+    onLoadMoreChats,
+    scheduleTabSwitch,
+    cancelTabSwitch,
+    scheduleChatFolderSwitch,
+    cancelChatFolderSwitch,
+    isSelf,
+    onFolderReparentDrop,
+    onDropOnLocation,
+    labelMap,
+    mediaDragActive,
+    dragSourceFolderId,
+  });
+
+  const BoundDropRow = useCallback(
+    (props: DropRowProps) => (
+      <DropRow
+        {...props}
+        dragLive={props.dragLive || anyDragLive}
+        isSpringHovering={springHoverKey === props.dropKeyStr}
+      />
+    ),
+    [springHoverKey, anyDragLive]
+  );
 
   useEffect(() => {
     const previous = lastChatFolderRef.current;
@@ -1074,7 +1147,6 @@ export function DriveSidebar({
   const [typeFilterMenuOpen, setTypeFilterMenuOpen] = useState(false);
   const typeFilterMenuRef = useRef<HTMLDivElement>(null);
   const typeFilterButtonRef = useRef<HTMLButtonElement>(null);
-  const chatFoldersScrollerRef = useRef<HTMLDivElement>(null);
   const [chatFoldersScrolled, setChatFoldersScrolled] = useState(false);
   const [typeFilterMenuPosition, setTypeFilterMenuPosition] = useState({ left: 0, top: 0 });
 
@@ -1163,26 +1235,13 @@ export function DriveSidebar({
   const busy = !!(loadingFolders || loadingChats);
 
   // While searching or dragging, force sections open so targets stay reachable.
-  // Include folder-reparent drag + live flag so short windows always show Chats list.
-  const forceSectionsOpen =
-    hasLocationQuery ||
-    liveInternalDrag ||
-    liveFolderDrag ||
-    !!mediaDragActive ||
-    isInternalMediaDragActive() ||
-    isFolderReparentDragActive();
+  const forceSectionsOpen = hasLocationQuery || anyDragLive;
   const foldersExpanded = forceSectionsOpen || foldersOpen || collapsed;
   const chatsExpanded = forceSectionsOpen || chatsOpen || collapsed;
 
   // Persist open on drag so layout stays stable after first frame (no mid-drop collapse)
   useEffect(() => {
-    const dragging =
-      liveInternalDrag ||
-      liveFolderDrag ||
-      !!mediaDragActive ||
-      isInternalMediaDragActive() ||
-      isFolderReparentDragActive();
-    if (!dragging) return;
+    if (!anyDragLive) return;
     setFoldersOpen((o) => {
       if (!o) writeSecOpen(LS_SEC_FOLDERS, true);
       return true;
@@ -1205,37 +1264,7 @@ export function DriveSidebar({
       ) as HTMLElement | null;
       drivesToggle?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
-  }, [liveInternalDrag, liveFolderDrag, mediaDragActive, onChatQuery]);
-
-  const openFoldersSection = useCallback(() => {
-    setFoldersOpen((prev) => {
-      if (prev) return prev;
-      writeSecOpen(LS_SEC_FOLDERS, true);
-      return true;
-    });
-  }, []);
-  const openChatsSection = useCallback(() => {
-    setChatsOpen((prev) => {
-      if (prev) return prev;
-      writeSecOpen(LS_SEC_CHATS, true);
-      return true;
-    });
-  }, []);
-
-  const toggleFolders = useCallback(() => {
-    setFoldersOpen((prev) => {
-      const next = !prev;
-      writeSecOpen(LS_SEC_FOLDERS, next);
-      return next;
-    });
-  }, []);
-  const toggleChats = useCallback(() => {
-    setChatsOpen((prev) => {
-      const next = !prev;
-      writeSecOpen(LS_SEC_CHATS, next);
-      return next;
-    });
-  }, []);
+  }, [anyDragLive, onChatQuery]);
 
   // Virtual list scrolls inside .td-chat-virtual (flex:1 fills leftover height).
   // On short viewports, chrome is compacted via CSS so this pane stays usable.
@@ -1287,637 +1316,6 @@ export function DriveSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapsed, folders.length, folderRows.length, chatQuery, foldersExpanded, chatsExpanded]);
 
-  // Subscribe so green targets activate the same tick as beginDriveDrag()
-  useEffect(() => {
-    return subscribeDriveDragUi(() => {
-      setLiveInternalDrag(isInternalMediaDragActive());
-      setLiveFolderDrag(isFolderReparentDragActive());
-      if (!isInternalMediaDragActive() && !isFolderReparentDragActive()) setOverKey(null);
-    });
-  }, []);
-
-  const dragLive = !!(mediaDragActive || liveInternalDrag || isInternalMediaDragActive());
-  const folderDragLive = !!(liveFolderDrag || isFolderReparentDragActive());
-  /** Media move OR folder reparent — both need hit-test, green targets, document drop */
-  const anyDragLive = dragLive || folderDragLive;
-
-  const acceptDrop = useCallback(
-    (e: React.DragEvent) =>
-      canAcceptDriveDrop(
-        e.dataTransfer,
-        mediaDragActive || dragLive || isInternalMediaDragActive()
-      ) || isFolderReparentDragActive(),
-    [mediaDragActive, dragLive]
-  );
-
-  const handleHover = useCallback((key: string | null) => {
-    noteSidebarDragHover(key);
-    // No green "ready" on Drive rows while still scrolling / before dwell
-    if (key && shouldBlockDriveDrop(key)) {
-      setOverKey(null);
-      return;
-    }
-    setOverKey(key);
-    if (key) setLastHoverDropKey(key);
-  }, []);
-
-  const handleDropKey = useCallback(
-    (key: string, e: React.DragEvent | DragEvent) => {
-      // Accidental drop while scrolling past Drives (fly-by)
-      if (shouldBlockDriveDrop(key)) {
-        endFolderDrag();
-        return;
-      }
-      const folderDrag = getActiveFolderDrag();
-      if (folderDrag && onFolderReparentDrop) {
-        const parsed = parseDropKey(key);
-        if (
-          parsed?.kind === 'drive' &&
-          parsed.id != null &&
-          parsed.id !== folderDrag.folderId &&
-          !wouldCreateFolderCycle(folders, folderDrag.folderId, parsed.id)
-        ) {
-          const label = labelMap.current.get(key) || key;
-          onFolderReparentDrop({
-            folderId: folderDrag.folderId,
-            folderName: folderDrag.folderName,
-            targetId: parsed.id,
-            targetName: label,
-          });
-        }
-        endFolderDrag();
-        return;
-      }
-      if (!onDropOnLocation) return;
-      const parsed = parseDropKey(key);
-      if (!parsed) return;
-      const label = labelMap.current.get(key) || key;
-      onDropOnLocation({ kind: parsed.kind, id: parsed.id, label }, e as React.DragEvent);
-    },
-    [onDropOnLocation, onFolderReparentDrop, folders]
-  );
-
-  const handleDropKeyRef = useRef(handleDropKey);
-  handleDropKeyRef.current = handleDropKey;
-
-  // Document-level tracking: geometry hit-test for HTML5 + pointer drag.
-  // Hover only here — Cloud Drives owns pointer-drop completion (avoids double-fire race).
-  // Also edge auto-scrolls the virtual chat list so off-screen chats become drop targets.
-  // IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD dies
-  // (HTML5 drop alone is unreliable; document capture is required).
-  useEffect(() => {
-    if (!anyDragLive) {
-      setOverKey(null);
-      clearSidebarDragScrollGuard();
-      return;
-    }
-
-    const hit = (clientX: number, clientY: number) => {
-      const root = sidebarRef.current || navRef.current;
-      return pickDropKeyAtPoint(clientX, clientY, root);
-    };
-
-    let lastY = 0;
-    let lastX = 0;
-    let hasPointer = false;
-    let raf = 0;
-    let loadMoreCool = 0;
-    /** Fractional px accumulator — smooth sub-pixel crawl at low speeds */
-    let scrollCarry = 0;
-    /** Time-based velocity in px/s; independent from 60/120/144 Hz displays. */
-    let currentVelocity = 0;
-    let lastFrameAt = performance.now();
-    /** Cooldown timestamp to pause auto-scroll while user is actively turning mouse wheel */
-    let wheelScrollUntil = 0;
-    /**
-     * Speed to resume from after wheel cooldown expires.
-     * Prevents RAF from abruptly re-accelerating from 0 after a wheel session.
-     */
-    let velocityAfterWheel = 0;
-
-    const canScroll = (el: HTMLElement, dir: 'up' | 'down') => {
-      if (dir === 'up') return el.scrollTop > 1;
-      return el.scrollTop + el.clientHeight < el.scrollHeight - 2;
-    };
-
-    const applyScroll = (el: HTMLElement, dir: 'up' | 'down', step: number) => {
-      // Accumulate fractional steps so slow speeds don't quantize to 0
-      scrollCarry += Math.max(0, step);
-      if (scrollCarry < 0.1) return;
-      const px = scrollCarry;
-      scrollCarry = 0;
-      noteSidebarDragScroll(px);
-      if (dir === 'up') el.scrollTop = Math.max(0, el.scrollTop - px);
-      else {
-        el.scrollTop = Math.min(
-          Math.max(0, el.scrollHeight - el.clientHeight),
-          el.scrollTop + px
-        );
-      }
-    };
-
-    let lastHoverTime = 0;
-    /** Hover key with dwell/scroll guard for Drive rows */
-    const applyHoverKey = (key: string | null) => {
-      noteSidebarDragHover(key);
-      if (key && shouldBlockDriveDrop(key)) {
-        // Keep tracking dwell, but don't show "drop ready" green yet
-        setOverKey(null);
-        return;
-      }
-      // During active high-speed auto-scrolling, suppress transient hover churn.
-      // suppress state churn from rows rapidly flying past under stationary cursor.
-      // This prevents React re-render stutter and stops visual hover flicker/glitches.
-      if (currentVelocity > 700) {
-        setOverKey(null);
-        return;
-      }
-      const now = Date.now();
-      if (now - lastHoverTime > 40 || !key) {
-        lastHoverTime = now;
-        setOverKey((prev) => (prev === key ? prev : key));
-        if (key) setLastHoverDropKey(key);
-      }
-    };
-
-    const tryLoadMore = (el: HTMLElement) => {
-      if (
-        el.scrollTop + el.clientHeight >= el.scrollHeight - Math.max(360, el.clientHeight * 0.75) &&
-        Date.now() - loadMoreCool > 350
-      ) {
-        loadMoreCool = Date.now();
-        onLoadMoreChats?.();
-      }
-    };
-
-    /**
-     * High-Speed Smooth Drag Auto-Scroll Controller
-     * - Wide 140px edge zone for effortless, natural entry
-     * - Speed range: 12px (entry) → 96px (deep edge) per RAF frame (~5760px/s)
-     * - Fast EMA Lerp 0.50: instant speed buildup without frame drops
-     * - OverKey state pause during active scroll eliminates DOM hover churn & glitches
-     */
-    const performDragAutoScroll = (_x: number, y: number, deltaSeconds: number) => {
-      // Pause auto-scroll while user is actively turning mouse wheel.
-      // Instead of hard-resetting to 0, decay gradually so that when
-      // cooldown expires the speed re-enters smoothly from speedAfterWheel.
-      if (Date.now() < wheelScrollUntil) {
-        currentVelocity = currentVelocity * 0.80;
-        return;
-      }
-      // Cooldown just expired: seed currentSpeed from the preserved snapshot
-      // so auto-scroll doesn't restart from a dead stop (avoids the "jolt")
-      if (velocityAfterWheel > 0) {
-        currentVelocity = Math.max(currentVelocity, velocityAfterWheel);
-        velocityAfterWheel = 0;
-      }
-      const side = sidebarRef.current?.getBoundingClientRect();
-      if (!side) return;
-
-      const chatEl = chatListRef.current;
-      const foldersEl = folderStackRef.current;
-      const navEl = navRef.current;
-
-      const chatRect = chatEl?.getBoundingClientRect();
-      const foldersRect = foldersEl?.getBoundingClientRect();
-      const navRect = navEl?.getBoundingClientRect();
-
-      const isOverChat = !!chatRect && y >= chatRect.top - 10 && y <= chatRect.bottom + 10;
-      const isOverFolders = !!foldersRect && y >= foldersRect.top - 10 && y <= foldersRect.bottom + 10;
-
-      let primaryTarget: HTMLElement | null = null;
-      let targetRect: DOMRect | null = null;
-
-      if (isOverChat && chatEl && chatEl.scrollHeight > chatEl.clientHeight + 2) {
-        primaryTarget = chatEl;
-        targetRect = chatRect;
-      } else if (isOverFolders && foldersEl && foldersEl.scrollHeight > foldersEl.clientHeight + 2) {
-        primaryTarget = foldersEl;
-        targetRect = foldersRect;
-      } else if (navEl && navEl.scrollHeight > navEl.clientHeight + 2) {
-        primaryTarget = navEl;
-        targetRect = navRect || side;
-      }
-
-      if (!primaryTarget || !targetRect) {
-        // Gentle decay when no scrollable target found — avoids abrupt speed reset
-        currentVelocity = currentVelocity * 0.82;
-        return;
-      }
-
-      // Precision Deadband + Edge Hot-Zone Controller:
-      // Visible list items in the main body (between top+28px and bottom-40px)
-      // are 100% hoverable without premature auto-scrolling.
-      // Auto-scrolling ONLY triggers when pushing into top/bottom hot-zones.
-      const HOT_ZONE_BOTTOM = 88;
-      const HOT_ZONE_TOP = 64;
-      let dir: 'up' | 'down' | null = null;
-      let dist = 0;
-      let maxDepth = 120;
-
-      if (y >= targetRect.bottom - HOT_ZONE_BOTTOM) {
-        dir = 'down';
-        dist = y - (targetRect.bottom - HOT_ZONE_BOTTOM);
-        maxDepth = 120;
-      } else if (y <= targetRect.top + HOT_ZONE_TOP) {
-        dir = 'up';
-        dist = (targetRect.top + HOT_ZONE_TOP) - y;
-        maxDepth = 100;
-      }
-
-      if (!dir) {
-        // Cursor is over visible list items (e.g. RANDOM LAVENDER):
-        // Immediately halt auto-scroll so hover selection is 100% precise!
-        currentVelocity = currentVelocity * 0.38;
-        if (currentVelocity < 8) currentVelocity = 0;
-        return;
-      }
-
-      // Progressive time-based velocity: responsive near the edge without
-      // frame-rate-dependent jumps on high-refresh/DPI displays.
-      const ratio = Math.max(0.0, Math.min(1.0, dist / maxDepth));
-      const targetVelocity = 520 + Math.pow(ratio, 1.35) * 2480; // 520..3000 px/s
-      const smoothing = 1 - Math.exp(-12 * deltaSeconds);
-      currentVelocity += (targetVelocity - currentVelocity) * smoothing;
-      const activeStep = Math.max(1, currentVelocity * deltaSeconds);
-
-      // Execute cascade scroll: try primaryTarget first, then fallback to navEl
-      if (canScroll(primaryTarget, dir)) {
-        applyScroll(primaryTarget, dir, activeStep);
-        if (dir === 'down' && primaryTarget === chatEl) {
-          tryLoadMore(chatEl);
-        }
-      } else if (navEl && primaryTarget !== navEl && canScroll(navEl, dir)) {
-        applyScroll(navEl, dir, activeStep);
-      }
-    };
-
-    const edgeScroll = () => {
-      const frameAt = performance.now();
-      const deltaSeconds = Math.min(0.032, Math.max(0.001, (frameAt - lastFrameAt) / 1000));
-      lastFrameAt = frameAt;
-      if (hasPointer) {
-        const side = sidebarRef.current?.getBoundingClientRect();
-        if (side) {
-          const left = side.left - 24;
-          const right = side.right + 24;
-          const inX = lastX >= left && lastX <= right;
-          if (inX) {
-            // Horizontal auto-scroll for chat folder chips strip during drag
-            const chipScroller = chatFoldersScrollerRef.current;
-            if (chipScroller) {
-              const chipR = chipScroller.getBoundingClientRect();
-              if (
-                lastY >= chipR.top - 24 &&
-                lastY <= chipR.bottom + 30
-              ) {
-                const edgeZone = 75;
-                if (lastX >= chipR.right - edgeZone) {
-                  const depth = Math.min(1, Math.max(0.2, (lastX - (chipR.right - edgeZone)) / edgeZone));
-                  chipScroller.scrollLeft += Math.max(4, Math.floor(depth * 18));
-                } else if (lastX <= chipR.left + edgeZone) {
-                  const depth = Math.min(1, Math.max(0.2, (chipR.left + edgeZone - lastX) / edgeZone));
-                  chipScroller.scrollLeft -= Math.max(4, Math.floor(depth * 18));
-                }
-              }
-            }
-
-            // Universal Desktop Standard Vertical Auto-Scroll Engine
-            performDragAutoScroll(lastX, lastY, deltaSeconds);
-          }
-        }
-      }
-      raf = requestAnimationFrame(edgeScroll);
-    };
-    raf = requestAnimationFrame(edgeScroll);
-
-    // HTML5 path (folder reparent + OS files + rare HTML5 media). Pointer media = highlight only.
-    const onDragOver = (e: DragEvent) => {
-      // Pointer-only internal *media* drag has no HTML5 DataTransfer — skip dropEffect war
-      if (isPointerDriveDragActive() && !isFolderReparentDragActive()) {
-        lastX = e.clientX;
-        lastY = e.clientY;
-        hasPointer = true;
-        e.preventDefault();
-        const key = hit(e.clientX, e.clientY);
-        applyHoverKey(key);
-        return;
-      }
-      e.preventDefault();
-      lastX = e.clientX;
-      lastY = e.clientY;
-      hasPointer = true;
-      const key = hit(e.clientX, e.clientY);
-      if (key?.startsWith('tab:')) {
-        scheduleTabSwitch(key.slice('tab:'.length) as SidebarTab);
-        cancelChatFolderSwitch();
-      } else if (parseChatFolderDropKey(key) != null) {
-        cancelTabSwitch();
-        scheduleChatFolderSwitch(parseChatFolderDropKey(key)!);
-      } else {
-        cancelTabSwitch();
-        cancelChatFolderSwitch();
-      }
-      const folderDrag = getActiveFolderDrag();
-      if (folderDrag || isFolderReparentDragActive()) {
-        const invalid = !key || isSelf(key) || shouldBlockDriveDrop(key);
-        applyDropEffect(e.dataTransfer, invalid ? 'none' : 'move');
-        applyHoverKey(invalid ? null : key);
-        return;
-      }
-      const self =
-        !!key &&
-        sourceFolder !== undefined &&
-        isDropKeySameAsSource(key, sourceFolder ?? null);
-      if (isInternalMediaDragActive() || dragLive) {
-        const blockDrive = shouldBlockDriveDrop(key);
-        applyDropEffect(e.dataTransfer, self || blockDrive ? 'none' : 'move');
-        applyHoverKey(self || blockDrive ? null : key);
-      } else if (hasOsFiles(e.dataTransfer as DataTransfer)) {
-        applyDropEffect(e.dataTransfer, 'copy');
-        applyHoverKey(key);
-      } else {
-        applyDropEffect(e.dataTransfer, 'none');
-        applyHoverKey(null);
-      }
-    };
-
-    const onDragEnter = (e: DragEvent) => {
-      if (isPointerDriveDragActive() && !isFolderReparentDragActive()) return;
-      e.preventDefault();
-      if (isFolderReparentDragActive() || isInternalMediaDragActive() || dragLive) {
-        applyDropEffect(e.dataTransfer, 'move');
-      } else if (hasOsFiles(e.dataTransfer as DataTransfer)) {
-        applyDropEffect(e.dataTransfer, 'copy');
-      }
-    };
-
-    const onDrop = (e: DragEvent) => {
-  // Pointer path completes in Cloud Drives — do NOT double-fire media move
-      if (isPointerDriveDragActive() && !isFolderReparentDragActive()) {
-        e.preventDefault();
-        e.stopPropagation();
-        setOverKey(null);
-        return;
-      }
-      const dt = e.dataTransfer;
-      const isOs = !!(dt && hasOsFiles(dt));
-      const isFolderDrag = isFolderReparentDragActive() || !!getActiveFolderDrag();
-      const isInternal = isInternalMediaDragActive() || mediaDragActive;
-      if (!isInternal && !isOs && !isFolderDrag) return;
-      const key = hit(e.clientX, e.clientY) || getLastHoverDropKey();
-      if (!key) {
-        if (isFolderDrag) endFolderDrag();
-        return;
-      }
-      const chatFolderId = parseChatFolderDropKey(key);
-      if (chatFolderId != null) {
-        e.preventDefault();
-        e.stopPropagation();
-        scheduleChatFolderSwitch(chatFolderId);
-        endDriveDrag();
-        setOverKey(null);
-        return;
-      }
-      if (isFolderDrag) {
-        e.preventDefault();
-        e.stopPropagation();
-        setOverKey(null);
-        if (!isSelf(key) && !shouldBlockDriveDrop(key)) handleDropKeyRef.current(key, e);
-        else endFolderDrag();
-        return;
-      }
-      if (
-        isInternal &&
-        sourceFolder !== undefined &&
-        isDropKeySameAsSource(key, sourceFolder ?? null) &&
-        !isOs
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        setOverKey(null);
-        return;
-      }
-      if (shouldBlockDriveDrop(key)) {
-        e.preventDefault();
-        e.stopPropagation();
-        setOverKey(null);
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      setOverKey(null);
-      handleDropKeyRef.current(key, e);
-    };
-
-  // Pointer path: hover only (Cloud Drives owns pointerup → move)
-    const onPointerMove = (e: PointerEvent) => {
-      if (
-        !isInternalMediaDragActive() &&
-        !mediaDragActive &&
-        !dragLive &&
-        !isPointerDriveDragActive() &&
-        !isFolderReparentDragActive() &&
-        !folderDragLive
-      )
-        return;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      hasPointer = true;
-      // Hover on section headers → force-open that section (small windows / collapsed)
-      const stack = document.elementsFromPoint(e.clientX, e.clientY);
-      for (const node of stack) {
-        if (!(node instanceof Element)) continue;
-        const toggle = node.closest('.td-section-toggle');
-        if (!toggle) continue;
-        const label = (toggle.textContent || '').toLowerCase();
-        if (label.includes('chat')) {
-          openChatsSection();
-          // Bring chats header into view when user aims at the collapse/expand row
-          window.requestAnimationFrame(() => {
-            toggle.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-            const nav = navRef.current;
-            if (nav) {
-              const tr = toggle.getBoundingClientRect();
-              const nr = nav.getBoundingClientRect();
-              if (tr.bottom > nr.bottom - 8) {
-                nav.scrollTop += tr.bottom - nr.bottom + 48;
-              }
-            }
-          });
-        } else if (label.includes('drive')) {
-          openFoldersSection();
-        }
-        break;
-      }
-      const key = hit(e.clientX, e.clientY);
-      // Tab hover auto-switch (Model A / B): hover tab button for 250ms → switch
-      if (key && key.startsWith('tab:')) {
-        const tab = key.slice('tab:'.length) as SidebarTab;
-        scheduleTabSwitch(tab);
-        cancelChatFolderSwitch();
-      } else if (parseChatFolderDropKey(key) != null) {
-        cancelTabSwitch();
-        scheduleChatFolderSwitch(parseChatFolderDropKey(key)!);
-      } else {
-        cancelTabSwitch();
-        cancelChatFolderSwitch();
-      }
-      applyHoverKey(key);
-    };
-
-    // Direct Wheel Scroll during drag (Mouse wheel & Trackpad support)
-    // Conflict-free design:
-    //   1. Detect trackpad vs physical mouse wheel for optimal cooldown (60ms vs 180-350ms)
-    //   2. Ignore trackpad surface micro-noise (<0.6px)
-    //   3. Cascade scroll: if inner list hits top/bottom, pass remaining delta to navEl
-    //   4. Preserve speedAfterWheel so auto-scroll smoothly continues when trackpad stops
-    const onWheel = (e: WheelEvent) => {
-      const isDragging =
-        isPointerDriveDragActive() ||
-        isInternalMediaDragActive() ||
-        mediaDragActive ||
-        dragLive ||
-        folderDragLive ||
-        isFolderReparentDragActive();
-
-      if (!isDragging) return;
-
-      const side = sidebarRef.current?.getBoundingClientRect();
-      if (!side) return;
-      if (e.clientX < side.left - 24 || e.clientX > side.right + 24) return;
-
-      // Ignore tiny trackpad surface touch drift (<0.6px) to avoid interrupting auto-scroll
-      if (Math.abs(e.deltaY) < 0.6 && Math.abs(e.deltaX) < 0.6) return;
-
-      hasPointer = true;
-
-      const chatEl = chatListRef.current;
-      const foldersEl = folderStackRef.current;
-      const navEl = navRef.current;
-
-      const chatRect = chatEl?.getBoundingClientRect();
-      const foldersRect = foldersEl?.getBoundingClientRect();
-
-      const isOverChat = !!chatRect && e.clientY >= chatRect.top && e.clientY <= chatRect.bottom;
-      const isOverFolders = !!foldersRect && e.clientY >= foldersRect.top && e.clientY <= foldersRect.bottom;
-
-      let primaryTarget: HTMLElement | null = null;
-
-      if (isOverChat && chatEl && chatEl.scrollHeight > chatEl.clientHeight) {
-        primaryTarget = chatEl;
-      } else if (isOverFolders && foldersEl && foldersEl.scrollHeight > foldersEl.clientHeight) {
-        primaryTarget = foldersEl;
-      } else if (navEl && navEl.scrollHeight > navEl.clientHeight) {
-        primaryTarget = navEl;
-      }
-
-      if (primaryTarget || navEl) {
-        e.preventDefault();
-
-        // Trackpad detection: deltaMode===0 with small or fractional deltaY
-        const isTrackpad = e.deltaMode === WheelEvent.DOM_DELTA_PIXEL && (
-          !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40
-        );
-
-        // Normalize delta across deltaMode (PIXEL=0, LINE=1, PAGE=2)
-        let pixelDelta: number;
-        if (e.deltaMode === WheelEvent.DOM_DELTA_LINE) {
-          pixelDelta = e.deltaY * 28;
-        } else if (e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-          const pageH = (primaryTarget || navEl)?.clientHeight || 400;
-          pixelDelta = e.deltaY * (pageH * 0.85);
-        } else {
-          // Trackpad / pixel mode — direct delta, capped at ±250 max per frame
-          pixelDelta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 250);
-        }
-
-        // Cooldown tuning:
-        // Trackpad emits events every 8-16ms while finger moves.
-        // A 60ms cooldown (~3 frames at 60Hz) is optimal so auto-scroll resumes
-        // almost instantly 60ms after trackpad fingers stop!
-        // Physical mouse wheel receives 180-350ms adaptive cooldown for discrete step clicks.
-        const absDelta = Math.abs(pixelDelta);
-        const cooldown = isTrackpad
-          ? 60
-          : (absDelta > 100 ? 350 : 180);
-
-        wheelScrollUntil = Date.now() + cooldown;
-
-        // Preserve auto-scroll speed snapshot so RAF re-enters smoothly when trackpad stops
-        velocityAfterWheel = Math.max(currentVelocity, 900);
-
-        // Cascade scroll execution: try primaryTarget first, pass remaining delta to navEl if primary hits bound
-        const target = primaryTarget || navEl;
-        if (target) {
-          const oldTop = target.scrollTop;
-          target.scrollTop = Math.max(
-            0,
-            Math.min(target.scrollHeight - target.clientHeight, oldTop + pixelDelta)
-          );
-          const consumed = target.scrollTop - oldTop;
-          const remaining = pixelDelta - consumed;
-
-          // Cascade unconsumed delta to outer container if inner list hit top/bottom bound
-          if (Math.abs(remaining) > 0.5 && navEl && navEl !== target && navEl.scrollHeight > navEl.clientHeight) {
-            navEl.scrollTop = Math.max(
-              0,
-              Math.min(navEl.scrollHeight - navEl.clientHeight, navEl.scrollTop + remaining)
-            );
-          }
-
-          if (pixelDelta > 0 && target === chatEl) {
-            tryLoadMore(chatEl);
-          }
-        }
-
-        const key = hit(e.clientX, e.clientY);
-        applyHoverKey(key);
-      }
-    };
-
-    const onPointerUp = () => {
-  // Delay clear so Cloud Drives pointerup can still read last hover key
-      window.setTimeout(() => {
-        setOverKey(null);
-      }, 0);
-    };
-
-    const clear = () => setOverKey(null);
-
-    document.addEventListener('dragover', onDragOver, true);
-    document.addEventListener('dragenter', onDragEnter, true);
-    document.addEventListener('drop', onDrop, true);
-    document.addEventListener('pointermove', onPointerMove, true);
-    document.addEventListener('mousemove', onPointerMove as any, true);
-    document.addEventListener('pointerup', onPointerUp, true);
-    document.addEventListener('mouseup', onPointerUp, true);
-    document.addEventListener('wheel', onWheel, { capture: true, passive: false });
-    window.addEventListener('dragend', clear, true);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener('dragover', onDragOver, true);
-      document.removeEventListener('dragenter', onDragEnter, true);
-      document.removeEventListener('drop', onDrop, true);
-      document.removeEventListener('pointermove', onPointerMove, true);
-      document.removeEventListener('mousemove', onPointerMove as any, true);
-      document.removeEventListener('pointerup', onPointerUp, true);
-      document.removeEventListener('mouseup', onPointerUp, true);
-      document.removeEventListener('wheel', onWheel, true);
-      window.removeEventListener('dragend', clear, true);
-    };
-  }, [
-    anyDragLive,
-    dragLive,
-    folderDragLive,
-    mediaDragActive,
-    sourceFolder,
-    onLoadMoreChats,
-    openChatsSection,
-    openFoldersSection,
-    folders,
-  ]);
 
   const registerLabel = (key: string, label: string) => {
     labelMap.current.set(key, label);
@@ -1985,7 +1383,7 @@ export function DriveSidebar({
         DRIVE_FOLDER_SOFT_LIMIT, driveItemKind, describePath, chatFolderDropKey, parseChatFolderDropKey,
         applyDropEffect, recentDisplayLabel, getDriveSessionError, isDriveSessionCircuitTripped,
         resetDriveSessionCircuit, getSessionDisplayName, telegramFolderColor, formatRelativeAccessTime,
-        dropKey, isInternalMediaDragActive, isFolderReparentDragActive, DropRow, PeerAvatar, ChatIcon,
+        dropKey, isInternalMediaDragActive, isFolderReparentDragActive, DropRow: BoundDropRow, PeerAvatar, ChatIcon,
       }}
     />
   );
