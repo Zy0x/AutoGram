@@ -7,6 +7,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Debug APKs are explicitly previews. Do not ship a release APK as desktop-equivalent
+# while the requested native cloud workflows are still absent.
+$readinessArgs = @((Join-Path $PSScriptRoot "tools/runtime-readiness.mjs"))
+if ($Variant -eq "Release") { $readinessArgs += "--require-cloud-ready" }
+& node @readinessArgs
+if ($LASTEXITCODE -ne 0) { throw "Android cloud acceptance is incomplete; only preview Debug builds are allowed" }
+
 $androidRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $toolchainRoot = Join-Path $androidRoot ".toolchains"
 $cacheRoot = Join-Path $androidRoot ".build-cache"

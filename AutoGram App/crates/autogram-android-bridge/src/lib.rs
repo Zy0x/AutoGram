@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 mod session_inventory;
+#[cfg(test)]
+mod schema_tests;
 
 uniffi::setup_scaffolding!();
 
@@ -138,56 +140,23 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
         .map_err(|error| AutoGramBridgeError::DatabaseError {
             msg: error.to_string(),
         })?;
-    conn.execute_batch(
-        "PRAGMA journal_mode=WAL;
-         PRAGMA synchronous=NORMAL;
-         PRAGMA foreign_keys=ON;
-         CREATE TABLE IF NOT EXISTS android_drive_items (
-             id TEXT NOT NULL,
-             session_id TEXT NOT NULL,
-             peer_id TEXT NOT NULL,
-             topic_id INTEGER NOT NULL DEFAULT -1,
-             parent_path TEXT NOT NULL,
-             name TEXT NOT NULL,
-             size_bytes INTEGER NOT NULL DEFAULT 0,
-             mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
-             delivery_kind TEXT NOT NULL DEFAULT 'document',
-             telegram_category TEXT NOT NULL DEFAULT 'file',
-             is_folder INTEGER NOT NULL DEFAULT 0,
-             modified_ms INTEGER NOT NULL DEFAULT 0,
-             thumbnail_uri TEXT,
-             PRIMARY KEY(session_id, peer_id, topic_id, id)
-         );
-         CREATE INDEX IF NOT EXISTS idx_android_drive_parent
-             ON android_drive_items(session_id, peer_id, topic_id, parent_path, is_folder, name);
-         CREATE TABLE IF NOT EXISTS android_transfer_tasks (
-             id TEXT PRIMARY KEY,
-             file_name TEXT NOT NULL,
-             source_identity TEXT NOT NULL,
-             destination_identity TEXT NOT NULL,
-             stage TEXT NOT NULL,
-             status TEXT NOT NULL,
-             total_bytes INTEGER NOT NULL DEFAULT 0,
-             processed_bytes INTEGER NOT NULL DEFAULT 0,
-             speed_bps INTEGER NOT NULL DEFAULT 0,
-             eta_seconds INTEGER NOT NULL DEFAULT 0,
-             attempt INTEGER NOT NULL DEFAULT 0,
-             paused INTEGER NOT NULL DEFAULT 0,
-             error_code TEXT,
-             updated_ms INTEGER NOT NULL DEFAULT 0
-         );
-         CREATE INDEX IF NOT EXISTS idx_android_transfer_state
-             ON android_transfer_tasks(status, updated_ms DESC);",
-    )
+    conn.execute_batch(include_str!("../../../database/migrations/024_android_local_records.sql"))
     .map_err(|error| AutoGramBridgeError::DatabaseError {
         msg: error.to_string(),
     })?;
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
-    let _ = conn.execute(
-        "ALTER TABLE android_drive_items ADD COLUMN telegram_category TEXT NOT NULL DEFAULT 'file'",
-        [],
-    );
+    let has_category = conn.prepare("PRAGMA table_info(android_drive_items)")
+        .and_then(|mut statement| {
+            statement.query_map([], |row| row.get::<_, String>(1))?
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "android_schema_inspection_failed".into() })?
+        .iter().any(|column| column == "telegram_category");
+    if !has_category {
+        conn.execute("ALTER TABLE android_drive_items ADD COLUMN telegram_category TEXT NOT NULL DEFAULT 'file'", [])
+            .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "android_schema_upgrade_failed".into() })?;
+    }
     Ok(conn)
 }
 
@@ -361,30 +330,11 @@ pub fn delete_drive_items(ids: Vec<String>) -> Result<u32, AutoGramBridgeError> 
     if ids.is_empty() {
         return Ok(0);
     }
-    let mut conn = open_database()?;
-    let transaction = conn
-        .transaction()
-        .map_err(|error| AutoGramBridgeError::DatabaseError {
-            msg: error.to_string(),
-        })?;
-    let mut changed = 0u32;
-    for id in ids {
-        changed += transaction
-            .execute("DELETE FROM android_drive_items WHERE id = ?1", [id])
-            .map_err(|error| AutoGramBridgeError::DatabaseError {
-                msg: error.to_string(),
-            })? as u32;
-    }
-    transaction
-        .commit()
-        .map_err(|error| AutoGramBridgeError::DatabaseError {
-            msg: error.to_string(),
-        })?;
-    emit_bridge_event(
-        "drive_items_changed".to_string(),
-        serde_json::json!({"deleted": changed}).to_string(),
-    );
-    Ok(changed)
+    // This legacy signature lacks session/peer/topic, so it cannot safely delete
+    // even cache records. Cloud deletion requires a separate scoped executor.
+    Err(AutoGramBridgeError::InternalError {
+        msg: "scoped_cloud_delete_unavailable".into(),
+    })
 }
 
 #[uniffi::export]
@@ -494,7 +444,8 @@ pub fn set_transfer_paused(id: String, paused: bool) -> Result<bool, AutoGramBri
                                WHEN status = 'paused' THEN 'queued'
                                ELSE status END,
                  updated_ms = CAST(strftime('%s','now') AS INTEGER) * 1000
-             WHERE id = ?1",
+             WHERE id = ?1 AND lower(status) NOT IN
+                 ('completed', 'failed', 'cancelled', 'canceled', 'skipped')",
             params![id, paused as i64],
         )
         .map_err(|error| AutoGramBridgeError::DatabaseError {
@@ -524,7 +475,7 @@ pub fn emit_bridge_event(event_type: String, payload_json: String) {
 
 #[uniffi::export]
 pub fn get_account_scores() -> Result<Vec<AccountScoreResult>, AutoGramBridgeError> {
-    Ok(Vec::new())
+    Err(AutoGramBridgeError::InternalError { msg: "account_health_probe_unavailable".into() })
 }
 
 #[uniffi::export]
@@ -616,7 +567,14 @@ mod tests {
             modified_ms: 1,
             thumbnail_uri: None,
         };
-        assert_eq!(upsert_drive_items(vec![item]).expect("upsert item"), 1);
+        let mut other_account = item.clone();
+        other_account.session_id = "session-b".into();
+        other_account.name = "private-b.jpg".into();
+        assert_eq!(upsert_drive_items(vec![item, other_account]).expect("upsert items"), 2);
+        assert!(delete_drive_items(vec!["message-42".into()]).is_err());
+        let account_b = list_drive_items("session-b".into(), "peer-a".into(), Some(7), "/".into()).unwrap();
+        assert_eq!(account_b.len(), 1);
+        assert_eq!(account_b[0].name, "private-b.jpg");
         let items = list_drive_items("session-a".into(), "peer-a".into(), Some(7), "/".into())
             .expect("list items");
         assert_eq!(items.len(), 1);
@@ -648,6 +606,19 @@ mod tests {
             .expect("task persisted");
         assert!(task.paused);
         assert_eq!(task.status, "paused");
+        for terminal in ["completed", "failed", "cancelled", "canceled", "skipped"] {
+            let mut finished = task.clone();
+            finished.id = format!("terminal-{terminal}");
+            finished.status = terminal.into();
+            finished.paused = false;
+            upsert_transfer_task(finished.clone()).unwrap();
+            assert!(!set_transfer_paused(finished.id.clone(), true).unwrap());
+            assert!(!set_transfer_paused(finished.id.clone(), false).unwrap());
+            let stored = list_transfer_tasks().unwrap().into_iter().find(|row| row.id == finished.id).unwrap();
+            assert_eq!(stored.status, terminal);
+            assert!(!stored.paused);
+        }
+        assert!(get_account_scores().is_err());
 
         std::fs::remove_dir_all(&root).expect("remove isolated test directory");
     }

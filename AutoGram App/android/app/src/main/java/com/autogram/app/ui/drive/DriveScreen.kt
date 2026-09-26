@@ -18,6 +18,7 @@ import com.autogram.app.ui.components.AutoGramEmptyState
 import com.autogram.app.ui.components.AutoGramErrorState
 import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.viewmodel.*
+import com.autogram.app.features.workspace.UnavailableOperationDialog
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -34,7 +35,14 @@ fun DriveScreen(
     var isDestinationModalOpen by remember { mutableStateOf(false) }
     var isTagModalOpen by remember { mutableStateOf(false) }
     var isMoveModalOpen by remember { mutableStateOf(false) }
-    var isDeleteConfirmOpen by remember { mutableStateOf(false) }
+    var unsupported by remember { mutableStateOf(false) }
+    LaunchedEffect(state.sessionId, state.peerId, state.topicId) {
+        previewItem = null
+        zipArchiveItem = null
+        isDestinationModalOpen = false
+        isTagModalOpen = false
+        isMoveModalOpen = false
+    }
 
     DriveScreenContent(
         state = state,
@@ -43,16 +51,16 @@ fun DriveScreen(
         onMediaFilterChange = viewModel::setMediaFilter,
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
-        onUpload = { /* Launch system file picker */ },
+        onUpload = { unsupported = true },
         onClearSelection = viewModel::clearSelection,
         onSelectAll = { viewModel.selectAll(state.items) },
         onInvertSelection = { viewModel.invertSelection(state.items) },
-        onDownloadZip = { /* Download batch as ZIP */ },
+        onDownloadZip = { unsupported = true },
         onCleanForward = { isDestinationModalOpen = true },
         onMoveFolder = { isMoveModalOpen = true },
-        onCopyLinks = { /* Copy telegram cloud links */ },
+        onCopyLinks = { unsupported = true },
         onTagCategory = { isTagModalOpen = true },
-        onDeleteSelected = { isDeleteConfirmOpen = true },
+        onDeleteSelected = { unsupported = true },
         onOpenTools = { isDriveToolsOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
@@ -96,8 +104,7 @@ fun DriveScreen(
 
     if (isDestinationModalOpen) {
         DriveChatDestinationModal(
-            onDismiss = { isDestinationModalOpen = false },
-            onSelectTarget = { /* Target applied */ }
+            onDismiss = { isDestinationModalOpen = false }
         )
     }
 
@@ -115,36 +122,30 @@ fun DriveScreen(
         )
     }
 
-    if (isDeleteConfirmOpen) {
-        DriveConfirmDeleteModal(
-            selectedCount = state.selectedIds.size,
-            onDismiss = { isDeleteConfirmOpen = false },
-            onConfirmDelete = { viewModel.deleteSelected() }
-        )
-    }
+    if (unsupported) UnavailableOperationDialog({ unsupported = false })
 }
 
 @Composable
 fun DriveScreenContent(
     state: DriveUiState,
     modifier: Modifier = Modifier,
-    onSearchChange: (String) -> Unit = {},
-    onMediaFilterChange: (DriveMediaFilter) -> Unit = {},
-    onToggleViewMode: () -> Unit = {},
-    onRefresh: () -> Unit = {},
-    onUpload: () -> Unit = {},
-    onClearSelection: () -> Unit = {},
-    onSelectAll: () -> Unit = {},
-    onInvertSelection: () -> Unit = {},
-    onDownloadZip: () -> Unit = {},
-    onCleanForward: () -> Unit = {},
-    onMoveFolder: () -> Unit = {},
-    onCopyLinks: () -> Unit = {},
-    onTagCategory: () -> Unit = {},
-    onDeleteSelected: () -> Unit = {},
-    onOpenTools: () -> Unit = {},
-    onItemClick: (DriveFileItem) -> Unit = {},
-    onItemLongClick: (DriveFileItem) -> Unit = {}
+    onSearchChange: (String) -> Unit,
+    onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    onToggleViewMode: () -> Unit,
+    onRefresh: () -> Unit,
+    onUpload: () -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onInvertSelection: () -> Unit,
+    onDownloadZip: () -> Unit,
+    onCleanForward: () -> Unit,
+    onMoveFolder: () -> Unit,
+    onCopyLinks: () -> Unit,
+    onTagCategory: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onOpenTools: () -> Unit,
+    onItemClick: (DriveFileItem) -> Unit,
+    onItemLongClick: (DriveFileItem) -> Unit
 ) {
     val filteredItems = state.items.filter { item ->
         val matchesSearch = state.searchQuery.isBlank() ||

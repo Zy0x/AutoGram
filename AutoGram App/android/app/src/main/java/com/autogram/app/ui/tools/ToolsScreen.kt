@@ -23,6 +23,7 @@ private val moduleSpecs = listOf(
     NativeModuleSpec(Screen.Transfer, R.string.transfer_native_scope, true),
     NativeModuleSpec(Screen.Remote, R.string.remote_engine_unavailable, true),
     NativeModuleSpec(Screen.LocalDownloads, R.string.local_download_scope, true),
+    NativeModuleSpec(Screen.LocalPreview, R.string.real_local_preview_scope, true),
     NativeModuleSpec(Screen.Statistics, R.string.statistics_local_scope, true),
     NativeModuleSpec(Screen.Studio, R.string.capability_studio_gap, true),
     NativeModuleSpec(Screen.Settings, R.string.capability_settings_gap, true),

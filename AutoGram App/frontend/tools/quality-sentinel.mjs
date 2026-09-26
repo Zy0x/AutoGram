@@ -302,7 +302,7 @@ try {
 console.log(`\n${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}`);
 if (allPassed) {
   console.log(`${colors.bright}${colors.green}  ✔ [SUCCESS] ALL 8 QUALITY GATES PASSED WITH ZERO ERRORS!${colors.reset}`);
-  console.log(`${colors.bright}${colors.green}  AutoGram is certified production-ready, regress-free, and safe.${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}  Configured checks passed; this is not end-to-end, Android parity, or production certification.${colors.reset}`);
   console.log(`${colors.bright}${colors.cyan}════════════════════════════════════════════════════════════════════${colors.reset}\n`);
   process.exit(0);
 } else {

@@ -1,4 +1,18 @@
-## Unreleased — Android Native Runtime Packaging
+## Unreleased — Android Runtime Integrity and Local Preview
+
+### 1. Real Device-File Preview and Truthful Feature Availability
+- Android Local Preview now reads user-selected content through the system document picker: images use the actual file, audio/video use native playback controls, and UTF-8 text reads are bounded to 256 KiB to avoid loading large documents into memory.
+- Drive, Studio, Settings and Transfer screens no longer present fabricated archive contents, media quality, playback timelines, destination choices, health metrics or successful cloud actions. Unsupported operations explain their current availability instead of reporting completion.
+
+### 2. Native Records and Packaging Integrity
+- The Android bridge preserves terminal transfer states when pause is requested and refuses unscoped cloud deletion. These checks prevent local records from implying operations that no cloud executor performed.
+- Android local-record definitions now share migration 024 with the master schema and data dictionary; schema tests check repeatability and matching table/index contracts.
+- The canonical Android builder reports outstanding cloud workflows and blocks Release packaging until their implementation and acceptance evidence are complete. Debug APKs remain explicitly feature-incomplete previews.
+
+### 3. Localization and Regression Coverage
+- New availability, preview and transfer-status labels have matching Indonesian and English resources. Tests cover bounded UTF-8 reading, truthful status rendering and file-provider-backed preview rather than simulated production media.
+
+## Earlier Unreleased — Android Native Runtime Packaging
 
 ### 1. Android Engine Distribution
 - The APK builder now delegates to the native Android pipeline, compiling Rust for every declared ABI before packaging. This prevents shipping an interface-only APK with no AutoGram engine.

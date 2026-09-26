@@ -52,7 +52,7 @@ fun DriveTopBar(
     onCopyLinks: () -> Unit,
     onTagCategory: () -> Unit,
     onDeleteSelected: () -> Unit,
-    onOpenTools: () -> Unit = {}
+    onOpenTools: () -> Unit
 ) {
     var isSearchExpanded by remember { mutableStateOf(false) }
     var isSelectionMenuOpen by remember { mutableStateOf(false) }
@@ -100,7 +100,7 @@ fun DriveTopBar(
                     }
 
                     Text(
-                        text = "$selectedCount dipilih",
+                        text = stringResource(R.string.real_selected_count, selectedCount),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
@@ -632,7 +632,7 @@ fun DriveTopBar(
                 border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.6f))
             ) {
                 Text(
-                    text = "$itemCount items",
+                    text = stringResource(R.string.real_item_count, itemCount),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.SemiBold,

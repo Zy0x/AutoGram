@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test APK only. Serves generated fixtures, never arbitrary paths or user files. -->
+        <provider android:name="com.autogram.app.preview.PreviewFixtureProvider"
+            android:authorities="com.autogram.app.test.preview" android:exported="true" />
+    </application>
+</manifest>

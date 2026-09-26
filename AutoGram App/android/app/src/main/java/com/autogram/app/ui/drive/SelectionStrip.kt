@@ -71,7 +71,7 @@ fun SelectionStrip(
                     shape = CircleShape
                 ) {
                     Text(
-                        text = "$selectedCount Dipilih",
+                        text = stringResource(R.string.real_selected_count, selectedCount),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = GoldAccent,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

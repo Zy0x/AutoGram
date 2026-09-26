@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveFileItem
+import com.autogram.app.features.preview.mediaKindLabel
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -126,7 +127,7 @@ fun FileListItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = if (item.isFolder) "Folder" else formatFileSize(item.size),
+                        text = if (item.isFolder) stringResource(R.string.real_folder) else formatFileSize(item.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondaryDark
                     )
@@ -136,7 +137,7 @@ fun FileListItem(
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                text = item.telegramCategory.uppercase(),
+                                text = stringResource(mediaKindLabel(item.mimeType)),
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = categoryColor

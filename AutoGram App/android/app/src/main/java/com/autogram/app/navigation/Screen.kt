@@ -33,6 +33,7 @@ sealed class Screen(
     data object Studio : Screen("studio", R.string.nav_studio, Icons.Default.VideoLibrary)
     data object Remote : Screen("remote", R.string.nav_remote, Icons.Default.Link)
     data object LocalDownloads : Screen("local-downloads", R.string.local_download_title, Icons.Default.Download)
+    data object LocalPreview : Screen("local-preview", R.string.real_local_preview, Icons.Default.VideoLibrary)
     data object Tools : Screen("tools", R.string.nav_tools, Icons.Default.Apps)
     data object Accounts : Screen("accounts", R.string.nav_accounts, Icons.Default.AccountCircle)
     data object Jobs : Screen("jobs", R.string.nav_jobs, Icons.Default.Work)
@@ -46,7 +47,7 @@ sealed class Screen(
     companion object {
         val primaryItems: List<Screen> get() = listOf(Home, Drive, Transfer, Tools, Settings)
         val items: List<Screen> get() = listOf(
-            Home, Drive, Transfer, Remote, LocalDownloads, Forwarder, Studio, Tools,
+            Home, Drive, Transfer, Remote, LocalDownloads, LocalPreview, Forwarder, Studio, Tools,
             Accounts, Jobs, Automation, Statistics, Profiles, Sync, ApiSetup, Settings
         )
     }

@@ -29,6 +29,7 @@ import com.autogram.app.navigation.Screen
 import com.autogram.app.theme.AutoGramTheme
 import com.autogram.app.runtime.NativeRuntime
 import com.autogram.app.features.localdownload.LocalDownloadScreen
+import com.autogram.app.features.preview.LocalMediaPreviewScreen
 import com.autogram.app.ui.components.AutoGramNavigationRail
 import com.autogram.app.ui.components.BottomNavBar
 import com.autogram.app.ui.accounts.AccountsScreen
@@ -45,7 +46,6 @@ import com.autogram.app.ui.tools.nativeModuleSpec
 import com.autogram.app.viewmodel.DriveViewModel
 import com.autogram.app.viewmodel.AccountsViewModel
 import com.autogram.app.viewmodel.RemoteUrlViewModel
-import com.autogram.app.viewmodel.SettingsViewModel
 import com.autogram.app.viewmodel.TransferViewModel
 
 class MainActivity : ComponentActivity() {
@@ -84,7 +84,6 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
     val driveViewModel: DriveViewModel = viewModel()
     val accountsViewModel: AccountsViewModel = viewModel()
     val transferViewModel: TransferViewModel = viewModel()
-    val settingsViewModel: SettingsViewModel = viewModel()
     val remoteUrlViewModel: RemoteUrlViewModel = viewModel()
     val remoteState by remoteUrlViewModel.uiState.collectAsState()
     val driveState by driveViewModel.uiState.collectAsState()
@@ -149,6 +148,9 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                     composable(Screen.LocalDownloads.route) {
                         LocalDownloadScreen(initialUrl = remoteState.url)
                     }
+                    composable(Screen.LocalPreview.route) {
+                        LocalMediaPreviewScreen()
+                    }
                     composable(Screen.Tools.route) {
                         ToolsScreen(navController = navController)
                     }
@@ -174,7 +176,7 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                         NativeModuleScreen(navController, nativeModuleSpec(Screen.ApiSetup))
                     }
                     composable(Screen.Settings.route) {
-                        SettingsScreen(viewModel = settingsViewModel)
+                        SettingsScreen()
                     }
                 }
             }

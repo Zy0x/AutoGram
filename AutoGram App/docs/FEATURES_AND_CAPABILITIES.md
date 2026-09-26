@@ -23,6 +23,18 @@ loaded list. This inventory does not add sign-in or session migration support.
 Android and desktop use the same release-version source; matching version numbers do
 not mean that all desktop features are available on Android.
 
+The Local Preview page opens images, audio/video and bounded UTF-8 text from files
+chosen through Android's document picker. It reads the selected file itself; it is
+not Telegram cloud streaming. Text preview is limited to 256 KiB, with a truncation
+notice. Unsupported formats and unreadable files show an explicit error.
+
+Cloud preview currently shows metadata and any cached thumbnail only. Unimplemented
+archive, upload, album, settings and cloud actions no longer display sample content
+or simulated success. Transfer cards show stored measurements and distinguish failed,
+skipped and cancelled records; changing a local pause flag does not start a worker.
+The canonical builder permits preview Debug APKs, but blocks Release packaging while
+the required cloud workflows and their real-device acceptance evidence are missing.
+
 ---
 
 ## 🌟 Feature Overview Matrix

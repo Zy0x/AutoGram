@@ -1,0 +1,28 @@
+use rusqlite::Connection;
+
+const MIGRATION: &str = include_str!("../../../database/migrations/024_android_local_records.sql");
+const MASTER: &str = include_str!("../../../database/schema.sql");
+
+fn columns(connection: &Connection, table: &str) -> Vec<(String, String, i64, Option<String>, i64)> {
+    connection.prepare(&format!("PRAGMA table_info({table})")).unwrap()
+        .query_map([], |row| Ok((row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)))
+        .unwrap().collect::<Result<_, _>>().unwrap()
+}
+
+#[test]
+fn android_tables_match_master_and_migration_is_repeatable() {
+    let runtime = Connection::open_in_memory().unwrap();
+    runtime.execute_batch(MIGRATION).unwrap();
+    runtime.execute_batch(MIGRATION).unwrap();
+    let master = Connection::open_in_memory().unwrap();
+    master.execute_batch(MASTER).unwrap();
+    for table in ["android_drive_items", "android_transfer_tasks"] {
+        assert_eq!(columns(&runtime, table), columns(&master, table));
+    }
+    for index in ["idx_android_drive_parent", "idx_android_transfer_state"] {
+        let query = "SELECT sql FROM sqlite_master WHERE type='index' AND name=?1";
+        let actual: String = runtime.query_row(query, [index], |row| row.get(0)).unwrap();
+        let expected: String = master.query_row(query, [index], |row| row.get(0)).unwrap();
+        assert_eq!(actual, expected);
+    }
+}

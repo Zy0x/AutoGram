@@ -35,6 +35,27 @@ PRAGMA busy_timeout = 5000;        -- Eliminates SQLite lock collisions during h
 
 ## 2. Subsystem Data Dictionary
 
+### Android local records (migration 024)
+
+These tables back Android offline views only. Rows do not prove Telegram authorization,
+remote indexing, cloud mutation, or an executing transfer worker.
+
+- `android_drive_items`: composite primary key (`session_id`, `peer_id`, `topic_id`, `id`)
+  isolates identical message IDs across accounts/chats/topics. `topic_id = -1` means no
+  topic. `parent_path`, `name`, `size_bytes`, `mime_type`, `delivery_kind`,
+  `telegram_category`, `is_folder`, `modified_ms`, and nullable `thumbnail_uri` hold
+  cached metadata. `idx_android_drive_parent` supports scoped folder reads.
+- `android_transfer_tasks`: `id` is the primary key. `file_name`, `source_identity`,
+  `destination_identity`, `stage`, `status`, `total_bytes`, `processed_bytes`,
+  `speed_bps`, `eta_seconds`, `attempt`, `paused`, nullable `error_code`, and
+  `updated_ms` hold persisted task snapshots. `idx_android_transfer_state` supports
+  status/time reads. Pausing is a local record update only; terminal records are immutable
+  through the pause API. Source identities must not be exposed as diagnostic UI text.
+
+Migration 024 consolidates previously runtime-owned table definitions. It is idempotent
+and does not remove existing records. Older Android databases missing `telegram_category`
+receive the existing incremental column upgrade after explicit schema inspection.
+
 ### 2.1 System & Authentication Subsystem
 
 #### `telegram_accounts`
