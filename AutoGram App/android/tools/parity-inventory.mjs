@@ -21,7 +21,7 @@ const paths = {
   app: 'AutoGram App/frontend/src/App.tsx',
   sidebar: 'AutoGram App/frontend/src/components/layout/Sidebar.tsx',
   forwarder: 'AutoGram App/frontend/src/pages/ForwarderWorkspace/index.tsx',
-  driveSidebar: 'AutoGram App/frontend/src/components/drive/Navigation/DriveSidebarIndex.tsx',
+  driveSidebarTypes: 'AutoGram App/frontend/src/components/drive/Navigation/useSidebarDrop.ts',
   activity: 'AutoGram App/android/app/src/main/java/com/autogram/app/MainActivity.kt',
   screens: 'AutoGram App/android/app/src/main/java/com/autogram/app/navigation/Screen.kt',
 };
@@ -180,7 +180,7 @@ function inventory() {
     .map(({ match, file, line }) => ({ id: match[1], labelKey: match[2], file, line })), 'sidebar catalog items');
   const sidebarRenderSites = filesByScope.desktopUi.flatMap(file => matches(file, /<Sidebar\b/g)
     .map(({ file, line }) => ({ file, line })));
-  const driveSidebarTabs = requireItems(matches(paths.driveSidebar, /type\s+SidebarTab\s*=([^;]+);/g)
+  const driveSidebarTabs = requireItems(matches(paths.driveSidebarTypes, /type\s+SidebarTab\s*=([^;]+);/g)
     .flatMap(({ match, file, line }) => [...match[1].matchAll(/'([^']+)'/g)]
       .map(m => ({ id: m[1], file, line }))), 'Drive sidebar tab values');
   const driveSidebarRenderSites = filesByScope.desktopUi.flatMap(file => matches(file, /<DriveSidebar\b/g)

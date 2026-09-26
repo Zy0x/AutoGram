@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.autogram.app.R
+import com.autogram.app.BuildConfig
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.*
 import com.autogram.app.viewmodel.*
@@ -544,12 +545,12 @@ fun SettingsScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "AutoGram Android Native v3.8.50",
+                        text = stringResource(R.string.android_app_version, BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                         color = ChampagneGold
                     )
                     Text(
-                        text = "Stitch Soft Luxury Engine • MTProto via Grammers",
+                        text = stringResource(R.string.android_engine_preview),
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                         color = TextMutedDark
                     )

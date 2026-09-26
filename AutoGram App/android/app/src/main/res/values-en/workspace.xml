@@ -46,4 +46,13 @@
     <string name="accounts_source_status">Source: %1$s · Status: %2$s</string>
     <string name="accounts_local_badge">LOCAL</string>
     <string name="account_inventory_failed">The session inventory could not be loaded. Refresh to try again.</string>
+    <string name="accounts_runtime_unavailable">The local engine is unavailable. Reopen the app or use an APK that matches this device.</string>
+    <string name="accounts_source_native">Native session</string>
+    <string name="accounts_source_combined">Native session and migration source</string>
+    <string name="accounts_source_legacy">Legacy migration source</string>
+    <string name="accounts_source_unknown">Unknown source</string>
+    <string name="accounts_status_unverified">Not verified</string>
+    <string name="accounts_status_migration">Migration required</string>
+    <string name="android_app_version">AutoGram Android v%1$s</string>
+    <string name="android_engine_preview">Native Android preview · Rust engine</string>
 </resources>

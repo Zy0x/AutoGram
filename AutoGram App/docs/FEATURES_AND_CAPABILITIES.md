@@ -16,6 +16,13 @@ Android integration. A visible page or control is not a guarantee of support.
 If the app reports that its native engine is unavailable, use a rebuilt APK for
 your device architecture; never copy session files from another installation.
 
+The Android Accounts page lists local session-file names and their origins without
+reading credentials or contacting Telegram. Native sessions are shown as **not verified**;
+legacy sources are marked **migration required**. Refresh errors preserve the last
+loaded list. This inventory does not add sign-in or session migration support.
+Android and desktop use the same release-version source; matching version numbers do
+not mean that all desktop features are available on Android.
+
 ---
 
 ## 🌟 Feature Overview Matrix

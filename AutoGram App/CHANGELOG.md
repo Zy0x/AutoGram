@@ -3,12 +3,16 @@
 ### 1. Android Engine Distribution
 - The APK builder now delegates to the native Android pipeline, compiling Rust for every declared ABI before packaging. This prevents shipping an interface-only APK with no AutoGram engine.
 - Gradle checks native ELF architecture, and the APK verification tool checks both AutoGram and JNA libraries in each split and universal APK.
+- Android package metadata and the Settings version label now derive from the shared application release version, eliminating the outdated 3.8.50 label and keeping future APK updates in step with desktop releases. Android remains a feature-incomplete preview.
 
 ### 2. Runtime Verification
 - Added a device instrumentation smoke test that calls the packaged UniFFI runtime and SQLite readers without contacting Telegram or changing account data. Packaging verification does not imply full desktop-feature parity.
 
 ### 3. UI State Reliability
 - The Local Downloads navigation now observes Remote Link state through Compose state collection, so URL updates trigger recomposition and pass the Android lint gate.
+- Accounts now separates offline inventory from verified Telegram authentication: only regular session files are listed, migration sources are grouped, and private filesystem errors are replaced with safe messages.
+- Account refreshes preserve the last successful inventory on failure and ignore stale results, errors, and cancellations. Indonesian/English status labels and scrollable safe-area content make loading and recovery usable on small screens.
+- Added isolated inventory tests, out-of-order refresh regression tests, and packaged-engine/Compose checks; no credentials are read and no Telegram login is performed by inventory refresh.
 ## v4.1.25 — Spring-Loaded Sidebar Drag & Drop Hover-to-Open, Auto-Expanding Tree Hierarchy & Modular Controller Extraction
 
 ### 1. Spring-Loaded Sidebar Navigation & Auto-Expanding Folder Hierarchy

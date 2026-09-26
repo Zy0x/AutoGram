@@ -1,8 +1,21 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+// One release version for desktop and Android; tracked input invalidates Gradle's cache.
+val releaseMetadata = JsonSlurper().parseText(
+    providers.fileContents(layout.projectDirectory.file("../../frontend/package.json")).asText.get()
+) as Map<*, *>
+val releaseVersion = releaseMetadata["version"] as? String ?: error("Missing application version")
+val versionParts = releaseVersion.split('.').map { it.toIntOrNull() ?: error("Invalid application version") }
+check(versionParts.size == 3 && versionParts[0] in 0..999 && versionParts.drop(1).all { it in 0..99 }) {
+    "Application version must follow major.minor.patch with minor/patch below 100"
+}
+val androidReleaseCode = versionParts[0] * 10_000 + versionParts[1] * 100 + versionParts[2]
 
 val nativeAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 val nativeLibraries = nativeAbis.map { abi ->
@@ -45,8 +58,8 @@ android {
         applicationId = "com.autogram.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3850
-        versionName = "3.8.50"
+        versionCode = androidReleaseCode
+        versionName = releaseVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -76,6 +89,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {

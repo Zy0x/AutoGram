@@ -46,4 +46,13 @@
     <string name="accounts_source_status">Asal: %1$s · Status: %2$s</string>
     <string name="accounts_local_badge">LOKAL</string>
     <string name="account_inventory_failed">Inventaris sesi belum dapat dimuat. Segarkan untuk mencoba lagi.</string>
+    <string name="accounts_runtime_unavailable">Engine lokal belum tersedia. Buka ulang aplikasi atau gunakan APK yang sesuai dengan perangkat ini.</string>
+    <string name="accounts_source_native">Sesi native</string>
+    <string name="accounts_source_combined">Sesi native dan sumber migrasi</string>
+    <string name="accounts_source_legacy">Sumber migrasi lama</string>
+    <string name="accounts_source_unknown">Asal belum dikenal</string>
+    <string name="accounts_status_unverified">Belum diverifikasi</string>
+    <string name="accounts_status_migration">Perlu migrasi</string>
+    <string name="android_app_version">AutoGram Android v%1$s</string>
+    <string name="android_engine_preview">Pratinjau Android native · Engine Rust</string>
 </resources>
