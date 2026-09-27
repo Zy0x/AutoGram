@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 mod session_inventory;
+mod auth;
 #[cfg(test)]
 mod schema_tests;
 

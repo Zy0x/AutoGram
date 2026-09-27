@@ -122,6 +122,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    // Offline QR rendering only: no token is sent to an image-generation service.
+    implementation("com.google.zxing:core:3.5.3")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")

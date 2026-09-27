@@ -176,39 +176,12 @@ pub fn open_memory_session(path: &Path) -> Result<Arc<MemorySession>, TgError> {
 }
 
 pub fn persist_memory_session(session: &MemorySession, path: &Path) -> Result<(), TgError> {
-    use grammers_session::Session;
-    // Export live home DC + auth_key via Session trait (no From reverse required).
-    let home = session
-        .home_dc_id()
-        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("home_dc: {e}")))?;
-    let dc_opt = session
-        .dc_option(home)
-        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("dc_option: {e}")))?;
-    let Some(dc) = dc_opt else {
-        return Err(TgError::new(
-            TgErrorCode::SessionImportFailed,
-            "no home dc_option to persist",
-        ));
-    };
-    let Some(key) = dc.auth_key else {
-        // Still not authorized — leave existing file untouched if present
-        if path.is_file() {
-            return Ok(());
-        }
-        return Err(TgError::new(
-            TgErrorCode::NotAuthorized,
-            "session has no auth_key yet",
-        ));
-    };
-    let mut data = SessionData::default();
-    data.home_dc = home;
-    if let Some(slot) = data.dc_options.get_mut(&home) {
-        slot.auth_key = Some(key);
-        slot.ipv4 = dc.ipv4;
-    } else {
-        data.dc_options.insert(home, dc);
+    match autogram_core::telegram::auth::snapshot_session(session) {
+        Ok(data) => write_session_data(path, &data),
+        Err(error) if error.code == "session_key_missing" && path.is_file() => Ok(()),
+        Err(error) if error.code == "session_key_missing" => Err(TgError::new(TgErrorCode::NotAuthorized, error.code)),
+        Err(error) => Err(TgError::new(TgErrorCode::SessionImportFailed, error.code)),
     }
-    write_session_data(path, &data)
 }
 
 /// Commit a login session only after Telegram itself confirms authorization.

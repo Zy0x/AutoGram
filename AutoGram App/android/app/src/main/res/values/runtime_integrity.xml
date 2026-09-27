@@ -3,7 +3,7 @@
     <string name="real_item_count">%1$d item</string>
     <string name="real_previous">Sebelumnya</string>
     <string name="real_next">Berikutnya</string>
-    <string name="real_cloud_unavailable">Operasi cloud ini belum memiliki autentikasi dan pelaksana Telegram di Android. Tidak ada perubahan atau transfer yang dijalankan.</string>
+    <string name="real_cloud_unavailable">Pelaksana operasi cloud ini belum terhubung di Android. Tidak ada perubahan atau transfer yang dijalankan.</string>
     <string name="real_preview_unavailable">Konten file belum tersedia. Android belum memiliki pengambil media cloud untuk file ini; thumbnail bukan konten asli.</string>
     <string name="real_thumbnail_only">Thumbnail tersimpan, bukan preview resolusi penuh</string>
     <string name="real_folder">Folder</string>
@@ -26,7 +26,7 @@
     <string name="real_pause_flag">Simpan jeda lokal</string>
     <string name="real_resume_flag">Hapus jeda lokal</string>
     <string name="real_settings_title">Pengaturan perangkat</string>
-    <string name="real_settings_scope">Informasi perangkat ini. Login, API Telegram, backup, pembersihan cache, dan pengaturan worker belum terintegrasi; aplikasi tidak meminta atau menyimpan kredensial di halaman ini.</string>
+    <string name="real_settings_scope">Informasi perangkat ini. Login dan konfigurasi API Telegram tersedia di halaman Akun. Backup, pembersihan cache, dan pengaturan worker belum terintegrasi; halaman ini tidak meminta kredensial.</string>
     <string name="real_device_storage">Ruang tersedia untuk aplikasi: %1$s</string>
     <string name="real_runtime_status">Status engine lokal: %1$s</string>
     <string name="real_studio_scope">Koleksi dari metadata Drive yang sedang dimuat. Pembuatan album, transcode, dan pengiriman Telegram belum memiliki pelaksana Android.</string>

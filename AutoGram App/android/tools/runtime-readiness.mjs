@@ -1,54 +1,77 @@
 #!/usr/bin/env node
 /** Acceptance gate, not a percentage computed from screen/command counts. */
-import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBridgeExports } from './parity-inventory.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const bridgeRoot = resolve(root, 'AutoGram App/crates/autogram-android-bridge/src');
-const timeout = setTimeout(() => process.exit(1), 10000);
-timeout.unref();
-const exported = readdirSync(bridgeRoot).filter(name => name.endsWith('.rs')).flatMap(name =>
-  [...readFileSync(resolve(bridgeRoot, name), 'utf8').matchAll(/#\[uniffi::export\]\s*pub\s+(?:async\s+)?fn\s+(\w+)/g)]
-    .map(match => match[1]));
-
-// Expected native contracts and outstanding acceptance evidence. Keep blockers until
-// real implementation AND device end-to-end evidence have been reviewed together.
-const workflows = [
-  { id: 'phone_otp_2fa', requiredExports: ['begin_phone_login', 'submit_login_code', 'submit_login_password'],
-    blockers: ['No Android secure credential/session adapter or login challenge lifecycle.', 'No real-device Telegram login/2FA acceptance evidence.'] },
-  { id: 'qr_login', requiredExports: ['begin_qr_login', 'poll_qr_login', 'cancel_login'],
-    blockers: ['No QR token generation/expiry/DC migration flow on Android.'] },
-  { id: 'account_switch', requiredExports: ['list_authorized_accounts', 'select_authorized_account'],
-    blockers: ['Offline filename inventory is not authorization or active-account selection.'] },
+// Contract presence is static evidence only. Blockers describe acceptance still
+// unverified, not implementation absence. Do not clear them when exports appear.
+const workflowRequirements = [
+  { id: 'phone_otp_2fa', requiredExports: ['initialize_auth', 'configure_api', 'auth_configured',
+    'create_login_attempt', 'begin_phone_login', 'resend_login_code', 'submit_login_code', 'submit_login_password', 'cancel_login'],
+    blockers: [
+      'Unverified on a packaged Android device with real Telegram: API configuration, phone/OTP/resend/2FA and verified identity after durable vault commit.',
+      'Unverified: cancellation and stale-attempt isolation, invalid/expired challenges, FloodWait cooldown, process recreation and vault failure recovery.',
+    ] },
+  { id: 'qr_login', requiredExports: ['initialize_auth', 'configure_api', 'create_login_attempt',
+    'begin_qr_login', 'poll_qr_login', 'submit_login_password', 'cancel_login'],
+    blockers: ['Unverified on a packaged Android device with real Telegram: QR scan authorization, token expiry/renewal, DC migration, optional 2FA and cancellation without a late account commit.'] },
+  { id: 'account_switch', requiredExports: ['list_authorized_accounts', 'select_authorized_account',
+    'last_selected_account', 'logout_account'],
+    blockers: ['Unverified on a packaged Android device with real Telegram: account revalidation, isolated switching, cold-start restoration, revoked-session handling and logout/retry. Offline inventory and persisted identities alone are not authorization proof.'] },
   { id: 'cloud_listing_cards', requiredExports: ['list_cloud_dialogs', 'list_cloud_media'],
-    blockers: ['Drive reads local SQLite metadata; no Android cloud index producer.'] },
+    blockers: ['Unverified: Telegram-backed scoped dialog/topic/media indexing, refresh and cards matched to real messages; local SQLite rows alone do not prove cloud listing or mutation.'] },
   { id: 'cloud_preview', requiredExports: ['open_cloud_media_stream', 'read_cloud_archive_entry'],
-    blockers: ['Device file preview and cached thumbnails do not implement Telegram streams or sparse archives.'] },
+    blockers: ['Unverified: real Telegram media playback/seeking and each file-preview family, including bounded sparse encrypted-archive extraction with measured network bytes. Device-file previews alone are insufficient.'] },
   { id: 'upload_download', requiredExports: ['start_cloud_transfer', 'cancel_cloud_transfer'],
-    blockers: ['Local task records have no Telegram transfer executor or background service.'] },
+    blockers: ['Unverified: real Telegram upload/download outputs, cancellation/recovery, duplicate decisions and album invariants under retries; local task rows and pause flags alone are insufficient.'] },
   { id: 'remote_crawler', requiredExports: ['start_remote_crawl', 'resolve_remote_media'],
-    blockers: ['Direct HTTPS DownloadManager jobs do not replace site resolvers/crawlers.'] },
+    blockers: ['Unverified: provider-specific resolution/crawl, selected formats/subtitles and completed output; direct local HTTPS downloads alone do not prove provider support or manifest processing.'] },
   { id: 'jobs_automation', requiredExports: ['start_forwarder_job', 'schedule_job'],
-    blockers: ['No native Android job executor, persistence/recovery and scheduler acceptance tests.'] },
-].map(workflow => ({ ...workflow, missingExports: workflow.requiredExports.filter(name => !exported.includes(name)) }));
+    blockers: ['Unverified: real forwarder/automation/sync execution with destination-message evidence, scoped checkpoints, scheduled background execution and process-restart recovery.'] },
+];
 
-const report = {
-  scope: 'Android desktop-equivalence acceptance',
-  fullCloudTestingReady: workflows.every(item => item.missingExports.length === 0 && item.blockers.length === 0),
-  implementedLocalScope: 'Local JNI/SQLite, local records, offline inventory and device-file preview. Verification evidence is separate from this static report.',
-  workflows,
-  limitations: 'Explicit expected contract names require audit maintenance if APIs are renamed. This gate never substitutes static declarations for live Telegram verification.',
-};
-const args = process.argv.slice(2);
-if (args.some(arg => !['--json', '--require-cloud-ready'].includes(arg))) {
-  console.error('Usage: runtime-readiness.mjs [--json] [--require-cloud-ready]');
-  process.exitCode = 1;
-} else {
-  console.log(args.includes('--json') ? JSON.stringify(report, null, 2) : [
-    `Full Android cloud acceptance ready: ${report.fullCloudTestingReady ? 'YES' : 'NO'}`,
-    ...workflows.map(item => `${item.id}: ${item.missingExports.length} missing native contracts; ${item.blockers.join(' ')}`),
-  ].join('\n'));
-  if (args.includes('--require-cloud-ready') && !report.fullCloudTestingReady) process.exitCode = 2;
+export function buildReadinessReport(bridge = readBridgeExports()) {
+  const exported = new Set(bridge.functions.map(item => item.name));
+  const workflows = workflowRequirements.map(workflow => ({ ...workflow,
+    requiredExports: [...workflow.requiredExports], blockers: [...workflow.blockers],
+    acceptanceStatus: 'unverified',
+    presentExports: bridge.functions.filter(item => workflow.requiredExports.includes(item.name)),
+    missingExports: workflow.requiredExports.filter(name => !exported.has(name)),
+  }));
+  return {
+    scope: 'Android desktop-equivalence acceptance',
+    fullCloudTestingReady: workflows.every(item => item.missingExports.length === 0 && item.blockers.length === 0),
+    implementedLocalScope: 'Local JNI/SQLite, local records, offline inventory and device-file preview. Auth/account source declarations are reported separately; device verification is still required.',
+    evidenceBasis: 'static-source-declarations; no reviewed real-Telegram device acceptance evidence',
+    acceptanceInventory: '.agents/docs/architecture/android-standalone-acceptance.md',
+    workflows,
+    limitations: 'Expected contract names require audit maintenance if APIs are renamed. Export declarations do not prove compilation, Kotlin reachability or behavior. Callback traits and generated bindings are excluded. The workflow groups are minimum blockers, not an exhaustive action inventory; consult the internal acceptance inventory. This gate never substitutes static declarations for live Telegram verification.',
+  };
 }
-clearTimeout(timeout);
+
+function main() {
+  const timeout = setTimeout(() => process.exit(1), 10000);
+  timeout.unref();
+  try {
+    const args = process.argv.slice(2);
+    if (args.some(arg => !['--json', '--require-cloud-ready'].includes(arg))) {
+      console.error('Usage: runtime-readiness.mjs [--json] [--require-cloud-ready]');
+      process.exitCode = 1;
+    } else {
+      const report = buildReadinessReport();
+      console.log(args.includes('--json') ? JSON.stringify(report, null, 2) : [
+        `Full Android cloud acceptance ready: ${report.fullCloudTestingReady ? 'YES' : 'NO'}`,
+        ...report.workflows.map(item => `${item.id}: ${item.missingExports.length} missing native contracts; ${item.blockers.join(' ')}`),
+      ].join('\n'));
+      if (args.includes('--require-cloud-ready') && !report.fullCloudTestingReady) process.exitCode = 2;
+    }
+  } catch (error) {
+    console.error(`Readiness failed: ${error.message}`);
+    process.exitCode = 1;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

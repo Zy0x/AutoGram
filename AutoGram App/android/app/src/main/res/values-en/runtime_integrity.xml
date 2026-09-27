@@ -3,7 +3,7 @@
     <string name="real_item_count">%1$d items</string>
     <string name="real_previous">Previous</string>
     <string name="real_next">Next</string>
-    <string name="real_cloud_unavailable">This cloud operation has no Android Telegram authentication and executor yet. No change or transfer was performed.</string>
+    <string name="real_cloud_unavailable">The executor for this cloud operation is not connected on Android yet. No change or transfer was performed.</string>
     <string name="real_preview_unavailable">File content is unavailable. Android has no cloud media fetcher for this file yet; a thumbnail is not the original content.</string>
     <string name="real_thumbnail_only">Cached thumbnail, not a full-resolution preview</string>
     <string name="real_folder">Folder</string>
@@ -26,7 +26,7 @@
     <string name="real_pause_flag">Save local pause</string>
     <string name="real_resume_flag">Clear local pause</string>
     <string name="real_settings_title">Device settings</string>
-    <string name="real_settings_scope">Information about this device. Sign-in, Telegram API configuration, backup, cache cleanup, and worker settings are not integrated; this page does not request or store credentials.</string>
+    <string name="real_settings_scope">Information about this device. Sign-in and Telegram API configuration are available on the Accounts page. Backup, cache cleanup, and worker settings are not integrated; this page does not request credentials.</string>
     <string name="real_device_storage">Available app storage: %1$s</string>
     <string name="real_runtime_status">Local engine status: %1$s</string>
     <string name="real_studio_scope">Collection from the currently loaded Drive metadata. Album creation, transcoding, and Telegram sending have no Android executor yet.</string>

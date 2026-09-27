@@ -28,12 +28,12 @@ private val moduleSpecs = listOf(
     NativeModuleSpec(Screen.Studio, R.string.capability_studio_gap, true),
     NativeModuleSpec(Screen.Settings, R.string.capability_settings_gap, true),
     NativeModuleSpec(Screen.Forwarder, R.string.capability_jobs_gap),
-        NativeModuleSpec(Screen.Accounts, R.string.accounts_subtitle, integrated = true),
+    NativeModuleSpec(Screen.Accounts, R.string.auth_security, integrated = true),
     NativeModuleSpec(Screen.Jobs, R.string.capability_jobs_gap),
     NativeModuleSpec(Screen.Automation, R.string.capability_automation_gap),
     NativeModuleSpec(Screen.Profiles, R.string.capability_profiles_gap),
     NativeModuleSpec(Screen.Sync, R.string.capability_sync_gap),
-    NativeModuleSpec(Screen.ApiSetup, R.string.capability_auth_gap)
+    NativeModuleSpec(Screen.ApiSetup, R.string.auth_api_instructions, integrated = true)
 )
 
 fun nativeModuleSpec(screen: Screen): NativeModuleSpec = moduleSpecs.first { it.screen == screen }

@@ -13,6 +13,8 @@ PRAGMA busy_timeout = 5000;
 -- ============================================================================
 -- 1. SYSTEM & AUTHENTICATION SUBSYSTEM
 -- ============================================================================
+-- New Android auth credentials/session material use the app-private Keystore vault,
+-- not these SQLite tables. Local account/Drive records do not prove authorization.
 
 CREATE TABLE IF NOT EXISTS users (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,

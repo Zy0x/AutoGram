@@ -12,11 +12,6 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const timeout = setTimeout(() => {
-  console.error('[AGENT_PROBE_TIMEOUT] Inventory exceeded 10 seconds.');
-  process.exit(1);
-}, 10_000);
-timeout.unref();
 const paths = {
   app: 'AutoGram App/frontend/src/App.tsx',
   sidebar: 'AutoGram App/frontend/src/components/layout/Sidebar.tsx',
@@ -37,15 +32,15 @@ const ignored = new Set(['node_modules', 'target', 'build', 'dist', 'generated',
 const slash = value => value.replaceAll('\\', '/');
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const unique = items => [...new Set(items)];
-function walk(directory) {
-  return readdirSync(join(root, directory), { withFileTypes: true })
+function walk(directory, workspaceRoot = root) {
+  return readdirSync(join(workspaceRoot, directory), { withFileTypes: true })
     .sort((a, b) => compare(a.name, b.name))
     .flatMap(entry => {
       if (entry.isSymbolicLink() || ignored.has(entry.name)) return [];
       const path = `${directory}/${entry.name}`;
-      if (entry.isDirectory()) return walk(path);
+      if (entry.isDirectory()) return walk(path, workspaceRoot);
       if (!['.ts', '.tsx', '.js', '.jsx', '.rs', '.kt', '.kts'].includes(extname(path))) return [];
-      if (/(?:\.(?:test|spec|d)\.[^.]+|\/tests?\.rs)$/.test(path)) return [];
+      if (/(?:\.(?:test|spec|d)\.[^.]+|\/(?:\w+_)?tests?\.rs|\.uniffi\.rs)$/.test(path)) return [];
       return [path];
     });
 }
@@ -132,23 +127,75 @@ function androidRoutes() {
   return { declarations, registrations,
     declaredButNotRegistered: declarations.filter(d => !registrations.some(r => r.screen === d.screen)) };
 }
+// Rust strings (including raw strings) and nested comments may contain attributes.
+// Mask them before finding declarations so fixtures/docs cannot manufacture exports.
+function rustStructure(text) {
+  const tokens = /\/\*|\/\/[^\r\n]*|(?:br|r)(#*)"[\s\S]*?"\1|b?"(?:\\[\s\S]|[^"\\])*"|b?'(?:\\(?:u\{[\da-fA-F]+\}|x[\da-fA-F]{2}|[\s\S])|[^'\\\r\n])'/g;
+  let result = '', cursor = 0;
+  for (let match; (match = tokens.exec(text));) {
+    let end = tokens.lastIndex;
+    if (match[0] === '/*') {
+      let depth = 1;
+      while (end < text.length && depth) {
+        const pair = text.slice(end, end + 2);
+        if (pair === '/*') { depth++; end += 2; }
+        else if (pair === '*/') { depth--; end += 2; }
+        else end++;
+      }
+      if (depth) throw new Error('Unclosed Rust comment; refusing incomplete export inventory.');
+      tokens.lastIndex = end;
+    }
+    result += text.slice(cursor, match.index) + blank(text.slice(match.index, end));
+    cursor = end;
+  }
+  return result + text.slice(cursor);
+}
+
+export function scanUniFfiExports(text, file = '<source>') {
+  const structure = rustStructure(text);
+  const functions = [], callbackInterfaces = [];
+  for (const match of structure.matchAll(/#\s*\[\s*uniffi\s*::\s*export\b/g)) {
+    const end = closing(structure, structure.indexOf('[', match.index), '[', ']');
+    let next = end + 1;
+    // Rust permits doc/cfg attributes between export and its declaration.
+    while (/^\s*#\s*\[/.test(structure.slice(next))) {
+      next = closing(structure, structure.indexOf('[', next), '[', ']') + 1;
+    }
+    const declaration = /^\s*pub\s+(?:(async)\s+)?(fn|trait)\s+(\w+)/.exec(structure.slice(next));
+    if (!declaration) throw new Error(`Unsupported UniFFI export form in ${file}; inventory parser needs updating.`);
+    const attribute = structure.slice(match.index, end + 1);
+    const callback = /\bcallback_interface\b/.test(attribute);
+    if ((declaration[2] === 'trait') !== callback) {
+      throw new Error(`Unsupported UniFFI trait/function export in ${file}; inventory parser needs updating.`);
+    }
+    const record = { name: declaration[3], file, line: text.slice(0, match.index).split('\n').length };
+    if (callback) callbackInterfaces.push(record);
+    else functions.push({ ...record, async: Boolean(declaration[1]) });
+  }
+  return { functions, callbackInterfaces };
+}
+
+export function readBridgeExports(workspaceRoot = root) {
+  const records = walk(scopes.androidBridge, workspaceRoot)
+    .filter(file => extname(file) === '.rs')
+    .map(file => scanUniFfiExports(readFileSync(join(workspaceRoot, file), 'utf8'), file));
+  return {
+    functions: requireItems(records.flatMap(record => record.functions), 'UniFFI exported functions'),
+    callbackInterfaces: records.flatMap(record => record.callbackInterfaces),
+  };
+}
+
 function bridgeExports(files, androidFiles) {
   const exports = [];
   const callbacks = [];
   for (const file of files) {
-    for (const { match, line } of matches(file, /#\[uniffi::export(?:\(([^\]]*)\))?\]\s*pub\s+(?:(async)\s+)?(fn|trait)\s+(\w+)/g)) {
-      const record = { name: match[4], file, line };
-      if (match[3] === 'trait') callbacks.push(record);
-      else {
+    const scanned = scanUniFfiExports(read(file), file);
+    callbacks.push(...scanned.callbackInterfaces);
+    for (const record of scanned.functions) {
         const kotlinName = record.name.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
         const kotlinCallSites = androidFiles.flatMap(path => matches(path, new RegExp(`\\b${kotlinName}\\s*\\(`, 'g'))
           .map(({ file, line }) => ({ file, line })));
         exports.push({ ...record, kotlinName, kotlinCallSites });
-      }
-    }
-    const attributes = matches(file, /#\[uniffi::export(?:\([^\]]*\))?\]/g).length;
-    if (attributes !== exports.filter(e => e.file === file).length + callbacks.filter(e => e.file === file).length) {
-      throw new Error(`Unsupported UniFFI export form in ${file}; inventory parser needs updating.`);
     }
   }
   return { functions: requireItems(exports, 'UniFFI exported functions'), callbackInterfaces: callbacks };
@@ -256,6 +303,12 @@ function render(report, summaryOnly) {
   return rows.join('\n');
 }
 
+function main() {
+const timeout = setTimeout(() => {
+  console.error('[AGENT_PROBE_TIMEOUT] Inventory exceeded 10 seconds.');
+  process.exit(1);
+}, 10_000);
+timeout.unref();
 try {
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
@@ -272,3 +325,6 @@ try {
 } finally {
   clearTimeout(timeout);
 }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

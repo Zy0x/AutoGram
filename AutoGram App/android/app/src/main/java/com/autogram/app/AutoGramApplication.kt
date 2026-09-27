@@ -16,6 +16,8 @@ class AutoGramApplication : Application() {
         try {
             val storageDir = filesDir.absolutePath
             initAutogramRuntime(storageDir)
+            initializeAuth(com.autogram.app.features.auth.storage.NativeVaultAdapter(
+                com.autogram.app.features.auth.storage.AndroidAuthVault(this)))
 
             registerEventListener(object : AutoGramEventListener {
                 override fun onEvent(eventType: String, payloadJson: String) {

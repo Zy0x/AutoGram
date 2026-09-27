@@ -35,6 +35,16 @@ PRAGMA busy_timeout = 5000;        -- Eliminates SQLite lock collisions during h
 
 ## 2. Subsystem Data Dictionary
 
+### Android authentication vault (outside SQLite)
+
+New Android authentication uses encrypted records in the app-private `auth-vault`
+directory, through `AuthSecretStore` and an Android Keystore adapter. API configuration,
+per-account transport sessions, the last selected account ID and authentication cooldown
+are not inserted into the local-record tables below. OTPs, 2FA passwords and QR tokens
+are transient. Cached `verified`/`active` identity fields are never accepted as server
+authorization on restart. No SQL migration is needed for this separate storage adapter;
+existing desktop session and database contracts remain unchanged.
+
 ### Android local records (migration 024)
 
 These tables back Android offline views only. Rows do not prove Telegram authorization,

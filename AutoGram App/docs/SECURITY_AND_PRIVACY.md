@@ -2,6 +2,12 @@
 
 At AutoGram, user security, account confidentiality, and cryptographic data protection are non-negotiable core principles.
 
+**Android preview scope:** New Android authentication records use an atomic AES-GCM
+vault protected by Android Keystore. Hardware backing is device-dependent. Account
+activation requires server verification; stored files alone are not authorization.
+See [Android preview limitations and sign-in guidance](ANDROID_PREVIEW.md). These
+Android protections do not certify older desktop session formats or feature parity.
+
 ---
 
 ## 🔒 1. Direct MTProto Architecture (Zero Middleman Servers)

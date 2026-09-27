@@ -2,6 +2,12 @@
 
 At AutoGram, user security, account confidentiality, and cryptographic data protection are non-negotiable core principles.
 
+**Android preview scope:** New Android authentication records use an atomic AES-GCM
+vault protected by Android Keystore; hardware backing depends on the device. Stored
+account records are not authorization until Telegram verifies them. See the
+[Android preview guide](../AutoGram%20App/docs/ANDROID_PREVIEW.md) for sign-in and
+remaining feature limitations. This does not certify older desktop session formats.
+
 ---
 
 ## 🔒 1. Direct MTProto Architecture (Zero Middleman Servers)

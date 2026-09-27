@@ -1,4 +1,19 @@
-## Unreleased — Android Runtime Integrity and Local Preview
+## Unreleased — Android Native Authentication
+
+### 1. Accounts and Telegram Sign-In
+- Added a Grammers authentication service in `autogram-core` and a UniFFI adapter for Android API configuration, phone/OTP, permitted resend, two-step verification, QR login, account verification and logout. Accounts are activated only after server identity verification and encrypted session persistence.
+- The Android Accounts screen now calls the native authentication service. Cancelled requests cannot restore an obsolete challenge, QR refresh follows server confirmation or token expiry, and a failed final account selection can be retried without submitting another password.
+
+### 2. Session Storage and Account Integrity
+- Added an Android Keystore-backed encrypted vault with atomic writes, authenticated record names and corruption detection. Lost keys or failed writes do not silently create replacement sessions or report successful login.
+- Logout immediately clears live authorization after server confirmation even when local cleanup fails. Server-required authentication cooldowns survive application restart, and failed account verification clears the affected Drive scope.
+- Desktop session snapshotting now uses the shared core helper without changing existing IPC or session-file contracts. This is an incremental extraction, not a claim that every desktop engine domain has already moved.
+
+### 3. Localization and Availability
+- Added matching Indonesian/English sign-in forms, QR instructions, safe error messages and account status labels. Authentication screens protect sensitive content from ordinary screenshots and do not retain OTP/password fields after submission.
+- Android remains a feature-incomplete Debug preview. Real Telegram login acceptance and the remaining cloud, transfer, crawler and automation workflows must pass before Release packaging is allowed.
+
+## Earlier Unreleased — Android Runtime Integrity and Local Preview
 
 ### 1. Real Device-File Preview and Truthful Feature Availability
 - Android Local Preview now reads user-selected content through the system document picker: images use the actual file, audio/video use native playback controls, and UTF-8 text reads are bounded to 256 KiB to avoid loading large documents into memory.

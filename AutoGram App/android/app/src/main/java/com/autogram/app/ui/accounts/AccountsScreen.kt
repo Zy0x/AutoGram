@@ -44,9 +44,9 @@ import com.autogram.app.features.accounts.AccountsUiState
 import com.autogram.app.viewmodel.AccountsViewModel
 
 @Composable
-fun AccountsScreen(viewModel: AccountsViewModel, modifier: Modifier = Modifier) {
-    val state by viewModel.uiState.collectAsState()
-    AccountsContent(state, viewModel::refresh, modifier)
+fun AccountsScreen(viewModel: AccountsViewModel, modifier: Modifier = Modifier,
+    auth: com.autogram.app.features.auth.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    com.autogram.app.features.auth.AuthAccountsScreen(auth)
 }
 
 @Composable

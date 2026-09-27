@@ -30,6 +30,13 @@ import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 // This is a helper for safely working with byte buffers returned from the Rust code.
 // A rust-owned buffer is represented by its capacity, its current length, and a
@@ -656,6 +663,18 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 internal interface UniffiCallbackInterfaceAutoGramEventListenerMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`eventType`: RustBuffer.ByValue,`payloadJson`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
+internal interface UniffiCallbackInterfaceNativeAuthVaultMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceNativeAuthVaultMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`bytes`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceNativeAuthVaultMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceNativeAuthVaultMethod3 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
 @Structure.FieldOrder("onEvent", "uniffiFree")
 internal open class UniffiVTableCallbackInterfaceAutoGramEventListener(
     @JvmField internal var `onEvent`: UniffiCallbackInterfaceAutoGramEventListenerMethod0? = null,
@@ -672,6 +691,66 @@ internal open class UniffiVTableCallbackInterfaceAutoGramEventListener(
     }
 
 }
+@Structure.FieldOrder("read", "write", "remove", "keys", "uniffiFree")
+internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
+    @JvmField internal var `read`: UniffiCallbackInterfaceNativeAuthVaultMethod0? = null,
+    @JvmField internal var `write`: UniffiCallbackInterfaceNativeAuthVaultMethod1? = null,
+    @JvmField internal var `remove`: UniffiCallbackInterfaceNativeAuthVaultMethod2? = null,
+    @JvmField internal var `keys`: UniffiCallbackInterfaceNativeAuthVaultMethod3? = null,
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+) : Structure() {
+    class UniffiByValue(
+        `read`: UniffiCallbackInterfaceNativeAuthVaultMethod0? = null,
+        `write`: UniffiCallbackInterfaceNativeAuthVaultMethod1? = null,
+        `remove`: UniffiCallbackInterfaceNativeAuthVaultMethod2? = null,
+        `keys`: UniffiCallbackInterfaceNativeAuthVaultMethod3? = null,
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    ): UniffiVTableCallbackInterfaceNativeAuthVault(`read`,`write`,`remove`,`keys`,`uniffiFree`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceNativeAuthVault) {
+        `read` = other.`read`
+        `write` = other.`write`
+        `remove` = other.`remove`
+        `keys` = other.`keys`
+        `uniffiFree` = other.`uniffiFree`
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -775,6 +854,7 @@ internal interface UniffiLib : Library {
                 uniffiCheckContractApiVersion(lib)
                 uniffiCheckApiChecksums(lib)
                 uniffiCallbackInterfaceAutoGramEventListener.register(lib)
+                uniffiCallbackInterfaceNativeAuthVault.register(lib)
                 }
         }
 
@@ -782,6 +862,20 @@ internal interface UniffiLib : Library {
 
     fun uniffi_autogram_android_bridge_fn_init_callback_vtable_autogrameventlistener(`vtable`: UniffiVTableCallbackInterfaceAutoGramEventListener,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_init_callback_vtable_nativeauthvault(`vtable`: UniffiVTableCallbackInterfaceNativeAuthVault,
+    ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_auth_configured(uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+    fun uniffi_autogram_android_bridge_fn_func_begin_phone_login(`attemptId`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_begin_qr_login(`attemptId`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_cancel_login(`attemptId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+    fun uniffi_autogram_android_bridge_fn_func_configure_api(`apiId`: Int,`apiHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_create_login_attempt(`phone`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_delete_drive_items(`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Int
     fun uniffi_autogram_android_bridge_fn_func_emit_bridge_event(`eventType`: RustBuffer.ByValue,`payloadJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
@@ -796,20 +890,38 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_init_autogram_runtime(`appStorageDir`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_initialize_auth(`vault`: Long,uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_last_selected_account(uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_list_authorized_accounts(uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_drive_items(`sessionId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`parentPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_session_summaries(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_transfer_tasks(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_logout_account(`accountId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_plan_batch_execution_summary(`totalFiles`: Int,`totalBytes`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_poll_qr_login(`attemptId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_register_event_listener(`listener`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_resend_login_code(`attemptId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_run_container_repair(`inputPath`: RustBuffer.ByValue,`outputPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_select_authorized_account(`accountId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_set_transfer_paused(`id`: RustBuffer.ByValue,`paused`: Byte,uniffi_out_err: UniffiRustCallStatus,
     ): Byte
+    fun uniffi_autogram_android_bridge_fn_func_submit_login_code(`attemptId`: RustBuffer.ByValue,`code`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_submit_login_password(`attemptId`: RustBuffer.ByValue,`password`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_upsert_drive_items(`items`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Int
     fun uniffi_autogram_android_bridge_fn_func_upsert_transfer_task(`task`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
@@ -926,6 +1038,18 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_autogram_android_bridge_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
+    fun uniffi_autogram_android_bridge_checksum_func_auth_configured(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_begin_phone_login(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_begin_qr_login(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_cancel_login(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_configure_api(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_create_login_attempt(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_delete_drive_items(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_emit_bridge_event(
@@ -940,25 +1064,51 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_init_autogram_runtime(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_initialize_auth(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_last_selected_account(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_authorized_accounts(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_drive_items(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_session_summaries(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_transfer_tasks(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_logout_account(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_plan_batch_execution_summary(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_poll_qr_login(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_register_event_listener(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_resend_login_code(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_run_container_repair(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_select_authorized_account(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_set_transfer_paused(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_submit_login_code(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_submit_login_password(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_upsert_drive_items(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_upsert_transfer_task(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_method_autogrameventlistener_on_event(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_method_nativeauthvault_read(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_method_nativeauthvault_write(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_method_nativeauthvault_remove(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_method_nativeauthvault_keys(
     ): Short
     fun ffi_autogram_android_bridge_uniffi_contract_version(
     ): Int
@@ -977,6 +1127,24 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_autogram_android_bridge_checksum_func_auth_configured() != 5040.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_begin_phone_login() != 4417.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_begin_qr_login() != 36701.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_cancel_login() != 11568.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_configure_api() != 59410.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_create_login_attempt() != 48584.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_delete_drive_items() != 37540.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -998,6 +1166,15 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_init_autogram_runtime() != 63146.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_initialize_auth() != 39317.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_last_selected_account() != 37241.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_authorized_accounts() != 54155.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_drive_items() != 39237.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1007,16 +1184,34 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_transfer_tasks() != 13409.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_logout_account() != 40274.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_plan_batch_execution_summary() != 17367.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_poll_qr_login() != 5170.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_register_event_listener() != 58663.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_resend_login_code() != 43148.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_run_container_repair() != 51620.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_select_authorized_account() != 44800.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_set_transfer_paused() != 59974.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_submit_login_code() != 930.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_submit_login_password() != 18151.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_upsert_drive_items() != 34742.toShort()) {
@@ -1028,9 +1223,61 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_method_autogrameventlistener_on_event() != 25947.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_method_nativeauthvault_read() != 54170.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_method_nativeauthvault_write() != 56592.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_method_nativeauthvault_remove() != 59977.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_method_nativeauthvault_keys() != 44741.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
 }
 
 // Async support
+// Async return type handlers
+
+internal const val UNIFFI_RUST_FUTURE_POLL_READY = 0.toByte()
+internal const val UNIFFI_RUST_FUTURE_POLL_MAYBE_READY = 1.toByte()
+
+internal val uniffiContinuationHandleMap = UniffiHandleMap<CancellableContinuation<Byte>>()
+
+// FFI type for Rust future continuations
+internal object uniffiRustFutureContinuationCallbackImpl: UniffiRustFutureContinuationCallback {
+    override fun callback(data: Long, pollResult: Byte) {
+        uniffiContinuationHandleMap.remove(data).resume(pollResult)
+    }
+}
+
+internal suspend fun<T, F, E: kotlin.Exception> uniffiRustCallAsync(
+    rustFuture: Long,
+    pollFunc: (Long, UniffiRustFutureContinuationCallback, Long) -> Unit,
+    completeFunc: (Long, UniffiRustCallStatus) -> F,
+    freeFunc: (Long) -> Unit,
+    liftFunc: (F) -> T,
+    errorHandler: UniffiRustCallStatusErrorHandler<E>
+): T {
+    try {
+        do {
+            val pollResult = suspendCancellableCoroutine<Byte> { continuation ->
+                pollFunc(
+                    rustFuture,
+                    uniffiRustFutureContinuationCallbackImpl,
+                    uniffiContinuationHandleMap.insert(continuation)
+                )
+            }
+        } while (pollResult != UNIFFI_RUST_FUTURE_POLL_READY);
+
+        return liftFunc(
+            uniffiRustCallWithError(errorHandler, { status -> completeFunc(rustFuture, status) })
+        )
+    } finally {
+        freeFunc(rustFuture)
+    }
+}
 
 // Public interface members begin here.
 
@@ -1095,6 +1342,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterInt: FfiConverter<Int, Int> {
+    override fun lift(value: Int): Int {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Int {
+        return buf.getInt()
+    }
+
+    override fun lower(value: Int): Int {
+        return value
+    }
+
+    override fun allocationSize(value: Int) = 4UL
+
+    override fun write(value: Int, buf: ByteBuffer) {
+        buf.putInt(value)
     }
 }
 
@@ -1267,6 +1537,25 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
         val byteBuf = toUtf8(value)
         buf.putInt(byteBuf.limit())
         buf.put(byteBuf)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+    override fun read(buf: ByteBuffer): ByteArray {
+        val len = buf.getInt()
+        val byteArr = ByteArray(len)
+        buf.get(byteArr)
+        return byteArr
+    }
+    override fun allocationSize(value: ByteArray): ULong {
+        return 4UL + value.size.toULong()
+    }
+    override fun write(value: ByteArray, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        buf.put(value)
     }
 }
 
@@ -1624,6 +1913,110 @@ public object FfiConverterTypeHardwareProfileSummary: FfiConverterRustBuffer<Har
 
 
 
+data class NativeAccount (
+    var `id`: kotlin.String,
+    var `userId`: kotlin.Long,
+    var `displayName`: kotlin.String,
+    var `username`: kotlin.String?,
+    var `verified`: kotlin.Boolean,
+    var `active`: kotlin.Boolean
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAccount: FfiConverterRustBuffer<NativeAccount> {
+    override fun read(buf: ByteBuffer): NativeAccount {
+        return NativeAccount(
+            FfiConverterString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeAccount) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterLong.allocationSize(value.`userId`) +
+            FfiConverterString.allocationSize(value.`displayName`) +
+            FfiConverterOptionalString.allocationSize(value.`username`) +
+            FfiConverterBoolean.allocationSize(value.`verified`) +
+            FfiConverterBoolean.allocationSize(value.`active`)
+    )
+
+    override fun write(value: NativeAccount, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterLong.write(value.`userId`, buf)
+            FfiConverterString.write(value.`displayName`, buf)
+            FfiConverterOptionalString.write(value.`username`, buf)
+            FfiConverterBoolean.write(value.`verified`, buf)
+            FfiConverterBoolean.write(value.`active`, buf)
+    }
+}
+
+
+
+data class NativeAuthStep (
+    var `attemptId`: kotlin.String,
+    var `phase`: NativeAuthPhase,
+    var `qrUrl`: kotlin.String?,
+    var `expiresAt`: kotlin.Long,
+    var `resendAt`: kotlin.Long,
+    var `canResend`: kotlin.Boolean,
+    var `passwordHint`: kotlin.String?,
+    var `account`: NativeAccount?
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAuthStep: FfiConverterRustBuffer<NativeAuthStep> {
+    override fun read(buf: ByteBuffer): NativeAuthStep {
+        return NativeAuthStep(
+            FfiConverterString.read(buf),
+            FfiConverterTypeNativeAuthPhase.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeNativeAccount.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeAuthStep) = (
+            FfiConverterString.allocationSize(value.`attemptId`) +
+            FfiConverterTypeNativeAuthPhase.allocationSize(value.`phase`) +
+            FfiConverterOptionalString.allocationSize(value.`qrUrl`) +
+            FfiConverterLong.allocationSize(value.`expiresAt`) +
+            FfiConverterLong.allocationSize(value.`resendAt`) +
+            FfiConverterBoolean.allocationSize(value.`canResend`) +
+            FfiConverterOptionalString.allocationSize(value.`passwordHint`) +
+            FfiConverterOptionalTypeNativeAccount.allocationSize(value.`account`)
+    )
+
+    override fun write(value: NativeAuthStep, buf: ByteBuffer) {
+            FfiConverterString.write(value.`attemptId`, buf)
+            FfiConverterTypeNativeAuthPhase.write(value.`phase`, buf)
+            FfiConverterOptionalString.write(value.`qrUrl`, buf)
+            FfiConverterLong.write(value.`expiresAt`, buf)
+            FfiConverterLong.write(value.`resendAt`, buf)
+            FfiConverterBoolean.write(value.`canResend`, buf)
+            FfiConverterOptionalString.write(value.`passwordHint`, buf)
+            FfiConverterOptionalTypeNativeAccount.write(value.`account`, buf)
+    }
+}
+
+
+
 data class RepairSummary (
     var `success`: kotlin.Boolean,
     var `outputPath`: kotlin.String,
@@ -1820,6 +2213,102 @@ public object FfiConverterTypeAutoGramBridgeError : FfiConverterRustBuffer<AutoG
 
 
 
+sealed class NativeAuthException: kotlin.Exception() {
+
+    class RequestFailed(
+
+        val `code`: kotlin.String,
+
+        val `retryAfterSeconds`: kotlin.UInt
+        ) : NativeAuthException() {
+        override val message
+            get() = "code=${ `code` }, retryAfterSeconds=${ `retryAfterSeconds` }"
+    }
+
+
+    companion object ErrorHandler : UniffiRustCallStatusErrorHandler<NativeAuthException> {
+        override fun lift(error_buf: RustBuffer.ByValue): NativeAuthException = FfiConverterTypeNativeAuthError.lift(error_buf)
+    }
+
+
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAuthError : FfiConverterRustBuffer<NativeAuthException> {
+    override fun read(buf: ByteBuffer): NativeAuthException {
+
+
+        return when(buf.getInt()) {
+            1 -> NativeAuthException.RequestFailed(
+                FfiConverterString.read(buf),
+                FfiConverterUInt.read(buf),
+                )
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: NativeAuthException): ULong {
+        return when(value) {
+            is NativeAuthException.RequestFailed -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`code`)
+                + FfiConverterUInt.allocationSize(value.`retryAfterSeconds`)
+            )
+        }
+    }
+
+    override fun write(value: NativeAuthException, buf: ByteBuffer) {
+        when(value) {
+            is NativeAuthException.RequestFailed -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`code`, buf)
+                FfiConverterUInt.write(value.`retryAfterSeconds`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+
+}
+
+
+
+
+enum class NativeAuthPhase {
+
+    CODE,
+    PASSWORD,
+    QR,
+    AUTHORIZED;
+    companion object
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAuthPhase: FfiConverterRustBuffer<NativeAuthPhase> {
+    override fun read(buf: ByteBuffer) = try {
+        NativeAuthPhase.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: NativeAuthPhase) = 4UL
+
+    override fun write(value: NativeAuthPhase, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+
 public interface AutoGramEventListener {
 
     fun `onEvent`(`eventType`: kotlin.String, `payloadJson`: kotlin.String)
@@ -1904,6 +2393,124 @@ public object FfiConverterTypeAutoGramEventListener: FfiConverterCallbackInterfa
 
 
 
+
+public interface NativeAuthVault {
+
+    fun `read`(`key`: kotlin.String): kotlin.ByteArray?
+
+    fun `write`(`key`: kotlin.String, `bytes`: kotlin.ByteArray)
+
+    fun `remove`(`key`: kotlin.String)
+
+    fun `keys`(): List<kotlin.String>
+
+    companion object
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceNativeAuthVault {
+    internal object `read`: UniffiCallbackInterfaceNativeAuthVaultMethod0 {
+        override fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeNativeAuthVault.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`read`(
+                    FfiConverterString.lift(`key`),
+                )
+            }
+            val writeReturn = { value: kotlin.ByteArray? -> uniffiOutReturn.setValue(FfiConverterOptionalByteArray.lower(value)) }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: NativeAuthException -> FfiConverterTypeNativeAuthError.lower(e) }
+            )
+        }
+    }
+    internal object `write`: UniffiCallbackInterfaceNativeAuthVaultMethod1 {
+        override fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`bytes`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeNativeAuthVault.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`write`(
+                    FfiConverterString.lift(`key`),
+                    FfiConverterByteArray.lift(`bytes`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: NativeAuthException -> FfiConverterTypeNativeAuthError.lower(e) }
+            )
+        }
+    }
+    internal object `remove`: UniffiCallbackInterfaceNativeAuthVaultMethod2 {
+        override fun callback(`uniffiHandle`: Long,`key`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeNativeAuthVault.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`remove`(
+                    FfiConverterString.lift(`key`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: NativeAuthException -> FfiConverterTypeNativeAuthError.lower(e) }
+            )
+        }
+    }
+    internal object `keys`: UniffiCallbackInterfaceNativeAuthVaultMethod3 {
+        override fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeNativeAuthVault.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`keys`(
+                )
+            }
+            val writeReturn = { value: List<kotlin.String> -> uniffiOutReturn.setValue(FfiConverterSequenceString.lower(value)) }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: NativeAuthException -> FfiConverterTypeNativeAuthError.lower(e) }
+            )
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeNativeAuthVault.handleMap.remove(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceNativeAuthVault.UniffiByValue(
+        `read`,
+        `write`,
+        `remove`,
+        `keys`,
+        uniffiFree,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_autogram_android_bridge_fn_init_callback_vtable_nativeauthvault(vtable)
+    }
+}
+
+/**
+ * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
+ *
+ * @suppress
+ */
+public object FfiConverterTypeNativeAuthVault: FfiConverterCallbackInterface<NativeAuthVault>()
+
+
+
+
 /**
  * @suppress
  */
@@ -1961,6 +2568,70 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
         } else {
             buf.put(1)
             FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalByteArray: FfiConverterRustBuffer<kotlin.ByteArray?> {
+    override fun read(buf: ByteBuffer): kotlin.ByteArray? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterByteArray.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.ByteArray?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterByteArray.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.ByteArray?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterByteArray.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeNativeAccount: FfiConverterRustBuffer<NativeAccount?> {
+    override fun read(buf: ByteBuffer): NativeAccount? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeNativeAccount.read(buf)
+    }
+
+    override fun allocationSize(value: NativeAccount?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeNativeAccount.allocationSize(value)
+        }
+    }
+
+    override fun write(value: NativeAccount?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeNativeAccount.write(value, buf)
         }
     }
 }
@@ -2104,6 +2775,116 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
         }
     }
 }
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeNativeAccount: FfiConverterRustBuffer<List<NativeAccount>> {
+    override fun read(buf: ByteBuffer): List<NativeAccount> {
+        val len = buf.getInt()
+        return List<NativeAccount>(len) {
+            FfiConverterTypeNativeAccount.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NativeAccount>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNativeAccount.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NativeAccount>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNativeAccount.write(it, buf)
+        }
+    }
+}
+
+
+
+
+
+
+
+
+    @Throws(NativeAuthException::class) fun `authConfigured`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_auth_configured(
+        _status)
+}
+    )
+    }
+
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `beginPhoneLogin`(`attemptId`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_begin_phone_login(FfiConverterString.lower(`attemptId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `beginQrLogin`(`attemptId`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_begin_qr_login(FfiConverterString.lower(`attemptId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class) fun `cancelLogin`(`attemptId`: kotlin.String): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_cancel_login(
+        FfiConverterString.lower(`attemptId`),_status)
+}
+    )
+    }
+
+
+    @Throws(NativeAuthException::class) fun `configureApi`(`apiId`: kotlin.Int, `apiHash`: kotlin.String)
+        =
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_configure_api(
+        FfiConverterInt.lower(`apiId`),FfiConverterString.lower(`apiHash`),_status)
+}
+
+
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `createLoginAttempt`(`phone`: kotlin.String?) : kotlin.String {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_create_login_attempt(FfiConverterOptionalString.lower(`phone`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterString.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
     @Throws(AutoGramBridgeException::class) fun `deleteDriveItems`(`ids`: List<kotlin.String>): kotlin.UInt {
             return FfiConverterUInt.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
@@ -2172,6 +2953,35 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
     }
 
 
+    @Throws(NativeAuthException::class) fun `initializeAuth`(`vault`: NativeAuthVault)
+        =
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_initialize_auth(
+        FfiConverterTypeNativeAuthVault.lower(`vault`),_status)
+}
+
+
+
+    @Throws(NativeAuthException::class) fun `lastSelectedAccount`(): kotlin.String? {
+            return FfiConverterOptionalString.lift(
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_last_selected_account(
+        _status)
+}
+    )
+    }
+
+
+    @Throws(NativeAuthException::class) fun `listAuthorizedAccounts`(): List<NativeAccount> {
+            return FfiConverterSequenceTypeNativeAccount.lift(
+    uniffiRustCallWithError(NativeAuthException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_authorized_accounts(
+        _status)
+}
+    )
+    }
+
+
     @Throws(AutoGramBridgeException::class) fun `listDriveItems`(`sessionId`: kotlin.String, `peerId`: kotlin.String, `topicId`: kotlin.Long?, `parentPath`: kotlin.String): List<BridgeDriveItem> {
             return FfiConverterSequenceTypeBridgeDriveItem.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
@@ -2206,6 +3016,22 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
     }
 
 
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `logoutAccount`(`accountId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_logout_account(FfiConverterString.lower(`accountId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
     @Throws(AutoGramBridgeException::class) fun `planBatchExecutionSummary`(`totalFiles`: kotlin.UInt, `totalBytes`: kotlin.ULong): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
@@ -2215,6 +3041,21 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
     )
     }
 
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `pollQrLogin`(`attemptId`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_poll_qr_login(FfiConverterString.lower(`attemptId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
  fun `registerEventListener`(`listener`: AutoGramEventListener)
         =
     uniffiRustCall() { _status ->
@@ -2223,6 +3064,21 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
 }
 
 
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `resendLoginCode`(`attemptId`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_resend_login_code(FfiConverterString.lower(`attemptId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
 
     @Throws(AutoGramBridgeException::class) fun `runContainerRepair`(`inputPath`: kotlin.String, `outputPath`: kotlin.String): RepairSummary {
             return FfiConverterTypeRepairSummary.lift(
@@ -2234,6 +3090,21 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
     }
 
 
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `selectAuthorizedAccount`(`accountId`: kotlin.String) : NativeAccount {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_select_authorized_account(FfiConverterString.lower(`accountId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAccount.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
     @Throws(AutoGramBridgeException::class) fun `setTransferPaused`(`id`: kotlin.String, `paused`: kotlin.Boolean): kotlin.Boolean {
             return FfiConverterBoolean.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
@@ -2243,6 +3114,36 @@ public object FfiConverterSequenceTypeBridgeTransferTask: FfiConverterRustBuffer
     )
     }
 
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `submitLoginCode`(`attemptId`: kotlin.String, `code`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_submit_login_code(FfiConverterString.lower(`attemptId`),FfiConverterString.lower(`code`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `submitLoginPassword`(`attemptId`: kotlin.String, `password`: kotlin.String) : NativeAuthStep {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_submit_login_password(FfiConverterString.lower(`attemptId`),FfiConverterString.lower(`password`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeAuthStep.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
 
     @Throws(AutoGramBridgeException::class) fun `upsertDriveItems`(`items`: List<BridgeDriveItem>): kotlin.UInt {
             return FfiConverterUInt.lift(

@@ -25,6 +25,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.autogram.app.navigation.Screen
 import com.autogram.app.theme.AutoGramTheme
 import com.autogram.app.runtime.NativeRuntime
@@ -83,19 +85,36 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
     val navController = rememberNavController()
     val driveViewModel: DriveViewModel = viewModel()
     val accountsViewModel: AccountsViewModel = viewModel()
+    val authViewModel: com.autogram.app.features.auth.AuthViewModel = viewModel()
     val transferViewModel: TransferViewModel = viewModel()
     val remoteUrlViewModel: RemoteUrlViewModel = viewModel()
     val remoteState by remoteUrlViewModel.uiState.collectAsState()
     val driveState by driveViewModel.uiState.collectAsState()
     val transferState by transferViewModel.uiState.collectAsState()
     val runtimeStatus by NativeRuntime.status.collectAsState()
+    val accountRevision by NativeRuntime.accountRevision.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    suspend fun syncAuthorizedScope() {
+        val requestedRevision = NativeRuntime.accountRevision.value
+        val account = withContext(Dispatchers.IO) {
+            try { uniffi.autogram_android_bridge.listAuthorizedAccounts().firstOrNull { it.active && it.verified } }
+            catch (_: Exception) { null }
+            catch (_: LinkageError) { null }
+        }
+        if (requestedRevision != NativeRuntime.accountRevision.value) return
+        val session = account?.id.orEmpty()
+        if (driveViewModel.uiState.value.sessionId != session) {
+            driveViewModel.setScope(session, if (session.isBlank()) "" else "me", null)
+        }
+    }
     fun refreshWorkspace() {
         driveViewModel.loadFolder(driveViewModel.uiState.value.currentPath)
         transferViewModel.loadTransfers()
     }
+    LaunchedEffect(accountRevision, runtimeStatus) { syncAuthorizedScope() }
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            syncAuthorizedScope()
             refreshWorkspace()
             NativeRuntime.events.collect { event ->
                 when (event) {
@@ -155,7 +174,7 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                         ToolsScreen(navController = navController)
                     }
                     composable(Screen.Accounts.route) {
-                        AccountsScreen(viewModel = accountsViewModel)
+                        AccountsScreen(viewModel = accountsViewModel, auth = authViewModel)
                     }
                     composable(Screen.Jobs.route) {
                         NativeModuleScreen(navController, nativeModuleSpec(Screen.Jobs))
@@ -173,7 +192,7 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
                         NativeModuleScreen(navController, nativeModuleSpec(Screen.Sync))
                     }
                     composable(Screen.ApiSetup.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.ApiSetup))
+                        com.autogram.app.features.auth.AuthAccountsScreen(authViewModel, configureOnly = true)
                     }
                     composable(Screen.Settings.route) {
                         SettingsScreen()
