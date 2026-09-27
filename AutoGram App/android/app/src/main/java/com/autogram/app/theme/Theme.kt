@@ -4,9 +4,11 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -68,7 +70,12 @@ fun AutoGramTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        shapes = AutoGramShapes,
-        content = content
-    )
+        shapes = AutoGramShapes
+    ) {
+        // Gradient page backgrounds are Boxes, not Material Surfaces. Supply
+        // their foreground explicitly instead of inheriting Compose's black.
+        CompositionLocalProvider(LocalContentColor provides colorScheme.onBackground) {
+            content()
+        }
+    }
 }

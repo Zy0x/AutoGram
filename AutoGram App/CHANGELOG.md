@@ -1,4 +1,15 @@
-## Unreleased — Android Native Authentication
+## Unreleased — Android Navigation and Readability
+
+### 1. Floating Navigation and Touch Access
+- Fixed `BottomNavBar` measuring its children at full screen height: the dock now wraps its contents while retaining minimum touch targets, allowing taps to reach the page above it. Centered, bounded labels preserve the existing design on compact screens and with enlarged text.
+
+### 2. Dark Theme Foreground
+- Updated `AutoGramTheme` to provide the dark theme's foreground to gradient pages and custom glass cards. Labels and icons that do not specify a color no longer inherit black text on a dark background.
+
+### 3. Installed-App Regression Coverage
+- Added actual-activity touch tests for navigation and account-form access, compact/large-text dock checks, and a foreground contrast regression test. These tests supplement the packaged native-engine checks; they do not certify Android cloud-feature parity or real-device Telegram sign-in.
+
+## Earlier Unreleased — Android Native Authentication
 
 ### 1. Accounts and Telegram Sign-In
 - Added a Grammers authentication service in `autogram-core` and a UniFFI adapter for Android API configuration, phone/OTP, permitted resend, two-step verification, QR login, account verification and logout. Accounts are activated only after server identity verification and encrypted session persistence.

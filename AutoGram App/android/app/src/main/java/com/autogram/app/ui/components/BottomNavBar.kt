@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -63,7 +65,9 @@ fun BottomNavBar(navController: NavController) {
                         border = if (isSelected) BorderStroke(1.dp, NeonCyan.copy(alpha = 0.28f)) else null
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxSize(),
+                            // This floating dock wraps its children. Filling height here
+                            // would expand its touch surface over the entire page.
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -78,7 +82,9 @@ fun BottomNavBar(navController: NavController) {
                                 text = stringResource(screen.titleRes),
                                 color = if (isSelected) TextPrimaryDark else TextSecondaryDark,
                                 style = MaterialTheme.typography.labelSmall,
-                                maxLines = 2
+                                maxLines = 2,
+                                textAlign = TextAlign.Center,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
