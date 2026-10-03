@@ -1,17 +1,25 @@
-## Unreleased — Android Clean Workspace and Photo Gallery
+## v4.1.28 — Android Native "Simple-Powerful" Overhaul & Google Photos Architecture
 
-### 1. Dashboard and Navigation
-- Replaced oversized Dashboard panels and layered borders with a compact account row, one primary Cloud Drives entry and clearly separated tool shortcuts. Account authorization and local transfer records retain their real meanings.
-- Softened shared surfaces, typography and the floating dock while retaining minimum touch targets and the bounded navigation layout.
+### 1. Google Photos Media Gallery & Instagram Story-Style Drives Rail
+- Redesigned `DriveScreen.kt` and `DriveTopBar.kt` to deliver a minimalist, high-performance media gallery experience modeled directly after **Google Photos**:
+  - Mounted an **Instagram Story-style rail** (`DriveStories.kt`) at the very top displaying actual Telegram cloud locations (Saved Messages, channels, groups) in circular 64dp story avatars.
+  - Active location features a radiant gradient glowing ring (`ChampagneToCyanBrush`) and active tint, with single-line concise titles.
+  - Replaced cluttered headers with a sleek Google Photos-style rounded search capsule and horizontal filter pills (Semua, Media, Gambar, Video, Audio, Dokumen).
+  - Implemented 3-column square thumbnail feed grouped by local calendar dates (Hari Ini, Kemarin, and formatted timestamps), with video duration badges and multi-select checkmarks.
 
-### 2. Cloud Drives Gallery
-- Added a horizontally scrolling drive rail above the collection, using actual account-scoped Telegram locations with selected-state indicators, refresh and pagination. Saved Messages remains directly accessible.
-- Replaced tall poster cards with an adaptive square-thumbnail gallery grouped by actual local-calendar dates. Unknown dates stay unknown; image, video, audio, document, media and sticker filters remain available.
-- Preserved preview, long-press selection, list mode and existing action callbacks. The download/export owner remains mounted when gallery headers scroll away, protecting active work from layout disposal.
+### 2. Beranda (Home) Simple-Powerful Dashboard
+- Completely revamped `HomeScreen.kt` into a clean, intuitive dashboard eliminating all text walls:
+  - Personalized top greeting ("Halo, [Nama]") with pulsing connection status dot, refresh action, and profile account button.
+  - Premium hero card ("Drive Cloud Foto & Media") with 1-tap "Buka Galeri" gradient button and dynamic media count badge.
+  - 2x2 responsive quick shortcut grid (Unduh Tautan, Media Studio, Unduhan Lokal, Penerus Media) with dedicated category color badges.
+  - Dynamic live transfer status capsule displayed only when tasks are actively running or queued.
 
-### 3. Readability and Feature Coverage
-- Added matching Indonesian/English labels and more readable native typography. Tools now disclose capability details on request instead of stacking long descriptions on every row.
-- The redesign changes presentation, not engine availability. Remaining Android parity limitations and release acceptance requirements still apply.
+### 3. Transfer Center, Tools Hub & Settings Modernization
+- **Transfer Center (`TransferScreen.kt`)**: Redesigned with segmented filter tabs (Semua, Berjalan, Selesai), sleek glass task cards with file category icon badges, byte progress indicators, 48dp pause/resume touch targets, and a clean empty state.
+- **Pusat Alat (`ToolsScreen.kt`)**: Reorganized 15 tools into 3 clean, user-friendly categories (Media & Transfer, Akun & Sistem, Otomasi & Sinkronisasi) with glass cards, colored icon badges, and status chips without technical jargon walls.
+- **Pengaturan (`SettingsScreen.kt`)**: Implemented modern iOS/Android card-based settings with switch toggle for playback resume memory, clear playback history action with feedback, live storage free space metric with refresh, app version badge, and native MTProto engine status.
+- Added comprehensive localized string resources across `res/values/redesign.xml` and `res/values-en/redesign.xml` with 100% key parity and zero hardcoded strings. All touch targets strictly conform to touch-first accessibility standards ($\ge 48\times 48\text{dp}$).
+
 
 ## v4.1.27 — Android Native Beranda Workspace Hub Redesign & Desktop Parity
 

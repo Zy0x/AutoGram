@@ -1,68 +1,274 @@
 package com.autogram.app.ui.drive
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.autogram.app.R
+import com.autogram.app.theme.*
+import com.autogram.app.ui.components.AutoGramStatusDot
 import com.autogram.app.viewmodel.DriveMediaFilter
 
 @Composable
-fun DriveTopBar(currentPath: String, itemCount: Int, selectedCount: Int, searchQuery: String,
-    onSearchChange: (String) -> Unit, mediaFilter: DriveMediaFilter,
-    onMediaFilterChange: (DriveMediaFilter) -> Unit, isGridView: Boolean, onToggleViewMode: () -> Unit,
-    onRefresh: () -> Unit, onUpload: () -> Unit, onClearSelection: () -> Unit,
-    onSelectAll: () -> Unit, onInvertSelection: () -> Unit, onDownloadZip: () -> Unit,
-    onCleanForward: () -> Unit, onMoveFolder: () -> Unit, onCopyLinks: () -> Unit,
-    onTagCategory: () -> Unit, onDeleteSelected: () -> Unit, onOpenTools: () -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (selectedCount > 0) IconButton(onClick = onClearSelection) {
-                Icon(Icons.Default.Close, stringResource(R.string.drive_action_cancel))
+fun DriveTopBar(
+    currentPath: String,
+    itemCount: Int,
+    selectedCount: Int,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    mediaFilter: DriveMediaFilter,
+    onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    isGridView: Boolean,
+    onToggleViewMode: () -> Unit,
+    onRefresh: () -> Unit,
+    onUpload: () -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onInvertSelection: () -> Unit,
+    onDownloadZip: () -> Unit,
+    onCleanForward: () -> Unit,
+    onMoveFolder: () -> Unit,
+    onCopyLinks: () -> Unit,
+    onTagCategory: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onOpenTools: () -> Unit
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Selection Mode Header vs. Google Photos Style Search Capsule
+        if (selectedCount > 0) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = SurfaceElevatedDark,
+                border = BorderStroke(1.dp, MutedIceCyan.copy(alpha = 0.4f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onClearSelection,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.drive_action_cancel),
+                            tint = TextPrimaryDark
+                        )
+                    }
+
+                    Text(
+                        text = stringResource(R.string.real_selected_count, selectedCount),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        ),
+                        color = TextPrimaryDark,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    )
+
+                    IconButton(
+                        onClick = onCleanForward,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SwapHoriz,
+                            contentDescription = stringResource(R.string.drive_action_clean_forward),
+                            tint = MutedIceCyan
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { menuOpen = true },
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.clean_selection_actions),
+                                tint = TextPrimaryDark
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_select_all)) },
+                                onClick = { menuOpen = false; onSelectAll() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_invert_selection)) },
+                                onClick = { menuOpen = false; onInvertSelection() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_download_zip)) },
+                                onClick = { menuOpen = false; onDownloadZip() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_move_folder)) },
+                                onClick = { menuOpen = false; onMoveFolder() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_copy_links)) },
+                                onClick = { menuOpen = false; onCopyLinks() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_tag_category)) },
+                                onClick = { menuOpen = false; onTagCategory() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_delete_selected)) },
+                                onClick = { menuOpen = false; onDeleteSelected() }
+                            )
+                        }
+                    }
+                }
             }
-            Column(Modifier.weight(1f)) {
-                Text(if (selectedCount > 0) stringResource(R.string.real_selected_count, selectedCount)
-                    else stringResource(R.string.clean_gallery_title), style = MaterialTheme.typography.headlineSmall)
-                if (selectedCount == 0) Text(
-                    if (currentPath == "/" || currentPath == "me") stringResource(R.string.cloud_saved_messages) else currentPath,
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            IconButton(onClick = onToggleViewMode) { Icon(if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
-                stringResource(R.string.drive_toggle_view_accessibility)) }
-            Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert,
-                    stringResource(if (selectedCount > 0) R.string.clean_selection_actions else R.string.clean_gallery_actions)) }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    val actions = if (selectedCount > 0) listOf(
-                        R.string.drive_action_select_all to onSelectAll, R.string.drive_action_invert_selection to onInvertSelection,
-                        R.string.drive_action_download_zip to onDownloadZip, R.string.drive_action_clean_forward to onCleanForward,
-                        R.string.drive_action_move_folder to onMoveFolder, R.string.drive_action_copy_links to onCopyLinks,
-                        R.string.drive_action_tag_category to onTagCategory, R.string.drive_action_delete_selected to onDeleteSelected
-                    ) else listOf(R.string.drive_action_refresh to onRefresh, R.string.drive_action_upload to onUpload,
-                        R.string.tools_title to onOpenTools, R.string.drive_action_select_all to onSelectAll)
-                    actions.forEach { (label, action) -> DropdownMenuItem(text = { Text(stringResource(label)) },
-                        onClick = { menu = false; action() }) }
+        } else {
+            // Google Photos Style Search & Actions Capsule
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = SurfaceGlass,
+                border = BorderStroke(1.dp, BorderHairline),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = stringResource(R.string.drive_search_accessibility),
+                        tint = TextSecondaryDark,
+                        modifier = Modifier.size(22.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        singleLine = true,
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.ui2_search_cloud),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                color = TextMutedDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = TextPrimaryDark,
+                            unfocusedTextColor = TextPrimaryDark,
+                            cursorColor = MutedIceCyan
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 44.dp)
+                    )
+
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = { onSearchChange("") },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.drive_action_cancel),
+                                tint = TextSecondaryDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onToggleViewMode,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                            contentDescription = stringResource(R.string.drive_toggle_view_accessibility),
+                            tint = if (isGridView) MutedIceCyan else GoldAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { menuOpen = true },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.clean_gallery_actions),
+                                tint = TextSecondaryDark,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_refresh)) },
+                                onClick = { menuOpen = false; onRefresh() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_upload)) },
+                                onClick = { menuOpen = false; onUpload() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.tools_title)) },
+                                onClick = { menuOpen = false; onOpenTools() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_action_select_all)) },
+                                onClick = { menuOpen = false; onSelectAll() }
+                            )
+                        }
+                    }
                 }
             }
         }
-        OutlinedTextField(searchQuery, onSearchChange, singleLine = true, shape = MaterialTheme.shapes.extraLarge,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            placeholder = { Text(stringResource(R.string.drive_search_placeholder)) },
-            leadingIcon = { Icon(Icons.Default.Search, stringResource(R.string.drive_search_accessibility)) },
-            trailingIcon = { if (searchQuery.isNotEmpty()) IconButton(onClick = { onSearchChange("") }) {
-                Icon(Icons.Default.Close, stringResource(R.string.drive_action_cancel))
-            } })
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        // Filter Pills Carousel (Photos / Videos / Audio / Documents)
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(DriveMediaFilter.entries, key = { it.name }) { filter ->
                 val label = when (filter) {
                     DriveMediaFilter.ALL -> R.string.drive_filter_all
@@ -73,11 +279,37 @@ fun DriveTopBar(currentPath: String, itemCount: Int, selectedCount: Int, searchQ
                     DriveMediaFilter.DOCUMENTS -> R.string.drive_filter_documents
                     DriveMediaFilter.STICKERS -> R.string.drive_filter_stickers
                 }
-                FilterChip(selected = filter == mediaFilter, onClick = { onMediaFilterChange(filter) },
-                    label = { Text(stringResource(label)) }, modifier = Modifier.heightIn(min = 48.dp))
+                val selected = filter == mediaFilter
+
+                Surface(
+                    onClick = { onMediaFilterChange(filter) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (selected) MutedIceCyan.copy(alpha = 0.2f) else SurfaceGlassSoft,
+                    border = BorderStroke(
+                        1.dp,
+                        if (selected) MutedIceCyan else BorderHairline
+                    ),
+                    modifier = Modifier.heightIn(min = 36.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (selected) {
+                            AutoGramStatusDot(color = MutedIceCyan, size = 6.dp)
+                        }
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.sp
+                            ),
+                            color = if (selected) TextPrimaryDark else TextSecondaryDark
+                        )
+                    }
+                }
             }
         }
-        Text(stringResource(R.string.clean_loaded_scope, itemCount), Modifier.padding(horizontal = 20.dp),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

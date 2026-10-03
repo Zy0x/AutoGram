@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramEmptyState
@@ -217,10 +218,29 @@ fun DriveScreenContent(
                 }
                 sections.forEach { section ->
                     item(key = "date:${section.key}", span = { GridItemSpan(maxLineSpan) }) {
-                        Text(section.timestampMs?.let { android.text.format.DateFormat.getMediumDateFormat(context).format(Date(it)) }
-                            ?: stringResource(R.string.clean_gallery_unknown_date),
-                            Modifier.padding(start = 17.dp, top = 24.dp, bottom = 10.dp),
-                            style = MaterialTheme.typography.titleSmall)
+                        val dateLabel = section.timestampMs?.let { ts ->
+                            val now = java.util.Calendar.getInstance()
+                            val itemCal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
+                            if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
+                                now.get(java.util.Calendar.DAY_OF_YEAR) == itemCal.get(java.util.Calendar.DAY_OF_YEAR)) {
+                                stringResource(R.string.ui2_today)
+                            } else if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
+                                now.get(java.util.Calendar.DAY_OF_YEAR) - itemCal.get(java.util.Calendar.DAY_OF_YEAR) == 1) {
+                                stringResource(R.string.ui2_yesterday)
+                            } else {
+                                android.text.format.DateFormat.getMediumDateFormat(context).format(Date(ts))
+                            }
+                        } ?: stringResource(R.string.clean_gallery_unknown_date)
+
+                        Text(
+                            text = dateLabel,
+                            modifier = Modifier.padding(start = 14.dp, top = 20.dp, bottom = 8.dp),
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                fontSize = 14.sp
+                            ),
+                            color = TextPrimaryDark
+                        )
                     }
                     items(section.items, key = { "media:${it.id}" }) { item ->
                         if (state.isGridView) FileGridItem(item, item.id in state.selectedIds,
