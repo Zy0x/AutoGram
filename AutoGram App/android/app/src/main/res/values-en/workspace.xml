@@ -55,4 +55,35 @@
     <string name="accounts_status_migration">Migration required</string>
     <string name="android_app_version">AutoGram Android v%1$s</string>
     <string name="android_engine_preview">Native Android preview · Rust engine</string>
-</resources>
+
+    <!-- Home Desktop-Parity Workspace Hub Strings -->
+    <string name="home_workspace_hub_title">AutoGram Workspace Hub</string>
+    <string name="home_workspace_hub_subtitle">All your Telegram media, in one unified workspace.</string>
+    <string name="home_session_status_strong">Strong Connection · MTProto Active</string>
+    <string name="home_session_badge_primary">Primary Account</string>
+    <string name="home_session_switch_btn">Switch Session</string>
+    <string name="home_session_default_name">Telegram User</string>
+    <string name="home_session_id_label">ID: %1$s</string>
+    <string name="home_drives_title">Cloud Drives Manager</string>
+    <string name="home_drives_desc">Manage files, folders, ZIP archives &amp; stream media directly on Telegram cloud.</string>
+    <string name="home_drives_btn">Open Drives</string>
+    <string name="home_forwarder_title">Media Forwarder</string>
+    <string name="home_forwarder_desc">Channel media migration, clean copy forwarder &amp; smart 4-level deduplication.</string>
+    <string name="home_forwarder_btn">Open Forwarder</string>
+    <string name="home_transfer_monitor_title">Active Transfers &amp; Queue</string>
+    <string name="home_transfer_idle">No active transfers · Ready to process new tasks</string>
+    <string name="home_quick_services_title">AutoGram Quick Services</string>
+    <string name="home_service_remote_title">Remote Link</string>
+    <string name="home_service_remote_desc">Download web media</string>
+    <string name="home_service_studio_title">Media Studio</string>
+    <string name="home_service_studio_desc">Cloud video &amp; audio</string>
+    <string name="home_service_downloads_title">Local Downloads</string>
+    <string name="home_service_downloads_desc">Files on device</string>
+    <string name="home_service_tools_title">All Tools</string>
+    <string name="home_service_tools_desc">Settings &amp; automation</string>
+    <string name="home_safety_title">Safe Parallel Architecture</string>
+    <string name="home_safety_pool_title">Unified MTProto Pool</string>
+    <string name="home_safety_pool_desc">Cloud Drives and Forwarder share the same MTProto connection without duplicate logins.</string>
+    <string name="home_safety_guard_title">Session Guard &amp; Encryption</string>
+    <string name="home_safety_guard_desc">Session keys are safely encrypted and preserved in local device storage.</string>
+ </resources>

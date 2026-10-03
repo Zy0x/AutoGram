@@ -55,4 +55,35 @@
     <string name="accounts_status_migration">Perlu migrasi</string>
     <string name="android_app_version">AutoGram Android v%1$s</string>
     <string name="android_engine_preview">Pratinjau Android native · Engine Rust</string>
+
+    <!-- Home Desktop-Parity Workspace Hub Strings -->
+    <string name="home_workspace_hub_title">Ruang Kerja AutoGram</string>
+    <string name="home_workspace_hub_subtitle">Semua media Telegram Anda, dalam satu ruang kerja terpadu.</string>
+    <string name="home_session_status_strong">Koneksi Kuat · MTProto Aktif</string>
+    <string name="home_session_badge_primary">Akun Utama</string>
+    <string name="home_session_switch_btn">Ganti Sesi</string>
+    <string name="home_session_default_name">Pengguna Telegram</string>
+    <string name="home_session_id_label">ID: %1$s</string>
+    <string name="home_drives_title">Pengelola Cloud (Drives)</string>
+    <string name="home_drives_desc">Kelola file, folder, arsip ZIP &amp; streaming media langsung di cloud Telegram.</string>
+    <string name="home_drives_btn">Buka Drives</string>
+    <string name="home_forwarder_title">Media Forwarder</string>
+    <string name="home_forwarder_desc">Migrasi media antar channel, pembersih caption, &amp; deduplikasi 4-level cerdas.</string>
+    <string name="home_forwarder_btn">Buka Forwarder</string>
+    <string name="home_transfer_monitor_title">Transfer &amp; Antrean Berjalan</string>
+    <string name="home_transfer_idle">Tidak ada transfer berjalan · Siap memproses tugas baru</string>
+    <string name="home_quick_services_title">Layanan Cepat AutoGram</string>
+    <string name="home_service_remote_title">Remote Link</string>
+    <string name="home_service_remote_desc">Unduh media web</string>
+    <string name="home_service_studio_title">Media Studio</string>
+    <string name="home_service_studio_desc">Koleksi video &amp; audio</string>
+    <string name="home_service_downloads_title">Unduhan Lokal</string>
+    <string name="home_service_downloads_desc">File di perangkat</string>
+    <string name="home_service_tools_title">Semua Alat</string>
+    <string name="home_service_tools_desc">Pengaturan &amp; otomasi</string>
+    <string name="home_safety_title">Kerja Paralel Aman</string>
+    <string name="home_safety_pool_title">Pool MTProto Terpadu</string>
+    <string name="home_safety_pool_desc">Cloud Drives dan Forwarder berbagi koneksi MTProto yang sama tanpa memicu login ganda.</string>
+    <string name="home_safety_guard_title">Session Guard &amp; Enkripsi</string>
+    <string name="home_safety_guard_desc">Kunci sesi tersimpan aman terenkripsi di penyimpanan lokal perangkat.</string>
 </resources>

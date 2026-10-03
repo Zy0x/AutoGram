@@ -106,6 +106,8 @@ fun AutoGramAppRoot(
     val remoteState by remoteUrlViewModel.uiState.collectAsState()
     val driveState by driveViewModel.uiState.collectAsState()
     val transferState by transferViewModel.uiState.collectAsState()
+    val authState by authViewModel.state.collectAsState()
+    val resolvedAccount = activeAccount ?: authState.accounts.firstOrNull { it.active } ?: authState.accounts.firstOrNull()
     val runtimeStatus by NativeRuntime.status.collectAsState()
     val accountRevision by NativeRuntime.accountRevision.collectAsState()
     var appliedAccountRevision by remember { mutableStateOf(-1L) }
@@ -162,7 +164,14 @@ fun AutoGramAppRoot(
                     modifier = Modifier.weight(1f)
                 ) {
                     composable(Screen.Home.route) {
-                        HomeScreen(navController, driveState, transferState, runtimeStatus, ::refreshWorkspace)
+                        HomeScreen(
+                            navController = navController,
+                            drive = driveState,
+                            transfers = transferState,
+                            runtime = runtimeStatus,
+                            activeAccount = resolvedAccount,
+                            onRefresh = ::refreshWorkspace
+                        )
                     }
                     composable(Screen.Drive.route) {
                         DriveScreen(viewModel = driveViewModel)

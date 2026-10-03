@@ -1,3 +1,26 @@
+## v4.1.27 — Android Native Beranda Workspace Hub Redesign & Desktop Parity
+
+### 1. Android Workspace Hub & Active Telegram Session Parity
+- Redesigned `HomeScreen.kt` into the **Aurora Navy Workspace Hub**, completely aligning the Android native mobile experience with the Desktop `SessionLauncher` and `Dashboard` architecture.
+- Replaced the legacy raw remote URL input card with the **Active Telegram Session Card** as the centerpiece:
+  - Dynamic connection health pill with green pulsing dot (`DustySage`) indicating strong active MTProto connection.
+  - Golden star badge (`GoldAccent`) highlighting the verified primary account (`Akun Utama`).
+  - Seamless "Ganti Sesi" action button routing directly to `AccountsScreen` for multi-session management and additions.
+  - Prominent profile identity card displaying the user avatar with gradient ring, display name, username handle (`@username`), and scoped Telegram session ID.
+
+### 2. Dual Grand Workspace Pillars (Cloud Drives & Media Forwarder)
+- Engineered high-aesthetic dual grand workspace cards mirroring the desktop entry points:
+  - **Pengelola Cloud (Drives)**: Cyan-accented (`#42D9FF`) frosted double-bezel card featuring direct access to Telegram cloud files, real-time live indexing stats (file count, folder count, indexed bytes from SQLite cache), and one-tap "Buka Drives" navigation.
+  - **Media Forwarder**: Gold-accented (`#FFB84D`) double-bezel card featuring channel migration descriptors, "Clean Copy · Auto-Forward · Deduplikasi Matrix" metadata badge, and one-tap "Buka Forwarder" action button.
+- Refactored `TransferMonitorCard` to provide a live transfer and queue telemetry dashboard, rendering real-time running/queued/paused task counts, dynamic progress bar, and completion percentages.
+
+### 3. Quick Services Grid, Parallel Safety Architecture & i18n Localization
+- Created a 2x2 responsive quick-service grid providing fast access to **Remote Link** (web media downloads), **Media Studio** (cloud media gallery), **Unduhan Lokal** (on-device files), and **Semua Alat** (settings and automation).
+- Implemented the **Kerja Paralel Aman** safety card matching desktop architectural documentation:
+  - Explains the unified MTProto pool sharing between Cloud Drives and Media Forwarder without triggering multiple logins.
+  - Details on-device Session Guard and AES-GCM keystore vault encryption.
+- Added comprehensive localized string resources in `res/values/workspace.xml` and `res/values-en/workspace.xml` with 100% key parity and zero hardcoded strings. All touch targets strictly conform to touch-first accessibility standards ($\ge 48\times 48\text{dp}$).
+
 ## v4.1.26 — Android Native Mandatory Login Gate, 5-Step Aurora Navy Onboarding & Zero-Bypass Session Governance
 
 ### 1. Mandatory Android Login Gate & Zero-Bypass Navigation Architecture
