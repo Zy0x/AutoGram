@@ -62,7 +62,7 @@ fun DriveStories(
             IconButton(
                 onClick = { onLoad(false) },
                 enabled = state.scope.accountId.isNotBlank() && !state.loadingLocations,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,

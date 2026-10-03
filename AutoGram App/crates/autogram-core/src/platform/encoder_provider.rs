@@ -74,21 +74,14 @@ impl DesktopEncoderProvider {
 
 impl EncoderProvider for DesktopEncoderProvider {
     fn detect_capability(&self) -> HardwareCapability {
-        HardwareCapability {
-            has_nvenc: true,
-            has_amf: false,
-            has_qsv: false,
-            has_mediacodec: false,
-            has_x264: true,
-            primary_encoder: "h264_nvenc".to_string(),
-        }
+        super::encoder_probe::verified_encoder_capability()
     }
 
     fn encode(
         &self,
         input: &Path,
         output: &Path,
-        _profile: &EncoderQualityProfile,
+        profile: &EncoderQualityProfile,
     ) -> Result<(), EncoderError> {
         if !input.exists() {
             return Err(EncoderError::BinaryNotFound(format!(
@@ -96,8 +89,19 @@ impl EncoderProvider for DesktopEncoderProvider {
                 input.display()
             )));
         }
-        let _ = output;
-        Ok(())
+        let capability = self.detect_capability();
+        if capability.primary_encoder.is_empty() {
+            return Err(EncoderError::BinaryNotFound("verified_encoder_unavailable".into()));
+        }
+        let result = crate::execution::transcode_with_profile(input, output, profile, &capability.primary_encoder);
+        match result {
+            Ok(_) => Ok(()),
+            Err(_) if capability.primary_encoder != "libx264" && capability.has_x264 && !output.exists() => {
+                crate::execution::transcode_with_profile(input, output, profile, "libx264")
+                    .map(|_| ()).map_err(EncoderError::EncodingFailed)
+            }
+            Err(error) => Err(EncoderError::EncodingFailed(error)),
+        }
     }
 
     fn estimate_output_size(

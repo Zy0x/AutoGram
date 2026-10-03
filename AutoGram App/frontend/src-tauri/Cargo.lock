@@ -299,6 +299,7 @@ dependencies = [
  "grammers-mtsender",
  "grammers-session",
  "hex",
+ "libc",
  "log",
  "parking_lot",
  "rand",
@@ -311,6 +312,7 @@ dependencies = [
  "tokio-util",
  "ureq",
  "urlencoding",
+ "windows-sys 0.61.2",
  "zip",
 ]
 
@@ -1320,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "frontend"
-version = "4.1.25"
+version = "4.1.28"
 dependencies = [
  "aes-gcm",
  "async-trait",

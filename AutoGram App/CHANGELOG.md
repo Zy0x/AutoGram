@@ -1,3 +1,17 @@
+## Unreleased — Android Gallery Runtime Verification
+
+### 1. Account Restoration and Navigation
+- Changed the `GateViewModel` account-event observer to consume a verified native account snapshot rather than selecting again. This prevents repeated gate transitions from resetting navigation after session restoration, while preserving server verification at cold start and blocking unverified accounts.
+
+### 2. Truthful Feature Coverage
+- Corrected Dashboard, Tools and legacy Transfer descriptions so direct HTTPS downloads are not presented as site resolvers, collection browsing is not presented as transcoding, and unavailable forwarding/upload engines are not implied to be operational.
+- Replaced fixed storage-capacity values in the shared providers with filesystem measurements and connected Android Settings to that native measurement. Errors remain errors rather than an invented capacity, making storage reporting consistent across platforms.
+- Replaced the shared desktop encoder's no-output success with actual encoding and output checks for container, duration, required streams and size. Hardware availability requires a smoke encode; Android no longer returns an unmeasured MediaCodec profile. These checks do not imply Android Studio parity.
+- Routed desktop hardware queries through measured encoder evidence and stopped returning a synthetic healthy account score. Desktop and Android now report unavailable account-health probes explicitly instead of presenting unmeasured defaults as runtime results.
+
+### 3. Touch and Regression Checks
+- Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
+
 ## v4.1.28 — Android Native "Simple-Powerful" Overhaul & Google Photos Architecture
 
 ### 1. Google Photos Media Gallery & Instagram Story-Style Drives Rail

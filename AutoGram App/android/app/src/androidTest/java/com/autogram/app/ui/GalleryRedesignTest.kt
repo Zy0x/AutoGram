@@ -47,7 +47,7 @@ class GalleryRedesignTest {
         }
         compose.onNodeWithTag("cloud-gallery").performScrollToNode(hasContentDescription("fixture-1"))
         val bounds = compose.onNodeWithContentDescription("fixture-1").getUnclippedBoundsInRoot()
-        assertTrue(kotlin.math.abs(bounds.width.value - bounds.height.value) < 1f)
+        assertTrue(kotlin.math.abs((bounds.right - bounds.left).value - (bounds.bottom - bounds.top).value) < 1f)
         compose.onNodeWithContentDescription("fixture-1").performTouchInput { longClick() }
         compose.onNodeWithContentDescription("fixture-1").assertIsSelected()
         compose.onNodeWithTag("cloud-gallery").performScrollToNode(hasContentDescription("fixture-12"))

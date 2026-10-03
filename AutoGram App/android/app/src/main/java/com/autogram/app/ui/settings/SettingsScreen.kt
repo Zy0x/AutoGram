@@ -1,6 +1,6 @@
 package com.autogram.app.ui.settings
 
-import android.os.StatFs
+import uniffi.autogram_android_bridge.getAvailableStorageBytes
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -40,9 +40,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val runtime by NativeRuntime.status.collectAsState()
     var refreshStorage by remember { mutableIntStateOf(0) }
 
-    val freeBytes by produceState<Long?>(null, refreshStorage) {
+    val freeBytes by produceState<Long?>(null, refreshStorage, runtime) {
         value = withContext(Dispatchers.IO) {
-            runCatching { StatFs(context.filesDir.path).availableBytes }.getOrNull()
+            runCatching { getAvailableStorageBytes().coerceAtMost(Long.MAX_VALUE.toULong()).toLong() }.getOrNull()
         }
     }
 
@@ -267,7 +267,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         }
                         IconButton(
                             onClick = { refreshStorage++ },
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,

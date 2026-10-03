@@ -79,6 +79,7 @@ dependencies = [
  "grammers-mtsender",
  "grammers-session",
  "hex",
+ "libc",
  "log",
  "parking_lot",
  "rand",
@@ -91,6 +92,7 @@ dependencies = [
  "tokio-util",
  "ureq",
  "urlencoding",
+ "windows-sys 0.61.2",
  "zip",
 ]
 

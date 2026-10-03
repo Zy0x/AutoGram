@@ -867,6 +867,8 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -912,6 +914,8 @@ internal interface UniffiLib : Library {
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_get_account_scores(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_get_available_storage_bytes(uniffi_out_err: UniffiRustCallStatus,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_get_cloud_download(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_hardware_profiles(uniffi_out_err: UniffiRustCallStatus,
@@ -1110,6 +1114,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_account_scores(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_get_available_storage_bytes(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_cloud_download(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_hardware_profiles(
@@ -1233,6 +1239,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_account_scores() != 44411.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_get_available_storage_bytes() != 6977.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_cloud_download() != 17103.toShort()) {
@@ -3584,6 +3593,16 @@ public object FfiConverterSequenceTypeNativeCloudMedia: FfiConverterRustBuffer<L
             return FfiConverterSequenceTypeAccountScoreResult.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_get_account_scores(
+        _status)
+}
+    )
+    }
+
+
+    @Throws(AutoGramBridgeException::class) fun `getAvailableStorageBytes`(): kotlin.ULong {
+            return FfiConverterULong.lift(
+    uniffiRustCallWithError(AutoGramBridgeException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_get_available_storage_bytes(
         _status)
 }
     )

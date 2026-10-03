@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HardwareEncoderType {
@@ -57,56 +56,31 @@ pub struct PhysicalGpuReport {
 }
 
 pub fn probe_physical_gpu_capabilities() -> PhysicalGpuReport {
-    let mut hwaccels = Vec::new();
-    let mut nvenc = false;
-    let mut amf = false;
-    let mut qsv = false;
-    let mut level = GpuProbeLevel::L0BasicStatic;
-
-    if let Ok(output) = Command::new("ffmpeg").arg("-hwaccels").output() {
-        if output.status.success() {
-            level = GpuProbeLevel::L1FFmpegHwaccel;
-            let text = String::from_utf8_lossy(&output.stdout).to_lowercase();
-            for line in text.lines() {
-                let trimmed = line.trim();
-                if trimmed.is_empty() || trimmed.contains("hardware acceleration") {
-                    continue;
-                }
-                hwaccels.push(trimmed.to_string());
-                if trimmed.contains("cuda")
-                    || trimmed.contains("nvenc")
-                    || trimmed.contains("dxva2")
-                    || trimmed.contains("d3d11va")
-                {
-                    nvenc = true;
-                }
-                if trimmed.contains("amf") {
-                    amf = true;
-                }
-                if trimmed.contains("qsv") {
-                    qsv = true;
-                }
-            }
-        }
-    }
-
-    let primary = if nvenc {
+    let capability = crate::platform::encoder_probe::verified_encoder_capability();
+    let primary = if capability.has_nvenc {
         HardwareEncoderType::Nvenc
-    } else if amf {
+    } else if capability.has_amf {
         HardwareEncoderType::Amf
-    } else if qsv {
+    } else if capability.has_qsv {
         HardwareEncoderType::Qsv
+    } else if capability.has_mediacodec {
+        HardwareEncoderType::MediaCodec
     } else {
+        // Legacy enum has no Unknown variant. At L0 this is a policy default,
+        // never evidence that a CPU encoder is available.
         HardwareEncoderType::CpuX264
     };
-
     PhysicalGpuReport {
-        highest_probe_level: level,
-        hwaccels_found: hwaccels,
+        highest_probe_level: if capability.primary_encoder.is_empty() {
+            GpuProbeLevel::L0BasicStatic
+        } else { GpuProbeLevel::L4SmokeEncode },
+        hwaccels_found: [(capability.has_nvenc, "h264_nvenc"), (capability.has_amf, "h264_amf"),
+            (capability.has_qsv, "h264_qsv"), (capability.has_mediacodec, "h264_mediacodec")]
+            .into_iter().filter(|(available, _)| *available).map(|(_, name)| name.to_string()).collect(),
         primary_encoder: primary,
-        nvenc_available: nvenc,
-        amf_available: amf,
-        qsv_available: qsv,
+        nvenc_available: capability.has_nvenc,
+        amf_available: capability.has_amf,
+        qsv_available: capability.has_qsv,
     }
 }
 

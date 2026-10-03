@@ -16,6 +16,44 @@ class RootNavigationTest {
     private fun primary(id: Int) = compose.onNode(hasText(text(id)) and hasClickAction()
         and !hasAnyAncestor(hasScrollAction()))
 
+    /** Requires an already server-authorized user session. Never changes credentials or cloud data. */
+    @Test fun authenticatedGalleryRemainsReachableAndDockIsBounded() {
+        // Cold start revalidates the saved account asynchronously. Do not bypass the gate.
+        compose.waitUntil(timeoutMillis = 20_000) {
+            compose.onAllNodes(hasText(text(R.string.nav_drive)) and hasClickAction()
+                and !hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().size == 1
+        }
+        primary(R.string.nav_drive).performTouchInput { click() }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithTag("drive-stories").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onNodeWithTag("drive-stories").isDisplayed()
+        }
+        compose.onNodeWithTag("drive-stories").assertIsDisplayed()
+        compose.onNode(hasSetTextAction()).assertIsDisplayed()
+        val bounds = primary(R.string.nav_drive).getUnclippedBoundsInRoot()
+        assertTrue("Navigation must remain bounded", bounds.bottom - bounds.top <= 112.dp)
+        primary(R.string.nav_drive).assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithContentDescription(text(R.string.drive_toggle_view_accessibility)).performClick()
+        primary(R.string.nav_home).performTouchInput { click() }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithText(text(R.string.ui2_open_drive_action)).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onNodeWithText(text(R.string.ui2_open_drive_action)).isDisplayed()
+        }
+        compose.onNodeWithText(text(R.string.ui2_open_drive_action)).assertIsDisplayed()
+        primary(R.string.nav_settings).performTouchInput { click() }
+        val settingsTitle = hasText(text(R.string.ui2_settings_title)) and hasAnyAncestor(hasScrollAction())
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodes(settingsTitle).fetchSemanticsNodes().size == 1 &&
+                compose.onNode(settingsTitle).isDisplayed()
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.ui2_free_space)))
+        compose.onNodeWithText(text(R.string.ui2_free_space)).assertIsDisplayed()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText(text(R.string.real_unknown)).fetchSemanticsNodes().isEmpty()
+        }
+        primary(R.string.nav_home).performTouchInput { click() }
+    }
+
     @Test fun bottomNavigationNeverExpandsOverThePage() {
         val bounds = primary(R.string.nav_home).getUnclippedBoundsInRoot()
         assertTrue("Navigation must not cover page content", bounds.bottom - bounds.top <= 112.dp)

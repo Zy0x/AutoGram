@@ -10,6 +10,7 @@ mod session_inventory;
 mod auth;
 mod cloud;
 mod cloud_download;
+mod platform;
 #[cfg(test)]
 mod schema_tests;
 
@@ -503,21 +504,9 @@ pub fn run_container_repair(
 
 #[uniffi::export]
 pub fn get_hardware_profiles() -> Result<HardwareProfileSummary, AutoGramBridgeError> {
-    let enc = autogram_core::HardwareEncoderType::MediaCodec;
-    let info = autogram_core::select_best_hardware_profile(enc);
-
-    let (bitrate, preset) = match info.default_profile {
-        autogram_core::EncoderQualityProfile::HighQuality { bitrate, preset } => (bitrate, preset),
-        autogram_core::EncoderQualityProfile::Balanced { bitrate, preset } => (bitrate, preset),
-        autogram_core::EncoderQualityProfile::HighSpeed { bitrate, preset } => (bitrate, preset),
-    };
-
-    Ok(HardwareProfileSummary {
-        best_encoder: info.best_encoder,
-        priority: info.priority,
-        bitrate,
-        preset,
-    })
+    // A policy preference is not a probe. Kotlin MediaCodec adapter still needs
+    // per-codec encode/output evidence before it can expose an executable profile.
+    Err(AutoGramBridgeError::MediaError { msg: "android_encoder_probe_unavailable".into() })
 }
 
 #[uniffi::export]
@@ -624,6 +613,10 @@ mod tests {
             assert!(!stored.paused);
         }
         assert!(get_account_scores().is_err());
+        assert!(get_hardware_profiles().is_err());
+        let bytes = platform::get_available_storage_bytes().unwrap();
+        let direct = autogram_core::platform::storage_space::available_storage_bytes(root.to_str().unwrap()).unwrap();
+        assert!(bytes.abs_diff(direct) < 256 * 1024 * 1024);
 
         std::fs::remove_dir_all(&root).expect("remove isolated test directory");
     }

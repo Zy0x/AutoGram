@@ -28,9 +28,21 @@ class GateViewModel(
         observeAuthState()
         verifyColdStartSession()
         viewModelScope.launch {
-            com.autogram.app.runtime.NativeRuntime.accountRevision.collect {
-                if (mutableGateState.value is GateState.Authenticated) {
-                    verifyColdStartSession()
+            com.autogram.app.runtime.NativeRuntime.accountRevision.collect { revision ->
+                val previous = mutableGateState.value
+                if (previous is GateState.Authenticated) {
+                    val snapshot = try {
+                        withContext(Dispatchers.IO) { verifiedGateSnapshot(authService) }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: AuthFailure) {
+                        GateState.OfflineRetry(error.code)
+                    } catch (_: Exception) {
+                        GateState.OfflineRetry("network_error")
+                    }
+                    // Ignore a late read after another account action or gate transition.
+                    if (revision == com.autogram.app.runtime.NativeRuntime.accountRevision.value &&
+                        mutableGateState.value == previous) mutableGateState.value = snapshot
                 }
             }
         }

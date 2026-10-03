@@ -84,6 +84,10 @@ the application to run again. Real Telegram/device acceptance is still pending.
 
 ## Workspace and gallery navigation
 
+Opening the app verifies the saved session with Telegram. Subsequent account-change
+events consume the engine's verified selection without repeatedly restarting the
+login gate; unverified or revoked accounts still cannot open the workspace.
+
 The Dashboard provides account access, a primary Cloud Drives entry and compact tool
 shortcuts. In Cloud Drives, the top circular rail selects actual Telegram locations;
 Saved Messages is always directly available. Scroll horizontally for more locations
@@ -96,6 +100,13 @@ existing actions; their availability has not changed. Cloud downloads remain sep
 from legacy local transfer records. Tools can expand feature coverage details per row.
 
 ## Remaining feature boundaries
+
+Settings reports available space from the shared native engine's filesystem measurement,
+not a fixed storage estimate or the configured cache budget. Storage-provider errors
+leave the reading unavailable. Encoder capabilities are not assumed from the device
+type: the Android processing adapter is still incomplete and does not return a
+manufactured hardware profile. A valid desktop media output does not prove Android
+Studio support.
 
 Device-file preview reads content selected through Android's file picker. This is
 separate from Telegram cloud streaming. Old transfer records do not prove execution;

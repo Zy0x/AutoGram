@@ -60,7 +60,7 @@ private val toolCategories = listOf(
     ToolCategory(
         titleRes = R.string.ui2_tools_automation_category,
         tools = listOf(
-            ToolItemSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, Icons.Default.SwapHoriz, WarmAmber, true),
+            ToolItemSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, Icons.Default.SwapHoriz, WarmAmber, false),
             ToolItemSpec(Screen.Jobs, R.string.capability_jobs_gap, Icons.Default.Schedule, MutedIceCyan, false),
             ToolItemSpec(Screen.Automation, R.string.capability_automation_gap, Icons.Default.AutoFixHigh, SoftViolet, false),
             ToolItemSpec(Screen.Profiles, R.string.capability_profiles_gap, Icons.Default.Badge, DustySage, false),

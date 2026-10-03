@@ -2301,10 +2301,7 @@ async fn tg_move_messages(
 
 #[tauri::command]
 async fn autogram_get_account_scores() -> Result<Vec<core::autogram_core::AccountScore>, String> {
-    let acc_free = core::autogram_core::AccountCapability::free("account-1");
-    let health = core::autogram_core::AccountHealthState::Healthy;
-    let score = core::autogram_core::calculate_account_score(&acc_free, &health, 30, 0, false);
-    Ok(vec![score])
+    features::platform_evidence::account_scores()
 }
 
 #[tauri::command]
@@ -2320,8 +2317,7 @@ async fn autogram_run_container_repair(
 #[tauri::command]
 async fn autogram_get_hardware_profiles() -> Result<core::autogram_core::HardwareProfileInfo, String>
 {
-    let enc = core::autogram_core::HardwareEncoderType::Nvenc;
-    Ok(core::autogram_core::select_best_hardware_profile(enc))
+    features::platform_evidence::hardware_profile().await
 }
 
 #[tauri::command]

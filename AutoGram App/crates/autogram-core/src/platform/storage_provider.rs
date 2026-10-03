@@ -94,13 +94,12 @@ impl StorageProvider for DesktopStorageProvider {
         })
     }
 
-    fn available_space(&self, _path: &str) -> Result<u64, StorageError> {
-        // Default desktop estimate: 50GB fallback if system disk space check unavailable
-        Ok(50 * 1024 * 1024 * 1024)
+    fn available_space(&self, path: &str) -> Result<u64, StorageError> {
+        super::storage_space::available_storage_bytes(path)
     }
 }
 
-/// Android Content URI / Scoped Storage Provider stub
+/// Android app-private filesystem provider. Content URIs require the Kotlin SAF adapter.
 pub struct AndroidStorageProvider {
     pub app_cache_dir: String,
 }
@@ -134,11 +133,13 @@ impl StorageProvider for AndroidStorageProvider {
             path: path.to_string(),
             size: meta.len(),
             is_dir: meta.is_dir(),
-            modified_ms: 0,
+            modified_ms: meta.modified().ok()
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|duration| duration.as_millis() as u64).unwrap_or(0),
         })
     }
 
-    fn available_space(&self, _path: &str) -> Result<u64, StorageError> {
-        Ok(10 * 1024 * 1024 * 1024)
+    fn available_space(&self, path: &str) -> Result<u64, StorageError> {
+        super::storage_space::available_storage_bytes(path)
     }
 }

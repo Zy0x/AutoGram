@@ -1,9 +1,12 @@
 //! Platform Abstraction Layer (PAL)
 
 pub mod encoder_provider;
+pub mod encoder_probe;
 pub mod network_provider;
 pub mod resource_provider;
 pub mod storage_provider;
+pub mod storage_space;
+pub(crate) mod media_process;
 
 pub use encoder_provider::{
     DesktopEncoderProvider, EncoderProvider, EncoderQualityProfile, HardwareCapability,

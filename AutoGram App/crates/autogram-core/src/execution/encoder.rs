@@ -1,31 +1,12 @@
 //! Transcoding Worker Engine with Encoder Quality Profiles & OutputContract Validation
 
 use crate::platform::EncoderQualityProfile;
+use crate::platform::{find_ffmpeg_binary, media_process::run_media_command};
+pub use super::output_contract::{validate_output_contract, OutputContract};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::time::Duration;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OutputContract {
-    pub expected_container: String,
-    pub min_duration_secs: f64,
-    pub max_size_bytes: u64,
-    pub require_audio_stream: bool,
-    pub require_video_stream: bool,
-}
-
-impl Default for OutputContract {
-    fn default() -> Self {
-        OutputContract {
-            expected_container: "mp4".to_string(),
-            min_duration_secs: 0.1,
-            max_size_bytes: 4_294_967_296, // 4GB
-            require_audio_stream: false,
-            require_video_stream: true,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncoderDecisionReceipt {
@@ -39,44 +20,13 @@ pub struct EncoderDecisionReceipt {
     pub error_reason: Option<String>,
 }
 
-pub fn validate_output_contract(
-    output_path: &Path,
-    contract: &OutputContract,
-) -> Result<(), String> {
-    if !output_path.exists() {
-        return Err(format!(
-            "Validation FAIL: Output file does not exist at {}",
-            output_path.display()
-        ));
-    }
-
-    let metadata = std::fs::metadata(output_path)
-        .map_err(|e| format!("Validation FAIL: Cannot read output metadata: {e}"))?;
-
-    if metadata.len() == 0 {
-        return Err(format!(
-            "Validation FAIL: Output file is 0 bytes (empty output drop)"
-        ));
-    }
-
-    if metadata.len() > contract.max_size_bytes {
-        return Err(format!(
-            "Validation FAIL: Output size {} exceeds contract max size {}",
-            metadata.len(),
-            contract.max_size_bytes
-        ));
-    }
-
-    Ok(())
-}
-
 pub fn transcode_with_profile(
     input_path: &Path,
     output_path: &Path,
     profile: &EncoderQualityProfile,
     encoder_codec: &str,
 ) -> Result<EncoderDecisionReceipt, String> {
-    if !input_path.exists() {
+    if !input_path.is_file() {
         return Err(format!(
             "Input path does not exist: {}",
             input_path.display()
@@ -94,22 +44,28 @@ pub fn transcode_with_profile(
     } else {
         encoder_codec
     };
-
-    let mut cmd = Command::new("ffmpeg");
-    cmd.arg("-y")
+    if bitrate == 0 { return Err("invalid_encoder_bitrate".into()); }
+    match std::fs::symlink_metadata(output_path) {
+        Ok(_) => return Err("media_destination_exists".into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+        Err(_) => return Err("media_destination_unavailable".into()),
+    }
+    let binary = find_ffmpeg_binary().ok_or("encoder_binary_unavailable")?;
+    let mut cmd = Command::new(binary);
+    cmd.args(["-hide_banner", "-nostdin", "-loglevel", "error", "-n"])
         .arg("-i")
         .arg(input_path)
         .arg("-c:v")
         .arg(codec)
         .arg("-b:v")
-        .arg(format!("{bitrate}"))
-        .arg("-preset")
-        .arg(preset)
-        .arg("-c:a")
+        .arg(format!("{bitrate}"));
+    // AMF/QSV/MediaCodec do not accept x264 presets. Keep provider-specific options explicit.
+    if matches!(codec, "libx264" | "libx265" | "h264_nvenc" | "hevc_nvenc") {
+        cmd.arg("-preset").arg(preset);
+    }
+    cmd.arg("-c:a")
         .arg("copy")
-        .arg(output_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .arg(output_path);
 
     let mut receipt = EncoderDecisionReceipt {
         input_path: input_path.to_path_buf(),
@@ -122,56 +78,11 @@ pub fn transcode_with_profile(
         error_reason: None,
     };
 
-    match cmd.spawn() {
-        Ok(mut child) => {
-            let timeout = Duration::from_secs(300);
-            let t0 = std::time::Instant::now();
-            loop {
-                match child.try_wait() {
-                    Ok(Some(status)) => {
-                        if status.success() {
-                            let contract = OutputContract::default();
-                            match validate_output_contract(output_path, &contract) {
-                                Ok(()) => {
-                                    receipt.validation_passed = true;
-                                    return Ok(receipt);
-                                }
-                                Err(val_err) => {
-                                    receipt.validation_passed = false;
-                                    receipt.error_reason = Some(val_err.clone());
-                                    return Err(val_err);
-                                }
-                            }
-                        } else {
-                            let err_msg = format!("FFmpeg process exited with code {}", status);
-                            receipt.error_reason = Some(err_msg.clone());
-                            return Err(err_msg);
-                        }
-                    }
-                    Ok(None) => {
-                        if t0.elapsed() > timeout {
-                            let _ = child.kill();
-                            let err_msg =
-                                "FFmpeg transcoding timed out after 300 seconds".to_string();
-                            receipt.error_reason = Some(err_msg.clone());
-                            return Err(err_msg);
-                        }
-                        std::thread::sleep(Duration::from_millis(50));
-                    }
-                    Err(e) => {
-                        let err_msg = format!("Error waiting on FFmpeg child process: {e}");
-                        receipt.error_reason = Some(err_msg.clone());
-                        return Err(err_msg);
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            let err_msg = format!("Failed to spawn FFmpeg binary: {e}");
-            receipt.error_reason = Some(err_msg.clone());
-            Err(err_msg)
-        }
-    }
+    let output = run_media_command(cmd, Duration::from_secs(300))?;
+    if !output.status.success() { return Err("media_encoding_failed".into()); }
+    validate_output_contract(output_path, &OutputContract::default())?;
+    receipt.validation_passed = true;
+    Ok(receipt)
 }
 
 #[cfg(test)]
@@ -192,7 +103,7 @@ mod tests {
     #[test]
     fn test_validate_output_contract_zero_bytes_fails() {
         let temp_dir = std::env::temp_dir();
-        let temp_file = temp_dir.join("autogram_test_zero_byte.mp4");
+        let temp_file = temp_dir.join(format!("autogram-zero-byte-{}.mp4", rand::random::<u64>()));
         let _ = File::create(&temp_file);
 
         let contract = OutputContract::default();
