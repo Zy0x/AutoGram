@@ -4,7 +4,7 @@
     <string name="native_runtime_ready">Engine lokal siap · status login terpisah</string>
     <string name="native_runtime_unavailable">Engine native belum tersedia di perangkat ini</string>
     <string name="workspace_load_error">Data belum dapat dimuat. Segarkan untuk mencoba lagi.</string>
-    <string name="workspace_scope_required">Belum ada akun dan lokasi cloud aktif. Login dan pemuatan cloud native masih perlu diintegrasikan.</string>
+    <string name="workspace_scope_required">Belum ada akun dan lokasi cloud aktif. Masuk melalui Alat → Akun, lalu pilih percakapan di Cloud Drives.</string>
     <string name="workspace_folder_scope">Data folder yang sedang dimuat, bukan kuota seluruh cloud</string>
     <string name="home_remote_description">Buka tautan media atau unduh file HTTPS langsung ke perangkat. Pengurai situs dan crawler belum terintegrasi di Android.</string>
     <string name="home_queue_counts">%1$d berjalan · %2$d antre · %3$d dijeda</string>
@@ -24,14 +24,14 @@
     <string name="capability_partial">Implementasi sebagian</string>
     <string name="capability_unavailable">Engine fitur belum terintegrasi</string>
     <string name="capability_no_execution">Tidak ada proses yang dijalankan atau data yang diubah. Fitur ini belum memiliki alur native Android yang lengkap.</string>
-    <string name="capability_auth_gap">Login Telegram, OTP/2FA, dan pengelolaan sesi belum diekspos oleh bridge Android.</string>
+    <string name="capability_auth_gap">Login Telegram dengan nomor telepon, OTP/2FA, atau QR tersedia di halaman Akun. Sesi lokal tetap perlu diverifikasi oleh server.</string>
     <string name="capability_jobs_gap">Pembuatan, eksekusi, dan pemulihan job Forwarder belum tersedia melalui engine Android.</string>
     <string name="capability_automation_gap">Penjadwal dan eksekusi pekerjaan latar belakang belum terintegrasi di Android.</string>
     <string name="capability_profiles_gap">Penyimpanan dan penerapan profil transfer desktop belum terintegrasi di Android.</string>
     <string name="capability_sync_gap">Sinkronisasi channel dan antar perangkat belum tersedia melalui bridge Android.</string>
     <string name="capability_studio_gap">Tampilan koleksi tersedia; album, transcode, dan pemrosesan media belum terhubung ke executor Android.</string>
-    <string name="capability_settings_gap">Pembacaan konfigurasi engine lokal tersedia. Login, backup, pembersihan, dan penerapan sebagian pengaturan masih belum terintegrasi.</string>
-    <string name="transfer_native_scope">Catatan antrean dan flag jeda tersimpan secara lokal. Worker transfer Telegram belum terintegrasi.</string>
+    <string name="capability_settings_gap">Konfigurasi engine lokal dan preferensi pemutaran tersedia. Backup, pembersihan, dan penerapan sebagian pengaturan masih belum terintegrasi.</string>
+    <string name="transfer_native_scope">Halaman Transfer berisi catatan antrean lokal lama. Unduhan Telegram nyata tersedia melalui Cloud Drives → Unduhan cloud. Upload Telegram belum terintegrasi.</string>
     <string name="transfer_operation_unavailable">Operasi ini belum didukung oleh bridge Android. Catatan tetap dipertahankan.</string>
     <string name="transfer_operation_failed">Perubahan belum dapat diterapkan. Segarkan untuk memeriksa status tersimpan.</string>
     <string name="remote_engine_unavailable">Pengurai situs, crawler, dan upload Telegram belum terintegrasi di Android. Gunakan unduhan lokal untuk tautan file HTTPS langsung.</string>
@@ -42,7 +42,7 @@
     <string name="accounts_refresh">Segarkan inventaris sesi</string>
     <string name="accounts_security_note">Hanya nama, asal, dan status file sesi yang ditampilkan. AutoGram tidak menampilkan kredensial dan belum menganggap inventaris lokal sebagai login Telegram aktif.</string>
     <string name="accounts_empty_title">Belum ada sesi lokal</string>
-    <string name="accounts_empty_description">Tambahkan sesi melalui alur login Android saat tersedia. Folder lokal tetap kosong sampai itu dilakukan.</string>
+    <string name="accounts_empty_description">Gunakan formulir login di halaman ini untuk menambahkan akun. Sesi baru ditampilkan setelah login dikonfirmasi oleh Telegram.</string>
     <string name="accounts_source_status">Asal: %1$s · Status: %2$s</string>
     <string name="accounts_local_badge">LOKAL</string>
     <string name="account_inventory_failed">Inventaris sesi belum dapat dimuat. Segarkan untuk mencoba lagi.</string>

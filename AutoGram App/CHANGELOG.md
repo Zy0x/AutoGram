@@ -14,6 +14,7 @@
 - Preserved selected Telegram filenames/media types in the save picker, prevented selection clearing from cancelling download preflight, and kept account changes cancellable. Recovery records source failures under an exclusive file lock and retains delayed publication jobs without bypassing FloodWait.
 
 ### 3. Compatibility and Acceptance Boundaries
+- Updated Indonesian/English Home, Tools, Accounts and legacy Transfer guidance to point to native sign-in and Cloud Drives downloads, while distinguishing metadata-only records from executable download jobs.
 - Extracted desktop media-list contracts and frontier policies without changing IPC, and retained their regression scenarios. Added Android request-isolation, range, history and platform-decoder tests alongside packaged native checks.
 - Android remains a feature-incomplete Debug preview. Topic/folder parity, uploads, sparse archive preview, crawler/resolver, Studio and automation still require implementation. Downloads and all other workflows require real-device acceptance before Release packaging can open.
 

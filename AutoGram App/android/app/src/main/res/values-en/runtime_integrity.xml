@@ -16,7 +16,7 @@
     <string name="real_cache_scope">Only metadata in the currently loaded folder, not total cloud storage.</string>
     <string name="real_cache_count">%1$d files · %2$d folders</string>
     <string name="real_cache_bytes">Indexed file size: %1$s</string>
-    <string name="real_queue_scope">Local queue records. Pause only persists a local flag; no Telegram transfer worker is running yet.</string>
+    <string name="real_queue_scope">Legacy local queue records; pause on this page only saves a flag. For actual Telegram downloads, open Cloud Drives → Cloud downloads. Legacy records never run automatically.</string>
     <string name="real_transfer_bytes">%1$s of %2$s</string>
     <string name="real_transfer_speed">Recorded speed: %1$s/second</string>
     <string name="real_transfer_attempt">Recorded attempts: %1$d</string>

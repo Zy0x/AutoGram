@@ -74,7 +74,7 @@ class SafDownloadOutputTest {
     }
 
     @Test fun malformedAndForeignSchemesAreRejected() {
-        for (value in listOf("file:///private/data", "https://example.invalid/file", "content://", 
+        for (value in listOf("file:///private/data", "https://example.invalid/file", "content://",
             "content://authority@host/document/a", "content://authority/document/%xx",
             "content://authority/tree/a/document/b", "content://authority/document/a?x=1")) {
             val result = adapter.acceptCreatedDocument(

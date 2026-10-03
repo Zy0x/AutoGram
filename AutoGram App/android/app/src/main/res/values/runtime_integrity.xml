@@ -16,7 +16,7 @@
     <string name="real_cache_scope">Hanya metadata folder yang sedang dimuat, bukan seluruh penyimpanan cloud.</string>
     <string name="real_cache_count">%1$d file · %2$d folder</string>
     <string name="real_cache_bytes">Ukuran file terindeks: %1$s</string>
-    <string name="real_queue_scope">Catatan antrean lokal. Jeda hanya menyimpan flag lokal; belum ada worker transfer Telegram yang berjalan.</string>
+    <string name="real_queue_scope">Catatan antrean lokal lama; jeda di halaman ini hanya menyimpan flag. Untuk unduhan Telegram nyata, buka Cloud Drives → Unduhan cloud. Catatan lama tidak dijalankan otomatis.</string>
     <string name="real_transfer_bytes">%1$s dari %2$s</string>
     <string name="real_transfer_speed">Kecepatan tercatat: %1$s/detik</string>
     <string name="real_transfer_attempt">Percobaan tercatat: %1$d</string>

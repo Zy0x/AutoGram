@@ -72,3 +72,23 @@ test('previously fabricated Android outputs cannot return to production surfaces
     assert.doesNotMatch(readFileSync(resolve(app, 'app/src/main/java/com/autogram/app', file), 'utf8'), forbidden, file);
   }
 });
+
+test('bilingual guidance distinguishes real cloud downloads from legacy transfer records', () => {
+  for (const locale of ['values', 'values-en']) {
+    const resources = name => readFileSync(resolve(app, `app/src/main/res/${locale}/${name}.xml`), 'utf8');
+    const workspace = resources('workspace');
+    const integrity = resources('runtime_integrity');
+    const string = (xml, name) => {
+      const match = xml.match(new RegExp(`<string name="${name}">([^<]*)</string>`));
+      assert.ok(match, `${locale}/${name}`);
+      return match[1];
+    };
+    const downloads = string(resources('strings'), 'cloud_download_title');
+    assert.ok(string(workspace, 'workspace_scope_required').includes('Cloud Drives'));
+    assert.ok(string(workspace, 'transfer_native_scope').includes(downloads));
+    assert.ok(string(integrity, 'real_queue_scope').includes(downloads));
+    assert.doesNotMatch(string(workspace, 'capability_auth_gap'), /belum diekspos|not yet exposed/);
+    assert.doesNotMatch(string(workspace, 'accounts_empty_description'), /saat tersedia|when it is available/);
+    assert.doesNotMatch(string(workspace, 'workspace_scope_required'), /perlu diintegrasikan|require integration/);
+  }
+});

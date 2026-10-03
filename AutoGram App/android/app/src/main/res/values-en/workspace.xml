@@ -4,7 +4,7 @@
     <string name="native_runtime_ready">Local engine ready · login status is separate</string>
     <string name="native_runtime_unavailable">Native engine unavailable on this device</string>
     <string name="workspace_load_error">Data could not be loaded. Refresh to try again.</string>
-    <string name="workspace_scope_required">No active account and cloud location. Native sign-in and cloud loading still require integration.</string>
+    <string name="workspace_scope_required">No active account and cloud location. Sign in through Tools → Accounts, then select a conversation in Cloud Drives.</string>
     <string name="workspace_folder_scope">Loaded folder data, not total cloud quota</string>
     <string name="home_remote_description">Open a media link or download a direct HTTPS file to this device. Site resolvers and the crawler are not yet integrated on Android.</string>
     <string name="home_queue_counts">%1$d running · %2$d queued · %3$d paused</string>
@@ -24,14 +24,14 @@
     <string name="capability_partial">Partial implementation</string>
     <string name="capability_unavailable">Feature engine not yet integrated</string>
     <string name="capability_no_execution">No process was started and no data was changed. This feature does not yet have a complete native Android workflow.</string>
-    <string name="capability_auth_gap">Telegram sign-in, OTP/2FA, and session management are not yet exposed by the Android bridge.</string>
+    <string name="capability_auth_gap">Telegram sign-in with a phone number, OTP/2FA, or QR is available on the Accounts page. Local sessions still require server verification.</string>
     <string name="capability_jobs_gap">Forwarder job creation, execution, and recovery are not yet available through the Android engine.</string>
     <string name="capability_automation_gap">The scheduler and background job execution are not yet integrated on Android.</string>
     <string name="capability_profiles_gap">Desktop transfer-profile storage and application are not yet integrated on Android.</string>
     <string name="capability_sync_gap">Channel and cross-device synchronization are not yet available through the Android bridge.</string>
     <string name="capability_studio_gap">Collection UI is available; albums, transcoding, and media processing are not yet connected to an Android executor.</string>
-    <string name="capability_settings_gap">Local engine configuration can be read. Login, backup, cleanup, and applying some settings remain unintegrated.</string>
-    <string name="transfer_native_scope">Queue records and pause flags are stored locally. The Telegram transfer worker is not yet integrated.</string>
+    <string name="capability_settings_gap">Local engine configuration and playback preferences are available. Backup, cleanup, and applying some settings remain unintegrated.</string>
+    <string name="transfer_native_scope">The Transfer page contains legacy local queue records. Actual Telegram downloads are available through Cloud Drives → Cloud downloads. Telegram upload is not yet integrated.</string>
     <string name="transfer_operation_unavailable">This operation is not yet supported by the Android bridge. Records have been preserved.</string>
     <string name="transfer_operation_failed">The change could not be applied. Refresh to check the stored state.</string>
     <string name="remote_engine_unavailable">Site resolvers, crawler, and Telegram upload are not yet integrated on Android. Use local downloads for direct HTTPS file links.</string>
@@ -42,7 +42,7 @@
     <string name="accounts_refresh">Refresh session inventory</string>
     <string name="accounts_security_note">Only session-file name, source, and status are shown. AutoGram never displays credentials and does not treat a local inventory as an active Telegram login.</string>
     <string name="accounts_empty_title">No local sessions yet</string>
-    <string name="accounts_empty_description">Add a session through the Android login flow when it is available. The local folder stays empty until then.</string>
+    <string name="accounts_empty_description">Use the sign-in form on this page to add an account. A new session appears only after Telegram confirms sign-in.</string>
     <string name="accounts_source_status">Source: %1$s · Status: %2$s</string>
     <string name="accounts_local_badge">LOCAL</string>
     <string name="account_inventory_failed">The session inventory could not be loaded. Refresh to try again.</string>
