@@ -50,6 +50,8 @@ import com.autogram.app.viewmodel.DriveViewModel
 import com.autogram.app.viewmodel.AccountsViewModel
 import com.autogram.app.viewmodel.RemoteUrlViewModel
 import com.autogram.app.viewmodel.TransferViewModel
+import com.autogram.app.features.gate.GateRoot
+import com.autogram.app.features.auth.AuthAccount
 
 class MainActivity : ComponentActivity() {
     private var sharedUrl by mutableStateOf<String?>(null)
@@ -60,7 +62,15 @@ class MainActivity : ComponentActivity() {
         sharedUrl = extractSharedUrl(intent)
         setContent {
             AutoGramTheme(darkTheme = true) {
-                AutoGramAppRoot(sharedUrl = sharedUrl, onSharedUrlConsumed = { sharedUrl = null })
+                GateRoot(
+                    onAuthenticated = { account ->
+                        AutoGramAppRoot(
+                            sharedUrl = sharedUrl,
+                            onSharedUrlConsumed = { sharedUrl = null },
+                            activeAccount = account
+                        )
+                    }
+                )
             }
         }
     }
@@ -82,7 +92,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit = {}) {
+fun AutoGramAppRoot(
+    sharedUrl: String? = null,
+    onSharedUrlConsumed: () -> Unit = {},
+    activeAccount: AuthAccount? = null
+) {
     val navController = rememberNavController()
     val driveViewModel: DriveViewModel = viewModel()
     val accountsViewModel: AccountsViewModel = viewModel()

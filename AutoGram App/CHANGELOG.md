@@ -1,3 +1,24 @@
+## v4.1.26 — Android Native Mandatory Login Gate, 5-Step Aurora Navy Onboarding & Zero-Bypass Session Governance
+
+### 1. Mandatory Android Login Gate & Zero-Bypass Navigation Architecture
+- Wrapped the entire Android native user interface in `GateRoot` within `MainActivity.kt`. All tabs, modules, and routes (Home, Drive, Remote, Transfer, Tools, Settings) remain strictly locked until a verified Telegram MTProto session is cryptographically authenticated.
+- Implemented real-time cold-start session verification (`GateState.ColdStartVerifying`). The application immediately queries on-device Keystore and contacts Telegram servers to validate session readiness, preventing stale or unverified sessions from accessing cloud workflows.
+- Bound `NativeRuntime.accountRevision` directly to `GateViewModel` to ensure that logging out or revoking an account from inside the app immediately trips the gate and re-locks the interface without requiring app restart.
+- Added inbound Android `Intent.ACTION_SEND` intent preservation: external links shared to AutoGram prior to login are safely retained and routed directly to `RemoteUrlScreen` immediately after successful authentication.
+
+### 2. 5-Step Aurora Navy Onboarding Wizard & Multi-Challenge Authentication
+- Engineered a 5-step onboarding wizard (`features/gate/wizard/`) styled in the signature "Aurora Navy" aesthetic (`#08111F` canvas, ethereal `#42D9FF` cyan and `#A78BFA` violet drifting ambient glow, frosted glass cards with hairline borders, and warm gold `#FFB84D` action buttons):
+  - **Step 1 (Welcome)**: Architectural overview showcasing independent on-device Keystore encryption, zero-intermediate direct MTProto streaming, and 4-level duplicate prevention.
+  - **Step 2 (API Credentials)**: Telegram API ID and API Hash entry with instant 32-hex regex validation, visibility toggles, and direct guidance links to `my.telegram.org`.
+  - **Step 3 (Method Selection)**: Clear dual-choice selector between phone number authentication (Recommended) and QR code scanning.
+  - **Step 4 (Challenge Verification)**: Multi-challenge resolver supporting 5 glowing numeric OTP digit boxes with automated focus handling, delivery destination indicators (Telegram app vs SMS), resend countdown timers, 2FA password prompts with secure text toggles, and QR code rendering with the dedicated single-device deep-link button (`tg://login?token=...`).
+  - **Step 5 (Verified Success)**: Account celebration transition highlighting user identity and verified badges before granting workspace entry.
+
+### 3. Keystore Vault Recovery & Android Security Hardening
+- Enforced dynamic `FLAG_SECURE` window protections across all gate and wizard screens, safeguarding OTP codes, 2FA passwords, and API credentials against unauthorized screenshots or background screen recording.
+- Implemented `VaultRecoveryDialog` providing safe on-device recovery if the Android Keystore encounters unrecoverable system corruption, requiring explicit typed confirmation (`HAPUS` / `RESET`) before safely flushing local records.
+- Added comprehensive dual-language localization parity across `res/values/auth.xml` and `res/values-en/auth.xml` with zero hardcoded strings. All touch targets strictly conform to touch-first standards ($\ge 48\times 48\text{dp}$).
+
 ## Unreleased — Android Live Cloud Reads, Preview and Downloads
 
 ### 1. Cloud Drives and Real Media Cards
