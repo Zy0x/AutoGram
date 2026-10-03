@@ -1,0 +1,21 @@
+<resources>
+    <string name="clean_dashboard_title">Ruang Anda</string>
+    <string name="clean_dashboard_subtitle">Media, file, dan aktivitas dalam satu tempat.</string>
+    <string name="clean_drive_description">Jelajahi koleksi Anda, buka preview, atau simpan file ke perangkat.</string>
+    <string name="clean_drive_stories">Drive Anda</string>
+    <string name="clean_drive_more">Drive lainnya</string>
+    <string name="clean_gallery_title">Koleksi</string>
+    <string name="clean_gallery_unknown_date">Tanpa tanggal</string>
+    <string name="clean_gallery_empty">Belum ada item yang cocok</string>
+    <string name="clean_gallery_empty_hint">Pilih drive lain atau ubah pencarian dan filter Anda.</string>
+    <string name="clean_gallery_loading">Memuat koleksi…</string>
+    <string name="clean_gallery_actions">Tindakan koleksi</string>
+    <string name="clean_selection_actions">Tindakan pilihan</string>
+    <string name="clean_account_action">Kelola akun</string>
+    <string name="clean_account_unverified">Akun belum diverifikasi</string>
+    <string name="clean_loaded_scope">%1$d item dalam koleksi yang dimuat</string>
+    <string name="clean_tools_subtitle">Semua alat, tanpa memenuhi halaman utama.</string>
+    <string name="clean_tools_details">Lihat cakupan fitur</string>
+    <string name="clean_records_title">Catatan transfer lokal</string>
+    <string name="clean_services_title">Jelajahi alat</string>
+</resources>

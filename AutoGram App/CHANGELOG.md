@@ -1,3 +1,18 @@
+## Unreleased — Android Clean Workspace and Photo Gallery
+
+### 1. Dashboard and Navigation
+- Replaced oversized Dashboard panels and layered borders with a compact account row, one primary Cloud Drives entry and clearly separated tool shortcuts. Account authorization and local transfer records retain their real meanings.
+- Softened shared surfaces, typography and the floating dock while retaining minimum touch targets and the bounded navigation layout.
+
+### 2. Cloud Drives Gallery
+- Added a horizontally scrolling drive rail above the collection, using actual account-scoped Telegram locations with selected-state indicators, refresh and pagination. Saved Messages remains directly accessible.
+- Replaced tall poster cards with an adaptive square-thumbnail gallery grouped by actual local-calendar dates. Unknown dates stay unknown; image, video, audio, document, media and sticker filters remain available.
+- Preserved preview, long-press selection, list mode and existing action callbacks. The download/export owner remains mounted when gallery headers scroll away, protecting active work from layout disposal.
+
+### 3. Readability and Feature Coverage
+- Added matching Indonesian/English labels and more readable native typography. Tools now disclose capability details on request instead of stacking long descriptions on every row.
+- The redesign changes presentation, not engine availability. Remaining Android parity limitations and release acceptance requirements still apply.
+
 ## v4.1.27 — Android Native Beranda Workspace Hub Redesign & Desktop Parity
 
 ### 1. Android Workspace Hub & Active Telegram Session Parity
@@ -9658,3 +9673,4 @@ Added:
   tanpa audio) sebagai pemicu `MEDIA_EMPTY`; 9 item kompatibel lainnya berhasil
   dalam satu grouped album. Perilaku forced-single mencegah satu file tersebut
   menggagalkan album lain dan menulis alasan ke Transfer Manager.
+

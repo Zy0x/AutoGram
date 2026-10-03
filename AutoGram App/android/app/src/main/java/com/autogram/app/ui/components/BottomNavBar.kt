@@ -33,8 +33,7 @@ fun BottomNavBar(navController: NavController) {
                 .clip(RoundedCornerShape(26.dp)),
             shape = RoundedCornerShape(26.dp),
             color = SurfaceDock.copy(alpha = 0.97f),
-            border = BorderStroke(1.dp, Color(0x2AFFFFFF)),
-            shadowElevation = 18.dp
+            shadowElevation = 2.dp
         ) {
             Row(
                 modifier = Modifier
@@ -62,7 +61,7 @@ fun BottomNavBar(navController: NavController) {
                             },
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSelected) NeonCyan.copy(alpha = 0.14f) else Color.Transparent,
-                        border = if (isSelected) BorderStroke(1.dp, NeonCyan.copy(alpha = 0.28f)) else null
+                        border = null
                     ) {
                         Column(
                             // This floating dock wraps its children. Filling height here

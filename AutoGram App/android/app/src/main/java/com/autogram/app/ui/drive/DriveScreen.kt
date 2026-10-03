@@ -19,7 +19,12 @@ import com.autogram.app.ui.components.AutoGramErrorState
 import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.viewmodel.*
 import com.autogram.app.features.workspace.UnavailableOperationDialog
-import com.autogram.app.features.cloud.CloudControls
+import com.autogram.app.ui.drive.gallery.*
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.ui.platform.LocalContext
+import java.util.Date
+import androidx.compose.ui.platform.testTag
 import com.autogram.app.features.cloud.cloudErrorLabel
 import com.autogram.app.features.cloudtransfer.DownloadPanel
 
@@ -49,6 +54,10 @@ fun DriveScreen(
         isMoveModalOpen = false
     }
 
+    LaunchedEffect(state.sessionId) {
+        if (state.sessionId.isNotBlank()) viewModel.loadLocations()
+    }
+
     DriveScreenContent(
         state = state,
         modifier = modifier,
@@ -58,8 +67,8 @@ fun DriveScreen(
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { unsupported = true },
         onClearSelection = viewModel::clearSelection,
-        onSelectAll = { viewModel.selectAll(state.items) },
-        onInvertSelection = { viewModel.invertSelection(state.items) },
+        onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
+        onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
         onDownloadZip = { unsupported = true },
         onCleanForward = { isDestinationModalOpen = true },
         onMoveFolder = { isMoveModalOpen = true },
@@ -79,10 +88,13 @@ fun DriveScreen(
             }
         },
         onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) },
-        cloudControls = { Column {
-            CloudControls(cloudState, viewModel::loadLocations, viewModel::chooseLocation, viewModel::loadMoreMedia)
-            DownloadPanel(state.sessionId, downloadItem, { downloadItem = null })
-        } }
+        cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null }) },
+        storyControls = { DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation) },
+        pagingControls = {
+            if (cloudState.nextOffset != null) TextButton(onClick = viewModel::loadMoreMedia, enabled = !cloudState.loading) {
+                Text(stringResource(R.string.cloud_more))
+            }
+        }
     )
 
     // Modals
@@ -156,118 +168,69 @@ fun DriveScreenContent(
     onOpenTools: () -> Unit,
     onItemClick: (DriveFileItem) -> Unit,
     onItemLongClick: (DriveFileItem) -> Unit,
-    cloudControls: (@Composable () -> Unit)? = null
+    cloudControls: (@Composable () -> Unit)? = null,
+    storyControls: (@Composable () -> Unit)? = null,
+    pagingControls: (@Composable () -> Unit)? = null
 ) {
-    val filteredItems = state.items.filter { item ->
-        val matchesSearch = item.cloudAccountId != null || state.searchQuery.isBlank() ||
-            item.name.contains(state.searchQuery, ignoreCase = true)
-        val category = item.telegramCategory.lowercase()
-        val mime = item.mimeType.lowercase()
-        val matchesType = when (state.mediaFilter) {
-            DriveMediaFilter.ALL -> true
-            DriveMediaFilter.MEDIA -> !item.isFolder && category in setOf("photo", "video", "gif")
-            DriveMediaFilter.IMAGES -> !item.isFolder && category == "photo"
-            DriveMediaFilter.VIDEOS -> !item.isFolder && category == "video"
-            DriveMediaFilter.AUDIO -> !item.isFolder && (category == "audio" || mime.startsWith("audio/"))
-            DriveMediaFilter.DOCUMENTS -> !item.isFolder &&
-                category != "sticker" && item.deliveryKind.equals("document", ignoreCase = true)
-            DriveMediaFilter.STICKERS -> !item.isFolder && category == "sticker"
-        }
-        matchesSearch && matchesType
+    val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter) {
+        galleryItems(state.items, state.searchQuery, state.mediaFilter)
     }
-
-    AutoGramSurface(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            DriveTopBar(
-                currentPath = state.currentPath,
-                itemCount = filteredItems.size,
-                selectedCount = state.selectedIds.size,
-                searchQuery = state.searchQuery,
-                onSearchChange = onSearchChange,
-                mediaFilter = state.mediaFilter,
-                onMediaFilterChange = onMediaFilterChange,
-                isGridView = state.isGridView,
-                onToggleViewMode = onToggleViewMode,
-                onRefresh = onRefresh,
-                onUpload = onUpload,
-                onClearSelection = onClearSelection,
-                onSelectAll = onSelectAll,
-                onInvertSelection = onInvertSelection,
-                onDownloadZip = onDownloadZip,
-                onCleanForward = onCleanForward,
-                onMoveFolder = onMoveFolder,
-                onCopyLinks = onCopyLinks,
-                onTagCategory = onTagCategory,
-                onDeleteSelected = onDeleteSelected,
-                onOpenTools = onOpenTools
-            )
-
-            cloudControls?.invoke()
-
-            state.errorCode?.let { code ->
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    AutoGramErrorState(
-                        message = stringResource(cloudErrorLabel(code)),
-                        onRetry = onRefresh
-                    )
-                }
+    val sections = remember(filteredItems) { gallerySections(filteredItems) }
+    val context = LocalContext.current
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(state.sessionId, state.peerId, state.searchQuery, state.mediaFilter) { gridState.scrollToItem(0) }
+    AutoGramSurface(modifier) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            // Keep the worker/export owner mounted when gallery headers scroll off screen.
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.nav_drive), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                cloudControls?.invoke()
             }
-
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = GoldAccent)
+            LazyVerticalGrid(
+                columns = if (state.isGridView) GridCells.Adaptive(104.dp) else GridCells.Fixed(1),
+                state = gridState, modifier = Modifier.weight(1f).testTag("cloud-gallery"),
+                contentPadding = PaddingValues(start = 3.dp, end = 3.dp, bottom = 112.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
+                item(key = "controls", span = { GridItemSpan(maxLineSpan) }) {
+                    DriveTopBar(state.currentPath, filteredItems.size, state.selectedIds.size, state.searchQuery,
+                        onSearchChange, state.mediaFilter, onMediaFilterChange, state.isGridView,
+                        onToggleViewMode, onRefresh, onUpload, onClearSelection, onSelectAll, onInvertSelection,
+                        onDownloadZip, onCleanForward, onMoveFolder, onCopyLinks, onTagCategory, onDeleteSelected, onOpenTools)
                 }
-            } else if (filteredItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    AutoGramEmptyState(
-                        title = stringResource(R.string.drive_empty_title),
-                        description = stringResource(R.string.drive_empty_subtitle)
-                    )
+                state.errorCode?.let { code ->
+                    item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
+                        AutoGramErrorState(stringResource(cloudErrorLabel(code)), onRefresh, Modifier.padding(16.dp))
+                    }
                 }
-            } else {
-                if (state.isGridView) {
-                    // 2-Column 2:3 Cinematic Poster Grid
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 90.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredItems, key = { it.id }) { item ->
-                            val isSelected = state.selectedIds.contains(item.id)
-                            FileGridItem(
-                                item = item,
-                                isSelected = isSelected,
-                                onClick = { onItemClick(item) },
-                                onLongClick = { onItemLongClick(item) }
-                            )
-                        }
+                if (state.isLoading) item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.clean_gallery_loading), style = MaterialTheme.typography.bodySmall)
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 90.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(filteredItems, key = { it.id }) { item ->
-                            val isSelected = state.selectedIds.contains(item.id)
-                            FileListItem(
-                                item = item,
-                                isSelected = isSelected,
-                                onClick = { onItemClick(item) },
-                                onLongClick = { onItemLongClick(item) }
-                            )
-                        }
+                }
+                if (!state.isLoading && filteredItems.isEmpty()) item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+                    AutoGramEmptyState(stringResource(R.string.clean_gallery_empty),
+                        stringResource(R.string.clean_gallery_empty_hint), modifier = Modifier.padding(20.dp))
+                }
+                sections.forEach { section ->
+                    item(key = "date:${section.key}", span = { GridItemSpan(maxLineSpan) }) {
+                        Text(section.timestampMs?.let { android.text.format.DateFormat.getMediumDateFormat(context).format(Date(it)) }
+                            ?: stringResource(R.string.clean_gallery_unknown_date),
+                            Modifier.padding(start = 17.dp, top = 24.dp, bottom = 10.dp),
+                            style = MaterialTheme.typography.titleSmall)
                     }
+                    items(section.items, key = { "media:${it.id}" }) { item ->
+                        if (state.isGridView) FileGridItem(item, item.id in state.selectedIds,
+                            { onItemClick(item) }, { onItemLongClick(item) })
+                        else FileListItem(item, item.id in state.selectedIds, { onItemClick(item) },
+                            { onItemLongClick(item) }, Modifier.padding(horizontal = 12.dp, vertical = 3.dp))
+                    }
+                }
+                item(key = "pagination", span = { GridItemSpan(maxLineSpan) }) {
+                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { pagingControls?.invoke() }
                 }
             }
         }

@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,8 +46,9 @@ fun ToolsScreen(navController: NavController, modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { ScreenHeader(R.string.tools_hub_title, R.string.capability_overview) }
+            item { ScreenHeader(R.string.tools_hub_title, R.string.clean_tools_subtitle) }
             items(moduleSpecs, key = { it.screen.route }) { spec ->
+                var details by remember(spec.screen.route) { mutableStateOf(false) }
                 AutoGramGlassCard(modifier = Modifier.fillMaxWidth(), onClick = {
                     navigatePrimary(navController, spec.screen.route, Screen.Tools.route)
                 }) {
@@ -58,11 +59,15 @@ fun ToolsScreen(navController: NavController, modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.titleMedium)
                         Icon(Icons.Default.ChevronRight, null)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(if (spec.integrated) R.string.capability_partial else R.string.capability_unavailable),
-                        color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelMedium)
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(spec.subtitleRes), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { details = !details }) {
+                        Text(stringResource(R.string.clean_tools_details), style = MaterialTheme.typography.labelMedium)
+                    }
+                    if (details) {
+                        Text(stringResource(if (spec.integrated) R.string.capability_partial else R.string.capability_unavailable),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.height(6.dp))
+                        Text(stringResource(spec.subtitleRes), style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }

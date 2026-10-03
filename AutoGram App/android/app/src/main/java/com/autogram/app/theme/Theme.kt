@@ -19,7 +19,7 @@ import androidx.core.view.WindowCompat
 private val CyberDarkColorScheme = darkColorScheme(
     primary = MutedIceCyan,
     onPrimary = ObsidianPrimary,
-    primaryContainer = Color(0xFF103B50),
+    primaryContainer = Color(0xFF233540),
     onPrimaryContainer = TextPrimaryDark,
     secondary = GoldAccent,
     onSecondary = ObsidianPrimary,

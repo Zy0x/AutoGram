@@ -1,0 +1,21 @@
+<resources>
+    <string name="clean_dashboard_title">Your workspace</string>
+    <string name="clean_dashboard_subtitle">Media, files and activity in one place.</string>
+    <string name="clean_drive_description">Explore your collection, open previews or save files to your device.</string>
+    <string name="clean_drive_stories">Your drives</string>
+    <string name="clean_drive_more">More drives</string>
+    <string name="clean_gallery_title">Collection</string>
+    <string name="clean_gallery_unknown_date">No date</string>
+    <string name="clean_gallery_empty">No matching items yet</string>
+    <string name="clean_gallery_empty_hint">Choose another drive or change your search and filters.</string>
+    <string name="clean_gallery_loading">Loading collection…</string>
+    <string name="clean_gallery_actions">Collection actions</string>
+    <string name="clean_selection_actions">Selection actions</string>
+    <string name="clean_account_action">Manage accounts</string>
+    <string name="clean_account_unverified">Account not verified</string>
+    <string name="clean_loaded_scope">%1$d items in the loaded collection</string>
+    <string name="clean_tools_subtitle">All your tools, without crowding the home screen.</string>
+    <string name="clean_tools_details">View feature coverage</string>
+    <string name="clean_records_title">Local transfer records</string>
+    <string name="clean_services_title">Explore tools</string>
+</resources>

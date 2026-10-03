@@ -8,32 +8,32 @@ import androidx.compose.ui.graphics.Color
 // =============================================================================
 
 // Background & Canvas (Deep Obsidian Midnight & Titanium Slate)
-val CanvasDeepNavy = Color(0xFF08111F)          // #08111F Main dark canvas
+val CanvasDeepNavy = Color(0xFF101418)          // Neutral charcoal canvas
 val CanvasWarmTitanium = CanvasDeepNavy
-val CanvasSecondaryTitanium = Color(0xFF0B1728) // #0B1728 Container
-val SurfaceDeep = Color(0xFF0E1B2D)
+val CanvasSecondaryTitanium = Color(0xFF191E23)
+val SurfaceDeep = Color(0xFF191E23)
 val BgDark = CanvasDeepNavy
-val SurfaceDark = Color(0xFF0B1728)
-val SurfaceElevatedDark = Color(0xFF14243A)     // #14243A Elevated surface
+val SurfaceDark = SurfaceDeep
+val SurfaceElevatedDark = Color(0xFF252B31)
 
 val ObsidianPrimary = CanvasDeepNavy
 val ObsidianSecondary = CanvasSecondaryTitanium
 
 // Card & Container Surfaces
-val CardNavyBg = Color(0xFF14243A)              // #14243A Card background
+val CardNavyBg = SurfaceDeep
 val CardNavyBorder = Color(0x26FFFFFF)          // rgba(255,255,255,0.15)
-val SurfaceGlass = Color(0xD914243A)
-val SurfaceGlassStrong = Color(0xF214243A)
-val SurfaceGlassSoft = Color(0x6614243A)
-val SurfaceDock = Color(0xF20D2035)             // #0D2035 Dock
+val SurfaceGlass = SurfaceDeep
+val SurfaceGlassStrong = SurfaceElevatedDark
+val SurfaceGlassSoft = Color(0xFF161B20)
+val SurfaceDock = Color(0xFF1B2127)
 
 // Gold & Accent System (Titanium Soft Luxury)
-val GoldAccent = Color(0xFFFFB84D)              // Warm amber for active states
+val GoldAccent = Color(0xFFE0C89C)              // Reserved warm status accent
 val GoldAccentLight = Color(0xFFFFD27A)
 val ChampagneGold = GoldAccent
 val ChampagneLight = GoldAccentLight
-val MutedIceCyan = Color(0xFF42D9FF)            // #42D9FF Electric cyan
-val DustySage = Color(0xFF4ADE80)               // #4ADE80 Mint Success
+val MutedIceCyan = Color(0xFFB0CADB)            // Quiet blue-gray primary
+val DustySage = Color(0xFFA8C6B1)
 val SoftViolet = Color(0xFFA78BFA)              // Video
 val WarmAmber = Color(0xFFE9C176)               // Audio / Amber
 val SoftCoral = Color(0xFFFFB4AB)               // #FFB4AB Soft Coral Danger
@@ -54,8 +54,8 @@ val AccentViolet = SoftViolet
 
 // Typography
 val TextPrimaryDark = Color(0xFFF8FAFC)
-val TextSecondaryDark = Color(0xFF9FB2C9)
-val TextMutedDark = Color(0xFF667A92)
+val TextSecondaryDark = Color(0xFFADB6BF)
+val TextMutedDark = Color(0xFF909AA5)
 
 // Status & Pipeline Colors
 val SuccessGreen = DustySage
@@ -79,7 +79,7 @@ val CategoryArchive = DustySage
 val CategoryError = SoftCoral
 
 // Hairline Borders
-val BorderHairline = Color(0x1F38BDF8)
+val BorderHairline = Color(0x26ADB6BF)
 val BorderActive = Color(0x80E5A93C)
 val BorderCyanGlow = Color(0x4038BDF8)
 val BorderDark = CardNavyBorder

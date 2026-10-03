@@ -82,6 +82,19 @@ visible, and delayed commit recovery respects Telegram's FloodWait deadline. Pau
 resume/retry. Force-stop is respected: transfers cannot continue until Android permits
 the application to run again. Real Telegram/device acceptance is still pending.
 
+## Workspace and gallery navigation
+
+The Dashboard provides account access, a primary Cloud Drives entry and compact tool
+shortcuts. In Cloud Drives, the top circular rail selects actual Telegram locations;
+Saved Messages is always directly available. Scroll horizontally for more locations
+and use refresh or more to load additional results. The selected location is highlighted.
+
+The collection uses square thumbnails grouped by the message dates in your device time
+zone. Files with no known date remain in a separate group. Search, media-type filters,
+list view and long-press selection remain available. The collection menu contains the
+existing actions; their availability has not changed. Cloud downloads remain separate
+from legacy local transfer records. Tools can expand feature coverage details per row.
+
 ## Remaining feature boundaries
 
 Device-file preview reads content selected through Android's file picker. This is

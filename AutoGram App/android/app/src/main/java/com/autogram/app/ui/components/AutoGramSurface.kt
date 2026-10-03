@@ -38,7 +38,6 @@ fun AutoGramSurface(
         modifier = modifier
             .fillMaxSize()
             .background(CanvasWarmTitanium)
-            .background(AmbientBackgroundBrush)
     ) {
         content()
     }
