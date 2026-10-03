@@ -8,6 +8,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 mod session_inventory;
 mod auth;
+mod cloud;
+mod cloud_download;
 #[cfg(test)]
 mod schema_tests;
 
@@ -145,6 +147,8 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
     .map_err(|error| AutoGramBridgeError::DatabaseError {
         msg: error.to_string(),
     })?;
+    conn.execute_batch(include_str!("../../../database/migrations/025_native_cloud_downloads.sql"))
+        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_download_schema_failed".into() })?;
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
     let has_category = conn.prepare("PRAGMA table_info(android_drive_items)")
@@ -186,7 +190,7 @@ pub fn get_runtime_status() -> Result<BridgeRuntimeStatus, AutoGramBridgeError> 
     Ok(BridgeRuntimeStatus {
         initialized: INITIALIZED.load(Ordering::SeqCst),
         database_path: path.to_string_lossy().into_owned(),
-        schema_version: 2,
+        schema_version: 3,
     })
 }
 

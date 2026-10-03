@@ -19,6 +19,9 @@ import com.autogram.app.ui.components.AutoGramErrorState
 import com.autogram.app.ui.components.AutoGramSurface
 import com.autogram.app.viewmodel.*
 import com.autogram.app.features.workspace.UnavailableOperationDialog
+import com.autogram.app.features.cloud.CloudControls
+import com.autogram.app.features.cloud.cloudErrorLabel
+import com.autogram.app.features.cloudtransfer.DownloadPanel
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -29,6 +32,7 @@ fun DriveScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val cloudState by viewModel.cloudState.collectAsState()
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var isDriveToolsOpen by remember { mutableStateOf(false) }
@@ -36,6 +40,7 @@ fun DriveScreen(
     var isTagModalOpen by remember { mutableStateOf(false) }
     var isMoveModalOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
+    var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(state.sessionId, state.peerId, state.topicId) {
         previewItem = null
         zipArchiveItem = null
@@ -73,7 +78,11 @@ fun DriveScreen(
                 previewItem = item
             }
         },
-        onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) }
+        onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) },
+        cloudControls = { Column {
+            CloudControls(cloudState, viewModel::loadLocations, viewModel::chooseLocation, viewModel::loadMoreMedia)
+            DownloadPanel(state.sessionId, downloadItem, { downloadItem = null })
+        } }
     )
 
     // Modals
@@ -83,7 +92,8 @@ fun DriveScreen(
             item = currentPreview,
             allItems = state.items,
             onDismiss = { previewItem = null },
-            onNavigateItem = { previewItem = it }
+            onNavigateItem = { previewItem = it },
+            onDownload = { downloadItem = it; previewItem = null }
         )
     }
 
@@ -145,10 +155,11 @@ fun DriveScreenContent(
     onDeleteSelected: () -> Unit,
     onOpenTools: () -> Unit,
     onItemClick: (DriveFileItem) -> Unit,
-    onItemLongClick: (DriveFileItem) -> Unit
+    onItemLongClick: (DriveFileItem) -> Unit,
+    cloudControls: (@Composable () -> Unit)? = null
 ) {
     val filteredItems = state.items.filter { item ->
-        val matchesSearch = state.searchQuery.isBlank() ||
+        val matchesSearch = item.cloudAccountId != null || state.searchQuery.isBlank() ||
             item.name.contains(state.searchQuery, ignoreCase = true)
         val category = item.telegramCategory.lowercase()
         val mime = item.mimeType.lowercase()
@@ -191,10 +202,12 @@ fun DriveScreenContent(
                 onOpenTools = onOpenTools
             )
 
+            cloudControls?.invoke()
+
             state.errorCode?.let { code ->
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     AutoGramErrorState(
-                        message = stringResource(R.string.drive_error, code),
+                        message = stringResource(cloudErrorLabel(code)),
                         onRetry = onRefresh
                     )
                 }

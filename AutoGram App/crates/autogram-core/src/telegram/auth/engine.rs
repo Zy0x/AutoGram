@@ -14,6 +14,11 @@ use std::{
 use tokio::sync::Mutex as AsyncMutex;
 use tokio_util::sync::CancellationToken;
 
+#[path = "account_lease.rs"]
+mod account_lease;
+#[path = "peer_capability.rs"]
+mod peer_capability;
+
 #[derive(Serialize, Deserialize)]
 struct SavedAccount {
     version: u32,
@@ -62,6 +67,7 @@ pub struct AuthEngine {
     accounts: Mutex<HashMap<String, Arc<Connection>>>,
     selected: Mutex<Option<AccountId>>,
     account_operation: AsyncMutex<()>,
+    scope_revision: tokio::sync::watch::Sender<u64>,
 }
 impl AuthEngine {
     pub fn new(store: Arc<dyn AuthSecretStore>) -> Self {
@@ -71,6 +77,7 @@ impl AuthEngine {
             accounts: Mutex::new(HashMap::new()),
             selected: Mutex::new(None),
             account_operation: AsyncMutex::new(()),
+            scope_revision: tokio::sync::watch::channel(0).0,
         }
     }
 
@@ -121,9 +128,13 @@ impl AuthEngine {
     }
 
     fn invalidate_account(&self, id: &AccountId) -> bool {
-        self.accounts.lock().remove(&id.0);
+        let mut accounts = self.accounts.lock();
+        if let Some(connection) = accounts.remove(&id.0) {
+            connection.revoked.cancel();
+        }
         let mut selected = self.selected.lock();
         if selected.as_ref() == Some(id) {
+            self.scope_revision.send_modify(|revision| *revision = revision.wrapping_add(1));
             *selected = None;
             true
         } else {
@@ -292,6 +303,7 @@ impl AuthEngine {
     /// Account changes serialize in the engine. A local filename is never authorization.
     pub async fn select_account(&self, id: AccountId) -> Result<AuthorizedAccount, AuthError> {
         let _operation = self.account_operation.lock().await;
+        self.scope_revision.send_modify(|revision| *revision = revision.wrapping_add(1));
         self.check_cooldown()?;
         let record = self.load_account(&id)?;
         let existing = self.accounts.lock().get(&id.0).cloned();
@@ -317,8 +329,11 @@ impl AuthEngine {
             "active",
             &serde_json::to_vec(&id).map_err(|_| AuthError::new("vault_error"))?,
         )?;
-        self.accounts.lock().insert(id.0.clone(), connection);
+        let mut accounts = self.accounts.lock();
+        if connection.revoked.is_cancelled() { return Err(AuthError::new("not_authorized")); }
+        accounts.insert(id.0.clone(), connection);
         *self.selected.lock() = Some(id);
+        self.scope_revision.send_modify(|revision| *revision = revision.wrapping_add(1));
         identity.active = true;
         Ok(identity)
     }
@@ -328,6 +343,48 @@ impl AuthEngine {
             .read("active")?
             .map(|bytes| serde_json::from_slice(&bytes).map_err(|_| AuthError::new("vault_error")))
             .transpose()
+    }
+
+    pub(crate) fn cloud_revision(&self) -> u64 {
+        *self.scope_revision.borrow()
+    }
+
+    /// Read-only interactive cloud work uses only the live selected connection.
+    /// Switching/logout interrupts the future even when switching back to the same account.
+    /// Background transfers must use their own account-pinned execution contract.
+    pub(crate) async fn cloud_request<T, F, Fut>(
+        &self,
+        id: &AccountId,
+        operation: F,
+    ) -> Result<T, AuthError>
+    where
+        F: FnOnce(grammers_client::Client) -> Fut,
+        Fut: std::future::Future<Output = Result<T, AuthError>>,
+    {
+        self.check_cooldown()?;
+        let mut revision = self.scope_revision.subscribe();
+        let started = *revision.borrow_and_update();
+        if self.selected.lock().as_ref() != Some(id) {
+            return Err(AuthError::new("account_not_selected"));
+        }
+        let connection = self.accounts.lock().get(&id.0).cloned()
+            .ok_or_else(|| AuthError::new("not_authorized"))?;
+        let result = tokio::select! {
+            biased;
+            _ = revision.changed() => Err(AuthError::new("account_changed")),
+            result = tokio::time::timeout(Duration::from_secs(30), operation(connection.client.clone())) =>
+                result.unwrap_or_else(|_| Err(AuthError::new("network_timeout"))),
+        };
+        if self.cloud_revision() != started || self.selected.lock().as_ref() != Some(id) {
+            return Err(AuthError::new("account_changed"));
+        }
+        match result {
+            Err(error) => {
+                if error.code == "not_authorized" { self.invalidate_connection(id, &connection); }
+                Err(self.retain_error(error))
+            }
+            ok => ok,
+        }
     }
 
     pub async fn logout(&self, id: AccountId) -> Result<(), AuthError> {

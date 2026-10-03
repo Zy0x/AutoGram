@@ -2,15 +2,14 @@ package com.autogram.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CancellationException
+import com.autogram.app.features.cloud.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import uniffi.autogram_android_bridge.listDriveItems
 
 data class DriveFileItem(
     val id: String,
@@ -21,7 +20,14 @@ data class DriveFileItem(
     val modifiedMs: Long,
     val thumbnailUri: String? = null,
     val deliveryKind: String = "document",
-    val telegramCategory: String = "file"
+    val telegramCategory: String = "file",
+    val cloudAccountId: String? = null,
+    val cloudPeerId: String? = null,
+    val cloudMessageId: Int? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val durationSeconds: Double? = null,
+    val thumbnailBytes: ByteArray? = null
 )
 
 enum class DriveMediaFilter {
@@ -52,13 +58,33 @@ class DriveViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveUiState())
     val uiState: StateFlow<DriveUiState> = _uiState.asStateFlow()
-    private var loadGeneration = 0L
+    private val cloud = CloudStore(NativeCloudService())
+    val cloudState = cloud.state
+    private var mediaJob: Job? = null
+    private var locationsJob: Job? = null
 
     init {
-        loadFolder("/")
+        viewModelScope.launch {
+            cloud.state.collect { result ->
+                _uiState.update { current ->
+                    current.copy(isLoading = result.loading, errorCode = result.error,
+                        searchQuery = result.query,
+                        items = result.items.map { record ->
+                            DriveFileItem(record.id.toString(), record.name, record.size,
+                                record.mimeType, false, record.modifiedMs,
+                                deliveryKind = record.deliveryKind, telegramCategory = record.telegramCategory,
+                                cloudAccountId = result.scope.accountId, cloudPeerId = result.scope.peerId,
+                                cloudMessageId = record.id, width = record.width, height = record.height,
+                                durationSeconds = record.durationSeconds, thumbnailBytes = record.thumbnailBytes)
+                        })
+                }
+            }
+        }
     }
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
+        mediaJob?.cancel(); locationsJob?.cancel()
+        cloud.scope(CloudScope(sessionId, peerId))
         _uiState.update {
             it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
                 currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "")
@@ -67,54 +93,32 @@ class DriveViewModel : ViewModel() {
     }
 
     fun loadFolder(path: String) {
-        val generation = ++loadGeneration
-        val scope = _uiState.value
-        _uiState.update {
-            it.copy(isLoading = true, currentPath = path, selectedIds = emptySet(), errorCode = null)
-        }
-        viewModelScope.launch {
-            if (scope.sessionId.isBlank() || scope.peerId.isBlank()) {
-                if (generation == loadGeneration) _uiState.update {
-                    it.copy(isLoading = false, items = emptyList())
-                }
-                return@launch
-            }
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    listDriveItems(scope.sessionId, scope.peerId, scope.topicId, path)
-                }
-            }.onSuccess { records ->
-                if (generation != loadGeneration) return@onSuccess
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        items = records.map { record ->
-                            DriveFileItem(
-                                id = record.id,
-                                name = record.name,
-                                size = record.size.coerceAtMost(Long.MAX_VALUE.toULong()).toLong(),
-                                mimeType = record.mimeType,
-                                isFolder = record.isFolder,
-                                modifiedMs = record.modifiedMs,
-                                thumbnailUri = record.thumbnailUri,
-                                deliveryKind = record.deliveryKind,
-                                telegramCategory = record.telegramCategory
-                            )
-                        }
-                    )
-                }
-            }.onFailure { error ->
-                if (error is CancellationException) throw error
-                if (generation != loadGeneration) return@onFailure
-                _uiState.update {
-                    it.copy(isLoading = false, items = emptyList(), errorCode = "drive_load_failed")
-                }
-            }
-        }
+        mediaJob?.cancel()
+        _uiState.update { it.copy(currentPath = path, selectedIds = emptySet()) }
+        mediaJob = viewModelScope.launch { cloud.media() }
+    }
+
+    fun loadMoreMedia() {
+        if (cloud.state.value.loading) return
+        mediaJob = viewModelScope.launch { cloud.media(append = true) }
+    }
+
+    fun loadLocations(append: Boolean = false) {
+        if (append && cloud.state.value.loadingLocations) return
+        locationsJob?.cancel()
+        locationsJob = viewModelScope.launch { cloud.locations(append) }
+    }
+
+    fun chooseLocation(location: CloudLocation) {
+        setScope(_uiState.value.sessionId, location.id, null)
+        _uiState.update { it.copy(currentPath = location.title) }
     }
 
     fun setSearchQuery(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        mediaJob?.cancel()
+        cloud.query(query)
+        _uiState.update { it.copy(searchQuery = query, items = emptyList(), selectedIds = emptySet()) }
+        mediaJob = viewModelScope.launch { delay(350); cloud.media() }
     }
 
     fun setMediaFilter(filter: DriveMediaFilter) {

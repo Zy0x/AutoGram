@@ -2,6 +2,7 @@
 name = "autogram-core"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.89"
 description = "Pure Rust Core Logic, MTProto Streaming, SQLite DB & Media Engine for AutoGram"
 authors = ["AutoGram Team"]
 

@@ -66,6 +66,38 @@ Migration 024 consolidates previously runtime-owned table definitions. It is ide
 and does not remove existing records. Older Android databases missing `telegram_category`
 receive the existing incremental column upgrade after explicit schema inspection.
 
+### Native cloud download execution (migration 025)
+
+`native_cloud_downloads` is a separate executable queue. No rows are imported from
+`android_transfer_tasks`, and neither table proves live Telegram authorization.
+
+- `operation_id` is the caller's immutable operation key; `account_id` and
+  `authorized_user_id` pin the verified source account. `request_json` freezes
+  peer kind/ID, topic/message/media/rendition, stable media fingerprint, exact size, optional trusted expected
+  SHA-256, and exact caller-selected staging/output targets. No credentials are stored.
+- `temp_path` and `output_path` are individually unique, normalized absolute paths;
+  the store also rejects cross-column collisions. The immutable-binding trigger
+  prohibits changing identities, targets or expected size after enqueue.
+- `state` is queued/running/paused/cancelled/failed/publishing/completed; `control`
+  is a persisted pause/cancel request observed by the worker. `attempts` counts claims.
+- `checkpoint_bytes` and `checkpoint_sha256` describe only file bytes flushed before
+  the SQLite update. `file_identity` identifies the exclusively created staging inode.
+  Recovery validates its prefix hash before truncating an uncommitted owned tail.
+- `actual_sha256` records the verified final digest. A database constraint requires
+  full byte coverage, a digest and owned file before publishing/completed. Optional
+  expected hashes are checked when supplied; computed hashes alone do not authenticate
+  remote content independently of the pinned transport source.
+- `error_code` contains safe structured codes, `retry_after_ms` preserves FloodWait,
+  and `created_ms`/`updated_ms` are Unix milliseconds. The scope/state index supports
+  explicit per-account queue reads. The partial `idx_native_cloud_download_dispatch`
+  index supports bounded native-only queued/running/publishing inspection via
+  `DownloadStore::pending(limit)`, excluding future FloodWait deadlines. Returned
+  scope snapshots require fresh server authorization before dispatch; paused/failed
+  rows require explicit retry. Recovery and retry are explicit, never auto-started.
+
+Migration 025 is additive/idempotent and applied by `DownloadStore::open` to the exact
+caller-selected database. Every connection configures WAL/NORMAL/FK/5000ms pragmas.
+
 ### 2.1 System & Authentication Subsystem
 
 #### `telegram_accounts`

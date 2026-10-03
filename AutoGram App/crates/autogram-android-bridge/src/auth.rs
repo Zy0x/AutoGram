@@ -48,7 +48,7 @@ impl AuthSecretStore for VaultAdapter {
     }
 }
 static ENGINE: OnceLock<AuthEngine> = OnceLock::new();
-fn engine() -> Result<&'static AuthEngine, NativeAuthError> {
+pub(crate) fn engine() -> Result<&'static AuthEngine, NativeAuthError> {
     ENGINE
         .get()
         .ok_or_else(|| AuthError::new("auth_not_initialized").into())

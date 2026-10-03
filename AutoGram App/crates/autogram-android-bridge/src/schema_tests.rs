@@ -26,3 +26,17 @@ fn android_tables_match_master_and_migration_is_repeatable() {
         assert_eq!(actual, expected);
     }
 }
+
+#[test]
+fn native_download_schema_matches_master_without_promoting_metadata_jobs() {
+    let runtime = Connection::open_in_memory().unwrap();
+    runtime.execute_batch(MIGRATION).unwrap();
+    let download = include_str!("../../../database/migrations/025_native_cloud_downloads.sql");
+    runtime.execute_batch(download).unwrap();
+    runtime.execute_batch(download).unwrap();
+    let master = Connection::open_in_memory().unwrap();
+    master.execute_batch(MASTER).unwrap();
+    assert_eq!(columns(&runtime, "native_cloud_downloads"), columns(&master, "native_cloud_downloads"));
+    let count: i64 = runtime.query_row("SELECT count(*) FROM native_cloud_downloads", [], |row| row.get(0)).unwrap();
+    assert_eq!(count, 0);
+}

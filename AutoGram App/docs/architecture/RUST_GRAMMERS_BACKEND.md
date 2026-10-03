@@ -2,6 +2,12 @@
 
 ## Media Forwarder V2 boundary
 
+Android cloud reads use `autogram-core::telegram::cloud` with a server-verified account
+from the shared authentication service. Kotlin uses typed UniFFI records and opaque
+scoped stream handles, not session files. Native device decoding reads bounded media
+ranges; closing a preview or changing its scope invalidates the stream. This reader
+does not yet make Android transfers or other engine domains equivalent to desktop.
+
 Forwarder jobs use the versioned `JobConfigV2` contract and execute through the local Rust
 pipeline. API credentials are resolved from the encrypted vault inside Tauri commands. The
 SQLite V2 extensions provide resumability, mirror cursors, explicit user decisions, and
@@ -44,6 +50,13 @@ Studio orchestrator no longer falls back to `studio-serve`.
 4. Always consume 100% extracted i18n text keys via `useTranslation()` (zero hardcoded strings).
 
 ## Remaining work
+
+Android cloud downloads use a durable native queue separate from older local transfer
+records. The shared Grammers source verifies the originating account and media identity;
+Android schedules bounded filesystem execution and exports verified artifacts through
+explicit document-picker grants. Internal completion is not provider-output completion.
+Independent output read-back is required. This implementation does not certify Android
+upload support, full desktop equivalence or real-device acceptance.
 
 1. Full media_stats walk + index_folder on Grammers
 2. Migration: Advanced Rule Engine UI parity & automated batch scheduling

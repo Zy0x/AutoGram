@@ -80,9 +80,9 @@ fun FileListItem(
                     .background(SurfaceDeep),
                 contentAlignment = Alignment.Center
             ) {
-                if (!item.thumbnailUri.isNullOrBlank()) {
+                if (item.thumbnailBytes != null || !item.thumbnailUri.isNullOrBlank()) {
                     AsyncImage(
-                        model = item.thumbnailUri,
+                        model = item.thumbnailBytes ?: item.thumbnailUri,
                         contentDescription = item.name,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

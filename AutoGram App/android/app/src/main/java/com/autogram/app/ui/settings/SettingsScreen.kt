@@ -17,11 +17,14 @@ import com.autogram.app.ui.components.ScreenHeader
 import com.autogram.app.ui.drive.formatFileSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.autogram.app.features.cloud.preview.AndroidPlaybackPreferences
 
 /** Reports actual local state. No inactive login forms or message-only save actions. */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val playback = remember(context) { AndroidPlaybackPreferences(context) }
+    var rememberPosition by remember { mutableStateOf(playback.rememberPosition) }
     val runtime by NativeRuntime.status.collectAsState()
     var refresh by remember { mutableIntStateOf(0) }
     val freeBytes by produceState<Long?>(null, refresh) {
@@ -42,6 +45,16 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 freeBytes?.let(::formatFileSize) ?: stringResource(R.string.real_unknown))) }
             item { OutlinedButton(onClick = { refresh++ }) { Text(stringResource(R.string.drive_action_refresh)) } }
             item { Text(stringResource(R.string.android_app_version, BuildConfig.VERSION_NAME)) }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.cloud_remember_position), Modifier.weight(1f))
+                    Switch(checked = rememberPosition, onCheckedChange = {
+                        rememberPosition = it; playback.rememberPosition = it
+                    })
+                }
+                Text(stringResource(R.string.cloud_history_scope))
+                TextButton(onClick = playback::clearHistory) { Text(stringResource(R.string.cloud_clear_history)) }
+            }
             item { Text(stringResource(R.string.android_engine_preview)) }
         }
     }

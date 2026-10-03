@@ -21,10 +21,20 @@ Detailed hardware, operating system, and network specifications required to run 
 
 | Component | Minimum Specification | Recommended Specification |
 | :--- | :--- | :--- |
-| **Android Version** | Android 8.0 (Oreo, API Level 26) | Android 12.0+ (API Level 31+) |
-| **Architecture** | ARM64 (`aarch64`) / x86_64 | ARM64 (`arm64-v8a`) |
+| **Android Version** | Android 7.0 (API Level 24), preview target | Android 12.0+ (API Level 31+) |
+| **Architecture** | ARM64, ARMv7, x86_64 or x86 matching the APK | ARM64 (`arm64-v8a`) |
 | **RAM** | 3 GB RAM | 4 GB+ RAM |
-| **Storage** | 100 MB free storage | 200 MB free storage |
+| **Storage** | At least 1 GB free for the native Debug preview installation | Additional space for selected downloads/media outputs |
+
+Android currently remains a feature-incomplete preview. The native cloud reader connects
+directly to Telegram without a running computer, but this does not certify all desktop
+workflows. See the [Android preview guide](../AutoGram%20App/docs/ANDROID_PREVIEW.md) for
+supported paths and limitations. Install the ABI-specific APK when possible.
+
+Cloud downloads need space for a complete verified file in internal app storage and
+for a separate copy at the chosen document destination. Android may defer scheduled
+work; user force-stop is not bypassed. Download/read-back verification does not imply
+that uploads, crawler jobs or every desktop workflow have passed Android acceptance.
 
 ---
 

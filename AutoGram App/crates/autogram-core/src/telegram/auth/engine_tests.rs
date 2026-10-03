@@ -1,5 +1,35 @@
 use super::*;
 
+#[tokio::test]
+async fn cloud_work_never_uses_an_unverified_persisted_selection() {
+    let engine = AuthEngine::new(Arc::new(Vault::default()));
+    let id = AccountId("tg_123".into());
+    *engine.selected.lock() = Some(id.clone());
+    let error = engine.cloud_request(&id, |_| async { Ok(1) }).await.unwrap_err();
+    assert_eq!(error.code, "not_authorized");
+}
+
+#[tokio::test]
+async fn cloud_work_is_cancelled_when_account_revision_changes() {
+    let engine = Arc::new(AuthEngine::new(Arc::new(Vault::default())));
+    let id = AccountId("tg_123".into());
+    *engine.selected.lock() = Some(id.clone());
+    // No RPC is sent: the future under test only waits for a local signal.
+    engine.accounts.lock().insert(id.0.clone(), Arc::new(Connection::new(1, SessionData::default())));
+    let started = Arc::new(tokio::sync::Notify::new());
+    let signal = started.clone();
+    let worker = engine.clone();
+    let task = tokio::spawn(async move {
+        worker.cloud_request(&id, |_| async move {
+            signal.notify_one();
+            std::future::pending::<Result<(), AuthError>>().await
+        }).await
+    });
+    started.notified().await;
+    engine.scope_revision.send_modify(|revision| *revision += 1);
+    assert_eq!(task.await.unwrap().unwrap_err().code, "account_changed");
+}
+
 #[derive(Default)]
 struct Vault {
     records: Mutex<HashMap<String, Vec<u8>>>,

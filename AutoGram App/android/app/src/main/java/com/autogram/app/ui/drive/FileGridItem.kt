@@ -28,8 +28,8 @@ fun FileGridItem(item: DriveFileItem, isSelected: Boolean, onClick: () -> Unit,
         colors = CardDefaults.cardColors(containerColor = if (isSelected)
             MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            if (!item.thumbnailUri.isNullOrBlank()) {
-                AsyncImage(item.thumbnailUri, item.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            if (item.thumbnailBytes != null || !item.thumbnailUri.isNullOrBlank()) {
+                AsyncImage(item.thumbnailBytes ?: item.thumbnailUri, item.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Icon(if (item.isFolder) Icons.Default.Folder else Icons.Default.InsertDriveFile,
                     null, Modifier.size(48.dp))

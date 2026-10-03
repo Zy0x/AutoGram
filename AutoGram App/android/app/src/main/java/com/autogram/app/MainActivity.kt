@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,6 +94,7 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
     val transferState by transferViewModel.uiState.collectAsState()
     val runtimeStatus by NativeRuntime.status.collectAsState()
     val accountRevision by NativeRuntime.accountRevision.collectAsState()
+    var appliedAccountRevision by remember { mutableStateOf(-1L) }
     val lifecycleOwner = LocalLifecycleOwner.current
     suspend fun syncAuthorizedScope() {
         val requestedRevision = NativeRuntime.accountRevision.value
@@ -103,8 +105,9 @@ fun AutoGramAppRoot(sharedUrl: String? = null, onSharedUrlConsumed: () -> Unit =
         }
         if (requestedRevision != NativeRuntime.accountRevision.value) return
         val session = account?.id.orEmpty()
-        if (driveViewModel.uiState.value.sessionId != session) {
+        if (driveViewModel.uiState.value.sessionId != session || appliedAccountRevision != requestedRevision) {
             driveViewModel.setScope(session, if (session.isBlank()) "" else "me", null)
+            appliedAccountRevision = requestedRevision
         }
     }
     fun refreshWorkspace() {

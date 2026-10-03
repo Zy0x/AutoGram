@@ -1,4 +1,23 @@
-## Unreleased — Android Navigation and Readability
+## Unreleased — Android Live Cloud Reads, Preview and Downloads
+
+### 1. Cloud Drives and Real Media Cards
+- Connected Android `DriveViewModel` to the shared Grammers cloud reader through typed UniFFI contracts. Chat/channel selection, Saved Messages, server search, refresh and pagination now request actual Telegram messages rather than treating local inventory as cloud indexing.
+- Media cards consume Telegram metadata and available inline thumbnails. Native delivery and file category follow Telegram attributes; filenames are not used to invent codec or quality information.
+
+### 2. Account Isolation and Range Preview
+- Added verified-account leases, cancellation on account changes, scoped cursor/stream capabilities and safe cooldown errors. Old completions cannot replace the current account or search results.
+- Added bounded Telegram byte-range reads for image, UTF-8 text and device-supported audio/video preview. Media seek requests address the destination offset without first downloading the file prefix; stream closure cancels outstanding reads.
+- Added account/message-scoped playback history with 90-day expiry, a remember-position setting and history clearing. The native player seeks before starting playback when a valid saved position exists.
+- Added account-pinned download authorization separate from interactive preview leases. Background reads retain the original verified account across UI switching and reject changed media identities before appending bytes.
+- Added durable download checkpoints, size/SHA-256 verification, pause/cancel/retry and non-replacing file publication. Migration 025 keeps new executable jobs separate from metadata-only transfer records.
+- Connected Cloud Drives downloads to Android foreground/background scheduling and the system save picker. Output success requires full read-back verification; interrupted exports never silently overwrite existing documents.
+- Preserved selected Telegram filenames/media types in the save picker, prevented selection clearing from cancelling download preflight, and kept account changes cancellable. Recovery records source failures under an exclusive file lock and retains delayed publication jobs without bypassing FloodWait.
+
+### 3. Compatibility and Acceptance Boundaries
+- Extracted desktop media-list contracts and frontier policies without changing IPC, and retained their regression scenarios. Added Android request-isolation, range, history and platform-decoder tests alongside packaged native checks.
+- Android remains a feature-incomplete Debug preview. Topic/folder parity, uploads, sparse archive preview, crawler/resolver, Studio and automation still require implementation. Downloads and all other workflows require real-device acceptance before Release packaging can open.
+
+## Earlier Unreleased — Android Navigation and Readability
 
 ### 1. Floating Navigation and Touch Access
 - Fixed `BottomNavBar` measuring its children at full screen height: the dock now wraps its contents while retaining minimum touch targets, allowing taps to reach the page above it. Centered, bounded labels preserve the existing design on compact screens and with enlarged text.

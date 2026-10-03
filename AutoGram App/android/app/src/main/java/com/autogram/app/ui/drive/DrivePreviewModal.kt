@@ -13,8 +13,9 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.autogram.app.R
 import com.autogram.app.viewmodel.DriveFileItem
+import com.autogram.app.features.cloud.preview.CloudPreview
 
-/** Metadata/thumbnail only until a real cloud byte source is available. */
+/** Verified cloud items use their native range capability; local inventory is metadata only. */
 @Composable
 fun DrivePreviewModal(
     item: DriveFileItem,
@@ -29,8 +30,12 @@ fun DrivePreviewModal(
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(item.name, style = MaterialTheme.typography.titleMedium)
                 Text(formatFileSize(item.size))
-                Text(stringResource(R.string.real_preview_unavailable))
-                if (!item.thumbnailUri.isNullOrBlank()) {
+                if (item.cloudAccountId != null && item.cloudPeerId != null && item.cloudMessageId != null) {
+                    CloudPreview(item)
+                } else {
+                    Text(stringResource(R.string.real_preview_unavailable))
+                }
+                if (item.cloudAccountId == null && !item.thumbnailUri.isNullOrBlank()) {
                     Text(stringResource(R.string.real_thumbnail_only))
                     AsyncImage(model = item.thumbnailUri, contentDescription = item.name,
                         contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().height(200.dp))

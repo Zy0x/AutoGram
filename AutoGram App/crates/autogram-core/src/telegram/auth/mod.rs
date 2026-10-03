@@ -8,6 +8,7 @@ mod transport;
 pub use contracts::*;
 pub use engine::{AuthAction, AuthEngine};
 pub use transport::snapshot_session;
+pub(crate) use transport::map_rpc;
 
 #[cfg(test)]
 mod tests;

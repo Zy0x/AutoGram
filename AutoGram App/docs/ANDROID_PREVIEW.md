@@ -37,11 +37,57 @@ Logout contacts Telegram before removing the local session. A network failure le
 the encrypted record available for retry. If Telegram confirms logout but local cleanup
 fails, that account is no longer treated as active. Other accounts are not logged out.
 
-## Feature boundaries
+## Cloud Drives and preview
+
+After selecting a server-verified account, Cloud Drives can read Saved Messages or a
+chat/channel selected from **Choose chat or channel**. Search requests go to Telegram;
+**Load more** reads the next message page. A page may contain no matching media while
+more messages remain. Folder and forum-topic navigation are not yet equivalent to desktop.
+
+Cards use message metadata and any thumbnail already included by Telegram. Opening a
+supported image, UTF-8 text, audio or video requests real media bytes. Image preview is
+limited to 20 MB compressed data and downsampled for display; text preview is limited to
+256 KB. Audio/video support depends on the device decoder. Unsupported formats are not
+reported as successful previews. Archive and document-family parity is not complete.
+
+The range source does not require a full forward buffer before the player can prepare.
+Network, decoder and file layout still affect start time; playback is not guaranteed
+instant. Seeking requests the required position rather than downloading all preceding
+bytes. Closing the preview or changing account invalidates the old stream.
+
+**Settings → Remember cloud playback position** controls local resume history. Positions
+are separated by account and message, expire after 90 days and contain no media URL,
+credential or local file path. Clear playback history removes these positions only.
+
+## Cloud downloads
+
+Open a cloud media card and choose **Download**, then inspect **Cloud downloads** in
+Cloud Drives. New download jobs retain their original account, even when you switch
+accounts. The native engine verifies source identity, writes bounded chunks and checks
+actual file size and SHA-256. Pause, resume, cancel and retry act on these real jobs,
+not older metadata-only transfer records.
+
+**Ready to save** means the file has been verified in app-private storage. Choose
+**Save…** to create an output through Android's document picker. The selected output
+is copied, closed, reopened and checked independently before **Output copy verified**
+appears. Nonempty documents are rejected without truncation. An interrupted or failed
+save may leave a partial document; select a new output to retry. The verified internal
+file remains available. Full downloads require sufficient internal storage as well as
+space in the selected output location. The save picker proposes the name and media type
+from the selected Telegram listing; these display details are not proof of file identity.
+
+Active downloads use a foreground service. Android may defer scheduled jobs or stop
+processes; flushed checkpoints support recovery. Source failures during recovery remain
+visible, and delayed commit recovery respects Telegram's FloodWait deadline. Paused/failed jobs require explicit
+resume/retry. Force-stop is respected: transfers cannot continue until Android permits
+the application to run again. Real Telegram/device acceptance is still pending.
+
+## Remaining feature boundaries
 
 Device-file preview reads content selected through Android's file picker. This is
-separate from Telegram cloud streaming. Current Drive and transfer records do not prove
-that remote indexing, upload, download or cloud preview has run. Crawler, Studio,
+separate from Telegram cloud streaming. Old transfer records do not prove execution;
+only the new cloud-download path performs the workflow above. Upload parity and
+real-account testing of the packaged app are still required. Crawler, Studio,
 Forwarder, automation and backup parity remain under development. Unsupported actions
 must not be interpreted as successful operations.
 

@@ -15,6 +15,7 @@ pub(crate) struct Connection {
     runner: tokio::task::JoinHandle<()>,
     auth_updates: tokio::task::JoinHandle<()>,
     qr_changed: Arc<AtomicBool>,
+    pub revoked: tokio_util::sync::CancellationToken,
 }
 impl Connection {
     pub fn new(api_id: i32, data: SessionData) -> Self {
@@ -51,6 +52,7 @@ impl Connection {
             runner,
             auth_updates,
             qr_changed,
+            revoked: tokio_util::sync::CancellationToken::new(),
         }
     }
 
@@ -119,10 +121,11 @@ pub(crate) fn map_rpc(error: InvocationError) -> AuthError {
             }
             "SESSION_PASSWORD_NEEDED" => AuthError::new("password_required"),
             "PASSWORD_HASH_INVALID" => AuthError::new("invalid_password"),
-            "SESSION_REVOKED" | "AUTH_KEY_UNREGISTERED" | "SESSION_EXPIRED" => {
+            "SESSION_REVOKED" | "AUTH_KEY_UNREGISTERED" | "AUTH_KEY_DUPLICATED" | "SESSION_EXPIRED" => {
                 AuthError::new("not_authorized")
             }
             "AUTH_TOKEN_EXPIRED" | "AUTH_TOKEN_INVALID" => AuthError::new("qr_expired"),
+            "FILE_REFERENCE_EXPIRED" | "FILE_REFERENCE_EMPTY" => AuthError::new("file_reference_expired"),
             _ => AuthError::new("telegram_request_failed"),
         },
         _ => AuthError::new("network_error"),

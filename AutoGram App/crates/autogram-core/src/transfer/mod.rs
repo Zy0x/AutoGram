@@ -7,6 +7,7 @@
 pub mod album;
 pub mod analysis;
 pub mod caption;
+pub mod cloud_download;
 pub mod download;
 pub mod encoder;
 pub mod feature_flags;

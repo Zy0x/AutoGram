@@ -69,6 +69,9 @@ if (-not $SkipNative) {
         $hostLibrary = Join-Path $env:CARGO_TARGET_DIR "debug\autogram_android_bridge.dll"
         & $env:CARGO run --bin uniffi-bindgen -- generate --library $hostLibrary --language kotlin --out-dir bindings/kotlin --no-format
         if ($LASTEXITCODE -ne 0) { throw "Kotlin binding generation failed" }
+        & node (Join-Path $PSScriptRoot "tools\normalize-native-bindings.mjs") `
+            (Join-Path $bridgeRoot "bindings\kotlin\uniffi\autogram_android_bridge\autogram_android_bridge.kt")
+        if ($LASTEXITCODE -ne 0) { throw "Generated binding normalization failed" }
     } finally {
         Pop-Location
     }

@@ -3,5 +3,14 @@
         <!-- Test APK only. Serves generated fixtures, never arbitrary paths or user files. -->
         <provider android:name="com.autogram.app.preview.PreviewFixtureProvider"
             android:authorities="com.autogram.app.test.preview" android:exported="true" />
+        <provider android:name="com.autogram.app.features.cloudtransfer.storage.DownloadOutputFixtureProvider"
+            android:authorities="com.autogram.app.test.downloadoutput" android:exported="true"
+            android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+        <provider android:name="com.autogram.app.features.cloudtransfer.storage.DownloadFixtureControlProvider"
+            android:authorities="com.autogram.app.test.downloadcontrol" android:exported="true" />
     </application>
 </manifest>
