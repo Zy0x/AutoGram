@@ -108,6 +108,7 @@ pub(crate) fn candidate_layers(layers: &[Layer], quality: ThumbnailQuality) -> V
 
 /// Returns the index of the best layer to use for `quality`, or `None` when the
 /// caller should keep the inline placeholder it already has.
+#[allow(dead_code)]
 pub(crate) fn pick_layer(layers: &[Layer], quality: ThumbnailQuality) -> Option<usize> {
     candidate_layers(layers, quality).first().copied()
 }
