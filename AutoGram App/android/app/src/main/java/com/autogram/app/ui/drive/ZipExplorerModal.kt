@@ -1,7 +1,10 @@
 package com.autogram.app.ui.drive
 
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,6 +54,27 @@ fun ZipExplorerModal(
     var previewEntry by remember { mutableStateOf<ZipEntryItem?>(null) }
     var previewBytes by remember { mutableStateOf<ByteArray?>(null) }
     var isPreviewLoading by remember { mutableStateOf(false) }
+
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("*/*")
+    ) { uri: Uri? ->
+        if (uri != null && previewBytes != null) {
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { os ->
+                        os.write(previewBytes!!)
+                    }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, context.getString(R.string.zip_extract_success), Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, context.getString(R.string.zip_extract_failed), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(archiveItem) {
         isLoading = true
@@ -373,6 +397,19 @@ fun ZipExplorerModal(
                     confirmButton = {
                         TextButton(onClick = { previewEntry = null; previewBytes = null }) {
                             Text(stringResource(R.string.native_close))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                val fileName = currentEntry.name.substringAfterLast('/')
+                                createDocumentLauncher.launch(fileName)
+                            },
+                            enabled = previewBytes != null
+                        ) {
+                            Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp), tint = SoftViolet)
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.zip_extract_action), color = SoftViolet)
                         }
                     },
                     containerColor = SurfaceDeep,

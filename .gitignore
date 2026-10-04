@@ -135,7 +135,6 @@ mcps/
 **/.codex*
 .grok/
 .playwright-mcp/
-remote/
 /remote/
 icon App/
 worker/
@@ -152,6 +151,8 @@ legacy_scripts/
 # Remote automation / CDP debug tooling (local only — not product source)
 remote-automation-suite/
 /remote/
+AutoGram App/frontend/remote/
+**/frontend/remote/
 .webview2_data/
 **/.webview2_data/
 remote/reports/logs/

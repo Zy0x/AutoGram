@@ -5,29 +5,40 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 
-enum class PreviewKind { IMAGE, VIDEO, AUDIO, TEXT, UNSUPPORTED }
+enum class PreviewKind { IMAGE, VIDEO, AUDIO, TEXT, TABULAR, JSON, HEX, STICKER, UNSUPPORTED }
 
 val CODE_TEXT_EXTENSIONS = setOf(
-    "txt", "md", "markdown", "json", "xml", "html", "htm", "css", "js", "ts", "jsx", "tsx",
+    "txt", "md", "markdown", "xml", "html", "htm", "css", "js", "ts", "jsx", "tsx",
     "py", "rs", "kt", "kts", "java", "c", "cpp", "h", "hpp", "cs", "go", "rb", "php",
     "sql", "sh", "bash", "zsh", "ps1", "bat", "cmd", "yaml", "yml", "toml", "ini", "conf",
     "env", "log", "properties", "gradle"
 )
 
-fun previewKind(mime: String, filename: String = ""): PreviewKind = when {
-    mime.lowercase().startsWith("image/") -> PreviewKind.IMAGE
-    mime.lowercase().startsWith("video/") -> PreviewKind.VIDEO
-    mime.lowercase().startsWith("audio/") -> PreviewKind.AUDIO
-    mime.lowercase().startsWith("text/") ||
-        mime.lowercase() in setOf("application/json", "application/xml", "application/javascript", "application/x-sh") ||
-        filename.substringAfterLast('.', "").lowercase() in CODE_TEXT_EXTENSIONS -> PreviewKind.TEXT
-    else -> PreviewKind.UNSUPPORTED
+fun previewKind(mime: String, filename: String = ""): PreviewKind {
+    val m = mime.lowercase()
+    val ext = filename.substringAfterLast('.', "").lowercase()
+    return when {
+        ext == "tgs" || m == "application/x-tgsticker" -> PreviewKind.STICKER
+        ext in setOf("csv", "tsv") || m in setOf("text/csv", "text/tab-separated-values") -> PreviewKind.TABULAR
+        m.startsWith("image/") -> PreviewKind.IMAGE
+        m.startsWith("video/") -> PreviewKind.VIDEO
+        m.startsWith("audio/") -> PreviewKind.AUDIO
+        m.startsWith("text/") ||
+            m in setOf("application/json", "application/xml", "application/javascript", "application/x-sh") ||
+            ext in CODE_TEXT_EXTENSIONS -> PreviewKind.TEXT
+        ext in setOf("bin", "dat", "exe", "dll", "so", "hex", "rom") -> PreviewKind.HEX
+        else -> PreviewKind.UNSUPPORTED
+    }
 }
 
 fun mediaKindLabel(mime: String, filename: String = ""): Int = when (previewKind(mime, filename)) {
     PreviewKind.IMAGE -> R.string.real_image
     PreviewKind.VIDEO -> R.string.real_video
     PreviewKind.AUDIO -> R.string.real_audio
+    PreviewKind.TABULAR -> R.string.preview_tabular_title
+    PreviewKind.JSON -> R.string.preview_json_title
+    PreviewKind.STICKER -> R.string.preview_sticker_title
+    PreviewKind.HEX -> R.string.preview_hex_title
     else -> if (mime.lowercase() in setOf("application/zip", "application/x-7z-compressed") || filename.lowercase().endsWith(".zip"))
         R.string.real_archive else R.string.real_file
 }

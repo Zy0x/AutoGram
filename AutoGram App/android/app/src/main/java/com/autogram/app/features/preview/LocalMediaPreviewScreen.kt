@@ -78,11 +78,11 @@ internal fun LocalMediaContent(uri: Uri, modifier: Modifier = Modifier) {
                     loading = { CircularProgressIndicator() },
                     error = { Text(stringResource(R.string.real_preview_failed)) })
                 PreviewKind.AUDIO, PreviewKind.VIDEO -> NativeMediaPlayer(uri, Modifier.fillMaxSize())
-                PreviewKind.TEXT -> {
+                PreviewKind.TEXT, PreviewKind.TABULAR, PreviewKind.JSON -> {
                     if (state.text?.truncated == true) Text(stringResource(R.string.real_text_truncated))
                     SelectionContainer { Text(state.text?.text.orEmpty(), Modifier.verticalScroll(rememberScrollState())) }
                 }
-                PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
+                PreviewKind.STICKER, PreviewKind.HEX, PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
             }
         }
     }

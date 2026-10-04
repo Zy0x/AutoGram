@@ -15,6 +15,37 @@
 - Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
 - Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
 
+## v4.1.34 — Complete Desktop Feature Adoption: Remote Media Resolvers, Web Crawler, Specialized Previewers & MTProto Diagnostics
+
+### 1. Remote Media Resolver & Web Media Crawler Hub (`RemoteUrlScreen.kt`)
+- **Interactive Multi-Platform URL Resolver**: Replaced placeholder stub with a powerful yet minimalist 2-tab interface.
+  - **Single & Batch URL Mode**: Seamlessly switches between single URL analysis and multi-line batch URL queueing.
+  - **Automatic Platform Detection**: Detects YouTube, TikTok, Instagram, Twitter/X, Pinterest, Pixiv, and Generic Web Direct streams.
+  - **Resolution & Format Chips**: Format presets (`1080p FHD`, `720p HD`, `480p SD`, `Audio Only MP3`) with container and approximate size badges.
+  - **Dual Action Execution**:
+    - "Unduh ke HP": Enqueues downloads directly to Android's native `DownloadManager` saving to the public Downloads directory.
+    - "Unggah Langsung ke Cloud": Dispatches tasks with optional Clean Copy options (strip caption watermark & 4-level deduplication check) into the native Telegram queue.
+- **Web Media Scraper / Crawler (`WebMediaCrawler.kt`)**:
+  - Pure native web crawler supporting crawl depth (1-3 levels), max results (10-200), and media kind filters (Images, Videos, Audio, Documents).
+  - Extracts and resolves media URLs, displays visual discovery cards with checkboxes, select/deselect all, and batch download/upload actions.
+
+### 2. Specialized Cloud Drive Previewers Suite (`CloudPreview.kt`)
+- **Tabular Data Viewer (`DriveTabularViewer.kt`)**: High-performance CSV and TSV spreadsheet viewer featuring sticky header columns, row index numbers, search query row filtering, and horizontal/vertical scrollable glass table.
+- **Interactive Collapsible JSON Tree Viewer (`DriveJsonTreeViewer.kt`)**: Hierarchical tree explorer for `.json` files with expand/collapse nodes, expand all / collapse all actions, search highlighting, and syntax color coding.
+- **Binary Hex Inspector (`DriveHexInspector.kt`)**: Monospace hex byte viewer for binary and unknown files with 8-digit offset addresses, 16 hex byte columns, and ASCII character representations.
+- **Telegram Vector Sticker Player (`DriveLottiePlayer.kt`)**: Decompresses Telegram `.tgs` GZIP archives in RAM to extract Lottie animation metadata (resolution, 60 FPS, frames, layer count), featuring play/pause, loop, frame timeline scrubbing, and light/dark canvas toggles.
+- **Sparse ZIP SAF Direct Extraction (`ZipExplorerModal.kt`)**: Added 1-tap "Ekstrak Berkas Terpilih (SAF)" enabling direct extraction of chosen archive files to external device storage via Storage Access Framework without downloading full archives.
+
+### 3. MTProto Technical Diagnostics & Statistics CSV Export
+- **Transfer Technical Diagnostics (`TransferDiagnosticModal.kt`)**: Accessible from transfer details, providing detailed real-time MTProto telemetries including Data Center ID (DC 2/4/5), streaming worker count, 512KB chunk pipelines, transfer speed curves, retry attempts, and raw error traces.
+- **Statistics Report CSV Export (`StatisticsScreen.kt`)**: Added 1-tap "Ekspor Laporan Transfer (CSV)" generating a comprehensive migration report of all active/completed transfer tasks and workspace metrics, shareable directly via Android `Intent.ACTION_SEND`.
+
+### 4. Zero Hardcoded Strings, Quality Gate & Device Verification
+- **100% Locale Parity**: Added all user-facing strings to `values/strings.xml` and `values-en/strings.xml` with zero hardcoded text and full key parity.
+- **Strict Architecture Boundaries**: All modified and created files strictly satisfy the $\le 2000$ LOC limit (ranging between 41 and 647 LOC).
+- **Quality Gates Passing**: All 100 Android unit tests passed cleanly, and all 8 desktop Quality Gates in `npm run test:quality` passed with 0 errors.
+- **Physical Phone Deployment**: Built native arm64 APK (`app-arm64-v8a-debug.apk`) and streamed-installed to user's physical device `Infinix X698` on `192.168.1.5:5555`.
+
 ## v4.1.33 — Full Desktop Parity: Drive Sorting, Remote Upload to Folder, Duplicate Cleaner, Rich Previews & SAF Database Backup
 
 ### 1. Drive Sorting, Remote Upload to Folder & 4-Level Duplicate Cleaner

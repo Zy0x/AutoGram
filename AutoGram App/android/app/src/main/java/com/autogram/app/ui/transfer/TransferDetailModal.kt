@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -16,6 +16,8 @@ import com.autogram.app.viewmodel.TransferTaskItem
 
 @Composable
 fun TransferDetailModal(task: TransferTaskItem, onDismiss: () -> Unit, onTogglePause: () -> Unit) {
+    var showDiagnostics by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
@@ -25,13 +27,19 @@ fun TransferDetailModal(task: TransferTaskItem, onDismiss: () -> Unit, onToggleP
                 Text(stringResource(transferStatusLabel(task.status)))
                 Text(stringResource(R.string.real_transfer_speed, formatFileSize(task.speedBps)))
                 Text(stringResource(R.string.real_transfer_attempt, task.attempt))
-                // Source/destination identities may contain signed URLs: never display them.
                 if (!task.isTerminal()) TextButton(onClick = onTogglePause) {
                     Text(stringResource(if (task.paused || task.status.equals("paused", true))
                         R.string.real_resume_flag else R.string.real_pause_flag))
                 }
+                TextButton(onClick = { showDiagnostics = true }) {
+                    Text(stringResource(R.string.diagnostic_action_view))
+                }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.native_close)) }
             }
         }
+    }
+
+    if (showDiagnostics) {
+        TransferDiagnosticModal(task = task, onDismiss = { showDiagnostics = false })
     }
 }

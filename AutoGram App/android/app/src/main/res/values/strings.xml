@@ -661,4 +661,97 @@
     <string name="preview_markdown_rendered">Tampilan Render</string>
     <string name="preview_markdown_raw">Teks Mentah</string>
     <string name="native_confirm">Lanjutkan</string>
+
+    <!-- Remote URL & Crawler Hub -->
+    <string name="remote_tab_resolver">Resolusi URL &amp; Batch</string>
+    <string name="remote_tab_crawler">Web Media Scraper</string>
+    <string name="remote_mode_single">URL Tunggal</string>
+    <string name="remote_mode_batch">Batch Multi-URL</string>
+    <string name="remote_batch_input_label">Daftar URL Media (1 URL per baris)</string>
+    <string name="remote_batch_input_placeholder">https://youtube.com/watch?v=...\nhttps://tiktok.com/@user/video/...\nhttps://instagram.com/reel/...</string>
+    <string name="remote_batch_count">%1$d URL terdeteksi</string>
+    <string name="remote_platform_youtube">YouTube Video</string>
+    <string name="remote_platform_tiktok">TikTok Video</string>
+    <string name="remote_platform_instagram">Instagram Reel/Post</string>
+    <string name="remote_platform_twitter">Twitter / X Media</string>
+    <string name="remote_platform_pinterest">Pinterest Media</string>
+    <string name="remote_platform_pixiv">Pixiv Art</string>
+    <string name="remote_platform_generic">Direct Stream / Web</string>
+    <string name="remote_quality_title">Kualitas / Format Unduhan</string>
+    <string name="remote_format_1080p">1080p FHD</string>
+    <string name="remote_format_720p">720p HD</string>
+    <string name="remote_format_480p">480p SD</string>
+    <string name="remote_format_audio">Audio MP3</string>
+    <string name="remote_action_download_local">Unduh ke HP</string>
+    <string name="remote_action_upload_cloud">Unggah Langsung ke Cloud</string>
+    <string name="remote_action_batch_download">Unduh Semua (%1$d) ke HP</string>
+    <string name="remote_action_batch_upload">Unggah Semua (%1$d) ke Cloud</string>
+    <string name="remote_clean_copy_title">Opsi Clean Copy Telegram</string>
+    <string name="remote_option_strip_caption">Hapus Teks Asli / Watermark</string>
+    <string name="remote_option_dedup">Aktifkan Proteksi Duplikasi 4-Level</string>
+    <string name="remote_toast_download_queued">Berhasil menambahkan ke antrean unduhan HP</string>
+    <string name="remote_toast_upload_queued">Berhasil menambahkan ke antrean Cloud Telegram</string>
+    <string name="remote_toast_batch_queued">Berhasil menambahkan %1$d berkas ke antrean!</string>
+
+    <!-- Web Media Scraper / Crawler -->
+    <string name="crawler_url_label">URL Situs Web Target</string>
+    <string name="crawler_url_placeholder">https://contoh-website.com</string>
+    <string name="crawler_action_start">Mulai Crawl Situs</string>
+    <string name="crawler_action_stop">Hentikan Crawl</string>
+    <string name="crawler_status_idle">Siap melakukan pemindaian media</string>
+    <string name="crawler_status_crawling">Memindai halaman web &amp; mengekstrak media...</string>
+    <string name="crawler_status_done">Pemindaian selesai</string>
+    <string name="crawler_status_failed">Gagal memindai situs web</string>
+    <string name="crawler_filter_all">Semua</string>
+    <string name="crawler_filter_images">Gambar</string>
+    <string name="crawler_filter_videos">Video</string>
+    <string name="crawler_filter_audio">Audio</string>
+    <string name="crawler_filter_docs">Dokumen</string>
+    <string name="crawler_depth_label">Kedalaman Crawl: %1$d level</string>
+    <string name="crawler_max_results">Maksimum Hasil: %1$d</string>
+    <string name="crawler_select_all">Pilih Semua</string>
+    <string name="crawler_deselect_all">Batalkan Pilihan</string>
+    <string name="crawler_discovered_count">%1$d media ditemukan (%2$d dipilih)</string>
+    <string name="crawler_empty">Belum ada media yang ditemukan. Masukkan URL dan klik Mulai Crawl.</string>
+    <string name="crawler_download_selected">Unduh Terpilih (%1$d) ke HP</string>
+    <string name="crawler_upload_selected">Unggah Terpilih (%1$d) ke Cloud</string>
+
+    <!-- Specialized Drive Previewers -->
+    <string name="preview_tabular_title">Pratinjau Data Tabel</string>
+    <string name="preview_tabular_rows">%1$d Baris</string>
+    <string name="preview_tabular_cols">%1$d Kolom</string>
+    <string name="preview_tabular_search">Filter baris data...</string>
+    <string name="preview_json_title">Pratinjau Pohon JSON</string>
+    <string name="preview_json_expand_all">Buka Semua</string>
+    <string name="preview_json_collapse_all">Tutup Semua</string>
+    <string name="preview_json_search">Cari kunci atau nilai...</string>
+    <string name="preview_hex_title">Inspektor Heksadesimal Biner</string>
+    <string name="preview_hex_offset">Offset</string>
+    <string name="preview_hex_bytes">Nilai Hex (16-Byte)</string>
+    <string name="preview_hex_ascii">ASCII</string>
+    <string name="preview_sticker_title">Pemutar Stiker Vektor Telegram</string>
+    <string name="preview_sticker_play">Putar</string>
+    <string name="preview_sticker_pause">Jeda</string>
+    <string name="preview_sticker_loop">Ulangi</string>
+    <string name="zip_extract_action">Ekstrak Berkas Terpilih (SAF)</string>
+    <string name="zip_extract_success">Berkas berhasil diekstrak ke penyimpanan!</string>
+    <string name="zip_extract_failed">Gagal mengekstrak berkas.</string>
+    <string name="zip_extract_selecting">Pilih folder tujuan penyimpanan...</string>
+
+    <!-- Transfer Technical Diagnostics -->
+    <string name="diagnostic_title">Diagnostik Teknis MTProto</string>
+    <string name="diagnostic_dc">Telegram Data Center: DC %1$d</string>
+    <string name="diagnostic_worker">Worker Streaming: %1$s</string>
+    <string name="diagnostic_speed">Kurva Kecepatan: %1$s</string>
+    <string name="diagnostic_attempts">Percobaan Ulang: %1$d</string>
+    <string name="diagnostic_source">Identitas Sumber: %1$s</string>
+    <string name="diagnostic_destination">Identitas Tujuan: %1$s</string>
+    <string name="diagnostic_error_details">Detail Error / Exception</string>
+    <string name="diagnostic_action_view">Lihat Diagnostik</string>
+
+    <!-- Statistics Report Export -->
+    <string name="statistics_export_csv">Ekspor Laporan Transfer (CSV)</string>
+    <string name="statistics_export_csv_title">Laporan_Transfer_AutoGram_%1$s.csv</string>
+    <string name="statistics_export_csv_success">Laporan CSV berhasil dibuat dan siap dibagikan!</string>
+    <string name="statistics_export_csv_failed">Gagal membuat laporan CSV.</string>
 </resources>

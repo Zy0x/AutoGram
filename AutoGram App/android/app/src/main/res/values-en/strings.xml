@@ -659,4 +659,97 @@
     <string name="preview_markdown_rendered">Rendered View</string>
     <string name="preview_markdown_raw">Raw Markdown</string>
     <string name="native_confirm">Continue</string>
+
+    <!-- Remote URL & Crawler Hub -->
+    <string name="remote_tab_resolver">URL Resolution &amp; Batch</string>
+    <string name="remote_tab_crawler">Web Media Scraper</string>
+    <string name="remote_mode_single">Single URL</string>
+    <string name="remote_mode_batch">Batch Multi-URL</string>
+    <string name="remote_batch_input_label">Media URL List (1 URL per line)</string>
+    <string name="remote_batch_input_placeholder">https://youtube.com/watch?v=...\nhttps://tiktok.com/@user/video/...\nhttps://instagram.com/reel/...</string>
+    <string name="remote_batch_count">%1$d URLs detected</string>
+    <string name="remote_platform_youtube">YouTube Video</string>
+    <string name="remote_platform_tiktok">TikTok Video</string>
+    <string name="remote_platform_instagram">Instagram Reel/Post</string>
+    <string name="remote_platform_twitter">Twitter / X Media</string>
+    <string name="remote_platform_pinterest">Pinterest Media</string>
+    <string name="remote_platform_pixiv">Pixiv Art</string>
+    <string name="remote_platform_generic">Direct Stream / Web</string>
+    <string name="remote_quality_title">Download Quality / Format</string>
+    <string name="remote_format_1080p">1080p FHD</string>
+    <string name="remote_format_720p">720p HD</string>
+    <string name="remote_format_480p">480p SD</string>
+    <string name="remote_format_audio">Audio MP3</string>
+    <string name="remote_action_download_local">Download to Device</string>
+    <string name="remote_action_upload_cloud">Upload Directly to Cloud</string>
+    <string name="remote_action_batch_download">Download All (%1$d) to Device</string>
+    <string name="remote_action_batch_upload">Upload All (%1$d) to Cloud</string>
+    <string name="remote_clean_copy_title">Telegram Clean Copy Options</string>
+    <string name="remote_option_strip_caption">Strip Original Caption / Watermark</string>
+    <string name="remote_option_dedup">Enable 4-Level Duplicate Protection</string>
+    <string name="remote_toast_download_queued">Successfully added to local download queue</string>
+    <string name="remote_toast_upload_queued">Successfully added to Telegram Cloud queue</string>
+    <string name="remote_toast_batch_queued">Successfully queued %1$d files!</string>
+
+    <!-- Web Media Scraper / Crawler -->
+    <string name="crawler_url_label">Target Website URL</string>
+    <string name="crawler_url_placeholder">https://example-website.com</string>
+    <string name="crawler_action_start">Start Crawling Site</string>
+    <string name="crawler_action_stop">Stop Crawling</string>
+    <string name="crawler_status_idle">Ready to scan media</string>
+    <string name="crawler_status_crawling">Scanning web page &amp; extracting media...</string>
+    <string name="crawler_status_done">Scanning completed</string>
+    <string name="crawler_status_failed">Failed to scan website</string>
+    <string name="crawler_filter_all">All</string>
+    <string name="crawler_filter_images">Images</string>
+    <string name="crawler_filter_videos">Videos</string>
+    <string name="crawler_filter_audio">Audio</string>
+    <string name="crawler_filter_docs">Documents</string>
+    <string name="crawler_depth_label">Crawl Depth: %1$d level(s)</string>
+    <string name="crawler_max_results">Max Results: %1$d</string>
+    <string name="crawler_select_all">Select All</string>
+    <string name="crawler_deselect_all">Deselect All</string>
+    <string name="crawler_discovered_count">%1$d media found (%2$d selected)</string>
+    <string name="crawler_empty">No media discovered yet. Enter a URL and click Start Crawling.</string>
+    <string name="crawler_download_selected">Download Selected (%1$d) to Device</string>
+    <string name="crawler_upload_selected">Upload Selected (%1$d) to Cloud</string>
+
+    <!-- Specialized Drive Previewers -->
+    <string name="preview_tabular_title">Tabular Data Preview</string>
+    <string name="preview_tabular_rows">%1$d Rows</string>
+    <string name="preview_tabular_cols">%1$d Columns</string>
+    <string name="preview_tabular_search">Filter data rows...</string>
+    <string name="preview_json_title">JSON Tree Preview</string>
+    <string name="preview_json_expand_all">Expand All</string>
+    <string name="preview_json_collapse_all">Collapse All</string>
+    <string name="preview_json_search">Search key or value...</string>
+    <string name="preview_hex_title">Binary Hex Inspector</string>
+    <string name="preview_hex_offset">Offset</string>
+    <string name="preview_hex_bytes">Hex Bytes (16-Byte)</string>
+    <string name="preview_hex_ascii">ASCII</string>
+    <string name="preview_sticker_title">Telegram Vector Sticker Player</string>
+    <string name="preview_sticker_play">Play</string>
+    <string name="preview_sticker_pause">Pause</string>
+    <string name="preview_sticker_loop">Loop</string>
+    <string name="zip_extract_action">Extract Selected File (SAF)</string>
+    <string name="zip_extract_success">File successfully extracted to storage!</string>
+    <string name="zip_extract_failed">Failed to extract file.</string>
+    <string name="zip_extract_selecting">Select destination folder...</string>
+
+    <!-- Transfer Technical Diagnostics -->
+    <string name="diagnostic_title">MTProto Technical Diagnostics</string>
+    <string name="diagnostic_dc">Telegram Data Center: DC %1$d</string>
+    <string name="diagnostic_worker">Streaming Worker: %1$s</string>
+    <string name="diagnostic_speed">Speed Curve: %1$s</string>
+    <string name="diagnostic_attempts">Retry Attempts: %1$d</string>
+    <string name="diagnostic_source">Source Identity: %1$s</string>
+    <string name="diagnostic_destination">Destination Identity: %1$s</string>
+    <string name="diagnostic_error_details">Error Details / Exception</string>
+    <string name="diagnostic_action_view">View Diagnostics</string>
+
+    <!-- Statistics Report Export -->
+    <string name="statistics_export_csv">Export Transfer Report (CSV)</string>
+    <string name="statistics_export_csv_title">AutoGram_Transfer_Report_%1$s.csv</string>
+    <string name="statistics_export_csv_success">CSV Report successfully created and ready to share!</string>
+    <string name="statistics_export_csv_failed">Failed to create CSV report.</string>
 </resources>

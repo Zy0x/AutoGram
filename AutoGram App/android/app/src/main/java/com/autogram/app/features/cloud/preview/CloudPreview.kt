@@ -29,6 +29,7 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
     var source by remember(item, attempt) { mutableStateOf<CloudRangeSource?>(null) }
     var image by remember(item, attempt) { mutableStateOf<Bitmap?>(null) }
     var text by remember(item, attempt) { mutableStateOf<TextPreview?>(null) }
+    var rawBytes by remember(item, attempt) { mutableStateOf<ByteArray?>(null) }
     var error by remember(item, attempt) { mutableStateOf<String?>(null) }
     var opened by remember(item, attempt) { mutableStateOf(false) }
     val kind = previewKind(item.mimeType, item.name)
@@ -59,6 +60,12 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
                 }
                 PreviewKind.TEXT -> text = withContext(Dispatchers.IO) {
                     readTextPreview(ByteArrayInputStream(readPrefix(active, minOf(active.size, 256 * 1024L + 1).toInt())))
+                }
+                PreviewKind.TABULAR, PreviewKind.JSON, PreviewKind.HEX, PreviewKind.STICKER -> {
+                    val limit = if (kind == PreviewKind.HEX) 65536L else 262144L
+                    rawBytes = withContext(Dispatchers.IO) {
+                        readPrefix(active, minOf(active.size, limit).toInt())
+                    }
                 }
                 else -> Unit
             }
@@ -91,12 +98,46 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
         bitmap != null -> CloudImageViewer(bitmap, item.name)
         kind == PreviewKind.TEXT -> {
             text?.let {
-                com.autogram.app.ui.drive.preview.DriveRichTextPreview(
-                    fileName = item.name,
-                    preview = it,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (item.name.endsWith(".json", ignoreCase = true) || item.mimeType.equals("application/json", ignoreCase = true)) {
+                    com.autogram.app.ui.drive.preview.DriveJsonTreeViewer(
+                        rawJson = it.text,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    com.autogram.app.ui.drive.preview.DriveRichTextPreview(
+                        fileName = item.name,
+                        preview = it,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
+        }
+        kind == PreviewKind.TABULAR && rawBytes != null -> {
+            com.autogram.app.ui.drive.preview.DriveTabularViewer(
+                rawText = String(rawBytes!!, Charsets.UTF_8),
+                fileName = item.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.JSON && rawBytes != null -> {
+            com.autogram.app.ui.drive.preview.DriveJsonTreeViewer(
+                rawJson = String(rawBytes!!, Charsets.UTF_8),
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.HEX && rawBytes != null -> {
+            com.autogram.app.ui.drive.preview.DriveHexInspector(
+                bytes = rawBytes!!,
+                fileName = item.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.STICKER && rawBytes != null -> {
+            com.autogram.app.ui.drive.preview.DriveLottiePlayer(
+                rawBytes = rawBytes!!,
+                fileName = item.name,
+                modifier = Modifier.fillMaxSize()
+            )
         }
         kind == PreviewKind.VIDEO || kind == PreviewKind.AUDIO ->
             key(active) { CloudMediaPlayer(active, Modifier.fillMaxSize(),

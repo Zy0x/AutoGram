@@ -19,6 +19,10 @@ import com.autogram.app.ui.components.ScreenHeader
 import com.autogram.app.viewmodel.DriveUiState
 import com.autogram.app.viewmodel.TransferUiState
 
+import android.content.Intent
+import androidx.compose.ui.unit.sp
+import com.autogram.app.theme.SoftViolet
+
 @Composable
 fun StatisticsScreen(drive: DriveUiState, transfers: TransferUiState, onRefresh: () -> Unit) {
     val summary = remember(drive.items, transfers.activeTasks, transfers.completedTasks) {
@@ -34,8 +38,38 @@ fun StatisticsScreen(drive: DriveUiState, transfers: TransferUiState, onRefresh:
         ) {
             item { ScreenHeader(R.string.nav_statistics, R.string.statistics_local_scope) }
             item {
-                OutlinedButton(onClick = onRefresh, enabled = !drive.isLoading && !transfers.isLoading) {
-                    Text(stringResource(R.string.drive_action_refresh))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onRefresh,
+                        enabled = !drive.isLoading && !transfers.isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.drive_action_refresh))
+                    }
+                    Button(
+                        onClick = {
+                            val csv = buildString {
+                                appendLine("ID,FileName,Status,Stage,SpeedBps,TransferredBytes,TotalBytes,Attempt,ErrorCode")
+                                (transfers.activeTasks + transfers.completedTasks).forEach { t ->
+                                    val safeName = "\"${t.fileName.replace("\"", "\"\"")}\""
+                                    appendLine("${t.id},$safeName,${t.status},${t.stage},${t.speedBps},${t.transferredBytes},${t.totalBytes},${t.attempt},\"${t.errorCode.orEmpty()}\"")
+                                }
+                            }
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "Laporan Transfer AutoGram")
+                                putExtra(Intent.EXTRA_TEXT, csv)
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.statistics_export_csv)))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet),
+                        modifier = Modifier.weight(1.3f)
+                    ) {
+                        Text(stringResource(R.string.statistics_export_csv), fontSize = 11.sp)
+                    }
                 }
             }
             item {
