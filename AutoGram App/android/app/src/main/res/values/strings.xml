@@ -477,4 +477,134 @@
     <string name="drive_ratio_square_label">Persegi (1:1)</string>
     <string name="drive_ratio_portrait">2:3</string>
     <string name="drive_ratio_portrait_label">Potret Desktop (2:3)</string>
+    <string name="drive_links_copied">%1$d tautan berkas disalin ke papan klip</string>
+    <string name="drive_download_batch_started">%1$d pengunduhan berkas dimulai di latar belakang</string>
+    <string name="drive_move_success">%1$d berkas berhasil dipindahkan ke %2$s</string>
+    <string name="drive_tag_success">Kategori berhasil disimpan untuk %1$d berkas</string>
+    <string name="drive_forward_success">%1$d berkas berhasil diteruskan ke tujuan</string>
+    <string name="studio_tab_split">Pemotong Video</string>
+    <string name="studio_tab_transcode">Transcode &amp; Kompresi</string>
+    <string name="studio_tab_album">Kolase Visual</string>
+    <string name="studio_split_target_size">Ukuran Maksimal Segmen</string>
+    <string name="studio_split_stream_copy">Salin Aliran Cepat (Tanpa Re-encode)</string>
+    <string name="studio_split_action_start">Mulai Pemotongan Video</string>
+    <string name="studio_split_success">Video berhasil dipotong menjadi %1$d segmen!</string>
+    <string name="studio_album_caption_hint">Tulis caption ringkasan album...</string>
+    <string name="studio_album_limit_notice">Maksimal 10 media per album Telegram (invarian kolase)</string>
+    <string name="studio_album_success">Album kolase (%1$d media) siap diunggah!</string>
+    <string name="studio_metric_ready">Siap</string>
+    <string name="studio_metric_ready_label">Berkas</string>
+    <string name="studio_metric_processing">Proses</string>
+    <string name="studio_metric_processing_label">Tugas Aktif</string>
+    <string name="studio_metric_success">Selesai</string>
+    <string name="studio_metric_success_label">Berhasil</string>
+    <string name="studio_tools_section">Peralatan Studio</string>
+    <string name="studio_file_explorer_title">Pustaka Media Cloud</string>
+    <string name="studio_split_desc">Bagi video besar (&gt; 2 GB) menjadi beberapa segmen tanpa re-encode agar dapat diunggah mulus ke Telegram.</string>
+    <string name="studio_source_video_label">Pilih Video Sumber:</string>
+    <string name="studio_empty_video_hint">Tidak ada video yang ditemukan di cloud.</string>
+    <string name="studio_res_original">Asli</string>
+    <string name="studio_album_counter">%1$d / 10 media</string>
+
+    <!-- Forwarder Module -->
+    <string name="forwarder_source_label">Saluran / Obrolan Sumber</string>
+    <string name="forwarder_source_hint">ID Obrolan atau @username...</string>
+    <string name="forwarder_dest_label">Saluran Tujuan</string>
+    <string name="forwarder_dest_hint">ID Obrolan tujuan atau Saved Messages</string>
+    <string name="forwarder_clean_copy_title">Opsi Clean Copy</string>
+    <string name="forwarder_strip_captions">Hapus Teks / Caption Asli</string>
+    <string name="forwarder_dedup_check">Pencegahan Duplikat 4-Level</string>
+    <string name="forwarder_preserve_album">Pertahankan Kolase Visual (Maks 10)</string>
+    <string name="forwarder_flood_protection">Proteksi Smart FloodWait</string>
+    <string name="forwarder_filter_all">Semua Media</string>
+    <string name="forwarder_filter_photo">Foto</string>
+    <string name="forwarder_filter_video">Video</string>
+    <string name="forwarder_filter_doc">Dokumen</string>
+    <string name="forwarder_filter_audio">Audio</string>
+    <string name="forwarder_action_start">Mulai Forwarding Media</string>
+    <string name="forwarder_job_started">Tugas forwarding berhasil dimulai!</string>
+    <string name="forwarder_active_jobs_title">Tugas Forwarding Aktif</string>
+    <string name="forwarder_empty_jobs">Belum ada tugas forwarding aktif.</string>
+    <string name="forwarder_status_running">Berjalan</string>
+    <string name="forwarder_status_paused">Dijeda</string>
+    <string name="forwarder_status_completed">Selesai</string>
+
+    <!-- Jobs Module -->
+    <string name="jobs_title">Manajemen Pekerjaan</string>
+    <string name="jobs_subtitle">Pantau status migrasi, antrean transfer, dan checkpoint.</string>
+    <string name="jobs_tab_all">Semua</string>
+    <string name="jobs_tab_active">Aktif</string>
+    <string name="jobs_tab_completed">Selesai</string>
+    <string name="jobs_tab_failed">Gagal</string>
+    <string name="jobs_metric_total">Total Tugas</string>
+    <string name="jobs_metric_active">Aktif</string>
+    <string name="jobs_metric_completed">Selesai</string>
+    <string name="jobs_empty">Tidak ada pekerjaan pada kategori ini.</string>
+    <string name="jobs_action_pause">Jeda</string>
+    <string name="jobs_action_resume">Lanjutkan</string>
+    <string name="jobs_action_retry">Coba Lagi</string>
+    <string name="jobs_action_cancel">Batalkan</string>
+    <string name="jobs_action_clear_completed">Bersihkan Riwayat Selesai</string>
+    <string name="jobs_cleared_success">Riwayat pekerjaan berhasil dibersihkan!</string>
+
+    <!-- Automation Module -->
+    <string name="automation_title">Otomasi &amp; Pemicu</string>
+    <string name="automation_subtitle">Jadwalkan sinkronisasi berulang dan aturan transfer otomatis.</string>
+    <string name="automation_add_rule">Tambah Aturan Baru</string>
+    <string name="automation_rule_name_label">Nama Aturan</string>
+    <string name="automation_rule_name_hint">Misal: Auto-Sync Foto Harian</string>
+    <string name="automation_trigger_label">Pemicu (Trigger)</string>
+    <string name="automation_trigger_15m">Setiap 15 Menit</string>
+    <string name="automation_trigger_1h">Setiap 1 Jam</string>
+    <string name="automation_trigger_6h">Setiap 6 Jam</string>
+    <string name="automation_trigger_daily">Setiap 24 Jam (Harian)</string>
+    <string name="automation_trigger_on_message">Saat Pesan Baru Diterima</string>
+    <string name="automation_action_label">Tindakan Eksekusi</string>
+    <string name="automation_action_forward">Jalankan Forwarder Clean Copy</string>
+    <string name="automation_action_sync">Sinkronkan Folder Cloud</string>
+    <string name="automation_action_backup">Cadangkan Database Otomatis</string>
+    <string name="automation_action_save">Simpan Aturan Otomasi</string>
+    <string name="automation_saved_success">Aturan otomasi berhasil disimpan!</string>
+    <string name="automation_empty">Belum ada aturan otomasi yang dibuat.</string>
+    <string name="automation_rule_active">Aktif</string>
+    <string name="automation_rule_disabled">Nonaktif</string>
+
+    <!-- Profiles Module -->
+    <string name="profiles_title">Profil Transfer &amp; Jaringan</string>
+    <string name="profiles_subtitle">Kelola preset konkurensi MTProto, ukuran chunk, dan batas bandwidth.</string>
+    <string name="profiles_preset_turbo">Turbo High-Speed</string>
+    <string name="profiles_preset_turbo_desc">8 stream paralel · chunk 1 MB · kecepatan maksimal</string>
+    <string name="profiles_preset_balanced">Seimbang (Default)</string>
+    <string name="profiles_preset_balanced_desc">4 stream paralel · chunk 512 KB · stabil untuk semua jaringan</string>
+    <string name="profiles_preset_eco">Hemat Kuota / Data Saver</string>
+    <string name="profiles_preset_eco_desc">2 stream paralel · chunk 128 KB · ramah kuota &amp; hemat baterai</string>
+    <string name="profiles_preset_custom">Kustom Pengguna</string>
+    <string name="profiles_streams_slider">Konkurensi Stream: %1$d Jalur</string>
+    <string name="profiles_chunk_label">Ukuran Chunk Blok</string>
+    <string name="profiles_circuit_breaker">Circuit Breaker FloodWait Aktif</string>
+    <string name="profiles_action_apply">Terapkan Profil Ini</string>
+    <string name="profiles_applied_success">Profil transfer berhasil diterapkan!</string>
+
+    <!-- Sync Module -->
+    <string name="sync_title">Sinkronisasi Cloud &amp; Lokal</string>
+    <string name="sync_subtitle">Sinkronkan berkas antara penyimpanan HP dan drive Telegram.</string>
+    <string name="sync_status_in_sync">Semua Berkas Tersinkronisasi</string>
+    <string name="sync_status_pending">%1$d Berkas Menunggu Sinkronisasi</string>
+    <string name="sync_status_syncing">Sedang Menyinkronkan...</string>
+    <string name="sync_last_synced">Terakhir disinkronkan: %1$s</string>
+    <string name="sync_pair_camera">Kamera HP ⟷ Telegram /Foto</string>
+    <string name="sync_pair_downloads">Unduhan HP ⟷ Telegram /Dokumen</string>
+    <string name="sync_pair_media">Video HP ⟷ Telegram /Video</string>
+    <string name="sync_dir_bidirectional">Dua Arah (Cermin)</string>
+    <string name="sync_dir_upload_only">Unggah Saja (HP ➔ Cloud)</string>
+    <string name="sync_dir_download_only">Unduh Saja (Cloud ➔ HP)</string>
+    <string name="sync_action_sync_now">Sinkronkan Sekarang</string>
+    <string name="sync_action_sync_all">Mulai Sinkronisasi Penuh</string>
+    <string name="sync_started_success">Proses sinkronisasi dimulai di latar belakang!</string>
+
+    <!-- Tools Descriptions -->
+    <string name="ui2_quick_jobs_desc">Manajemen pekerjaan migrasi dan transfer latar belakang</string>
+    <string name="ui2_quick_automation_desc">Jadwal sinkronisasi otomatis dan aturan pemicu</string>
+    <string name="ui2_quick_profiles_desc">Preset konkurensi MTProto dan profil bandwidth</string>
+    <string name="ui2_quick_sync_desc">Sinkronisasi dua arah berkas lokal dan cloud Telegram</string>
 </resources>

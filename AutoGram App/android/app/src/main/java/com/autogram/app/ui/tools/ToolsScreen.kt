@@ -60,11 +60,11 @@ private val toolCategories = listOf(
     ToolCategory(
         titleRes = R.string.ui2_tools_automation_category,
         tools = listOf(
-            ToolItemSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, Icons.Default.SwapHoriz, WarmAmber, false),
-            ToolItemSpec(Screen.Jobs, R.string.capability_jobs_gap, Icons.Default.Schedule, MutedIceCyan, false),
-            ToolItemSpec(Screen.Automation, R.string.capability_automation_gap, Icons.Default.AutoFixHigh, SoftViolet, false),
-            ToolItemSpec(Screen.Profiles, R.string.capability_profiles_gap, Icons.Default.Badge, DustySage, false),
-            ToolItemSpec(Screen.Sync, R.string.capability_sync_gap, Icons.Default.Sync, GoldAccent, false)
+            ToolItemSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, Icons.Default.SwapHoriz, WarmAmber, true),
+            ToolItemSpec(Screen.Jobs, R.string.ui2_quick_jobs_desc, Icons.Default.Schedule, MutedIceCyan, true),
+            ToolItemSpec(Screen.Automation, R.string.ui2_quick_automation_desc, Icons.Default.AutoFixHigh, SoftViolet, true),
+            ToolItemSpec(Screen.Profiles, R.string.ui2_quick_profiles_desc, Icons.Default.Badge, DustySage, true),
+            ToolItemSpec(Screen.Sync, R.string.ui2_quick_sync_desc, Icons.Default.Sync, GoldAccent, true)
         )
     )
 )
@@ -221,12 +221,12 @@ private val moduleSpecs = listOf(
     NativeModuleSpec(Screen.Statistics, R.string.statistics_local_scope, true),
     NativeModuleSpec(Screen.Studio, R.string.capability_studio_gap, true),
     NativeModuleSpec(Screen.Settings, R.string.capability_settings_gap, true),
-    NativeModuleSpec(Screen.Forwarder, R.string.capability_jobs_gap),
+    NativeModuleSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, true),
     NativeModuleSpec(Screen.Accounts, R.string.auth_security, integrated = true),
-    NativeModuleSpec(Screen.Jobs, R.string.capability_jobs_gap),
-    NativeModuleSpec(Screen.Automation, R.string.capability_automation_gap),
-    NativeModuleSpec(Screen.Profiles, R.string.capability_profiles_gap),
-    NativeModuleSpec(Screen.Sync, R.string.capability_sync_gap),
+    NativeModuleSpec(Screen.Jobs, R.string.ui2_quick_jobs_desc, true),
+    NativeModuleSpec(Screen.Automation, R.string.ui2_quick_automation_desc, true),
+    NativeModuleSpec(Screen.Profiles, R.string.ui2_quick_profiles_desc, true),
+    NativeModuleSpec(Screen.Sync, R.string.ui2_quick_sync_desc, true),
     NativeModuleSpec(Screen.ApiSetup, R.string.auth_api_instructions, integrated = true)
 )
 

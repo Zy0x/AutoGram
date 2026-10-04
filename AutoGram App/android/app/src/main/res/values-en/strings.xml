@@ -475,4 +475,134 @@
     <string name="drive_ratio_square_label">Square (1:1)</string>
     <string name="drive_ratio_portrait">2:3</string>
     <string name="drive_ratio_portrait_label">Desktop Portrait (2:3)</string>
+    <string name="drive_links_copied">%1$d file links copied to clipboard</string>
+    <string name="drive_download_batch_started">%1$d file downloads started in background</string>
+    <string name="drive_move_success">%1$d files successfully moved to %2$s</string>
+    <string name="drive_tag_success">Category successfully saved for %1$d files</string>
+    <string name="drive_forward_success">%1$d files successfully forwarded to destination</string>
+    <string name="studio_tab_split">Video Splitter</string>
+    <string name="studio_tab_transcode">Transcode &amp; Compress</string>
+    <string name="studio_tab_album">Visual Album</string>
+    <string name="studio_split_target_size">Max Segment Size</string>
+    <string name="studio_split_stream_copy">Fast Stream Copy (No Re-encode)</string>
+    <string name="studio_split_action_start">Start Video Splitting</string>
+    <string name="studio_split_success">Video successfully split into %1$d segments!</string>
+    <string name="studio_album_caption_hint">Write album summary caption...</string>
+    <string name="studio_album_limit_notice">Max 10 media items per Telegram album (collage invariant)</string>
+    <string name="studio_album_success">Collage album (%1$d media) ready for upload!</string>
+    <string name="studio_metric_ready">Ready</string>
+    <string name="studio_metric_ready_label">Files</string>
+    <string name="studio_metric_processing">Processing</string>
+    <string name="studio_metric_processing_label">Active Tasks</string>
+    <string name="studio_metric_success">Completed</string>
+    <string name="studio_metric_success_label">Success</string>
+    <string name="studio_tools_section">Studio Tools</string>
+    <string name="studio_file_explorer_title">Cloud Media Library</string>
+    <string name="studio_split_desc">Split large videos (&gt; 2 GB) into segments without re-encoding for smooth Telegram uploads.</string>
+    <string name="studio_source_video_label">Select Source Video:</string>
+    <string name="studio_empty_video_hint">No videos found in cloud storage.</string>
+    <string name="studio_res_original">Original</string>
+    <string name="studio_album_counter">%1$d / 10 media</string>
+
+    <!-- Forwarder Module -->
+    <string name="forwarder_source_label">Source Channel / Chat</string>
+    <string name="forwarder_source_hint">Chat ID or @username...</string>
+    <string name="forwarder_dest_label">Destination Channel</string>
+    <string name="forwarder_dest_hint">Destination Chat ID or Saved Messages</string>
+    <string name="forwarder_clean_copy_title">Clean Copy Options</string>
+    <string name="forwarder_strip_captions">Strip Original Captions</string>
+    <string name="forwarder_dedup_check">4-Level Deduplication Prevention</string>
+    <string name="forwarder_preserve_album">Preserve Visual Collage (Max 10)</string>
+    <string name="forwarder_flood_protection">Smart FloodWait Protection</string>
+    <string name="forwarder_filter_all">All Media</string>
+    <string name="forwarder_filter_photo">Photos</string>
+    <string name="forwarder_filter_video">Videos</string>
+    <string name="forwarder_filter_doc">Documents</string>
+    <string name="forwarder_filter_audio">Audio</string>
+    <string name="forwarder_action_start">Start Media Forwarding</string>
+    <string name="forwarder_job_started">Forwarding task successfully started!</string>
+    <string name="forwarder_active_jobs_title">Active Forwarding Tasks</string>
+    <string name="forwarder_empty_jobs">No active forwarding tasks.</string>
+    <string name="forwarder_status_running">Running</string>
+    <string name="forwarder_status_paused">Paused</string>
+    <string name="forwarder_status_completed">Completed</string>
+
+    <!-- Jobs Module -->
+    <string name="jobs_title">Jobs Management</string>
+    <string name="jobs_subtitle">Monitor migration status, transfer queues, and checkpoints.</string>
+    <string name="jobs_tab_all">All</string>
+    <string name="jobs_tab_active">Active</string>
+    <string name="jobs_tab_completed">Completed</string>
+    <string name="jobs_tab_failed">Failed</string>
+    <string name="jobs_metric_total">Total Jobs</string>
+    <string name="jobs_metric_active">Active</string>
+    <string name="jobs_metric_completed">Completed</string>
+    <string name="jobs_empty">No jobs found in this category.</string>
+    <string name="jobs_action_pause">Pause</string>
+    <string name="jobs_action_resume">Resume</string>
+    <string name="jobs_action_retry">Retry</string>
+    <string name="jobs_action_cancel">Cancel</string>
+    <string name="jobs_action_clear_completed">Clear Completed History</string>
+    <string name="jobs_cleared_success">Job history successfully cleared!</string>
+
+    <!-- Automation Module -->
+    <string name="automation_title">Automation &amp; Triggers</string>
+    <string name="automation_subtitle">Schedule recurring syncs and automated transfer rules.</string>
+    <string name="automation_add_rule">Add New Rule</string>
+    <string name="automation_rule_name_label">Rule Name</string>
+    <string name="automation_rule_name_hint">E.g. Daily Photo Auto-Sync</string>
+    <string name="automation_trigger_label">Trigger</string>
+    <string name="automation_trigger_15m">Every 15 Minutes</string>
+    <string name="automation_trigger_1h">Every 1 Hour</string>
+    <string name="automation_trigger_6h">Every 6 Hours</string>
+    <string name="automation_trigger_daily">Every 24 Hours (Daily)</string>
+    <string name="automation_trigger_on_message">On New Message Received</string>
+    <string name="automation_action_label">Execution Action</string>
+    <string name="automation_action_forward">Execute Clean Copy Forwarder</string>
+    <string name="automation_action_sync">Sync Cloud Folders</string>
+    <string name="automation_action_backup">Auto Backup Database</string>
+    <string name="automation_action_save">Save Automation Rule</string>
+    <string name="automation_saved_success">Automation rule successfully saved!</string>
+    <string name="automation_empty">No automation rules created yet.</string>
+    <string name="automation_rule_active">Active</string>
+    <string name="automation_rule_disabled">Disabled</string>
+
+    <!-- Profiles Module -->
+    <string name="profiles_title">Transfer &amp; Network Profiles</string>
+    <string name="profiles_subtitle">Manage MTProto concurrency presets, chunk sizes, and bandwidth limits.</string>
+    <string name="profiles_preset_turbo">Turbo High-Speed</string>
+    <string name="profiles_preset_turbo_desc">8 parallel streams · 1 MB chunks · maximum speed</string>
+    <string name="profiles_preset_balanced">Balanced (Default)</string>
+    <string name="profiles_preset_balanced_desc">4 parallel streams · 512 KB chunks · stable on all networks</string>
+    <string name="profiles_preset_eco">Data Saver / Eco</string>
+    <string name="profiles_preset_eco_desc">2 parallel streams · 128 KB chunks · quota &amp; battery friendly</string>
+    <string name="profiles_preset_custom">User Custom</string>
+    <string name="profiles_streams_slider">Stream Concurrency: %1$d Streams</string>
+    <string name="profiles_chunk_label">Block Chunk Size</string>
+    <string name="profiles_circuit_breaker">FloodWait Circuit Breaker Enabled</string>
+    <string name="profiles_action_apply">Apply This Profile</string>
+    <string name="profiles_applied_success">Transfer profile successfully applied!</string>
+
+    <!-- Sync Module -->
+    <string name="sync_title">Cloud &amp; Local Sync</string>
+    <string name="sync_subtitle">Sync files between phone storage and Telegram drive.</string>
+    <string name="sync_status_in_sync">All Files In Sync</string>
+    <string name="sync_status_pending">%1$d Files Pending Sync</string>
+    <string name="sync_status_syncing">Syncing in Progress...</string>
+    <string name="sync_last_synced">Last synced: %1$s</string>
+    <string name="sync_pair_camera">Phone Camera ⟷ Telegram /Photos</string>
+    <string name="sync_pair_downloads">Phone Downloads ⟷ Telegram /Documents</string>
+    <string name="sync_pair_media">Phone Videos ⟷ Telegram /Videos</string>
+    <string name="sync_dir_bidirectional">Two-Way (Mirror)</string>
+    <string name="sync_dir_upload_only">Upload Only (Phone ➔ Cloud)</string>
+    <string name="sync_dir_download_only">Download Only (Cloud ➔ Phone)</string>
+    <string name="sync_action_sync_now">Sync Now</string>
+    <string name="sync_action_sync_all">Start Full Sync</string>
+    <string name="sync_started_success">Sync process started in the background!</string>
+
+    <!-- Tools Descriptions -->
+    <string name="ui2_quick_jobs_desc">Manage background migration and transfer jobs</string>
+    <string name="ui2_quick_automation_desc">Automated sync schedules and trigger rules</string>
+    <string name="ui2_quick_profiles_desc">MTProto concurrency presets and bandwidth profiles</string>
+    <string name="ui2_quick_sync_desc">Two-way sync between local files and Telegram cloud</string>
 </resources>

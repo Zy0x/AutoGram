@@ -43,9 +43,12 @@ import com.autogram.app.ui.settings.SettingsScreen
 import com.autogram.app.ui.studio.StudioScreen
 import com.autogram.app.ui.statistics.StatisticsScreen
 import com.autogram.app.ui.transfer.TransferScreen
-import com.autogram.app.ui.tools.NativeModuleScreen
+import com.autogram.app.ui.forwarder.ForwarderScreen
+import com.autogram.app.ui.jobs.JobsScreen
+import com.autogram.app.ui.automation.AutomationScreen
+import com.autogram.app.ui.profiles.ProfilesScreen
+import com.autogram.app.ui.sync.SyncScreen
 import com.autogram.app.ui.tools.ToolsScreen
-import com.autogram.app.ui.tools.nativeModuleSpec
 import com.autogram.app.viewmodel.DriveViewModel
 import com.autogram.app.viewmodel.AccountsViewModel
 import com.autogram.app.viewmodel.RemoteUrlViewModel
@@ -180,7 +183,7 @@ fun AutoGramAppRoot(
                         TransferScreen(viewModel = transferViewModel)
                     }
                     composable(Screen.Forwarder.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Forwarder))
+                        ForwarderScreen()
                     }
                     composable(Screen.Studio.route) {
                         StudioScreen(viewModel = driveViewModel)
@@ -203,19 +206,19 @@ fun AutoGramAppRoot(
                         AccountsScreen(viewModel = accountsViewModel, auth = authViewModel)
                     }
                     composable(Screen.Jobs.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Jobs))
+                        JobsScreen()
                     }
                     composable(Screen.Automation.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Automation))
+                        AutomationScreen()
                     }
                     composable(Screen.Statistics.route) {
                         StatisticsScreen(driveState, transferState, ::refreshWorkspace)
                     }
                     composable(Screen.Profiles.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Profiles))
+                        ProfilesScreen()
                     }
                     composable(Screen.Sync.route) {
-                        NativeModuleScreen(navController, nativeModuleSpec(Screen.Sync))
+                        SyncScreen()
                     }
                     composable(Screen.ApiSetup.route) {
                         com.autogram.app.features.auth.AuthAccountsScreen(authViewModel, configureOnly = true)

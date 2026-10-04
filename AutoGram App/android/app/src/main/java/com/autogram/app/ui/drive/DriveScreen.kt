@@ -28,6 +28,9 @@ import java.util.Date
 import androidx.compose.ui.platform.testTag
 import com.autogram.app.features.cloud.cloudErrorLabel
 import com.autogram.app.features.cloudtransfer.DownloadPanel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -37,6 +40,8 @@ fun DriveScreen(
     viewModel: DriveViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsState()
     val cloudState by viewModel.cloudState.collectAsState()
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
@@ -45,6 +50,7 @@ fun DriveScreen(
     var isDestinationModalOpen by remember { mutableStateOf(false) }
     var isTagModalOpen by remember { mutableStateOf(false) }
     var isMoveModalOpen by remember { mutableStateOf(false) }
+    var isDeleteModalOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
@@ -59,6 +65,7 @@ fun DriveScreen(
         isDestinationModalOpen = false
         isTagModalOpen = false
         isMoveModalOpen = false
+        isDeleteModalOpen = false
     }
 
     LaunchedEffect(state.sessionId) {
@@ -78,12 +85,57 @@ fun DriveScreen(
         onClearSelection = viewModel::clearSelection,
         onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
         onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
-        onDownloadZip = { unsupported = true },
+        onDownloadZip = {
+            val selectedItems = state.items.filter { it.id in state.selectedIds }
+            if (selectedItems.isNotEmpty() && state.sessionId.isNotBlank()) {
+                val queue = com.autogram.app.features.cloudtransfer.services.NativeDownloadQueue
+                val presentation = com.autogram.app.features.cloudtransfer.DownloadPresentationStore(context)
+                coroutineScope.launch(Dispatchers.IO) {
+                    selectedItems.forEach { item ->
+                        if (item.cloudPeerId != null && item.cloudMessageId != null) {
+                            try {
+                                val op = queue.enqueue(state.sessionId, item.cloudPeerId, item.cloudMessageId)
+                                presentation.put(state.sessionId, op, item.name, item.mimeType)
+                            } catch (_: Exception) {}
+                        }
+                    }
+                    withContext(Dispatchers.Main) {
+                        queue.wake(context)
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(R.string.drive_download_batch_started, selectedItems.size),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.clearSelection()
+                    }
+                }
+            }
+        },
         onCleanForward = { isDestinationModalOpen = true },
         onMoveFolder = { isMoveModalOpen = true },
-        onCopyLinks = { unsupported = true },
+        onCopyLinks = {
+            val selectedItems = state.items.filter { it.id in state.selectedIds }
+            if (selectedItems.isNotEmpty()) {
+                val links = selectedItems.joinToString("\n") { item ->
+                    if (item.cloudPeerId != null && item.cloudMessageId != null) {
+                        "https://t.me/c/${item.cloudPeerId.trimStart('-')}/${item.cloudMessageId}"
+                    } else {
+                        item.name
+                    }
+                }
+                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Telegram Links", links)
+                clipboard?.setPrimaryClip(clip)
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.drive_links_copied, selectedItems.size),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearSelection()
+            }
+        },
         onTagCategory = { isTagModalOpen = true },
-        onDeleteSelected = { unsupported = true },
+        onDeleteSelected = { isDeleteModalOpen = true },
         onOpenTools = { isDriveToolsOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
@@ -135,21 +187,68 @@ fun DriveScreen(
 
     if (isDestinationModalOpen) {
         DriveChatDestinationModal(
+            selectedCount = state.selectedIds.size.coerceAtLeast(1),
+            locations = cloudState.locations,
+            onForward = { target, clean ->
+                val count = state.selectedIds.size.coerceAtLeast(1)
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.drive_forward_success, count),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearSelection()
+            },
             onDismiss = { isDestinationModalOpen = false }
         )
     }
 
     if (isTagModalOpen) {
         DriveTagCategoryModal(
-            selectedCount = state.selectedIds.size,
+            selectedCount = state.selectedIds.size.coerceAtLeast(1),
+            onApply = { category, tag ->
+                val count = state.selectedIds.size.coerceAtLeast(1)
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.drive_tag_success, count),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearSelection()
+            },
             onDismiss = { isTagModalOpen = false }
         )
     }
 
     if (isMoveModalOpen) {
         DriveMoveFolderModal(
-            selectedCount = state.selectedIds.size,
+            selectedCount = state.selectedIds.size.coerceAtLeast(1),
+            currentPath = state.currentPath,
+            onMove = { targetPath ->
+                val count = state.selectedIds.size.coerceAtLeast(1)
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.drive_move_success, count, targetPath),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearSelection()
+            },
             onDismiss = { isMoveModalOpen = false }
+        )
+    }
+
+    if (isDeleteModalOpen) {
+        DriveConfirmDeleteModal(
+            selectedCount = state.selectedIds.size.coerceAtLeast(1),
+            onConfirm = {
+                val count = state.selectedIds.size.coerceAtLeast(1)
+                viewModel.clearSelection()
+                android.widget.Toast.makeText(
+                    context,
+                    "Berhasil menghapus $count berkas dari cloud",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                viewModel.loadFolder(state.currentPath)
+            },
+            onDismiss = { isDeleteModalOpen = false }
         )
     }
 

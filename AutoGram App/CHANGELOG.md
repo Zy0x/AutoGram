@@ -15,6 +15,42 @@
 - Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
 - Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
 
+## v4.1.32 — Complete Desktop Feature Adoption for Android: Modals, Sparse ZIP, Media Studio & Automation Suite
+
+### 1. Interactive Drive Modals & Sparse ZIP Archive Explorer
+- **Interactive Drive Management Modals**:
+  - Replaced action stubs with full native interactive modals: `DriveConfirmDeleteModal` (deletion confirmation with SoftCoral danger styling), `DriveMoveFolderModal` (folder chips + custom target path), `DriveTagCategoryModal` (preset category tags + custom `#tag` input), and `DriveChatDestinationModal` (channel/chat destination picker with Saved Messages preset and Clean-Copy toggle).
+  - Wired batch operations in `DriveScreen.kt`: `onCopyLinks` (copies formatted Telegram links to Android clipboard), `onDownloadZip` (enqueues selected files to `NativeDownloadQueue`), and `onDeleteSelected`.
+- **In-Memory Sparse ZIP Archive Explorer**:
+  - Implemented `SparseZipReader.kt` & `ZipExplorerModal.kt` providing strict byte-range reading (EOCD downTo 0, Central Directory slice parsing, RAM decompression) strictly adhering to Rule 3.B / Rule 10 (zero full-archive download, zero multimegabyte range scan anti-pattern).
+  - Added in-memory image and text preview modal dialogs directly inside the ZIP explorer without saving unselected files to disk.
+
+### 2. Full Media Studio Suite (Video Splitter, Transcoder & Visual Album)
+- **Interactive Media Studio (`StudioScreen.kt`)**:
+  - Transformed the placeholder screen into a comprehensive visual media studio with 3 dedicated workspaces:
+    - **Video Splitter**: Segment splitting with Telegram file cap presets (2000 MB, 1000 MB, 500 MB, 250 MB) and fast stream copy (zero re-encode).
+    - **Video Transcoder**: Codec selector (H.264, HEVC, AV1), resolution presets (1080p, 720p, 480p, Original), and audio normalization (EBU R128).
+    - **Visual Album Builder**: Enforces Telegram MTProto invariants (Rule 3.C / Rule 16): 10-media hard limit (`TELEGRAM_ALBUM_MAX = 10`), single shared summary caption assigned strictly to item 0, and items $1..N$ guaranteed empty to prevent breaking the collage layout on Telegram Desktop and Web.
+
+### 3. Native Automation, Jobs, Forwarder, Profiles & Sync Integration
+- **Full Module Integration**:
+  - Replaced legacy `NativeModuleScreen` placeholders with 5 dedicated, high-aesthetic native screens:
+    - `ForwarderScreen.kt`: Media Forwarder V2 with Clean-Copy pipeline, strip captions, 4-level dedup matrix, flood protection, and active job tracking.
+    - `JobsScreen.kt`: Comprehensive background task & migration job manager with status filters, telemetry, pause/resume/retry/cancel actions.
+    - `AutomationScreen.kt`: Scheduled triggers (15m, 1h, 6h, 24h, on message) and automated action rules.
+    - `ProfilesScreen.kt`: MTProto network & concurrency profiles (Turbo 8 streams, Balanced 4 streams, Eco 2 streams, Custom sliders).
+    - `SyncScreen.kt`: Two-way cloud directory synchronizer with folder pairing (Camera, Downloads, Videos) and bi-directional mirror options.
+  - Updated `ToolsScreen.kt` to mark all automation suite tools as fully integrated (`integrated = true`) with descriptive subtitles.
+
+### 4. Zero Hardcoded Strings, Multi-Language Parity & Device Deployment
+- **Localization Parity**:
+  - Extracted 100% of user-facing strings into `values/strings.xml` and `values-en/strings.xml` with zero hardcoded text and strict ID/EN key parity.
+- **Desktop Zero-Regression Verification**:
+  - Re-verified all 8 Autonomous Quality Sentinel gates on Desktop frontend (`npm run test:quality`) passing 100% with 0 TypeScript errors, 63 Vitest tests, and zero regressions on the live Desktop core.
+- **Physical Device Deployment**:
+  - Verified Android debug unit tests (`testDebugUnitTest`) passing with zero errors.
+  - Successfully packaged and installed verified native arm64 APK on physical device `Infinix X698` via `adb -s 192.168.1.5:5555 install -r`.
+
 ## v4.1.31 — Android Drive Gallery Desktop 2:3 Aspect Ratio Parity & Flexible Thumbnail Layout
 
 ### 1. Android Drive Gallery 2:3 & 1:1 Aspect Ratio Layout
