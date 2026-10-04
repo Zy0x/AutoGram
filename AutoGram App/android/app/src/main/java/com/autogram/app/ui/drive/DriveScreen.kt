@@ -54,6 +54,8 @@ fun DriveScreen(
     var isMoveModalOpen by remember { mutableStateOf(false) }
     var isDeleteModalOpen by remember { mutableStateOf(false) }
     var isLocationPickerOpen by remember { mutableStateOf(false) }
+    var isCreateTopicOpen by remember { mutableStateOf(false) }
+    var isCustomizeIconOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
@@ -66,6 +68,8 @@ fun DriveScreen(
         previewItem = null
         zipArchiveItem = null
         isLocationPickerOpen = false
+        isCreateTopicOpen = false
+        isCustomizeIconOpen = false
         isDriveToolsOpen = false
         isRemoteUploadOpen = false
         isDedupCleanerOpen = false
@@ -95,8 +99,8 @@ fun DriveScreen(
         onUpload = { unsupported = true },
         onRemoteUpload = { isRemoteUploadOpen = true },
         onClearSelection = viewModel::clearSelection,
-        onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
-        onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
+        onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)) },
+        onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)) },
         onDownloadZip = {
             val selectedItems = state.items.filter { it.id in state.selectedIds }
             if (selectedItems.isNotEmpty() && state.sessionId.isNotBlank()) {
@@ -149,6 +153,8 @@ fun DriveScreen(
         onTagCategory = { isTagModalOpen = true },
         onDeleteSelected = { isDeleteModalOpen = true },
         onOpenTools = { isDriveToolsOpen = true },
+        onAddTopic = { isCreateTopicOpen = true },
+        onCustomizeIcon = { isCustomizeIconOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
                 viewModel.toggleItemSelection(item.id)
@@ -231,7 +237,8 @@ fun DriveScreen(
         DriveChatDestinationModal(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
             locations = cloudState.locations,
-            onForward = { target, clean ->
+            sessionId = state.sessionId,
+            onForward = { target, clean, targetTopicId ->
                 val count = state.selectedIds.size.coerceAtLeast(1)
                 android.widget.Toast.makeText(
                     context,
@@ -241,6 +248,27 @@ fun DriveScreen(
                 viewModel.clearSelection()
             },
             onDismiss = { isDestinationModalOpen = false }
+        )
+    }
+
+    if (isCreateTopicOpen) {
+        DriveCreateTopicModal(
+            onDismiss = { isCreateTopicOpen = false },
+            onCreateTopic = { title, colorHex, emoji ->
+                viewModel.addTopic(title, colorHex, emoji, context)
+                isCreateTopicOpen = false
+            }
+        )
+    }
+
+    if (isCustomizeIconOpen) {
+        DriveCustomizeIconModal(
+            peerId = state.peerId,
+            title = state.activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
+            kind = state.activeLocationKind,
+            isForum = state.isForum,
+            onDismiss = { isCustomizeIconOpen = false },
+            onSaved = { isCustomizeIconOpen = false }
         )
     }
 
@@ -336,14 +364,16 @@ fun DriveScreenContent(
     onTagCategory: () -> Unit,
     onDeleteSelected: () -> Unit,
     onOpenTools: () -> Unit,
+    onAddTopic: () -> Unit = {},
+    onCustomizeIcon: () -> Unit = {},
     onItemClick: (DriveFileItem) -> Unit,
     onItemLongClick: (DriveFileItem) -> Unit,
     cloudControls: (@Composable () -> Unit)? = null,
     storyControls: (@Composable () -> Unit)? = null,
     pagingControls: (@Composable () -> Unit)? = null
 ) {
-    val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter) {
-        galleryItems(state.items, state.searchQuery, state.mediaFilter)
+    val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId) {
+        galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)
     }
     val sections = remember(filteredItems) { gallerySections(filteredItems) }
     val context = LocalContext.current
@@ -401,7 +431,9 @@ fun DriveScreenContent(
                         onCopyLinks = onCopyLinks,
                         onTagCategory = onTagCategory,
                         onDeleteSelected = onDeleteSelected,
-                        onOpenTools = onOpenTools
+                        onOpenTools = onOpenTools,
+                        onAddTopic = onAddTopic,
+                        onCustomizeIcon = onCustomizeIcon
                     )
                 }
                 state.errorCode?.let { code ->

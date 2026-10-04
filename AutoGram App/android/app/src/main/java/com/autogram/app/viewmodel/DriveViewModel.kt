@@ -29,7 +29,8 @@ data class DriveFileItem(
     val width: Int? = null,
     val height: Int? = null,
     val durationSeconds: Double? = null,
-    val thumbnailBytes: ByteArray? = null
+    val thumbnailBytes: ByteArray? = null,
+    val topicId: Long? = null
 )
 
 enum class DriveMediaFilter {
@@ -232,6 +233,12 @@ class DriveViewModel : ViewModel() {
 
     fun setTopicFilter(topicId: Long?) {
         _uiState.update { it.copy(activeTopicId = topicId, selectedIds = emptySet()) }
+    }
+
+    fun addTopic(title: String, colorHex: String?, iconEmoji: String?, context: android.content.Context) {
+        val updated = com.autogram.app.ui.drive.DriveTopicsStore(context)
+            .addTopic(_uiState.value.sessionId, _uiState.value.peerId, title, colorHex, iconEmoji)
+        _uiState.update { it.copy(topics = updated) }
     }
 
     fun setSearchQuery(query: String) {

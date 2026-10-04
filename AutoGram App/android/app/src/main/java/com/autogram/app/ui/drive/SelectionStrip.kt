@@ -1,4 +1,4 @@
-﻿package com.autogram.app.ui.drive
+package com.autogram.app.ui.drive
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
@@ -91,7 +91,7 @@ fun SelectionStrip(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, null, tint = MutedIceCyan, modifier = Modifier.size(15.dp))
-                    Text("Teruskan", color = MutedIceCyan, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                    Text(stringResource(R.string.drive_action_clean_forward), color = MutedIceCyan, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
             }
 
@@ -107,7 +107,7 @@ fun SelectionStrip(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(Icons.Default.Label, null, tint = SoftViolet, modifier = Modifier.size(15.dp))
-                    Text("Tag", color = SoftViolet, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                    Text(stringResource(R.string.drive_action_tag_category), color = SoftViolet, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
             }
 

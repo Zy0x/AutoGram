@@ -92,6 +92,7 @@ fun DriveLocationPickerSheet(
 
     var searchQuery by remember { mutableStateOf("") }
     var categoryFilter by remember { mutableStateOf(LocationCategoryFilter.ALL) }
+    var customizingLocation by remember { mutableStateOf<CloudLocation?>(null) }
 
     // Always ensure Saved Messages ("me") is present at the top
     val allLocations = remember(locations) {
@@ -232,7 +233,8 @@ fun DriveLocationPickerSheet(
                                 recentStore.addRecent(sessionId, recent)
                                 onSelectLocation(recent)
                                 onDismiss()
-                            }
+                            },
+                            onCustomize = { customizingLocation = recent }
                         )
                     }
                     HorizontalDivider(
@@ -257,11 +259,24 @@ fun DriveLocationPickerSheet(
                             recentStore.addRecent(sessionId, loc)
                             onSelectLocation(loc)
                             onDismiss()
-                        }
+                        },
+                        onCustomize = { customizingLocation = loc }
                     )
                 }
             }
         }
+    }
+
+    if (customizingLocation != null) {
+        val target = customizingLocation!!
+        DriveCustomizeIconModal(
+            peerId = target.id,
+            title = target.title.ifEmpty { stringResource(R.string.cloud_saved_messages) },
+            kind = target.kind,
+            isForum = target.kind == "forum",
+            onDismiss = { customizingLocation = null },
+            onSaved = { customizingLocation = null }
+        )
     }
 }
 
@@ -269,9 +284,12 @@ fun DriveLocationPickerSheet(
 private fun LocationRowItem(
     location: CloudLocation,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCustomize: () -> Unit = {}
 ) {
     val isForum = location.kind == "forum"
+    val defaultTitle = stringResource(R.string.cloud_saved_messages)
+    val displayTitle = location.title.ifEmpty { defaultTitle }
     val subtitle = when {
         location.id == "me" || location.kind == "self" -> stringResource(R.string.drive_kind_saved)
         isForum -> stringResource(R.string.drive_kind_forum)
@@ -291,7 +309,7 @@ private fun LocationRowItem(
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         PeerAvatar(
-            title = location.title.ifEmpty { "Saved Messages" },
+            title = displayTitle,
             peerId = location.id,
             kind = location.kind,
             isForum = isForum,
@@ -300,7 +318,7 @@ private fun LocationRowItem(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = location.title.ifEmpty { "Saved Messages" },
+                text = displayTitle,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                 ),
@@ -324,6 +342,18 @@ private fun LocationRowItem(
                     )
                 }
             }
+        }
+
+        IconButton(
+            onClick = onCustomize,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Palette,
+                contentDescription = stringResource(R.string.drive_customize_icon_title),
+                tint = TextMutedDark,
+                modifier = Modifier.size(16.dp)
+            )
         }
 
         if (isSelected) {

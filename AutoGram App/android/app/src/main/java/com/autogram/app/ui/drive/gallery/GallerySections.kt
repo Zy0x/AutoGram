@@ -19,12 +19,18 @@ fun gallerySections(items: List<DriveFileItem>, zone: TimeZone = TimeZone.getDef
         }.map { (key, records) -> GallerySection(key, records.first().modifiedMs.takeIf { it > 0 }, records) }
 }
 
-fun galleryItems(items: List<DriveFileItem>, query: String, filter: DriveMediaFilter): List<DriveFileItem> =
+fun galleryItems(
+    items: List<DriveFileItem>,
+    query: String,
+    filter: DriveMediaFilter,
+    activeTopicId: Long? = null
+): List<DriveFileItem> =
     items.filter { item ->
+        val matchesTopic = activeTopicId == null || item.topicId == null || item.topicId == activeTopicId
         val matchesSearch = item.cloudAccountId != null || query.isBlank() || item.name.contains(query, true)
         val category = item.telegramCategory.lowercase(java.util.Locale.ROOT)
         val mime = item.mimeType.lowercase(java.util.Locale.ROOT)
-        matchesSearch && when (filter) {
+        matchesTopic && matchesSearch && when (filter) {
             DriveMediaFilter.ALL -> true
             DriveMediaFilter.MEDIA -> !item.isFolder && category in setOf("photo", "video", "gif")
             DriveMediaFilter.IMAGES -> !item.isFolder && category == "photo"

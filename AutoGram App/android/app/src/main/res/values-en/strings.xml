@@ -873,4 +873,35 @@
     <string name="zip_action_extract_entry">Extract File</string>
     <string name="audio_playing">Now Playing</string>
     <string name="audio_paused">Paused</string>
+
+    <!-- Forum Topics Management & Drive Icon Customization -->
+    <string name="drive_topic_add">Add Topic</string>
+    <string name="drive_create_topic_title">Create New Topic</string>
+    <string name="drive_create_topic_subtitle">Telegram forum topics organize messages and media into separate threads.</string>
+    <string name="drive_create_topic_placeholder">Topic name (e.g., Documents, Movies, Music)…</string>
+    <string name="drive_create_topic_icon_label">TOPIC EMOJI ICON</string>
+    <string name="drive_create_topic_color_label">OFFICIAL TOPIC COLOR</string>
+    <string name="drive_action_create_topic">Create Topic</string>
+
+    <string name="drive_customize_icon_title">Customize Icon &amp; Color</string>
+    <string name="drive_customize_icon_subtitle">Set visual symbol and color accent for %1$s</string>
+    <string name="drive_customize_symbol_label">SELECT ICON SYMBOL</string>
+    <string name="drive_customize_color_label">COLOR ACCENT</string>
+    <string name="drive_action_save">Save</string>
+    <string name="drive_action_reset">Reset</string>
+    <string name="drive_icon_symbol_default">Initials</string>
+    <string name="drive_icon_symbol_cloud">Cloud</string>
+    <string name="drive_icon_symbol_folder">Folder</string>
+    <string name="drive_icon_symbol_vault">Vault</string>
+    <string name="drive_icon_symbol_video">Video</string>
+    <string name="drive_icon_symbol_music">Music</string>
+    <string name="drive_icon_symbol_archive">Archive</string>
+    <string name="drive_icon_symbol_star">Star</string>
+    <string name="drive_icon_symbol_bookmark">Bookmark</string>
+
+    <string name="drive_dest_forward_prompt">Select destination chat for %1$d selected files.</string>
+    <string name="drive_dest_clean_copy_title">Clean-Copy Mode</string>
+    <string name="drive_dest_clean_copy_desc">Upload clean duplicate without \'Forwarded from\' tag</string>
+    <string name="drive_dest_select_target">SELECT DESTINATION CHAT</string>
+    <string name="drive_dest_topic_label">SELECT DESTINATION FORUM TOPIC</string>
 </resources>

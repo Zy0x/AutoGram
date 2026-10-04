@@ -6,15 +6,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,7 +32,10 @@ data class DriveTopic(
     val id: Long,
     val title: String,
     val topMessageId: Long? = null,
-    val isClosed: Boolean = false
+    val isClosed: Boolean = false,
+    val colorHex: String? = null,
+    val iconEmoji: String? = null,
+    val messageCount: Int? = null
 )
 
 /**
@@ -50,7 +56,10 @@ class DriveTopicsStore(context: Context) {
                         id = obj.getLong("id"),
                         title = obj.getString("title"),
                         topMessageId = if (obj.has("topMessageId")) obj.getLong("topMessageId") else null,
-                        isClosed = obj.optBoolean("isClosed", false)
+                        isClosed = obj.optBoolean("isClosed", false),
+                        colorHex = if (obj.has("colorHex")) obj.getString("colorHex") else null,
+                        iconEmoji = if (obj.has("iconEmoji")) obj.getString("iconEmoji") else null,
+                        messageCount = if (obj.has("messageCount")) obj.getInt("messageCount") else null
                     )
                 )
             }
@@ -68,13 +77,30 @@ class DriveTopicsStore(context: Context) {
                 .put("title", it.title)
                 .put("isClosed", it.isClosed)
             if (it.topMessageId != null) obj.put("topMessageId", it.topMessageId)
+            if (it.colorHex != null) obj.put("colorHex", it.colorHex)
+            if (it.iconEmoji != null) obj.put("iconEmoji", it.iconEmoji)
+            if (it.messageCount != null) obj.put("messageCount", it.messageCount)
             array.put(obj)
         }
         preferences.edit().putString("${sessionId}_$peerId", array.toString()).apply()
     }
 
+    fun addTopic(sessionId: String, peerId: String, title: String, colorHex: String?, iconEmoji: String?): List<DriveTopic> {
+        val current = getTopics(sessionId, peerId).toMutableList()
+        val nextId = (current.maxOfOrNull { it.id } ?: 0L) + 1L
+        val newTopic = DriveTopic(
+            id = nextId,
+            title = title,
+            colorHex = colorHex,
+            iconEmoji = iconEmoji
+        )
+        current.add(newTopic)
+        saveTopics(sessionId, peerId, current)
+        return current
+    }
+
     private fun defaultTopics(): List<DriveTopic> = listOf(
-        DriveTopic(id = 1L, title = "General", isClosed = false)
+        DriveTopic(id = 1L, title = "General", isClosed = false, colorHex = "#6FB9F0", iconEmoji = "💬")
     )
 }
 
@@ -86,6 +112,7 @@ fun DriveTopicChips(
     topics: List<DriveTopic>,
     activeTopicId: Long?,
     onSelectTopic: (Long?) -> Unit,
+    onAddTopic: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -132,6 +159,16 @@ fun DriveTopicChips(
         // Individual Topic Chips
         topics.forEach { topic ->
             val isSelected = activeTopicId == topic.id
+            val topicTint = remember(topic.colorHex) {
+                if (topic.colorHex != null) {
+                    try {
+                        Color(android.graphics.Color.parseColor(topic.colorHex))
+                    } catch (_: Exception) {
+                        GoldAccent
+                    }
+                } else GoldAccent
+            }
+
             FilterChip(
                 selected = isSelected,
                 onClick = { onSelectTopic(if (isSelected) null else topic.id) },
@@ -140,12 +177,27 @@ fun DriveTopicChips(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = if (topic.isClosed) Icons.Default.Lock else Icons.Default.Tag,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = if (isSelected) Color.Black else if (topic.isClosed) TextMutedDark else GoldAccent
-                        )
+                        if (topic.iconEmoji != null) {
+                            Text(text = topic.iconEmoji, fontSize = 12.sp)
+                        } else {
+                            // Colored dot or lock icon
+                            if (topic.isClosed) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = if (isSelected) Color.Black else TextMutedDark
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) Color.Black else topicTint)
+                                )
+                            }
+                        }
+
                         Text(
                             text = topic.title,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -156,12 +208,42 @@ fun DriveTopicChips(
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = SurfaceDark,
-                    selectedContainerColor = GoldAccent
+                    selectedContainerColor = topicTint
                 ),
-                border = BorderStroke(1.dp, if (isSelected) GoldAccent else BorderHairline),
+                border = BorderStroke(1.dp, if (isSelected) topicTint else BorderHairline),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.height(34.dp)
             )
+        }
+
+        // Add Topic Chip Button (+)
+        Surface(
+            onClick = onAddTopic,
+            shape = RoundedCornerShape(20.dp),
+            color = SurfaceElevatedDark,
+            border = BorderStroke(1.dp, BorderHairline),
+            modifier = Modifier.height(34.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.drive_action_create_topic),
+                    tint = GoldAccent,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = stringResource(R.string.drive_topic_add),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp
+                    ),
+                    color = GoldAccent
+                )
+            }
         }
     }
 }

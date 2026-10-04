@@ -63,7 +63,9 @@ fun DriveTopBar(
     onCopyLinks: () -> Unit,
     onTagCategory: () -> Unit,
     onDeleteSelected: () -> Unit,
-    onOpenTools: () -> Unit
+    onOpenTools: () -> Unit,
+    onAddTopic: () -> Unit = {},
+    onCustomizeIcon: () -> Unit = {}
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -95,6 +97,7 @@ fun DriveTopBar(
                         title = activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
                         peerId = activeLocationPeerId,
                         kind = activeLocationKind,
+                        isForum = isForum,
                         size = 36.dp
                     )
                     Column(
@@ -359,6 +362,10 @@ fun DriveTopBar(
                                 onClick = { menuOpen = false; onOpenTools() }
                             )
                             DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_customize_icon_title)) },
+                                onClick = { menuOpen = false; onCustomizeIcon() }
+                            )
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.drive_action_select_all)) },
                                 onClick = { menuOpen = false; onSelectAll() }
                             )
@@ -490,11 +497,12 @@ fun DriveTopBar(
         }
 
         // Forum Topics Filter Bar (if current chat is a forum supergroup)
-        if (isForum && topics.isNotEmpty()) {
+        if (isForum) {
             DriveTopicChips(
                 topics = topics,
                 activeTopicId = activeTopicId,
-                onSelectTopic = onTopicSelect
+                onSelectTopic = onTopicSelect,
+                onAddTopic = onAddTopic
             )
         }
 

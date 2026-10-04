@@ -876,4 +876,35 @@
     <string name="zip_action_extract_entry">Ekstrak Berkas</string>
     <string name="audio_playing">Sedang Memutar</string>
     <string name="audio_paused">Dijeda</string>
+
+    <!-- Forum Topics Management & Drive Icon Customization -->
+    <string name="drive_topic_add">Tambah Topik</string>
+    <string name="drive_create_topic_title">Buat Topik Baru</string>
+    <string name="drive_create_topic_subtitle">Topik forum Telegram memungkinkan pengelompokan pesan dan berkas dalam wadah terpisah.</string>
+    <string name="drive_create_topic_placeholder">Nama topik (misal: Dokumentasi, Film, Musik)…</string>
+    <string name="drive_create_topic_icon_label">IKON EMOJI TOPIK</string>
+    <string name="drive_create_topic_color_label">WARNA RESMI TOPIK</string>
+    <string name="drive_action_create_topic">Buat Topik</string>
+
+    <string name="drive_customize_icon_title">Kustomisasi Ikon &amp; Warna</string>
+    <string name="drive_customize_icon_subtitle">Atur simbol visual dan aksen warna untuk %1$s</string>
+    <string name="drive_customize_symbol_label">PILIH SIMBOL IKON</string>
+    <string name="drive_customize_color_label">AKSEN WARNA</string>
+    <string name="drive_action_save">Simpan</string>
+    <string name="drive_action_reset">Reset</string>
+    <string name="drive_icon_symbol_default">Inisial</string>
+    <string name="drive_icon_symbol_cloud">Cloud</string>
+    <string name="drive_icon_symbol_folder">Folder</string>
+    <string name="drive_icon_symbol_vault">Vault</string>
+    <string name="drive_icon_symbol_video">Video</string>
+    <string name="drive_icon_symbol_music">Musik</string>
+    <string name="drive_icon_symbol_archive">Arsip</string>
+    <string name="drive_icon_symbol_star">Bintang</string>
+    <string name="drive_icon_symbol_bookmark">Bookmark</string>
+
+    <string name="drive_dest_forward_prompt">Pilih tujuan penerusan untuk %1$d berkas yang dipilih.</string>
+    <string name="drive_dest_clean_copy_title">Salinan Bersih (Clean-Copy)</string>
+    <string name="drive_dest_clean_copy_desc">Unggah salinan baru tanpa jejak header \'Diteruskan dari\'</string>
+    <string name="drive_dest_select_target">PILIH CHAT TUJUAN</string>
+    <string name="drive_dest_topic_label">PILIH TOPIK FORUM TUJUAN</string>
 </resources>

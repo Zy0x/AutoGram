@@ -67,7 +67,7 @@ fun getPeerInitials(title: String): String {
 
 /**
  * Universal Peer/Drive Avatar with Telegram gradient monograms,
- * photo support, and distinctive chat kind badges (Saved, Channel, Group, Forum, Bot).
+ * photo support, custom drive icon symbols, and distinctive chat kind badges (Saved, Channel, Group, Forum, Bot).
  */
 @Composable
 fun PeerAvatar(
@@ -77,25 +77,54 @@ fun PeerAvatar(
     isForum: Boolean = false,
     avatarBytes: ByteArray? = null,
     avatarUri: String? = null,
+    customSymbol: String? = null,
+    customColorHex: String? = null,
     size: Dp = 40.dp,
     showBadge: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val customIcon = remember(peerId, customSymbol, customColorHex) {
+        if (customSymbol != null) CustomPeerIcon(peerId, customSymbol, customColorHex)
+        else PeerAvatarStore(context).getCustomIcon(peerId)
+    }
+
     val isSelf = peerId == "me" || kind == "self"
     val initials = remember(title) { if (isSelf) "★" else getPeerInitials(title) }
-    val gradient = remember(peerId, isSelf) {
-        if (isSelf) {
+    val gradient = remember(peerId, isSelf, customIcon?.colorHex) {
+        val colorHex = customIcon?.colorHex
+        if (colorHex != null) {
+            try {
+                val parsed = Color(android.graphics.Color.parseColor(colorHex))
+                Brush.linearGradient(listOf(parsed, parsed.copy(alpha = 0.75f)))
+            } catch (_: Exception) {
+                if (isSelf) Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF0072FF)))
+                else getPeerGradient(peerId)
+            }
+        } else if (isSelf) {
             Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF0072FF))) // Bright Saved Blue
         } else {
             getPeerGradient(peerId)
         }
     }
 
+    val customVector = when (customIcon?.iconSymbol) {
+        "cloud" -> Icons.Default.Cloud
+        "folder" -> Icons.Default.Folder
+        "vault" -> Icons.Default.Lock
+        "video" -> Icons.Default.PlayCircle
+        "music" -> Icons.Default.MusicNote
+        "archive" -> Icons.Default.Inventory2
+        "star" -> Icons.Default.Star
+        "bookmark" -> Icons.Default.Bookmark
+        else -> null
+    }
+
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        // Base Avatar (Photo or Gradient Monogram)
+        // Base Avatar (Photo, Custom Symbol, or Gradient Monogram)
         Surface(
             shape = CircleShape,
             modifier = Modifier.fillMaxSize(),
@@ -121,6 +150,21 @@ fun PeerAvatar(
                             .fillMaxSize()
                             .clip(CircleShape)
                     )
+                }
+                customVector != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(gradient),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = customVector,
+                            contentDescription = customIcon?.iconSymbol ?: customSymbol,
+                            tint = Color.White,
+                            modifier = Modifier.size(size * 0.55f)
+                        )
+                    }
                 }
                 isSelf -> {
                     Box(
