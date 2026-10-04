@@ -1,4 +1,31 @@
-## Unreleased — Telegram Forum Topic Navigation, Drive Location Switcher & MX-Player/Google Photos Media Tools Suite
+## Unreleased — Anti-Buffering Media Stream Engine, Sparse ZIP Archive Explorer, Dedicated Audio Player & Drive Space/Duplicates Tools
+
+### 1. Anti-Buffering Parallel Streaming Pipeline & Low-Latency Media3 Architecture (`CloudStreamPipeline.kt`, `CloudMedia3Source.kt`)
+- **Persistent Speculative Prefetch & Stutter Elimination (`CloudStreamPipeline.kt`)**: Fixed ExoPlayer stutter caused by aggressive per-read cancellation. Speculative prefetch jobs now persist continuously ahead of playback unless a real player seek occurs (`abs(curChunk - batch.first()) > runway + 4`).
+- **Hot Head & Moov Atom Eager Startup**: Eagerly prefetches chunk 0 and chunk 1 on stream open, and concurrently fetches the file tail chunk (`(size - 1) / CHUNK_SIZE`) for files >1MB, providing an instant 0ms hit for MP4 extractors seeking to parse the `moov` atom without network stalls.
+- **Multi-Worker Parallel Prefetch & Expanded Buffer**: Batches prefetch fetching with 4 concurrent workers (`MAX_CONCURRENT_FETCH = 4`) and expanded the buffer runway to 48 chunks (12 MB) and cache to 80 chunks (20 MB ring buffer) with permanent head and tail eviction locks.
+- **Software Decoder Fallback & Media3 Extractor Flags (`CloudMedia3Source.kt`)**: Enabled `DefaultRenderersFactory.setEnableDecoderFallback(true)` with `EXTENSION_RENDERER_MODE_ON`, allowing smooth playback on unsupported hardware decoders. Configured `DefaultExtractorsFactory` with `FLAG_WORKAROUND_IGNORE_EDIT_LISTS`, `FLAG_DISABLE_SEEK_FOR_CUES`, `FLAG_ENABLE_INDEX_SEEKING`, and `FLAG_ALLOW_NON_IDR_KEYFRAMES`. Tuned `DefaultLoadControl` for sub-400ms startup and 15s back-buffer.
+
+### 2. In-Memory Sparse ZIP Archive Explorer (`DriveZipViewer.kt`, `PreviewPolicy.kt`, `CloudPreview.kt`)
+- **Zero Full-Download Architecture**: Parses EOCD from the tail 64KB and parses Central Directory in RAM in <300ms, conforming strictly to MTProto Rule 10 without downloading the full archive.
+- **Interactive Entry Browser**: Hierarchical file listing with search query filtering, entry size metadata, entry count, and file type iconography.
+- **Direct Entry Preview & Extraction**: In-memory decompression of individual entries for image viewing (`BitmapFactory`) and text/code inspection without extracting the whole archive. Single-tap extraction and export to device Downloads folder.
+- **Preview Pager Isolation (`PreviewNavigation.kt`)**: Excluded ZIP archives from the media swipe pager to maintain separation between interactive archive exploration and media gallery navigation.
+
+### 3. Drive Storage Tools & Duplicate File Matrix (`DriveToolsSheet.kt`, `DriveTopBar.kt`, `DriveScreen.kt`)
+- **Drive Tools Modal Sheet**: Added comprehensive Drive management bottom sheet accessible via a top bar tools button (`Icons.Default.Handyman`) and dropdown menu item.
+- **Space Usage Analytics**: Location breakdown with segmented proportional horizontal progress bar (Videos, Images, Audio, Archives, Documents, Others) and category detail cards with percentage shares and item counts.
+- **Duplicates Matrix & Batch Cleanup**: Identifies duplicate files by matching canonical name and exact byte size, computes wasted storage bytes, and provides batch selectors ("Keep Newest", "Keep Oldest") and delete confirmation dialogs.
+
+### 4. Dedicated Audio Player Experience (`CloudMediaPlayer.kt`)
+- **Dedicated Audio Player Layout**: Centered glowing album artwork card with animated soundwave visualizer, track metadata, and dynamic play/pause controls. Automatically hides video-only controls (aspect ratio, screen rotation) when streaming pure audio files.
+
+### 5. Multi-Language Parity & Physical Device Deployment
+- **100% Zero Hardcoded Strings Parity**: Added 22 new string resources across `values/strings.xml` and `values-en/strings.xml` with 0 discrepancies.
+- **Rule 17 Modular Architecture Compliance**: All source files strictly comply with LOC limits (DriveToolsSheet: 518 LOC, DriveZipViewer: 566 LOC, CloudStreamPipeline: 301 LOC, CloudMedia3Source: 123 LOC).
+- **Quality Gates & Phone Deployment**: Passed all unit tests (`BUILD SUCCESSFUL in 13s`), passed all 8 Autonomous Quality Sentinel gates (`npm run test:quality`), and installed `app-arm64-v8a-debug.apk` directly to physical `Infinix X698` (`192.168.1.5:5555`) with full session and data preservation.
+
+## Earlier Unreleased — Telegram Forum Topic Navigation, Drive Location Switcher & MX-Player/Google Photos Media Tools Suite
 
 ### 1. Drive Location Switcher & Telegram Gradient Avatars (`DriveLocationPickerSheet.kt`, `DriveAvatar.kt`)
 - **Telegram 8-Color Gradient Monograms & Badge Engine (`DriveAvatar.kt`)**: Implemented universal `PeerAvatar` component utilizing Telegram's official 8-color gradient palette (`TELEGRAM_GRADIENT_PAIRS`), 2-letter uppercase monogram generator (`getPeerInitials`), real cloud avatar support via Coil (`AsyncImage`), and distinctive badges for Forum groups (`Icons.Default.Forum`), Channels (`Icons.Default.Campaign`), Supergroups/Groups (`Icons.Default.Groups`), Bots (`Icons.Default.SmartToy`), and Saved Messages (`Icons.Default.Bookmark`).

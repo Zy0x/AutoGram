@@ -82,7 +82,7 @@ internal fun LocalMediaContent(uri: Uri, modifier: Modifier = Modifier) {
                     if (state.text?.truncated == true) Text(stringResource(R.string.real_text_truncated))
                     SelectionContainer { Text(state.text?.text.orEmpty(), Modifier.verticalScroll(rememberScrollState())) }
                 }
-                PreviewKind.PDF, PreviewKind.STICKER, PreviewKind.HEX, PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
+                PreviewKind.PDF, PreviewKind.STICKER, PreviewKind.HEX, PreviewKind.ZIP, PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
             }
         }
     }

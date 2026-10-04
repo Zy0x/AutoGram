@@ -13,5 +13,5 @@ fun previewNavigationItems(state: DriveUiState, selected: DriveFileItem): List<D
         .flatMap { it.items }.filter {
             !it.isFolder && it.cloudAccountId == selected.cloudAccountId &&
                 it.cloudPeerId == selected.cloudPeerId &&
-                (it.id == selected.id || previewKind(it.mimeType) != PreviewKind.UNSUPPORTED)
+                (it.id == selected.id || (previewKind(it.mimeType) != PreviewKind.UNSUPPORTED && previewKind(it.mimeType) != PreviewKind.ZIP))
         }

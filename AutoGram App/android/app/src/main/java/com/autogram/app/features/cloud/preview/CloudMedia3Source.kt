@@ -8,10 +8,16 @@ import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mp3.Mp3Extractor
+import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.mkv.MatroskaExtractor
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import com.autogram.app.features.cloud.CloudFailure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -72,9 +78,18 @@ internal class CloudMedia3Source(private val pipeline: CloudStreamPipeline) : Ba
 internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer {
     val diskCache = SparseDiskStreamCache(context.cacheDir, source.size)
     val pipeline = CloudStreamPipeline(source, diskCache = diskCache)
-    val extractorsFactory = androidx.media3.extractor.DefaultExtractorsFactory()
+    val extractorsFactory = DefaultExtractorsFactory()
         .setConstantBitrateSeekingEnabled(true)
-    return ExoPlayer.Builder(context)
+        .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
+        .setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES)
+        .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+        .setTsExtractorFlags(DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES)
+
+    val renderersFactory = DefaultRenderersFactory(context)
+        .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        .setEnableDecoderFallback(true)
+
+    return ExoPlayer.Builder(context, renderersFactory)
         .setMediaSourceFactory(ProgressiveMediaSource.Factory(
             DataSource.Factory { CloudMedia3Source(pipeline) },
             extractorsFactory
@@ -91,10 +106,14 @@ internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer 
             }))
         .setLoadControl(DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs = */ 15_000,
-                /* maxBufferMs = */ 50_000,
-                /* bufferForPlaybackMs = */ 150,
-                /* bufferForPlaybackAfterRebufferMs = */ 400
+                /* minBufferMs = */ 20_000,
+                /* maxBufferMs = */ 60_000,
+                /* bufferForPlaybackMs = */ 400,
+                /* bufferForPlaybackAfterRebufferMs = */ 1_000
+            )
+            .setBackBuffer(
+                /* backBufferDurationMs = */ 15_000,
+                /* retainBackBufferFromKeyframe = */ true
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build())

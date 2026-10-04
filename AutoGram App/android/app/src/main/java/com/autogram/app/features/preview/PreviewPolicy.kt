@@ -17,6 +17,7 @@ enum class PreviewKind {
     JSON,
     HEX,
     STICKER,
+    ZIP,
     TEXT,
     UNSUPPORTED
 }
@@ -49,6 +50,7 @@ fun previewKind(mime: String, filename: String = ""): PreviewKind {
     val ext = filename.substringAfterLast('.', "").lowercase()
     return when {
         ext == "tgs" || m == "application/x-tgsticker" -> PreviewKind.STICKER
+        ext == "zip" || m in setOf("application/zip", "application/x-zip-compressed") -> PreviewKind.ZIP
         ext == "pdf" || m == "application/pdf" -> PreviewKind.PDF
         ext in setOf("md", "markdown") || m in setOf("text/markdown", "text/x-markdown") -> PreviewKind.MARKDOWN
         ext in setOf("log") || m == "text/x-log" -> PreviewKind.LOG
@@ -76,6 +78,7 @@ fun mediaKindLabel(mime: String, filename: String = ""): Int = when (previewKind
     PreviewKind.JSON -> R.string.preview_json_title
     PreviewKind.STICKER -> R.string.preview_sticker_title
     PreviewKind.HEX -> R.string.preview_hex_title
+    PreviewKind.ZIP -> R.string.real_archive
     else -> if (mime.lowercase() in setOf("application/zip", "application/x-7z-compressed") || filename.lowercase().endsWith(".zip"))
         R.string.real_archive else R.string.real_file
 }

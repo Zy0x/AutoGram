@@ -148,7 +148,7 @@ fun DriveScreen(
         },
         onTagCategory = { isTagModalOpen = true },
         onDeleteSelected = { isDeleteModalOpen = true },
-        onOpenTools = { isDedupCleanerOpen = true },
+        onOpenTools = { isDriveToolsOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
                 viewModel.toggleItemSelection(item.id)
@@ -191,9 +191,14 @@ fun DriveScreen(
     }
 
     if (isDriveToolsOpen) {
-        DriveToolsModal(
-            allItems = state.items,
-            onDismiss = { isDriveToolsOpen = false }
+        DriveToolsSheet(
+            items = state.items,
+            locationTitle = state.activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
+            onDismiss = { isDriveToolsOpen = false },
+            onDeleteItems = { toDeleteIds ->
+                toDeleteIds.forEach { viewModel.toggleItemSelection(it) }
+                isDeleteModalOpen = true
+            }
         )
     }
 

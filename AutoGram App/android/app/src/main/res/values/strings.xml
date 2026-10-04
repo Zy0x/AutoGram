@@ -849,4 +849,31 @@
     <string name="video_tech_duration">Durasi: %1$s</string>
     <string name="video_tech_format">Format: %1$s</string>
     <string name="video_tech_size">Ukuran: %1$s</string>
+
+    <!-- Drive Tools & Space Usage -->
+    <string name="drive_tools_title">Alat Drive</string>
+    <string name="drive_tools_tab_space">Penggunaan Ruang</string>
+    <string name="drive_tools_tab_duplicates">Deteksi Duplikasi</string>
+    <string name="drive_tools_indexed_files">%1$d berkas terindeks</string>
+    <string name="drive_tools_used_capacity">Kapasitas Terpakai</string>
+    <string name="drive_tools_breakdown_title">Rincian Berdasarkan Jenis Berkas</string>
+    <string name="drive_space_videos">Video</string>
+    <string name="drive_space_images">Foto &amp; Gambar</string>
+    <string name="drive_space_audio">Audio &amp; Musik</string>
+    <string name="drive_space_archives">Arsip (ZIP/RAR)</string>
+    <string name="drive_space_documents">Dokumen &amp; PDF</string>
+    <string name="drive_space_other">Lainnya</string>
+    <string name="drive_dup_none">Tidak ada file duplikat terdeteksi di lokasi ini</string>
+    <string name="drive_dup_found_summary">%1$d grup duplikat (%2$d berkas), hemat %3$s</string>
+    <string name="drive_dup_keep_newest">Simpan Terbaru</string>
+    <string name="drive_dup_keep_oldest">Simpan Terlama</string>
+    <string name="drive_dup_action_delete">Hapus %1$d Duplikat</string>
+    <string name="drive_dup_confirm_title">Hapus Duplikat</string>
+    <string name="drive_dup_confirm_msg">Apakah Anda yakin ingin menghapus %1$d berkas duplikat yang dipilih?</string>
+
+    <!-- Zip Viewer & Audio Visualizer -->
+    <string name="zip_summary_info">%1$d berkas • %2$s total</string>
+    <string name="zip_action_extract_entry">Ekstrak Berkas</string>
+    <string name="audio_playing">Sedang Memutar</string>
+    <string name="audio_paused">Dijeda</string>
 </resources>

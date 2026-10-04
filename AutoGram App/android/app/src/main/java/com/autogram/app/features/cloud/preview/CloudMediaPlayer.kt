@@ -187,7 +187,33 @@ internal fun CloudMediaPlayer(
             }
 
             if (audioOnly && error == null) {
-                Icon(Icons.Default.MusicNote, stringResource(R.string.real_audio), Modifier.size(80.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(32.dp),
+                        color = SurfaceElevatedDark,
+                        border = BorderStroke(1.5.dp, MutedIceCyan.copy(alpha = 0.4f)),
+                        modifier = Modifier.size(130.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (playing) Icons.Default.GraphicEq else Icons.Default.MusicNote,
+                                contentDescription = stringResource(R.string.real_audio),
+                                tint = MutedIceCyan,
+                                modifier = Modifier.size(68.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = if (playing) stringResource(R.string.audio_playing) else stringResource(R.string.audio_paused),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextMutedDark
+                    )
+                }
             }
 
             if (buffering && error == null) {
@@ -331,33 +357,35 @@ internal fun CloudMediaPlayer(
                         )
                     }
 
-                    // Aspect Ratio Cycle Mode [ Fit / Fill / 16:9 / Original ]
-                    Surface(
-                        onClick = {
-                            aspectMode = when (aspectMode) {
-                                VideoAspectMode.FIT -> VideoAspectMode.FILL
-                                VideoAspectMode.FILL -> VideoAspectMode.RATIO_16_9
-                                VideoAspectMode.RATIO_16_9 -> VideoAspectMode.ORIGINAL
-                                VideoAspectMode.ORIGINAL -> VideoAspectMode.FIT
+                    // Aspect Ratio Cycle Mode [ Fit / Fill / 16:9 / Original ] (Video Only)
+                    if (!audioOnly) {
+                        Surface(
+                            onClick = {
+                                aspectMode = when (aspectMode) {
+                                    VideoAspectMode.FIT -> VideoAspectMode.FILL
+                                    VideoAspectMode.FILL -> VideoAspectMode.RATIO_16_9
+                                    VideoAspectMode.RATIO_16_9 -> VideoAspectMode.ORIGINAL
+                                    VideoAspectMode.ORIGINAL -> VideoAspectMode.FIT
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = SurfaceElevatedDark,
+                            border = BorderStroke(1.dp, BorderHairline),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
+                                val modeLabel = when (aspectMode) {
+                                    VideoAspectMode.FIT -> stringResource(R.string.video_aspect_fit)
+                                    VideoAspectMode.FILL -> stringResource(R.string.video_aspect_fill)
+                                    VideoAspectMode.RATIO_16_9 -> stringResource(R.string.video_aspect_16_9)
+                                    VideoAspectMode.ORIGINAL -> stringResource(R.string.video_aspect_original)
+                                }
+                                Text(
+                                    text = modeLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
+                                    color = MutedIceCyan
+                                )
                             }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        color = SurfaceElevatedDark,
-                        border = BorderStroke(1.dp, BorderHairline),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
-                            val modeLabel = when (aspectMode) {
-                                VideoAspectMode.FIT -> stringResource(R.string.video_aspect_fit)
-                                VideoAspectMode.FILL -> stringResource(R.string.video_aspect_fill)
-                                VideoAspectMode.RATIO_16_9 -> stringResource(R.string.video_aspect_16_9)
-                                VideoAspectMode.ORIGINAL -> stringResource(R.string.video_aspect_original)
-                            }
-                            Text(
-                                text = modeLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
-                                color = MutedIceCyan
-                            )
                         }
                     }
 
@@ -421,26 +449,28 @@ internal fun CloudMediaPlayer(
                         )
                     }
 
-                    // Fullscreen / Rotate Screen Toggle
-                    IconButton(
-                        onClick = {
-                            activity?.let { act ->
-                                val currentOrientation = act.requestedOrientation
-                                act.requestedOrientation = if (currentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
-                                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                                } else {
-                                    ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    // Fullscreen / Rotate Screen Toggle (Video Only)
+                    if (!audioOnly) {
+                        IconButton(
+                            onClick = {
+                                activity?.let { act ->
+                                    val currentOrientation = act.requestedOrientation
+                                    act.requestedOrientation = if (currentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                                        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                    } else {
+                                        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ScreenRotation,
-                            contentDescription = stringResource(R.string.video_rotate_screen),
-                            tint = TextPrimaryDark,
-                            modifier = Modifier.size(20.dp)
-                        )
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ScreenRotation,
+                                contentDescription = stringResource(R.string.video_rotate_screen),
+                                tint = TextPrimaryDark,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     // Technical Media Info

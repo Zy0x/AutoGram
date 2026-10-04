@@ -96,6 +96,13 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
             }
         }
         bitmap != null -> CloudImageViewer(bitmap, item.name)
+        kind == PreviewKind.ZIP -> {
+            com.autogram.app.ui.drive.preview.DriveZipViewer(
+                source = active,
+                fileName = item.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         kind == PreviewKind.PDF -> {
             com.autogram.app.ui.drive.preview.DrivePdfViewer(
                 source = active,

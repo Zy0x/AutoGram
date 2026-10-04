@@ -314,6 +314,18 @@ fun DriveTopBar(
                         )
                     }
 
+                    IconButton(
+                        onClick = onOpenTools,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Handyman,
+                            contentDescription = stringResource(R.string.drive_tools_title),
+                            tint = GoldAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     Box {
                         IconButton(
                             onClick = { menuOpen = true },
@@ -343,7 +355,7 @@ fun DriveTopBar(
                                 onClick = { menuOpen = false; onRemoteUpload() }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.drive_dedup_title)) },
+                                text = { Text(stringResource(R.string.drive_tools_title)) },
                                 onClick = { menuOpen = false; onOpenTools() }
                             )
                             DropdownMenuItem(

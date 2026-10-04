@@ -846,4 +846,31 @@
     <string name="video_tech_duration">Duration: %1$s</string>
     <string name="video_tech_format">Format: %1$s</string>
     <string name="video_tech_size">Size: %1$s</string>
+
+    <!-- Drive Tools & Space Usage -->
+    <string name="drive_tools_title">Drive Tools</string>
+    <string name="drive_tools_tab_space">Space Usage</string>
+    <string name="drive_tools_tab_duplicates">Duplicates</string>
+    <string name="drive_tools_indexed_files">%1$d files indexed</string>
+    <string name="drive_tools_used_capacity">Used Capacity</string>
+    <string name="drive_tools_breakdown_title">Breakdown by File Type</string>
+    <string name="drive_space_videos">Videos</string>
+    <string name="drive_space_images">Photos &amp; Images</string>
+    <string name="drive_space_audio">Audio &amp; Music</string>
+    <string name="drive_space_archives">Archives (ZIP/RAR)</string>
+    <string name="drive_space_documents">Documents &amp; PDF</string>
+    <string name="drive_space_other">Others</string>
+    <string name="drive_dup_none">No duplicate files detected in this location</string>
+    <string name="drive_dup_found_summary">%1$d duplicate groups (%2$d files), save %3$s</string>
+    <string name="drive_dup_keep_newest">Keep Newest</string>
+    <string name="drive_dup_keep_oldest">Keep Oldest</string>
+    <string name="drive_dup_action_delete">Delete %1$d Duplicates</string>
+    <string name="drive_dup_confirm_title">Delete Duplicates</string>
+    <string name="drive_dup_confirm_msg">Are you sure you want to delete %1$d selected duplicate files?</string>
+
+    <!-- Zip Viewer & Audio Visualizer -->
+    <string name="zip_summary_info">%1$d files • %2$s total</string>
+    <string name="zip_action_extract_entry">Extract File</string>
+    <string name="audio_playing">Now Playing</string>
+    <string name="audio_paused">Paused</string>
 </resources>
