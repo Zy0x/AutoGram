@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.autogram.app.features.cloud.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,7 +72,22 @@ class DriveViewModel : ViewModel() {
     private var mediaJob: Job? = null
     private var locationsJob: Job? = null
     private var thumbUpgradeJob: Job? = null
+    private var thumbnailWorkerRevision = 0L
+    private var previewActive = false
+    private var pendingThumbnailIds = emptySet<Int>()
     private val upgradedIds = mutableSetOf<Int>()
+
+    private fun stopThumbnailUpgrade() {
+        thumbnailWorkerRevision++
+        thumbUpgradeJob?.cancel(); thumbUpgradeJob = null
+        upgradedIds.removeAll(pendingThumbnailIds); pendingThumbnailIds = emptySet()
+    }
+
+    fun setPreviewActive(active: Boolean) {
+        if (previewActive == active) return
+        previewActive = active
+        if (active) stopThumbnailUpgrade() else triggerThumbnailUpgrade()
+    }
 
     init {
         viewModelScope.launch {
@@ -93,6 +110,9 @@ class DriveViewModel : ViewModel() {
     }
 
     private fun triggerThumbnailUpgrade() {
+        if (previewActive) return
+        if (cloud.state.value.loading) return
+        if (thumbUpgradeJob?.isActive == true) return
         val currentQuality = _uiState.value.thumbnailQuality
         if (currentQuality == DriveThumbnailQuality.SAVER) return
         val currentItems = cloud.state.value.items
@@ -100,23 +120,36 @@ class DriveViewModel : ViewModel() {
 
         val eligible = currentItems.filter { item ->
             item.id > 0 &&
-            item.telegramCategory in setOf("photo", "video", "gif", "sticker") &&
+            (item.thumbnailBytes != null || item.telegramCategory in setOf("photo", "video", "gif", "sticker")) &&
             !upgradedIds.contains(item.id)
         }
         if (eligible.isEmpty()) return
 
-        thumbUpgradeJob?.cancel()
+        val revision = thumbnailWorkerRevision
+        val requestScope = cloud.state.value.scope
         thumbUpgradeJob = viewModelScope.launch {
             val chunks = eligible.map { it.id }.chunked(24)
             for (chunk in chunks) {
-                cloud.upgradeThumbnails(currentQuality.wireValue, chunk)
+                currentCoroutineContext().ensureActive()
+                if (revision != thumbnailWorkerRevision || requestScope != cloud.state.value.scope) return@launch
+                // Reserve before publication: store emissions must not schedule this batch again.
+                pendingThumbnailIds = chunk.toSet()
                 upgradedIds.addAll(chunk)
+                cloud.upgradeThumbnails(currentQuality.wireValue, chunk)
+                currentCoroutineContext().ensureActive()
+                if (revision != thumbnailWorkerRevision) return@launch
+                pendingThumbnailIds = emptySet()
             }
+            if (revision != thumbnailWorkerRevision) return@launch
+            thumbUpgradeJob = null
+            triggerThumbnailUpgrade()
         }
     }
 
     fun setThumbnailQuality(quality: DriveThumbnailQuality) {
         if (_uiState.value.thumbnailQuality == quality) return
+        stopThumbnailUpgrade()
+        cloud.invalidateThumbnails()
         _uiState.update { it.copy(thumbnailQuality = quality) }
         upgradedIds.clear()
         if (quality != DriveThumbnailQuality.SAVER) {
@@ -125,7 +158,7 @@ class DriveViewModel : ViewModel() {
     }
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
-        mediaJob?.cancel(); locationsJob?.cancel(); thumbUpgradeJob?.cancel()
+        mediaJob?.cancel(); locationsJob?.cancel(); stopThumbnailUpgrade()
         upgradedIds.clear()
         cloud.scope(CloudScope(sessionId, peerId))
         _uiState.update {
@@ -136,7 +169,7 @@ class DriveViewModel : ViewModel() {
     }
 
     fun loadFolder(path: String) {
-        mediaJob?.cancel(); thumbUpgradeJob?.cancel()
+        mediaJob?.cancel(); stopThumbnailUpgrade()
         upgradedIds.clear()
         _uiState.update { it.copy(currentPath = path, selectedIds = emptySet()) }
         mediaJob = viewModelScope.launch { cloud.media() }
@@ -159,6 +192,7 @@ class DriveViewModel : ViewModel() {
     }
 
     fun setSearchQuery(query: String) {
+        stopThumbnailUpgrade(); upgradedIds.clear()
         mediaJob?.cancel()
         cloud.query(query)
         _uiState.update { it.copy(searchQuery = query, items = emptyList(), selectedIds = emptySet()) }

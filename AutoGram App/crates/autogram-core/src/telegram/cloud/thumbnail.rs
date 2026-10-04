@@ -12,7 +12,7 @@ use grammers_client::{
 };
 
 pub const MAX_THUMBNAIL_BATCH: usize = 24;
-pub const MAX_THUMBNAIL_BYTES: usize = 512 * 1024;
+pub const MAX_THUMBNAIL_BYTES: usize = 1024 * 1024;
 const BALANCED_TARGET_DIM: i32 = 512;
 const DOWNLOAD_CHUNK: i32 = 128 * 1024;
 
@@ -52,7 +52,7 @@ pub(crate) struct Layer {
 
 impl Layer {
     fn downloadable(&self) -> bool {
-        !self.inline && self.bytes > 0
+        !self.inline && self.bytes > 0 && self.bytes <= MAX_THUMBNAIL_BYTES
     }
     fn area(&self) -> i64 {
         if self.width > 0 && self.height > 0 {
@@ -63,29 +63,53 @@ impl Layer {
     }
 }
 
-/// Returns the index of the layer to use for `quality`, or `None` when the
+/// Returns ordered candidate layer indices for `quality`, ordered from most preferred
+/// to least preferred fallback.
+pub(crate) fn candidate_layers(layers: &[Layer], quality: ThumbnailQuality) -> Vec<usize> {
+    let inline_indices: Vec<usize> = (0..layers.len()).filter(|&i| layers[i].inline).collect();
+    let mut downloadable: Vec<usize> = (0..layers.len()).filter(|&i| layers[i].downloadable()).collect();
+
+    if quality == ThumbnailQuality::Saver {
+        if let Some(&first_inline) = inline_indices.first() {
+            let mut result = vec![first_inline];
+            downloadable.sort_by_key(|&i| layers[i].area());
+            result.extend(downloadable);
+            return result;
+        }
+        downloadable.sort_by_key(|&i| layers[i].area());
+        return downloadable;
+    }
+
+    if downloadable.is_empty() {
+        return Vec::new();
+    }
+
+    match quality {
+        ThumbnailQuality::Sharp => {
+            // Descending order of area (largest static layer <= MAX_THUMBNAIL_BYTES first)
+            downloadable.sort_by_key(|&i| std::cmp::Reverse(layers[i].area()));
+            downloadable
+        }
+        ThumbnailQuality::Balanced => {
+            // Sort by distance to 512px target, then descending by area
+            downloadable.sort_by_key(|&i| {
+                let max_dim = layers[i].width.max(layers[i].height);
+                if max_dim > 0 {
+                    ((max_dim - BALANCED_TARGET_DIM).abs(), -layers[i].area())
+                } else {
+                    (10_000, -layers[i].area())
+                }
+            });
+            downloadable
+        }
+        ThumbnailQuality::Saver => downloadable,
+    }
+}
+
+/// Returns the index of the best layer to use for `quality`, or `None` when the
 /// caller should keep the inline placeholder it already has.
 pub(crate) fn pick_layer(layers: &[Layer], quality: ThumbnailQuality) -> Option<usize> {
-    if quality == ThumbnailQuality::Saver {
-        if let Some(index) = layers.iter().position(|layer| layer.inline) {
-            return Some(index);
-        }
-    }
-    let mut downloadable: Vec<usize> = (0..layers.len()).filter(|&i| layers[i].downloadable()).collect();
-    if downloadable.is_empty() {
-        return None;
-    }
-    downloadable.sort_by_key(|&i| layers[i].area());
-    match quality {
-        ThumbnailQuality::Saver => downloadable.first().copied(),
-        ThumbnailQuality::Sharp => downloadable.last().copied(),
-        ThumbnailQuality::Balanced => downloadable
-            .iter()
-            .copied()
-            .filter(|&i| layers[i].width.max(layers[i].height) > 0)
-            .min_by_key(|&i| (layers[i].width.max(layers[i].height) - BALANCED_TARGET_DIM).abs())
-            .or_else(|| downloadable.last().copied()),
-    }
+    candidate_layers(layers, quality).first().copied()
 }
 
 fn describe(size: &PhotoSize) -> Option<Layer> {
@@ -109,6 +133,7 @@ pub(crate) fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
 }
 
 /// Downloads the selected layer for one message. `Ok(None)` means "keep the placeholder".
+/// Iterates candidate layers with fallback if a larger layer fails or exceeds bounds.
 /// FloodWait and other RPC failures are returned so the batch can back off.
 pub(crate) async fn fetch_thumbnail(
     client: &Client,
@@ -122,26 +147,41 @@ pub(crate) async fn fetch_thumbnail(
         .filter_map(|(i, size)| describe(size).map(|layer| (i, layer)))
         .collect();
     let plain: Vec<Layer> = layers.iter().map(|(_, layer)| *layer).collect();
-    let Some(choice) = pick_layer(&plain, quality) else {
-        return Ok(None);
-    };
-    let size = &sizes[layers[choice].0];
-    if let Some(data) = size.to_data() {
-        return Ok((!data.is_empty()).then_some(data));
-    }
-    if size.size() > MAX_THUMBNAIL_BYTES {
+    let candidates = candidate_layers(&plain, quality);
+    if candidates.is_empty() {
         return Ok(None);
     }
-    let mut output = Vec::with_capacity(size.size());
-    let mut download = client.iter_download(size).chunk_size(DOWNLOAD_CHUNK);
-    while let Some(chunk) = download.next().await.map_err(crate::telegram::auth::map_rpc)? {
-        output.extend_from_slice(&chunk);
-        if output.len() > MAX_THUMBNAIL_BYTES {
-            return Ok(None);
+
+    for choice in candidates {
+        let size = &sizes[layers[choice].0];
+        if let Some(data) = size.to_data() {
+            if !data.is_empty() {
+                let unstripped = super::jpeg::unstrip_jpeg(&data).unwrap_or(data);
+                return Ok(Some(unstripped));
+            }
+            continue;
         }
+        if size.size() > MAX_THUMBNAIL_BYTES {
+            continue;
+        }
+        let mut output = Vec::with_capacity(size.size().min(MAX_THUMBNAIL_BYTES));
+        let mut download = client.iter_download(size).chunk_size(DOWNLOAD_CHUNK);
+        let mut exceeded = false;
+        while let Some(chunk) = download.next().await.map_err(crate::telegram::auth::map_rpc)? {
+            output.extend_from_slice(&chunk);
+            if output.len() > MAX_THUMBNAIL_BYTES {
+                exceeded = true;
+                break;
+            }
+        }
+        if exceeded || output.len() < 64 {
+            continue;
+        }
+        let final_bytes = super::jpeg::unstrip_jpeg(&output).unwrap_or(output);
+        return Ok(Some(final_bytes));
     }
-    // Desktop parity: anything this small is not a decodable JPEG layer.
-    Ok((output.len() >= 64).then_some(output))
+
+    Ok(None)
 }
 
 #[cfg(test)]
@@ -199,5 +239,21 @@ mod tests {
     fn zero_byte_layers_are_not_downloadable() {
         let layers = [real(800, 0), real(320, 9_000)];
         assert_eq!(pick_layer(&layers, ThumbnailQuality::Sharp), Some(1));
+    }
+
+    #[test]
+    fn candidate_layers_sharp_orders_descending_by_area() {
+        let layers = [real(320, 9_000), inline(), real(1280, 120_000), real(800, 60_000)];
+        let candidates = candidate_layers(&layers, ThumbnailQuality::Sharp);
+        assert_eq!(candidates, vec![2, 3, 0]);
+    }
+
+    #[test]
+    fn candidate_layers_excludes_layers_exceeding_max_bytes() {
+        let oversized = real(2560, MAX_THUMBNAIL_BYTES + 1024);
+        let normal = real(1280, 200_000);
+        let layers = [oversized, normal];
+        let candidates = candidate_layers(&layers, ThumbnailQuality::Sharp);
+        assert_eq!(candidates, vec![1]);
     }
 }

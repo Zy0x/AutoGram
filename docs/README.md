@@ -18,6 +18,12 @@ Welcome to the official documentation for **AutoGram** — the high-performance 
 
 ## 🌟 Key Highlights of AutoGram
 
+Android Debug APKs remain previews rather than complete desktop replacements. Cloud
+Drive preview uses native byte-range reads and a progressive player with separate
+startup and ongoing buffer thresholds. Supported images, text, audio and video do not
+imply archive/document or transfer parity. See the current
+[Android preview guide](../AutoGram%20App/docs/ANDROID_PREVIEW.md) for limits and controls.
+
 1. **Native Grammers Rust MTProto Engine**: Connects directly to official Telegram Data Centers with maximum bandwidth efficiency and lowest CPU overhead.
 2. **Zero-Waste Sparse ZIP Streaming**: Browse and extract single files inside 10 GB+ ZIP archives in milliseconds without downloading the whole file.
 3. **4-Level Duplicate Prevention**: Protects Telegram storage from duplicate uploads using cryptographic hash and file pointer checks.

@@ -11,8 +11,11 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
     val state = mutable.asStateFlow()
     private var mediaRevision = 0L
     private var locationsRevision = 0L
+    private var thumbnailRevision = 0L
+    fun invalidateThumbnails() { thumbnailRevision++ }
 
     fun scope(scope: CloudScope) {
+        invalidateThumbnails()
         mediaRevision++; locationsRevision++
         val current = mutable.value
         mutable.value = if (scope.accountId == current.scope.accountId) {
@@ -21,6 +24,7 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
         } else CloudState(scope = scope)
     }
     fun query(query: String) {
+        invalidateThumbnails()
         mediaRevision++
         mutable.update { it.copy(query = query, items = emptyList(), nextOffset = null, loading = false, error = null) }
     }
@@ -31,6 +35,7 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
         val request = mutable.value
         if (request.scope.accountId.isBlank() || request.retryAtMs > now() || (append && request.loading)) return
         val offset = if (append) request.nextOffset ?: return else 0
+        if (!append) invalidateThumbnails()
         val revision = ++mediaRevision
         mutable.update { it.copy(loading = true, error = null) }
         try {
@@ -80,11 +85,11 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
 
     suspend fun upgradeThumbnails(quality: String, messageIds: List<Int>) {
         val request = mutable.value
-        if (request.scope.accountId.isBlank() || messageIds.isEmpty()) return
-        val currentRevision = mediaRevision
+        if (request.scope.accountId.isBlank() || messageIds.isEmpty() || request.retryAtMs > now()) return
+        val currentThumbnailRevision = thumbnailRevision
         try {
             val thumbnails = service.thumbnails(request.scope, messageIds, quality)
-            if (currentRevision != mediaRevision || thumbnails.isEmpty()) return
+            if (currentThumbnailRevision != thumbnailRevision || thumbnails.isEmpty()) return
             val map = thumbnails.associate { it.messageId to it.bytes }
             mutable.update { state ->
                 val updatedItems = state.items.map { item ->
@@ -93,8 +98,14 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
                 }
                 state.copy(items = updatedItems)
             }
-        } catch (_: Exception) {
-            // Non-critical: keep stripped preview placeholders if upgrade fails
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            if (currentThumbnailRevision != thumbnailRevision) return
+            val failure = failed(error)
+            // Retain existing cards, but preserve server cooldown for all cloud reads.
+            if (failure.code in setOf("flood_wait", "not_authorized", "account_changed"))
+                mutable.update { it.copy(error = failure.code, retryAtMs = retryAt(failure)) }
         }
     }
 }

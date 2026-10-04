@@ -5,6 +5,52 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CloudStoreTest {
+    @Test fun appendPreservesPendingThumbnailButFullRefreshRejectsIt() = runBlocking {
+        var pending = CompletableDeferred<List<CloudThumbnail>>()
+        val store = CloudStore(Service(
+            read = { s, before, _ -> CloudMediaPage(s.accountId, s.peerId,
+                listOf(item(if (before == 0) 42 else 41)), if (before == 0) 41 else null) },
+            thumbProvider = { _, _, _ -> pending.await() }))
+        store.scope(scope); store.media()
+        val first = launch(start = CoroutineStart.UNDISPATCHED) { store.upgradeThumbnails("balanced", listOf(42)) }
+        store.media(append = true)
+        pending.complete(listOf(CloudThumbnail(42, byteArrayOf(7)))); first.join()
+        assertArrayEquals(byteArrayOf(7), store.state.value.items.first().thumbnailBytes)
+        pending = CompletableDeferred()
+        val stale = launch(start = CoroutineStart.UNDISPATCHED) { store.upgradeThumbnails("sharp", listOf(42)) }
+        store.media()
+        pending.complete(listOf(CloudThumbnail(42, byteArrayOf(9)))); stale.join()
+        assertNull(store.state.value.items.single().thumbnailBytes)
+    }
+    @Test fun oldThumbnailQualityCannotOverwriteNewGeneration() = runBlocking {
+        val pending = CompletableDeferred<List<CloudThumbnail>>()
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(42)), null) },
+            thumbProvider = { _, _, _ -> pending.await() }))
+        store.scope(scope); store.media()
+        val old = launch(start = CoroutineStart.UNDISPATCHED) { store.upgradeThumbnails("balanced", listOf(42)) }
+        store.invalidateThumbnails()
+        pending.complete(listOf(CloudThumbnail(42, byteArrayOf(9))))
+        old.join()
+        assertNull(store.state.value.items.single().thumbnailBytes)
+    }
+
+    @Test fun thumbnailCancellationIsNotSwallowedAndFloodWaitBlocksFurtherWork() = runBlocking {
+        var calls = 0
+        val pending = CompletableDeferred<List<CloudThumbnail>>()
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(42)), null) },
+            thumbProvider = { _, _, _ -> if (++calls == 1) pending.await() else throw CloudFailure("flood_wait", 5) }), { 1000 })
+        store.scope(scope); store.media()
+        val old = launch(start = CoroutineStart.UNDISPATCHED) { store.upgradeThumbnails("balanced", listOf(42)) }
+        old.cancelAndJoin()
+        assertTrue(old.isCancelled)
+        store.upgradeThumbnails("sharp", listOf(42)); store.upgradeThumbnails("sharp", listOf(42))
+        assertEquals(2, calls)
+        assertEquals("flood_wait", store.state.value.error)
+        assertEquals(6000L, store.state.value.retryAtMs)
+        assertEquals(42, store.state.value.items.single().id)
+    }
     private val scope = CloudScope("A", "me")
     private fun item(id: Int) = CloudMedia(id, "file", 20, "text/plain", 1, "document", "file")
     private class Service(

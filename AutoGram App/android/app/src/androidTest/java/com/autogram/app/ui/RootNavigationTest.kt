@@ -55,9 +55,15 @@ class RootNavigationTest {
         compose.onAllNodesWithTag("drive-media-image").onFirst().performTouchInput { click() }
         try {
             compose.onNodeWithTag("drive-preview").assertIsDisplayed()
-            compose.waitUntil(timeoutMillis = 35_000) {
-                compose.onAllNodesWithTag("preview-image-ready").fetchSemanticsNodes().isNotEmpty() ||
-                    compose.onAllNodesWithTag("preview-error").fetchSemanticsNodes().isNotEmpty()
+            try {
+                compose.waitUntil(timeoutMillis = 35_000) {
+                    compose.onAllNodesWithTag("preview-image-ready").fetchSemanticsNodes().isNotEmpty() ||
+                        compose.onAllNodesWithTag("preview-error").fetchSemanticsNodes().isNotEmpty()
+                }
+            } catch (timeout: ComposeTimeoutException) {
+                val phase = if (compose.onAllNodesWithTag("preview-reading").fetchSemanticsNodes().isNotEmpty()) "reading"
+                    else if (compose.onAllNodesWithTag("preview-opening").fetchSemanticsNodes().isNotEmpty()) "opening" else "unknown"
+                throw AssertionError("Photo preview timed out phase=$phase", timeout)
             }
             // Generic assertions only, avoiding a semantics dump containing personal filenames.
             assertTrue("Real photo did not decode", compose.onAllNodesWithTag("preview-image-ready").fetchSemanticsNodes().size == 1)

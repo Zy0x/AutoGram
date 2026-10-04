@@ -362,7 +362,7 @@ impl CloudWorkspace {
             for maybe_msg in messages.into_iter().flatten() {
                 let msg_id = maybe_msg.id();
                 if let Some(media) = maybe_msg.media() {
-                    if let Ok(Some(bytes)) = thumbnail::fetch_thumbnail(&client, &media, quality).await {
+                    if let Some(bytes) = thumbnail::fetch_thumbnail(&client, &media, quality).await? {
                         results.push(CloudThumbnailItem {
                             message_id: msg_id,
                             thumbnail_bytes: bytes,

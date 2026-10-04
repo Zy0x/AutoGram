@@ -29,6 +29,7 @@ fn inline_thumbnail(thumbs: Vec<PhotoSize>) -> Option<Vec<u8>> {
         .filter(|thumb| matches!(thumb, PhotoSize::Cached(_) | PhotoSize::Stripped(_)))
         .filter_map(|thumb| thumb.to_data())
         .find(|bytes| !bytes.is_empty() && bytes.len() <= 64 * 1024)
+        .map(|bytes| super::jpeg::unstrip_jpeg(&bytes).unwrap_or(bytes))
 }
 
 pub fn has_native_delivery(attributes: &[tl::enums::DocumentAttribute]) -> bool {

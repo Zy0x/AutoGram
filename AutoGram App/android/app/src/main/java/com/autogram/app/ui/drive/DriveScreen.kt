@@ -47,6 +47,12 @@ fun DriveScreen(
     var isMoveModalOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
+    LaunchedEffect(previewItem != null || zipArchiveItem != null) {
+        viewModel.setPreviewActive(previewItem != null || zipArchiveItem != null)
+    }
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.setPreviewActive(false) }
+    }
     LaunchedEffect(state.sessionId, state.peerId, state.topicId) {
         previewItem = null
         zipArchiveItem = null
