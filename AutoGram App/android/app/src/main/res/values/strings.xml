@@ -472,4 +472,9 @@
     <string name="drive_thumb_sharp">Jelas</string>
     <string name="drive_thumb_sharp_label">Jelas</string>
     <string name="drive_thumb_sharp_desc">Tajam dari layer Telegram terbesar — tanpa unduh full file</string>
+    <string name="drive_aspect_ratio">Rasio Grid</string>
+    <string name="drive_ratio_square">1:1</string>
+    <string name="drive_ratio_square_label">Persegi (1:1)</string>
+    <string name="drive_ratio_portrait">2:3</string>
+    <string name="drive_ratio_portrait_label">Potret Desktop (2:3)</string>
 </resources>

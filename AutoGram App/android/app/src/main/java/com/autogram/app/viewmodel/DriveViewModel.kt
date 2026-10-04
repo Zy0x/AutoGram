@@ -48,12 +48,18 @@ enum class DriveThumbnailQuality(val wireValue: String) {
     SHARP("sharp")
 }
 
+enum class DriveGridAspectRatio(val ratio: Float, val label: String) {
+    SQUARE(1f, "1:1"),
+    PORTRAIT(2f / 3f, "2:3")
+}
+
 data class DriveUiState(
     val currentPath: String = "/",
     val searchQuery: String = "",
     val isGridView: Boolean = true,
     val mediaFilter: DriveMediaFilter = DriveMediaFilter.ALL,
     val thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
+    val gridAspectRatio: DriveGridAspectRatio = DriveGridAspectRatio.PORTRAIT,
     val isLoading: Boolean = false,
     val items: List<DriveFileItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
@@ -205,6 +211,20 @@ class DriveViewModel : ViewModel() {
 
     fun toggleViewMode() {
         _uiState.update { it.copy(isGridView = !it.isGridView) }
+    }
+
+    fun setGridAspectRatio(ratio: DriveGridAspectRatio) {
+        if (_uiState.value.gridAspectRatio == ratio) return
+        _uiState.update { it.copy(gridAspectRatio = ratio) }
+    }
+
+    fun toggleGridAspectRatio() {
+        val next = if (_uiState.value.gridAspectRatio == DriveGridAspectRatio.PORTRAIT) {
+            DriveGridAspectRatio.SQUARE
+        } else {
+            DriveGridAspectRatio.PORTRAIT
+        }
+        setGridAspectRatio(next)
     }
 
     fun toggleItemSelection(id: String) {

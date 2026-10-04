@@ -470,4 +470,9 @@
     <string name="drive_thumb_sharp">Sharp</string>
     <string name="drive_thumb_sharp_label">Sharp</string>
     <string name="drive_thumb_sharp_desc">Crisp from largest Telegram layer — without downloading full file</string>
+    <string name="drive_aspect_ratio">Grid Ratio</string>
+    <string name="drive_ratio_square">1:1</string>
+    <string name="drive_ratio_square_label">Square (1:1)</string>
+    <string name="drive_ratio_portrait">2:3</string>
+    <string name="drive_ratio_portrait_label">Desktop Portrait (2:3)</string>
 </resources>

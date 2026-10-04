@@ -29,10 +29,10 @@ import com.autogram.app.viewmodel.DriveFileItem
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileGridItem(item: DriveFileItem, isSelected: Boolean, onClick: () -> Unit,
-    onLongClick: () -> Unit, modifier: Modifier = Modifier) {
+    onLongClick: () -> Unit, modifier: Modifier = Modifier, aspectRatio: Float = 2f / 3f) {
     val visual = item.telegramCategory in setOf("photo", "video", "gif", "sticker")
     val scheme = MaterialTheme.colorScheme
-    Box(modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(4.dp))
+    Box(modifier.fillMaxWidth().aspectRatio(aspectRatio).clip(RoundedCornerShape(4.dp))
         .testTag("drive-media-${com.autogram.app.features.preview.previewKind(item.mimeType).name.lowercase(java.util.Locale.ROOT)}")
         .background(if (isSelected) scheme.primaryContainer else scheme.surfaceVariant)
         .semantics { contentDescription = item.name; selected = isSelected }

@@ -15,6 +15,25 @@
 - Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
 - Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
 
+## v4.1.31 — Android Drive Gallery Desktop 2:3 Aspect Ratio Parity & Flexible Thumbnail Layout
+
+### 1. Android Drive Gallery 2:3 & 1:1 Aspect Ratio Layout
+- **Multi-Ratio Presentation Architecture**:
+  - Introduced `DriveGridAspectRatio` enum (`SQUARE` at 1.0f and `PORTRAIT` at 2f / 3f) in `DriveViewModel`, providing instant user-selectable aspect ratio options matching the canonical Desktop Cloud Drive poster card format (`cardHeight = Math.round(cardWidth * 1.5)`).
+  - Updated `FileGridItem` to dynamically adapt between square (1:1) and portrait poster (2:3) thumbnail modes via `Modifier.aspectRatio(aspectRatio)` with Coil `ContentScale.Crop` boundary enforcement.
+  - Added direct quick-toggle pill controls `[ 1:1 ] [ 2:3 ]` and integrated 3-dots dropdown menu options with checkmark indicators into `DriveTopBar`.
+
+### 2. Localization & Accessibility Parity
+- **Multi-Language Parity (ID / EN)**:
+  - Extracted all aspect ratio strings into `values/strings.xml` and `values-en/strings.xml` with 100% key parity (`drive_aspect_ratio`, `drive_ratio_square`, `drive_ratio_square_label`, `drive_ratio_portrait`, `drive_ratio_portrait_label`).
+  - Maintained minimum 48×48 dp touch-target requirements for all aspect ratio selection buttons and dropdown items.
+
+### 3. Desktop Parity & Autonomous Quality Verification
+- **Quality Gates & Test Suites**:
+  - Re-verified all 8 Autonomous Quality Sentinel gates on Desktop frontend (`npm run test:quality`) passing 100% with 0 TypeScript errors, 63 Vitest tests, and zero regressions on the live Desktop core.
+  - Executed Android `testDebugUnitTest` and `lintDebug` passing with zero errors.
+  - Successfully packaged and installed verified native arm64 APK on physical device `Infinix X698` via `adb -s 192.168.1.5:5555 install -r`.
+
 ## v4.1.30 — Telegram Thumbnail High-Resolution Restoration & Standard JPEG Reconstruction
 
 ### 1. Telegram Thumbnail Sharpness & Layer Selection Architecture

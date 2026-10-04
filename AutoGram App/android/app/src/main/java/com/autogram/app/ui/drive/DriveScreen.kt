@@ -71,6 +71,7 @@ fun DriveScreen(
         onSearchChange = viewModel::setSearchQuery,
         onMediaFilterChange = viewModel::setMediaFilter,
         onThumbnailQualityChange = viewModel::setThumbnailQuality,
+        onGridAspectRatioChange = viewModel::setGridAspectRatio,
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { unsupported = true },
@@ -162,6 +163,7 @@ fun DriveScreenContent(
     onSearchChange: (String) -> Unit,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
+    onGridAspectRatioChange: (DriveGridAspectRatio) -> Unit = {},
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
     onUpload: () -> Unit,
@@ -204,11 +206,33 @@ fun DriveScreenContent(
             ) {
                 item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
                 item(key = "controls", span = { GridItemSpan(maxLineSpan) }) {
-                    DriveTopBar(state.currentPath, filteredItems.size, state.selectedIds.size, state.searchQuery,
-                        onSearchChange, state.mediaFilter, onMediaFilterChange,
-                        state.thumbnailQuality, onThumbnailQualityChange, state.isGridView,
-                        onToggleViewMode, onRefresh, onUpload, onClearSelection, onSelectAll, onInvertSelection,
-                        onDownloadZip, onCleanForward, onMoveFolder, onCopyLinks, onTagCategory, onDeleteSelected, onOpenTools)
+                    DriveTopBar(
+                        currentPath = state.currentPath,
+                        itemCount = filteredItems.size,
+                        selectedCount = state.selectedIds.size,
+                        searchQuery = state.searchQuery,
+                        onSearchChange = onSearchChange,
+                        mediaFilter = state.mediaFilter,
+                        onMediaFilterChange = onMediaFilterChange,
+                        thumbnailQuality = state.thumbnailQuality,
+                        onThumbnailQualityChange = onThumbnailQualityChange,
+                        gridAspectRatio = state.gridAspectRatio,
+                        onGridAspectRatioChange = onGridAspectRatioChange,
+                        isGridView = state.isGridView,
+                        onToggleViewMode = onToggleViewMode,
+                        onRefresh = onRefresh,
+                        onUpload = onUpload,
+                        onClearSelection = onClearSelection,
+                        onSelectAll = onSelectAll,
+                        onInvertSelection = onInvertSelection,
+                        onDownloadZip = onDownloadZip,
+                        onCleanForward = onCleanForward,
+                        onMoveFolder = onMoveFolder,
+                        onCopyLinks = onCopyLinks,
+                        onTagCategory = onTagCategory,
+                        onDeleteSelected = onDeleteSelected,
+                        onOpenTools = onOpenTools
+                    )
                 }
                 state.errorCode?.let { code ->
                     item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
@@ -252,8 +276,13 @@ fun DriveScreenContent(
                         )
                     }
                     items(section.items, key = { "media:${it.id}" }) { item ->
-                        if (state.isGridView) FileGridItem(item, item.id in state.selectedIds,
-                            { onItemClick(item) }, { onItemLongClick(item) })
+                        if (state.isGridView) FileGridItem(
+                            item = item,
+                            isSelected = item.id in state.selectedIds,
+                            onClick = { onItemClick(item) },
+                            onLongClick = { onItemLongClick(item) },
+                            aspectRatio = state.gridAspectRatio.ratio
+                        )
                         else FileListItem(item, item.id in state.selectedIds, { onItemClick(item) },
                             { onItemLongClick(item) }, Modifier.padding(horizontal = 12.dp, vertical = 3.dp))
                     }

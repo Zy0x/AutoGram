@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramStatusDot
+import com.autogram.app.viewmodel.DriveGridAspectRatio
 import com.autogram.app.viewmodel.DriveMediaFilter
 import com.autogram.app.viewmodel.DriveThumbnailQuality
 
@@ -35,6 +36,8 @@ fun DriveTopBar(
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
     thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
+    gridAspectRatio: DriveGridAspectRatio = DriveGridAspectRatio.PORTRAIT,
+    onGridAspectRatioChange: (DriveGridAspectRatio) -> Unit = {},
     isGridView: Boolean,
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
@@ -298,7 +301,7 @@ fun DriveTopBar(
                                 },
                                 onClick = { menuOpen = false; onThumbnailQualityChange(DriveThumbnailQuality.BALANCED) }
                             )
-                            DropdownMenuItem(
+                                DropdownMenuItem(
                                 text = {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -311,6 +314,43 @@ fun DriveTopBar(
                                     }
                                 },
                                 onClick = { menuOpen = false; onThumbnailQualityChange(DriveThumbnailQuality.SHARP) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(
+                                text = stringResource(R.string.drive_aspect_ratio),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = TextSecondaryDark,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(stringResource(R.string.drive_ratio_portrait_label))
+                                        if (gridAspectRatio == DriveGridAspectRatio.PORTRAIT) {
+                                            Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = MutedIceCyan)
+                                        }
+                                    }
+                                },
+                                onClick = { menuOpen = false; onGridAspectRatioChange(DriveGridAspectRatio.PORTRAIT) }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(stringResource(R.string.drive_ratio_square_label))
+                                        if (gridAspectRatio == DriveGridAspectRatio.SQUARE) {
+                                            Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = MutedIceCyan)
+                                        }
+                                    }
+                                },
+                                onClick = { menuOpen = false; onGridAspectRatioChange(DriveGridAspectRatio.SQUARE) }
                             )
                         }
                     }
@@ -366,57 +406,106 @@ fun DriveTopBar(
             }
         }
 
-        // Desktop Parity: 3-Mode Grid Thumbnail Quality Selector (Hemat / Seimbang / Jelas)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.drive_thumb_quality),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                color = TextSecondaryDark
-            )
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = SurfaceElevatedDark,
-                border = BorderStroke(1.dp, BorderHairline)
+        // Desktop Parity: Grid Thumbnail Aspect Ratio (2:3 / 1:1) & Quality Selector (Hemat / Seimbang / Jelas)
+        if (isGridView) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Aspect Ratio Selector [ 1:1 ] [ 2:3 ]
                 Row(
-                    modifier = Modifier.padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    DriveThumbnailQuality.entries.forEach { q ->
-                        val isSelected = q == thumbnailQuality
-                        val labelRes = when (q) {
-                            DriveThumbnailQuality.SAVER -> R.string.drive_thumb_saver
-                            DriveThumbnailQuality.BALANCED -> R.string.drive_thumb_balanced
-                            DriveThumbnailQuality.SHARP -> R.string.drive_thumb_sharp
-                        }
-                        Surface(
-                            onClick = { onThumbnailQualityChange(q) },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MutedIceCyan.copy(alpha = 0.25f) else Color.Transparent,
-                            border = if (isSelected) BorderStroke(1.dp, MutedIceCyan) else null,
-                            modifier = Modifier.defaultMinSize(minWidth = 56.dp, minHeight = 32.dp)
+                    Text(
+                        text = stringResource(R.string.drive_aspect_ratio),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = TextSecondaryDark
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = SurfaceElevatedDark,
+                        border = BorderStroke(1.dp, BorderHairline)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            DriveGridAspectRatio.entries.forEach { r ->
+                                val isSelected = r == gridAspectRatio
+                                val labelRes = when (r) {
+                                    DriveGridAspectRatio.SQUARE -> R.string.drive_ratio_square
+                                    DriveGridAspectRatio.PORTRAIT -> R.string.drive_ratio_portrait
+                                }
+                                Surface(
+                                    onClick = { onGridAspectRatioChange(r) },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) MutedIceCyan.copy(alpha = 0.25f) else Color.Transparent,
+                                    border = if (isSelected) BorderStroke(1.dp, MutedIceCyan) else null,
+                                    modifier = Modifier.defaultMinSize(minWidth = 38.dp, minHeight = 32.dp)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(labelRes),
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 11.sp
+                                            ),
+                                            color = if (isSelected) TextPrimaryDark else TextSecondaryDark
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Thumbnail Quality Selector [ Hemat ] [ Seimbang ] [ Jelas ]
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = SurfaceElevatedDark,
+                    border = BorderStroke(1.dp, BorderHairline)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        DriveThumbnailQuality.entries.forEach { q ->
+                            val isSelected = q == thumbnailQuality
+                            val labelRes = when (q) {
+                                DriveThumbnailQuality.SAVER -> R.string.drive_thumb_saver
+                                DriveThumbnailQuality.BALANCED -> R.string.drive_thumb_balanced
+                                DriveThumbnailQuality.SHARP -> R.string.drive_thumb_sharp
+                            }
+                            Surface(
+                                onClick = { onThumbnailQualityChange(q) },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MutedIceCyan.copy(alpha = 0.25f) else Color.Transparent,
+                                border = if (isSelected) BorderStroke(1.dp, MutedIceCyan) else null,
+                                modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp)
                             ) {
-                                Text(
-                                    text = stringResource(labelRes),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 11.sp
-                                    ),
-                                    color = if (isSelected) TextPrimaryDark else TextSecondaryDark
-                                )
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = if (isSelected) TextPrimaryDark else TextSecondaryDark
+                                    )
+                                }
                             }
                         }
                     }
