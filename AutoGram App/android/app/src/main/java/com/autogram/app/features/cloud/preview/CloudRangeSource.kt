@@ -18,6 +18,16 @@ class CloudRangeSource(
     private val closed = AtomicBoolean(false)
     private val cache = ExactRangeCache()
     private val reader = Mutex()
+    private val closeListeners = java.util.Collections.synchronizedList(mutableListOf<() -> Unit>())
+
+    fun onClose(listener: () -> Unit) {
+        if (closed.get()) {
+            listener()
+        } else {
+            closeListeners.add(listener)
+        }
+    }
+
     suspend fun read(offset: Long, length: Int): ByteArray {
         if (closed.get()) throw CloudFailure("cloud_stream_closed")
         if (offset < 0 || length < 0) throw CloudFailure("invalid_range")
@@ -34,7 +44,14 @@ class CloudRangeSource(
             bytes
         }
     }
-    override fun close() { if (closed.compareAndSet(false, true)) { cache.clear(); release() } }
+    override fun close() {
+        if (closed.compareAndSet(false, true)) {
+            cache.clear()
+            closeListeners.forEach { runCatching { it() } }
+            closeListeners.clear()
+            release()
+        }
+    }
     companion object {
         const val MAX_READ = 256 * 1024
         suspend fun open(account: String, peer: String, message: Int): CloudRangeSource = withContext(Dispatchers.IO) {
