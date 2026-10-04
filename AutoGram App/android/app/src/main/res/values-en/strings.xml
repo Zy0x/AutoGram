@@ -787,4 +787,25 @@
     <string name="diagnostic_metric_retries">Retry Attempts</string>
     <string name="diagnostic_endpoint_confidential">[Protected / Confidential Endpoint]</string>
     <string name="diagnostic_endpoint_tg">Telegram Cloud</string>
+
+    <!-- Expanded Document & Media Previewers -->
+    <string name="preview_pdf_title">PDF Document Preview</string>
+    <string name="preview_markdown_title">Markdown Document Preview</string>
+    <string name="preview_code_title">Code &amp; Script Viewer</string>
+    <string name="preview_log_title">System Log Inspector</string>
+    <string name="preview_pdf_prev_page">Previous Page</string>
+    <string name="preview_pdf_next_page">Next Page</string>
+    <string name="preview_pdf_load_failed">Failed to load PDF document</string>
+    <string name="preview_log_filter_placeholder">Filter logs (e.g. ERROR, WARN, tag)...</string>
+    <string name="preview_log_autoscroll">Auto Scroll</string>
+    <string name="preview_log_matches">%1$d lines matched</string>
+    <string name="preview_pdf_zoom_in">Zoom In</string>
+    <string name="preview_pdf_zoom_out">Zoom Out</string>
+    <string name="preview_log_level_all">ALL</string>
+    <string name="preview_log_level_error">ERROR</string>
+    <string name="preview_log_level_warn">WARN</string>
+    <string name="preview_log_level_info">INFO</string>
+    <string name="preview_log_level_debug">DEBUG</string>
+    <string name="preview_log_copy">Copy Log</string>
+    <string name="preview_log_copied">Entire log copied to clipboard!</string>
 </resources>

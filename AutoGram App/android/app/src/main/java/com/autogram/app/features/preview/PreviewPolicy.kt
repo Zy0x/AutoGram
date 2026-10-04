@@ -5,13 +5,43 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 
-enum class PreviewKind { IMAGE, VIDEO, AUDIO, TEXT, TABULAR, JSON, HEX, STICKER, UNSUPPORTED }
+enum class PreviewKind {
+    IMAGE,
+    VIDEO,
+    AUDIO,
+    PDF,
+    MARKDOWN,
+    CODE,
+    LOG,
+    TABULAR,
+    JSON,
+    HEX,
+    STICKER,
+    TEXT,
+    UNSUPPORTED
+}
 
-val CODE_TEXT_EXTENSIONS = setOf(
-    "txt", "md", "markdown", "xml", "html", "htm", "css", "js", "ts", "jsx", "tsx",
-    "py", "rs", "kt", "kts", "java", "c", "cpp", "h", "hpp", "cs", "go", "rb", "php",
-    "sql", "sh", "bash", "zsh", "ps1", "bat", "cmd", "yaml", "yml", "toml", "ini", "conf",
-    "env", "log", "properties", "gradle"
+val VIDEO_EXTENSIONS = setOf(
+    "mp4", "mkv", "webm", "avi", "mov", "3gp", "ts", "m2ts", "flv", "wmv", "ogv", "vob", "m4v"
+)
+val VIDEO_MIMES = setOf(
+    "video/x-matroska", "video/mp4", "video/webm", "video/avi", "video/quicktime",
+    "video/x-msvideo", "video/x-flv", "video/mp2t", "video/x-ms-wmv", "video/ogg", "video/3gpp"
+)
+
+val AUDIO_EXTENSIONS = setOf(
+    "mp3", "flac", "ogg", "opus", "wav", "aac", "m4a", "wma", "alac", "aiff", "oga", "mid", "midi"
+)
+val AUDIO_MIMES = setOf(
+    "audio/mpeg", "audio/ogg", "audio/opus", "audio/flac", "audio/x-wav", "audio/wav",
+    "audio/aac", "audio/mp4", "audio/x-m4a", "audio/x-ms-wma", "audio/midi"
+)
+
+val CODE_EXTENSIONS = setOf(
+    "kt", "kts", "rs", "py", "js", "jsx", "ts", "tsx", "java", "c", "cpp", "h", "hpp",
+    "cs", "go", "rb", "php", "sql", "sh", "bash", "zsh", "ps1", "bat", "cmd", "yaml", "yml",
+    "toml", "ini", "conf", "env", "gradle", "xml", "html", "htm", "css", "scss", "sass", "less",
+    "properties", "proto", "graphql"
 )
 
 fun previewKind(mime: String, filename: String = ""): PreviewKind {
@@ -19,14 +49,17 @@ fun previewKind(mime: String, filename: String = ""): PreviewKind {
     val ext = filename.substringAfterLast('.', "").lowercase()
     return when {
         ext == "tgs" || m == "application/x-tgsticker" -> PreviewKind.STICKER
+        ext == "pdf" || m == "application/pdf" -> PreviewKind.PDF
+        ext in setOf("md", "markdown") || m in setOf("text/markdown", "text/x-markdown") -> PreviewKind.MARKDOWN
+        ext in setOf("log") || m == "text/x-log" -> PreviewKind.LOG
         ext in setOf("csv", "tsv") || m in setOf("text/csv", "text/tab-separated-values") -> PreviewKind.TABULAR
+        ext == "json" -> PreviewKind.JSON
+        ext in VIDEO_EXTENSIONS || m.startsWith("video/") || m in VIDEO_MIMES -> PreviewKind.VIDEO
+        ext in AUDIO_EXTENSIONS || m.startsWith("audio/") || m in AUDIO_MIMES -> PreviewKind.AUDIO
         m.startsWith("image/") -> PreviewKind.IMAGE
-        m.startsWith("video/") -> PreviewKind.VIDEO
-        m.startsWith("audio/") -> PreviewKind.AUDIO
-        m.startsWith("text/") ||
-            m in setOf("application/json", "application/xml", "application/javascript", "application/x-sh") ||
-            ext in CODE_TEXT_EXTENSIONS -> PreviewKind.TEXT
+        ext in CODE_EXTENSIONS || m in setOf("application/javascript", "application/xml", "application/x-sh") -> PreviewKind.CODE
         ext in setOf("bin", "dat", "exe", "dll", "so", "hex", "rom") -> PreviewKind.HEX
+        ext == "txt" || m.startsWith("text/") || m == "application/json" -> PreviewKind.TEXT
         else -> PreviewKind.UNSUPPORTED
     }
 }
@@ -35,6 +68,10 @@ fun mediaKindLabel(mime: String, filename: String = ""): Int = when (previewKind
     PreviewKind.IMAGE -> R.string.real_image
     PreviewKind.VIDEO -> R.string.real_video
     PreviewKind.AUDIO -> R.string.real_audio
+    PreviewKind.PDF -> R.string.preview_pdf_title
+    PreviewKind.MARKDOWN -> R.string.preview_markdown_title
+    PreviewKind.CODE -> R.string.preview_code_title
+    PreviewKind.LOG -> R.string.preview_log_title
     PreviewKind.TABULAR -> R.string.preview_tabular_title
     PreviewKind.JSON -> R.string.preview_json_title
     PreviewKind.STICKER -> R.string.preview_sticker_title

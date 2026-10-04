@@ -59,7 +59,7 @@ internal fun LocalMediaContent(uri: Uri, modifier: Modifier = Modifier) {
                 resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
                     if (it.moveToFirst()) name = it.getString(0).orEmpty()
                 }
-                val text = if (previewKind(mime) == PreviewKind.TEXT) {
+                val text = if (previewKind(mime) in setOf(PreviewKind.TEXT, PreviewKind.MARKDOWN, PreviewKind.CODE, PreviewKind.LOG, PreviewKind.TABULAR, PreviewKind.JSON)) {
                     resolver.openInputStream(uri)?.use(::readTextPreview) ?: error("content_unavailable")
                 } else null
                 FilePreviewState(name, mime, text, loading = false)
@@ -78,11 +78,11 @@ internal fun LocalMediaContent(uri: Uri, modifier: Modifier = Modifier) {
                     loading = { CircularProgressIndicator() },
                     error = { Text(stringResource(R.string.real_preview_failed)) })
                 PreviewKind.AUDIO, PreviewKind.VIDEO -> NativeMediaPlayer(uri, Modifier.fillMaxSize())
-                PreviewKind.TEXT, PreviewKind.TABULAR, PreviewKind.JSON -> {
+                PreviewKind.TEXT, PreviewKind.TABULAR, PreviewKind.JSON, PreviewKind.MARKDOWN, PreviewKind.CODE, PreviewKind.LOG -> {
                     if (state.text?.truncated == true) Text(stringResource(R.string.real_text_truncated))
                     SelectionContainer { Text(state.text?.text.orEmpty(), Modifier.verticalScroll(rememberScrollState())) }
                 }
-                PreviewKind.STICKER, PreviewKind.HEX, PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
+                PreviewKind.PDF, PreviewKind.STICKER, PreviewKind.HEX, PreviewKind.UNSUPPORTED -> Text(stringResource(R.string.real_preview_unsupported))
             }
         }
     }

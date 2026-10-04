@@ -7,9 +7,17 @@ import java.io.ByteArrayInputStream
 class PreviewPolicyTest {
     @Test fun typesComeFromContentMetadataNotFilenamesOrFileSize() {
         assertEquals(PreviewKind.VIDEO, previewKind("video/mp4"))
+        assertEquals(PreviewKind.VIDEO, previewKind("video/x-matroska", "movie.mkv"))
+        assertEquals(PreviewKind.VIDEO, previewKind("video/webm", "clip.webm"))
         assertEquals(PreviewKind.AUDIO, previewKind("audio/wav"))
+        assertEquals(PreviewKind.AUDIO, previewKind("audio/flac", "song.flac"))
         assertEquals(PreviewKind.IMAGE, previewKind("image/jpeg"))
+        assertEquals(PreviewKind.PDF, previewKind("application/pdf", "document.pdf"))
+        assertEquals(PreviewKind.MARKDOWN, previewKind("text/markdown", "README.md"))
+        assertEquals(PreviewKind.CODE, previewKind("text/x-kotlin", "App.kt"))
+        assertEquals(PreviewKind.LOG, previewKind("text/plain", "app.log"))
         assertEquals(PreviewKind.TEXT, previewKind("application/json"))
+        assertEquals(PreviewKind.JSON, previewKind("application/json", "config.json"))
         assertEquals(PreviewKind.UNSUPPORTED, previewKind("application/octet-stream"))
     }
 

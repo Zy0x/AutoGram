@@ -789,4 +789,25 @@
     <string name="diagnostic_metric_retries">Percobaan Ulang</string>
     <string name="diagnostic_endpoint_confidential">[Endpoint Terproteksi / Rahasia]</string>
     <string name="diagnostic_endpoint_tg">Telegram Cloud</string>
+
+    <!-- Expanded Document & Media Previewers -->
+    <string name="preview_pdf_title">Pratinjau Dokumen PDF</string>
+    <string name="preview_markdown_title">Pratinjau Dokumen Markdown</string>
+    <string name="preview_code_title">Penampil Kode &amp; Skrip</string>
+    <string name="preview_log_title">Inspektor Log Sistem</string>
+    <string name="preview_pdf_prev_page">Halaman Sebelumnya</string>
+    <string name="preview_pdf_next_page">Halaman Berikutnya</string>
+    <string name="preview_pdf_load_failed">Gagal memuat dokumen PDF</string>
+    <string name="preview_log_filter_placeholder">Filter log (cth: ERROR, WARN, tag)...</string>
+    <string name="preview_log_autoscroll">Gulir Otomatis</string>
+    <string name="preview_log_matches">%1$d baris cocok</string>
+    <string name="preview_pdf_zoom_in">Perbesar</string>
+    <string name="preview_pdf_zoom_out">Perkecil</string>
+    <string name="preview_log_level_all">SEMUA</string>
+    <string name="preview_log_level_error">ERROR</string>
+    <string name="preview_log_level_warn">WARN</string>
+    <string name="preview_log_level_info">INFO</string>
+    <string name="preview_log_level_debug">DEBUG</string>
+    <string name="preview_log_copy">Salin Log</string>
+    <string name="preview_log_copied">Seluruh log berhasil disalin ke clipboard!</string>
 </resources>

@@ -58,7 +58,7 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
                             ?: throw CloudFailure("cloud_format_unsupported")
                     }
                 }
-                PreviewKind.TEXT -> text = withContext(Dispatchers.IO) {
+                PreviewKind.TEXT, PreviewKind.MARKDOWN, PreviewKind.CODE, PreviewKind.LOG -> text = withContext(Dispatchers.IO) {
                     readTextPreview(ByteArrayInputStream(readPrefix(active, minOf(active.size, 256 * 1024L + 1).toInt())))
                 }
                 PreviewKind.TABULAR, PreviewKind.JSON, PreviewKind.HEX, PreviewKind.STICKER -> {
@@ -96,6 +96,37 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
             }
         }
         bitmap != null -> CloudImageViewer(bitmap, item.name)
+        kind == PreviewKind.PDF -> {
+            com.autogram.app.ui.drive.preview.DrivePdfViewer(
+                source = active,
+                fileName = item.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.MARKDOWN && text != null -> {
+            com.autogram.app.ui.drive.preview.DriveMarkdownViewer(
+                fileName = item.name,
+                rawText = text!!.text,
+                truncated = text!!.truncated,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.CODE && text != null -> {
+            com.autogram.app.ui.drive.preview.DriveCodeScriptViewer(
+                fileName = item.name,
+                rawCode = text!!.text,
+                truncated = text!!.truncated,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        kind == PreviewKind.LOG && text != null -> {
+            com.autogram.app.ui.drive.preview.DriveLogViewer(
+                fileName = item.name,
+                rawLog = text!!.text,
+                truncated = text!!.truncated,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         kind == PreviewKind.TEXT -> {
             text?.let {
                 if (item.name.endsWith(".json", ignoreCase = true) || item.mimeType.equals("application/json", ignoreCase = true)) {

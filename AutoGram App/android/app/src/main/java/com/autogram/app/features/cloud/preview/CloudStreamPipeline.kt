@@ -19,7 +19,8 @@ import kotlin.math.abs
 class CloudStreamPipeline(
     val source: CloudRangeSource,
     private val prefetchRunwayChunks: Int = DEFAULT_RUNWAY_CHUNKS,
-    private val maxCacheChunks: Int = DEFAULT_MAX_CACHE_CHUNKS
+    private val maxCacheChunks: Int = DEFAULT_MAX_CACHE_CHUNKS,
+    private val diskCache: SparseDiskStreamCache? = null
 ) : Closeable {
 
     val size: Long get() = source.size
@@ -34,7 +35,7 @@ class CloudStreamPipeline(
     // Single-flight in-flight fetch deduplication: chunkIndex -> CompletableDeferred<ByteArray>
     private val inFlight = ConcurrentHashMap<Long, CompletableDeferred<ByteArray>>()
 
-    // Concurrency throttle for MTProto chunk fetching (2 concurrent fetches, matching desktop stream pacing)
+    // Concurrency throttle for MTProto chunk fetching (4 concurrent fetches, matching desktop parallel stream workers)
     private val fetchLimiter = Semaphore(MAX_CONCURRENT_FETCH)
 
     // Dedicated prefetch scope
@@ -60,15 +61,27 @@ class CloudStreamPipeline(
         val chunkIndex = position / CHUNK_SIZE
         val chunkOffset = (position % CHUNK_SIZE).toInt()
 
-        // 1. Fast-Path: Check memory cache
+        // 1. Fast-Path A: Check memory cache (0 ms)
         val cachedChunk = synchronized(cacheLock) { chunks[chunkIndex] }
         val chunkData = if (cachedChunk != null) {
             cachedChunk
         } else {
-            // 2. Direct Player Demand: Chunk is missing, fetch with top priority!
-            // Direct demand interrupts background speculative prefetching
-            triggerPrefetch(position)
-            fetchChunk(chunkIndex)
+            // 1. Fast-Path B: Check local sparse disk cache (<1 ms)
+            val chunkStart = chunkIndex * CHUNK_SIZE
+            val expectedLen = minOf(CHUNK_SIZE.toLong(), size - chunkStart).toInt()
+            val diskBytes = diskCache?.readRange(chunkStart, expectedLen)
+            if (diskBytes != null) {
+                synchronized(cacheLock) {
+                    chunks[chunkIndex] = diskBytes
+                    evictOldChunksIfNecessary(chunkIndex)
+                }
+                diskBytes
+            } else {
+                // 2. Direct Player Demand: Chunk is missing, fetch from MTProto with top priority!
+                // Direct demand interrupts background speculative prefetching
+                triggerPrefetch(position)
+                fetchChunk(chunkIndex)
+            }
         }
 
         if (closed.get()) throw IOException("cloud_stream_closed")
@@ -191,6 +204,9 @@ class CloudStreamPipeline(
                     evictOldChunksIfNecessary(chunkIndex)
                 }
 
+                // Persist chunk to session sparse disk cache
+                diskCache?.writeChunk(chunkStart, bytes)
+
                 deferred.complete(bytes)
                 bytes
             } catch (t: Throwable) {
@@ -255,6 +271,7 @@ class CloudStreamPipeline(
             }
             inFlight.values.forEach { it.cancel() }
             inFlight.clear()
+            diskCache?.close()
         }
     }
 
@@ -262,6 +279,6 @@ class CloudStreamPipeline(
         const val CHUNK_SIZE = 256 * 1024 // 256 KB matching CloudRangeSource.MAX_READ
         const val DEFAULT_MAX_CACHE_CHUNKS = 64 // 64 * 256KB = 16 MB ring buffer
         const val DEFAULT_RUNWAY_CHUNKS = 32 // 32 * 256KB = 8 MB ahead runway (~15-30s buffer)
-        const val MAX_CONCURRENT_FETCH = 2 // 2 pipelined MTProto fetches
+        const val MAX_CONCURRENT_FETCH = 4 // 4 parallel pipelined MTProto fetches
     }
 }

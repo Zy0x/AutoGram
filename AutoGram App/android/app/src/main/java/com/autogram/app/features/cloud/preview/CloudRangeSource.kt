@@ -17,8 +17,15 @@ class CloudRangeSource(
 ) : Closeable {
     private val closed = AtomicBoolean(false)
     private val cache = ExactRangeCache()
-    private val reader = Mutex()
+    private val inFlight = mutableListOf<InFlightRequest>()
+    private val inFlightLock = Any()
     private val closeListeners = java.util.Collections.synchronizedList(mutableListOf<() -> Unit>())
+
+    private data class InFlightRequest(
+        val offset: Long,
+        val length: Int,
+        val deferred: kotlinx.coroutines.CompletableDeferred<ByteArray>
+    )
 
     fun onClose(listener: () -> Unit) {
         if (closed.get()) {
@@ -33,16 +40,59 @@ class CloudRangeSource(
         if (offset < 0 || length < 0) throw CloudFailure("invalid_range")
         if (offset >= size || length == 0) return ByteArray(0)
         val bounded = minOf(length.toLong(), MAX_READ.toLong(), size - offset).toInt()
-        return reader.withLock {
-            if (closed.get()) throw CloudFailure("cloud_stream_closed")
-            val bytes = cache.read(offset, bounded) ?: fetch(offset, bounded).also {
-                if (closed.get()) throw CloudFailure("cloud_stream_closed")
-                if (it.size != bounded) throw CloudFailure("cloud_media_truncated")
-                cache.put(offset, it)
+
+        // 1. Fast path: check exact range cache
+        val cached = cache.read(offset, bounded)
+        if (cached != null) return cached
+
+        // 2. Check in-flight requests for overlapping or contained reads (single-flight)
+        val req = synchronized(inFlightLock) {
+            val secondCached = cache.read(offset, bounded)
+            if (secondCached != null) return secondCached
+
+            val existing = inFlight.firstOrNull { inflight ->
+                offset >= inflight.offset && (offset + bounded) <= (inflight.offset + inflight.length)
             }
-            if (closed.get()) { cache.clear(); throw CloudFailure("cloud_stream_closed") }
-            bytes
+            if (existing != null) {
+                existing to false
+            } else {
+                val newReq = InFlightRequest(offset, bounded, kotlinx.coroutines.CompletableDeferred())
+                inFlight.add(newReq)
+                newReq to true
+            }
         }
+
+        val inFlightEntry = req.first
+        val isLeader = req.second
+
+        val fullBytes = if (isLeader) {
+            try {
+                if (closed.get()) throw CloudFailure("cloud_stream_closed")
+                val fetched = fetch(offset, bounded)
+                if (closed.get()) throw CloudFailure("cloud_stream_closed")
+                if (fetched.size != bounded) throw CloudFailure("cloud_media_truncated")
+                cache.put(offset, fetched)
+                inFlightEntry.deferred.complete(fetched)
+                fetched
+            } catch (t: Throwable) {
+                inFlightEntry.deferred.completeExceptionally(t)
+                throw t
+            } finally {
+                synchronized(inFlightLock) {
+                    inFlight.remove(inFlightEntry)
+                }
+            }
+        } else {
+            inFlightEntry.deferred.await()
+        }
+
+        if (closed.get()) {
+            cache.clear()
+            throw CloudFailure("cloud_stream_closed")
+        }
+
+        val relative = (offset - inFlightEntry.offset).toInt()
+        return fullBytes.copyOfRange(relative, relative + bounded)
     }
     override fun close() {
         if (closed.compareAndSet(false, true)) {

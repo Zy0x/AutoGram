@@ -70,9 +70,15 @@ internal class CloudMedia3Source(private val pipeline: CloudStreamPipeline) : Ba
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer {
-    val pipeline = CloudStreamPipeline(source)
+    val diskCache = SparseDiskStreamCache(context.cacheDir, source.size)
+    val pipeline = CloudStreamPipeline(source, diskCache = diskCache)
+    val extractorsFactory = androidx.media3.extractor.DefaultExtractorsFactory()
+        .setConstantBitrateSeekingEnabled(true)
     return ExoPlayer.Builder(context)
-        .setMediaSourceFactory(ProgressiveMediaSource.Factory(DataSource.Factory { CloudMedia3Source(pipeline) })
+        .setMediaSourceFactory(ProgressiveMediaSource.Factory(
+            DataSource.Factory { CloudMedia3Source(pipeline) },
+            extractorsFactory
+        )
             .setLoadErrorHandlingPolicy(object : DefaultLoadErrorHandlingPolicy() {
                 override fun getRetryDelayMsFor(info: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
                     var cause: Throwable? = info.exception
@@ -88,7 +94,7 @@ internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer 
                 /* minBufferMs = */ 15_000,
                 /* maxBufferMs = */ 50_000,
                 /* bufferForPlaybackMs = */ 150,
-                /* bufferForPlaybackAfterRebufferMs = */ 500
+                /* bufferForPlaybackAfterRebufferMs = */ 400
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build())
