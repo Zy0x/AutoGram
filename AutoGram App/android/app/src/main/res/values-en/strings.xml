@@ -455,4 +455,19 @@
     <string name="cloud_download_saved">Output copy verified successfully.</string>
     <string name="cloud_download_save_failed">Output copy is not verified. A partial document may remain; select a new output to retry.</string>
     <string name="cloud_download_interrupted">The previous save was interrupted. Partial documents will not be overwritten; select a new output.</string>
+    <string name="cloud_preview_counter">%1$d / %2$d</string>
+    <string name="cloud_preview_play">Play</string>
+    <string name="cloud_preview_pause">Pause</string>
+    <string name="cloud_preview_seek">Playback position</string>
+    <string name="cloud_preview_reset_zoom">Reset zoom</string>
+    <string name="drive_thumb_quality">Thumbnail Quality</string>
+    <string name="drive_thumb_saver">Saver</string>
+    <string name="drive_thumb_saver_label">Data saver</string>
+    <string name="drive_thumb_saver_desc">Small thumb — ideal for slow internet / tight quota</string>
+    <string name="drive_thumb_balanced">Balanced</string>
+    <string name="drive_thumb_balanced_label">Balanced</string>
+    <string name="drive_thumb_balanced_desc">Default — sharper visuals, measured data usage</string>
+    <string name="drive_thumb_sharp">Sharp</string>
+    <string name="drive_thumb_sharp_label">Sharp</string>
+    <string name="drive_thumb_sharp_desc">Crisp from largest Telegram layer — without downloading full file</string>
 </resources>

@@ -457,4 +457,19 @@
     <string name="cloud_download_saved">Salinan keluaran berhasil diverifikasi.</string>
     <string name="cloud_download_save_failed">Salinan belum terverifikasi. File parsial mungkin tertinggal; pilih file keluaran baru untuk mencoba lagi.</string>
     <string name="cloud_download_interrupted">Penyimpanan sebelumnya terhenti. File parsial tidak akan ditimpa; pilih keluaran baru.</string>
+    <string name="cloud_preview_counter">%1$d / %2$d</string>
+    <string name="cloud_preview_play">Putar</string>
+    <string name="cloud_preview_pause">Jeda</string>
+    <string name="cloud_preview_seek">Posisi pemutaran</string>
+    <string name="cloud_preview_reset_zoom">Atur ulang zoom</string>
+    <string name="drive_thumb_quality">Kualitas Thumbnail</string>
+    <string name="drive_thumb_saver">Hemat</string>
+    <string name="drive_thumb_saver_label">Hemat data</string>
+    <string name="drive_thumb_saver_desc">Thumb kecil — cocok internet lambat / kuota ketat</string>
+    <string name="drive_thumb_balanced">Seimbang</string>
+    <string name="drive_thumb_balanced_label">Seimbang</string>
+    <string name="drive_thumb_balanced_desc">Default — visual tajam, penggunaan data terukur</string>
+    <string name="drive_thumb_sharp">Jelas</string>
+    <string name="drive_thumb_sharp_label">Jelas</string>
+    <string name="drive_thumb_sharp_desc">Tajam dari layer Telegram terbesar — tanpa unduh full file</string>
 </resources>

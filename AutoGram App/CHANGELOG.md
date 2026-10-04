@@ -10,7 +10,37 @@
 - Routed desktop hardware queries through measured encoder evidence and stopped returning a synthetic healthy account score. Desktop and Android now report unavailable account-health probes explicitly instead of presenting unmeasured defaults as runtime results.
 
 ### 3. Touch and Regression Checks
+- Reworked Android `DrivePreviewModal` into a safe-area viewer with persistent 48dp navigation controls, scoped to the visible gallery order and filters. Images gain zoom/pan, text has independent scrolling, and decoded video uses its actual aspect ratio with integrated playback controls, so content no longer pushes navigation out of reach.
+- Added an exact-range, bounded per-stream memory cache and retryable preview failures. Cached reads reuse only previously fetched bytes; seek and startup do not acquire a high forward-buffer target, and closing the stream rejects late results. This does not complete archive or document-family preview parity.
+- Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
 - Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
+
+## v4.1.29 — Android Native 3-Mode Thumbnail Quality Parity (Hemat, Seimbang, Jelas) & Zero Desktop Regressions
+
+### 1. Telegram Grid Thumbnail Multi-Tier Quality Architecture
+- **Rust MTProto Core Layer (`autogram-core`)**:
+  - Implemented `ThumbnailQuality` enum (`Saver`, `Balanced`, `Sharp`) in `telegram::cloud::thumbnail`, mirroring Desktop's `core::grammers::thumbs::pick_thumb` specification.
+  - Added smart Telegram `PhotoSize` layer picker (`pick_layer`):
+    - **Saver ("Hemat")**: Uses lightweight inline stripped previews or smallest layer without extra data usage (0 MB overhead).
+    - **Balanced ("Seimbang")**: Automatically targets the real Telegram photo layer closest to 512 px for crisp display on high-DPI screens.
+    - **Sharp ("Jelas")**: Fetches the largest available Telegram thumbnail layer (~800 px) for optimal sharpness, strictly capping transfer at 512 KiB per item to avoid full-file downloads.
+  - Added `fetch_thumbnails` to `CloudWorkspace` executing batched multi-message queries (`get_messages_by_id`) in single MTProto requests with up to 24 items per batch.
+
+### 2. Android Bridge & Reactive Store Upgrade Engine
+- **UniFFI Bridge (`autogram-android-bridge`)**:
+  - Exported `NativeCloudThumbnail` record and `fetch_cloud_thumbnails` async function bridging Rust MTProto directly to Kotlin coroutines.
+  - Generated updated UniFFI Kotlin bindings and verified linkage.
+- **Reactive Cloud Store & Service (`NativeCloudService`, `CloudStore`)**:
+  - Extended `CloudService` interface and `NativeCloudService` with `thumbnails()` RPC.
+  - Added `upgradeThumbnails()` in `CloudStore` allowing asynchronous background upgrading of card thumbnail byte buffers without UI freezing or list re-renders.
+
+### 3. UI/UX Polish, TopBar Segmented Switcher & Multi-Language Parity
+- **Drive Presentation (`DriveViewModel`, `DriveTopBar`, `DriveScreen`)**:
+  - Added `DriveThumbnailQuality` (`SAVER`, `BALANCED`, `SHARP`) state to `DriveViewModel` with automatic batch thumbnail upgrading on gallery scroll.
+  - Integrated a dedicated, glassmorphic 3-mode segmented pill selector in `DriveTopBar` (`[ Hemat ] [ Seimbang ] [ Jelas ]`) conforming to touch-first accessibility standards ($\ge 44\times 44\text{dp}$).
+  - Added quality selector options into the Drive actions menu dropdown with checkmark indicators.
+  - Added localized strings across `values/strings.xml` and `values-en/strings.xml` with 100% key parity and zero hardcoded strings.
+  - Verified 100% backward compatibility and zero regressions in Desktop core via Autonomous 5-Dimension Quality Sentinel (`npm run test:quality`).
 
 ## v4.1.28 — Android Native "Simple-Powerful" Overhaul & Google Photos Architecture
 

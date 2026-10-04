@@ -9,10 +9,12 @@ class CloudStoreTest {
     private fun item(id: Int) = CloudMedia(id, "file", 20, "text/plain", 1, "document", "file")
     private class Service(
         val read: suspend (CloudScope, Int, String) -> CloudMediaPage,
-        val dialogs: suspend (String, String?) -> CloudLocationsPage = { account, _ -> CloudLocationsPage(account, emptyList(), null) }
+        val dialogs: suspend (String, String?) -> CloudLocationsPage = { account, _ -> CloudLocationsPage(account, emptyList(), null) },
+        val thumbProvider: suspend (CloudScope, List<Int>, String) -> List<CloudThumbnail> = { _, _, _ -> emptyList() }
     ) : CloudService {
         override suspend fun media(scope: CloudScope, before: Int, query: String) = read(scope, before, query)
         override suspend fun locations(accountId: String, cursor: String?) = dialogs(accountId, cursor)
+        override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String) = thumbProvider(scope, messageIds, quality)
     }
 
     @Test fun accountABARejectsEarlierCompletionEvenWithoutTransportCancellation() = runBlocking {
@@ -122,5 +124,24 @@ class CloudStoreTest {
         val store = CloudStore(Service({ _, _, _ -> error("must-not-call") }, { _, _ -> error("must-not-call") }))
         store.media(); store.locations()
         assertFalse(store.state.value.loading); assertNull(store.state.value.error)
+    }
+
+    @Test fun upgradeThumbnailsReplacesItemThumbnailBytesWithHigherResolution() = runBlocking {
+        val initialBytes = byteArrayOf(1, 2)
+        val upgradedBytes = byteArrayOf(9, 8, 7, 6)
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(CloudMedia(42, "photo.jpg", 100, "image/jpeg", 1, "photo", "photo", thumbnailBytes = initialBytes)), null) },
+            thumbProvider = { _, ids, q ->
+                assertEquals("balanced", q)
+                assertEquals(listOf(42), ids)
+                listOf(CloudThumbnail(42, upgradedBytes))
+            }
+        ))
+        store.scope(scope)
+        store.media()
+        assertArrayEquals(initialBytes, store.state.value.items.single().thumbnailBytes)
+
+        store.upgradeThumbnails("balanced", listOf(42))
+        assertArrayEquals(upgradedBytes, store.state.value.items.single().thumbnailBytes)
     }
 }

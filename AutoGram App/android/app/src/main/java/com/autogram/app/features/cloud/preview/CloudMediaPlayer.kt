@@ -1,133 +1,148 @@
 package com.autogram.app.features.cloud.preview
 
-import android.media.MediaDataSource
-import android.media.MediaPlayer
-import android.os.Build
-import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.widget.MediaController
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.media3.common.C
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import com.autogram.app.R
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import java.io.IOException
+import com.autogram.app.features.cloud.CloudFailure
+import com.autogram.app.features.cloud.cloudErrorLabel
+import kotlinx.coroutines.delay
+import java.util.Locale
 
-internal class TelegramMediaDataSource(private val source: CloudRangeSource) : MediaDataSource() {
-    override fun getSize() = source.size
-    override fun close() = source.close()
-    override fun readAt(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
-        if (position < 0 || offset < 0 || size < 0 || offset > buffer.size - size) throw IOException("invalid_range")
-        if (size == 0) return 0
-        if (position >= source.size) return -1
-        return try {
-            val bytes = runBlocking(Dispatchers.IO) { source.read(position, size) }
-            bytes.copyInto(buffer, offset)
-            bytes.size
-        } catch (_: Exception) { throw IOException("cloud_read_failed") }
-    }
-}
-
-/** Preparation, duration and seek all come from MediaPlayer. No high startup-buffer target. */
+/** Initial seek is supplied before preparation; only 150ms of playable media gates start. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
-internal fun CloudMediaPlayer(source: CloudRangeSource, modifier: Modifier, scope: PlaybackScope) {
+internal fun CloudMediaPlayer(source: CloudRangeSource, modifier: Modifier, scope: PlaybackScope,
+    audioOnly: Boolean = false, onRetry: () -> Unit = {}) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val context = LocalContext.current
     val preferences = remember(context) { AndroidPlaybackPreferences(context) }
     val history = remember(preferences) { PlaybackHistory(preferences) }
-    var failed by remember(source) { mutableStateOf(false) }
-    var prepared by remember(source) { mutableStateOf(false) }
+    val player = remember(source) { cloudPlayer(context, source) }
+    var error by remember(source) { mutableStateOf<String?>(null) }
+    var ready by remember(source) { mutableStateOf(false) }
+    var buffering by remember(source) { mutableStateOf(true) }
     var completed by remember(source) { mutableStateOf(false) }
-    val player = remember(source) { MediaPlayer() }
-    var controller by remember(source) { mutableStateOf<MediaController?>(null) }
+    var playing by remember(source) { mutableStateOf(false) }
+    var resumeOnForeground by remember(source) { mutableStateOf(true) }
+    var position by remember(source) { mutableLongStateOf(0) }
+    var duration by remember(source) { mutableLongStateOf(0) }
+    var aspect by remember(source) { mutableFloatStateOf(16f / 9f) }
+    var rendered by remember(source) { mutableStateOf(false) }
+    var drag by remember(source) { mutableStateOf<Float?>(null) }
     fun savePosition() {
-        if (prepared && !completed && preferences.rememberPosition) runCatching { history.save(scope, player.currentPosition.toLong()) }
+        if (ready && !completed && preferences.rememberPosition) history.save(scope, player.currentPosition)
     }
     DisposableEffect(player, lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (prepared && (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP)) {
-                savePosition(); player.pause()
+        val saved = if (preferences.rememberPosition) history.position(scope) else 0
+        var checkedInitialPosition = false
+        val listener = object : Player.Listener {
+            override fun onIsPlayingChanged(value: Boolean) { playing = value }
+            override fun onPlaybackStateChanged(state: Int) {
+                buffering = state == Player.STATE_BUFFERING
+                if (state == Player.STATE_READY) ready = true
+                if (state == Player.STATE_ENDED) { completed = true; history.clear(scope) }
+                duration = player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0) ?: 0
+                if (!checkedInitialPosition && duration > 0 && saved >= (duration - 1000).coerceAtLeast(1)) {
+                    checkedInitialPosition = true
+                    completed = false; player.seekTo(0)
+                }
             }
+            override fun onRenderedFirstFrame() { rendered = true }
+            override fun onVideoSizeChanged(size: VideoSize) {
+                if (size.width > 0 && size.height > 0) aspect = size.width * size.pixelWidthHeightRatio / size.height
+            }
+            override fun onPlayerError(failure: PlaybackException) {
+                var cause: Throwable? = failure
+                while (cause != null && cause !is CloudFailure) cause = cause.cause
+                error = (cause as? CloudFailure)?.code ?: if (failure.errorCode in 4000..4999)
+                    "cloud_format_unsupported" else "cloud_read_failed"
+                ready = false; buffering = false
+            }
+        }
+        player.addListener(listener)
+        player.setMediaItem(cloudMediaItem(), saved)
+        player.playWhenReady = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        player.prepare()
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                resumeOnForeground = player.playWhenReady
+                savePosition(); player.pause()
+            } else if (event == Lifecycle.Event.ON_RESUME && resumeOnForeground) player.play()
         }
         lifecycle.addObserver(observer)
         onDispose {
-            lifecycle.removeObserver(observer)
-            controller?.hide()
-            savePosition()
-            // Cancel the native RPC before releasing the player waiting on readAt.
-            runCatching { source.close() }
-            runCatching { player.release() }
+            lifecycle.removeObserver(observer); savePosition()
+            player.removeListener(listener)
+            // Native cancellation precedes release of the loader blocked on an RPC.
+            runCatching { source.close() }; player.release()
         }
     }
-    Box(modifier) {
-        AndroidView(modifier = modifier, factory = { context ->
-            SurfaceView(context).apply {
-                val surface = this
-                var initialized = false
-                val controls = MediaController(context)
-                controller = controls
-                controls.setAnchorView(surface)
-                controls.setMediaPlayer(object : MediaController.MediaPlayerControl {
-                    override fun start() { if (prepared) { completed = false; player.start() } }
-                    override fun pause() { if (prepared) player.pause() }
-                    override fun getDuration() = if (prepared) player.duration else 0
-                    override fun getCurrentPosition() = if (prepared) player.currentPosition else 0
-                    override fun seekTo(pos: Int) { if (prepared) { completed = false; player.seekTo(pos.coerceAtLeast(0)) } }
-                    override fun isPlaying() = prepared && player.isPlaying
-                    override fun getBufferPercentage() = 0 // MediaDataSource does not report forward-buffer coverage.
-                    override fun canPause() = prepared
-                    override fun canSeekBackward() = prepared
-                    override fun canSeekForward() = prepared
-                    override fun getAudioSessionId() = player.audioSessionId
-                })
-                setOnClickListener { if (prepared) controls.show() }
-                player.setOnErrorListener { _, _, _ -> failed = true; prepared = false; true }
-                player.setOnCompletionListener { completed = true; history.clear(scope) }
-                player.setOnPreparedListener {
-                    prepared = true
-                    val position = if (preferences.rememberPosition) history.position(scope) else 0
-                    if (position in 1 until (it.duration - 1000).toLong()) {
-                        it.setOnSeekCompleteListener { sought ->
-                            sought.setOnSeekCompleteListener(null)
-                            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) sought.start()
-                        }
-                        // Seek before play; readAt goes straight to the requested byte offset.
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            it.seekTo(position, MediaPlayer.SEEK_CLOSEST)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            it.seekTo(position.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-                        }
-                    } else if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) it.start()
-                    controls.show()
-                }
-                holder.addCallback(object : SurfaceHolder.Callback {
-                    override fun surfaceCreated(holder: SurfaceHolder) {
-                        runCatching {
-                            player.setDisplay(holder)
-                            if (!initialized) {
-                                initialized = true
-                                player.setDataSource(TelegramMediaDataSource(source))
-                                player.prepareAsync()
-                            }
-                        }.onFailure { failed = true }
-                    }
-                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = Unit
-                    override fun surfaceDestroyed(holder: SurfaceHolder) {
-                        runCatching { if (prepared) player.pause(); player.setDisplay(null) }
-                    }
-                })
-            }
-        })
-        if (!prepared && !failed) Text(stringResource(R.string.cloud_preview_loading))
-        if (failed) Text(stringResource(R.string.cloud_format_unsupported))
+    LaunchedEffect(player) {
+        while (true) {
+            position = player.currentPosition.coerceAtLeast(0)
+            duration = player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0) ?: 0
+            delay(250)
+        }
     }
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val width = minOf(maxWidth, maxHeight * aspect)
+            if (!audioOnly) AndroidView(modifier = Modifier.width(width).height(width / aspect)
+                .testTag(if (rendered) "preview-video-ready" else "preview-video-surface"), factory = { ctx ->
+                SurfaceView(ctx).also { player.setVideoSurfaceView(it) }
+            })
+            if (audioOnly && error == null) Icon(Icons.Default.MusicNote, stringResource(R.string.real_audio), Modifier.size(80.dp))
+            if (buffering && error == null) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(); Text(stringResource(R.string.cloud_preview_loading))
+            }
+            error?.let { code -> Column(Modifier.testTag("preview-error"), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(cloudErrorLabel(code)))
+                TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.drive_action_refresh)) }
+            } }
+        }
+        if (error == null) Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(enabled = ready, modifier = Modifier.size(48.dp).testTag("preview-play"), onClick = {
+                if (player.playWhenReady) { player.pause(); resumeOnForeground = false; savePosition() }
+                else { if (completed) player.seekTo(0); completed = false; resumeOnForeground = true; player.play() }
+            }) { Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                stringResource(if (playing) R.string.cloud_preview_pause else R.string.cloud_preview_play)) }
+            Column(Modifier.weight(1f)) {
+                val label = stringResource(R.string.cloud_preview_seek)
+                Slider(value = drag ?: position.toFloat().coerceIn(0f, duration.toFloat()),
+                    onValueChange = { drag = it }, enabled = ready && duration > 0,
+                    valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
+                    modifier = Modifier.testTag("preview-seek").semantics { contentDescription = label },
+                    onValueChangeFinished = { drag?.let { completed = false; player.seekTo(it.toLong()) }; drag = null })
+                Text("${playbackTime(position)} / ${playbackTime(duration)}", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+private fun playbackTime(milliseconds: Long): String {
+    val seconds = milliseconds.coerceAtLeast(0) / 1000
+    return if (seconds >= 3600) String.format(Locale.ROOT, "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+    else String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60)
 }

@@ -31,3 +31,9 @@ pub struct CloudStream {
     pub size: u64,
     pub mime_type: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CloudThumbnailItem {
+    pub message_id: i32,
+    pub thumbnail_bytes: Vec<u8>,
+}

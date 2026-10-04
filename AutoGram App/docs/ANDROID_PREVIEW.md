@@ -55,6 +55,16 @@ Network, decoder and file layout still affect start time; playback is not guaran
 instant. Seeking requests the required position rather than downloading all preceding
 bytes. Closing the preview or changing account invalidates the old stream.
 
+Preview uses the available screen area with fixed close, download and previous/next
+controls. Navigation follows the current gallery filter and date order within the same
+account and location; folders and unsupported neighboring formats are skipped. Images
+support pinch/pan, double-tap zoom and reset; text scrolls independently of the controls.
+Video fits its measured aspect ratio, with integrated play/pause and seek controls.
+The progressive player separates a 150 ms startup threshold from its 2–40 second
+ongoing buffer window, and supplies the saved position before preparing the media.
+Failed reads can be retried. A small, per-stream memory cache reuses only bytes already
+requested and is discarded on close; it does not fetch a startup buffer ahead of playback.
+
 **Settings → Remember cloud playback position** controls local resume history. Positions
 are separated by account and message, expire after 90 days and contain no media URL,
 credential or local file path. Clear playback history removes these positions only.

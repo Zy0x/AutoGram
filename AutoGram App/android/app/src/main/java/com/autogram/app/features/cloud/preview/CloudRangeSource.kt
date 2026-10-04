@@ -3,6 +3,8 @@ package com.autogram.app.features.cloud.preview
 import com.autogram.app.features.cloud.CloudFailure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
 import uniffi.autogram_android_bridge.*
@@ -14,17 +16,25 @@ class CloudRangeSource(
     private val release: () -> Unit
 ) : Closeable {
     private val closed = AtomicBoolean(false)
+    private val cache = ExactRangeCache()
+    private val reader = Mutex()
     suspend fun read(offset: Long, length: Int): ByteArray {
         if (closed.get()) throw CloudFailure("cloud_stream_closed")
         if (offset < 0 || length < 0) throw CloudFailure("invalid_range")
         if (offset >= size || length == 0) return ByteArray(0)
         val bounded = minOf(length.toLong(), MAX_READ.toLong(), size - offset).toInt()
-        val bytes = fetch(offset, bounded)
-        if (closed.get()) throw CloudFailure("cloud_stream_closed")
-        if (bytes.size != bounded) throw CloudFailure("cloud_media_truncated")
-        return bytes
+        return reader.withLock {
+            if (closed.get()) throw CloudFailure("cloud_stream_closed")
+            val bytes = cache.read(offset, bounded) ?: fetch(offset, bounded).also {
+                if (closed.get()) throw CloudFailure("cloud_stream_closed")
+                if (it.size != bounded) throw CloudFailure("cloud_media_truncated")
+                cache.put(offset, it)
+            }
+            if (closed.get()) { cache.clear(); throw CloudFailure("cloud_stream_closed") }
+            bytes
+        }
     }
-    override fun close() { if (closed.compareAndSet(false, true)) release() }
+    override fun close() { if (closed.compareAndSet(false, true)) { cache.clear(); release() } }
     companion object {
         const val MAX_READ = 256 * 1024
         suspend fun open(account: String, peer: String, message: Int): CloudRangeSource = withContext(Dispatchers.IO) {

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -32,6 +33,7 @@ fun FileGridItem(item: DriveFileItem, isSelected: Boolean, onClick: () -> Unit,
     val visual = item.telegramCategory in setOf("photo", "video", "gif", "sticker")
     val scheme = MaterialTheme.colorScheme
     Box(modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(4.dp))
+        .testTag("drive-media-${com.autogram.app.features.preview.previewKind(item.mimeType).name.lowercase(java.util.Locale.ROOT)}")
         .background(if (isSelected) scheme.primaryContainer else scheme.surfaceVariant)
         .semantics { contentDescription = item.name; selected = isSelected }
         .combinedClickable(onClick = onClick, onLongClick = onLongClick)

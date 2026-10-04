@@ -40,11 +40,18 @@ enum class DriveMediaFilter {
     STICKERS
 }
 
+enum class DriveThumbnailQuality(val wireValue: String) {
+    SAVER("saver"),
+    BALANCED("balanced"),
+    SHARP("sharp")
+}
+
 data class DriveUiState(
     val currentPath: String = "/",
     val searchQuery: String = "",
     val isGridView: Boolean = true,
     val mediaFilter: DriveMediaFilter = DriveMediaFilter.ALL,
+    val thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
     val isLoading: Boolean = false,
     val items: List<DriveFileItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
@@ -62,6 +69,8 @@ class DriveViewModel : ViewModel() {
     val cloudState = cloud.state
     private var mediaJob: Job? = null
     private var locationsJob: Job? = null
+    private var thumbUpgradeJob: Job? = null
+    private val upgradedIds = mutableSetOf<Int>()
 
     init {
         viewModelScope.launch {
@@ -78,12 +87,46 @@ class DriveViewModel : ViewModel() {
                                 durationSeconds = record.durationSeconds, thumbnailBytes = record.thumbnailBytes)
                         })
                 }
+                triggerThumbnailUpgrade()
             }
         }
     }
 
+    private fun triggerThumbnailUpgrade() {
+        val currentQuality = _uiState.value.thumbnailQuality
+        if (currentQuality == DriveThumbnailQuality.SAVER) return
+        val currentItems = cloud.state.value.items
+        if (currentItems.isEmpty()) return
+
+        val eligible = currentItems.filter { item ->
+            item.id > 0 &&
+            item.telegramCategory in setOf("photo", "video", "gif", "sticker") &&
+            !upgradedIds.contains(item.id)
+        }
+        if (eligible.isEmpty()) return
+
+        thumbUpgradeJob?.cancel()
+        thumbUpgradeJob = viewModelScope.launch {
+            val chunks = eligible.map { it.id }.chunked(24)
+            for (chunk in chunks) {
+                cloud.upgradeThumbnails(currentQuality.wireValue, chunk)
+                upgradedIds.addAll(chunk)
+            }
+        }
+    }
+
+    fun setThumbnailQuality(quality: DriveThumbnailQuality) {
+        if (_uiState.value.thumbnailQuality == quality) return
+        _uiState.update { it.copy(thumbnailQuality = quality) }
+        upgradedIds.clear()
+        if (quality != DriveThumbnailQuality.SAVER) {
+            triggerThumbnailUpgrade()
+        }
+    }
+
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
-        mediaJob?.cancel(); locationsJob?.cancel()
+        mediaJob?.cancel(); locationsJob?.cancel(); thumbUpgradeJob?.cancel()
+        upgradedIds.clear()
         cloud.scope(CloudScope(sessionId, peerId))
         _uiState.update {
             it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
@@ -93,7 +136,8 @@ class DriveViewModel : ViewModel() {
     }
 
     fun loadFolder(path: String) {
-        mediaJob?.cancel()
+        mediaJob?.cancel(); thumbUpgradeJob?.cancel()
+        upgradedIds.clear()
         _uiState.update { it.copy(currentPath = path, selectedIds = emptySet()) }
         mediaJob = viewModelScope.launch { cloud.media() }
     }

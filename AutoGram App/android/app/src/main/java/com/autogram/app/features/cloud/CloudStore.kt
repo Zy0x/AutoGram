@@ -77,4 +77,24 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
             mutable.update { it.copy(loadingLocations = false, locationsError = failure.code, retryAtMs = retryAt(failure)) }
         }
     }
+
+    suspend fun upgradeThumbnails(quality: String, messageIds: List<Int>) {
+        val request = mutable.value
+        if (request.scope.accountId.isBlank() || messageIds.isEmpty()) return
+        val currentRevision = mediaRevision
+        try {
+            val thumbnails = service.thumbnails(request.scope, messageIds, quality)
+            if (currentRevision != mediaRevision || thumbnails.isEmpty()) return
+            val map = thumbnails.associate { it.messageId to it.bytes }
+            mutable.update { state ->
+                val updatedItems = state.items.map { item ->
+                    val higherRes = map[item.id]
+                    if (higherRes != null) item.copy(thumbnailBytes = higherRes) else item
+                }
+                state.copy(items = updatedItems)
+            }
+        } catch (_: Exception) {
+            // Non-critical: keep stripped preview placeholders if upgrade fails
+        }
+    }
 }

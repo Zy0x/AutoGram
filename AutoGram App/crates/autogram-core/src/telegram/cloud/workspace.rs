@@ -1,4 +1,8 @@
-use super::{contracts::*, metadata, ranges::*};
+use super::{
+    contracts::*,
+    metadata, ranges::*,
+    thumbnail::{self, ThumbnailQuality, MAX_THUMBNAIL_BATCH},
+};
 use crate::telegram::auth::{map_rpc, AccountId, AuthEngine, AuthError};
 use grammers_client::{client::DialogIter, media::Media, peer::Peer};
 use grammers_session::types::{PeerId, PeerRef};
@@ -325,6 +329,50 @@ impl CloudWorkspace {
             state.streams.remove(handle);
         }
         Ok(())
+    }
+
+    pub async fn fetch_thumbnails(
+        &self,
+        auth: &AuthEngine,
+        account: AccountId,
+        peer_id: String,
+        message_ids: Vec<i32>,
+        quality: &str,
+    ) -> Result<Vec<CloudThumbnailItem>, AuthError> {
+        let quality: ThumbnailQuality = quality.parse()?;
+        if quality == ThumbnailQuality::Saver {
+            return Ok(Vec::new());
+        }
+        let bounded_ids: Vec<i32> = message_ids
+            .into_iter()
+            .filter(|&id| id > 0)
+            .take(MAX_THUMBNAIL_BATCH)
+            .collect();
+        if bounded_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        let owner = account.clone();
+        auth.cloud_request(&owner, |client| async move {
+            let messages = client
+                .get_messages_by_id(peer, &bounded_ids)
+                .await
+                .map_err(map_rpc)?;
+            let mut results = Vec::new();
+            for maybe_msg in messages.into_iter().flatten() {
+                let msg_id = maybe_msg.id();
+                if let Some(media) = maybe_msg.media() {
+                    if let Ok(Some(bytes)) = thumbnail::fetch_thumbnail(&client, &media, quality).await {
+                        results.push(CloudThumbnailItem {
+                            message_id: msg_id,
+                            thumbnail_bytes: bytes,
+                        });
+                    }
+                }
+            }
+            Ok(results)
+        })
+        .await
     }
 }
 

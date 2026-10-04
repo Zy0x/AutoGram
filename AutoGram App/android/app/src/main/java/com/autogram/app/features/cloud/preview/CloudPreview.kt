@@ -2,12 +2,16 @@ package com.autogram.app.features.cloud.preview
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,13 +24,15 @@ import kotlinx.coroutines.*
 import java.io.ByteArrayInputStream
 
 @Composable
-fun CloudPreview(item: DriveFileItem) {
-    var source by remember(item) { mutableStateOf<CloudRangeSource?>(null) }
-    var image by remember(item) { mutableStateOf<Bitmap?>(null) }
-    var text by remember(item) { mutableStateOf<TextPreview?>(null) }
-    var error by remember(item) { mutableStateOf<String?>(null) }
+fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
+    var attempt by remember(item) { mutableIntStateOf(0) }
+    var source by remember(item, attempt) { mutableStateOf<CloudRangeSource?>(null) }
+    var image by remember(item, attempt) { mutableStateOf<Bitmap?>(null) }
+    var text by remember(item, attempt) { mutableStateOf<TextPreview?>(null) }
+    var error by remember(item, attempt) { mutableStateOf<String?>(null) }
+    var opened by remember(item, attempt) { mutableStateOf(false) }
     val kind = previewKind(item.mimeType)
-    LaunchedEffect(item) {
+    LaunchedEffect(item, attempt) {
         var owned: CloudRangeSource? = null
         try {
             if (kind == PreviewKind.UNSUPPORTED) throw CloudFailure("cloud_format_unsupported")
@@ -35,6 +41,7 @@ fun CloudPreview(item: DriveFileItem) {
                 CloudRangeSource.open(requireNotNull(item.cloudAccountId), requireNotNull(item.cloudPeerId), requireNotNull(item.cloudMessageId))
             }
             ensureActive()
+            opened = true
             val active = owned
             when (kind) {
                 PreviewKind.IMAGE -> {
@@ -64,24 +71,35 @@ fun CloudPreview(item: DriveFileItem) {
     }
     val active = source
     val bitmap = image
-    when {
-        error != null -> Text(stringResource(cloudErrorLabel(error!!)))
-        active == null -> {
-            CircularProgressIndicator()
-            Text(stringResource(R.string.cloud_preview_loading))
-        }
-        bitmap != null -> Image(bitmap.asImageBitmap(), contentDescription = item.name,
-            contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp))
-        kind == PreviewKind.TEXT -> {
-            text?.let {
-                if (it.truncated) Text(stringResource(R.string.cloud_text_truncated))
-                Text(it.text)
+    Box(modifier, contentAlignment = Alignment.Center) { when {
+        error != null -> Column(Modifier.testTag("preview-error"), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(stringResource(cloudErrorLabel(error!!)))
+            TextButton(onClick = { attempt++ }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.drive_action_refresh))
             }
         }
+        active == null -> {
+            if (kind == PreviewKind.IMAGE && item.thumbnailBytes != null) {
+                AsyncImage(model = item.thumbnailBytes, contentDescription = item.name,
+                    contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+            }
+            Column(Modifier.testTag(if (opened) "preview-reading" else "preview-opening"), horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Text(stringResource(R.string.cloud_preview_loading))
+            }
+        }
+        bitmap != null -> CloudImageViewer(bitmap, item.name)
+        kind == PreviewKind.TEXT -> {
+            text?.let { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                if (it.truncated) Text(stringResource(R.string.cloud_text_truncated))
+                SelectionContainer { Text(it.text) }
+            } }
+        }
         kind == PreviewKind.VIDEO || kind == PreviewKind.AUDIO ->
-            key(active) { CloudMediaPlayer(active, Modifier.fillMaxWidth().height(240.dp),
-                PlaybackScope(requireNotNull(item.cloudAccountId), requireNotNull(item.cloudPeerId), requireNotNull(item.cloudMessageId))) }
-    }
+            key(active) { CloudMediaPlayer(active, Modifier.fillMaxSize(),
+                PlaybackScope(requireNotNull(item.cloudAccountId), requireNotNull(item.cloudPeerId), requireNotNull(item.cloudMessageId)),
+                audioOnly = kind == PreviewKind.AUDIO, onRetry = { attempt++ }) }
+    } }
 }
 
 private suspend fun readPrefix(source: CloudRangeSource, length: Int): ByteArray {

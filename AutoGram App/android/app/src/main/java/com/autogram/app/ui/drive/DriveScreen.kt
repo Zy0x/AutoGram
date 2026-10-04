@@ -64,6 +64,7 @@ fun DriveScreen(
         modifier = modifier,
         onSearchChange = viewModel::setSearchQuery,
         onMediaFilterChange = viewModel::setMediaFilter,
+        onThumbnailQualityChange = viewModel::setThumbnailQuality,
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { unsupported = true },
@@ -103,7 +104,7 @@ fun DriveScreen(
     if (currentPreview != null) {
         DrivePreviewModal(
             item = currentPreview,
-            allItems = state.items,
+            allItems = com.autogram.app.ui.drive.preview.previewNavigationItems(state, currentPreview),
             onDismiss = { previewItem = null },
             onNavigateItem = { previewItem = it },
             onDownload = { downloadItem = it; previewItem = null }
@@ -154,6 +155,7 @@ fun DriveScreenContent(
     modifier: Modifier = Modifier,
     onSearchChange: (String) -> Unit,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
     onUpload: () -> Unit,
@@ -197,7 +199,8 @@ fun DriveScreenContent(
                 item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
                 item(key = "controls", span = { GridItemSpan(maxLineSpan) }) {
                     DriveTopBar(state.currentPath, filteredItems.size, state.selectedIds.size, state.searchQuery,
-                        onSearchChange, state.mediaFilter, onMediaFilterChange, state.isGridView,
+                        onSearchChange, state.mediaFilter, onMediaFilterChange,
+                        state.thumbnailQuality, onThumbnailQualityChange, state.isGridView,
                         onToggleViewMode, onRefresh, onUpload, onClearSelection, onSelectAll, onInvertSelection,
                         onDownloadZip, onCleanForward, onMoveFolder, onCopyLinks, onTagCategory, onDeleteSelected, onOpenTools)
                 }

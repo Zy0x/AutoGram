@@ -59,6 +59,12 @@ pub struct NativeCloudMediaPage {
     pub next_offset: Option<i32>,
 }
 #[derive(Clone, uniffi::Record)]
+pub struct NativeCloudThumbnail {
+    pub message_id: i32,
+    pub thumbnail_bytes: Vec<u8>,
+}
+
+#[derive(Clone, uniffi::Record)]
 pub struct NativeCloudStream {
     pub id: String,
     pub account_id: String,
@@ -148,4 +154,29 @@ pub fn close_cloud_media_stream(
     stream_id: String,
 ) -> Result<(), NativeAuthError> {
     Ok(workspace().close_stream(&AccountId(account_id), &stream_id)?)
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn fetch_cloud_thumbnails(
+    account_id: String,
+    peer_id: String,
+    message_ids: Vec<i32>,
+    quality: String,
+) -> Result<Vec<NativeCloudThumbnail>, NativeAuthError> {
+    let items = workspace()
+        .fetch_thumbnails(
+            engine()?,
+            AccountId(account_id),
+            peer_id,
+            message_ids,
+            &quality,
+        )
+        .await?;
+    Ok(items
+        .into_iter()
+        .map(|item| NativeCloudThumbnail {
+            message_id: item.message_id,
+            thumbnail_bytes: item.thumbnail_bytes,
+        })
+        .collect())
 }

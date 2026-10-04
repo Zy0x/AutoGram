@@ -25,4 +25,8 @@ class NativeCloudService : CloudService {
                 it.width, it.height, it.durationSeconds, it.thumbnailBytes)
         }, page.nextOffset)
     }
+    override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String): List<CloudThumbnail> = invoke {
+        val result = fetchCloudThumbnails(scope.accountId, scope.peerId, messageIds, quality)
+        result.map { CloudThumbnail(it.messageId, it.thumbnailBytes) }
+    }
 }
