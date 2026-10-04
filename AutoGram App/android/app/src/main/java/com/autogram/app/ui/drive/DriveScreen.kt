@@ -53,6 +53,7 @@ fun DriveScreen(
     var isTagModalOpen by remember { mutableStateOf(false) }
     var isMoveModalOpen by remember { mutableStateOf(false) }
     var isDeleteModalOpen by remember { mutableStateOf(false) }
+    var isLocationPickerOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
@@ -64,6 +65,7 @@ fun DriveScreen(
     LaunchedEffect(state.sessionId, state.peerId, state.topicId) {
         previewItem = null
         zipArchiveItem = null
+        isLocationPickerOpen = false
         isDriveToolsOpen = false
         isRemoteUploadOpen = false
         isDedupCleanerOpen = false
@@ -82,6 +84,8 @@ fun DriveScreen(
         modifier = modifier,
         onSearchChange = viewModel::setSearchQuery,
         onMediaFilterChange = viewModel::setMediaFilter,
+        onOpenLocationPicker = { isLocationPickerOpen = true },
+        onTopicSelect = viewModel::setTopicFilter,
         sortOrder = state.sortOrder,
         onSortOrderChange = viewModel::setSortOrder,
         onThumbnailQualityChange = viewModel::setThumbnailQuality,
@@ -285,6 +289,19 @@ fun DriveScreen(
         )
     }
 
+    if (isLocationPickerOpen) {
+        DriveLocationPickerSheet(
+            currentPeerId = state.peerId,
+            locations = state.locations,
+            sessionId = state.sessionId,
+            onSelectLocation = { location ->
+                viewModel.chooseLocation(location, context)
+                isLocationPickerOpen = false
+            },
+            onDismiss = { isLocationPickerOpen = false }
+        )
+    }
+
     if (unsupported) UnavailableOperationDialog({ unsupported = false })
 }
 
@@ -294,6 +311,8 @@ fun DriveScreenContent(
     modifier: Modifier = Modifier,
     onSearchChange: (String) -> Unit,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    onOpenLocationPicker: () -> Unit = {},
+    onTopicSelect: (Long?) -> Unit = {},
     sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
     onSortOrderChange: (DriveSortOrder) -> Unit = {},
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
@@ -349,6 +368,14 @@ fun DriveScreenContent(
                         onSearchChange = onSearchChange,
                         mediaFilter = state.mediaFilter,
                         onMediaFilterChange = onMediaFilterChange,
+                        activeLocationTitle = state.activeLocationTitle,
+                        activeLocationKind = state.activeLocationKind,
+                        activeLocationPeerId = state.peerId,
+                        onOpenLocationPicker = onOpenLocationPicker,
+                        isForum = state.isForum,
+                        topics = state.topics,
+                        activeTopicId = state.activeTopicId,
+                        onTopicSelect = onTopicSelect,
                         sortOrder = sortOrder,
                         onSortOrderChange = onSortOrderChange,
                         thumbnailQuality = state.thumbnailQuality,

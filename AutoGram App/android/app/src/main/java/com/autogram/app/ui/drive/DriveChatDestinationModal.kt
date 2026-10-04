@@ -136,7 +136,12 @@ fun DriveChatDestinationModal(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Default.Bookmark, null, tint = if (isSavedSelected) MutedIceCyan else TextMutedDark)
+                            PeerAvatar(
+                                title = stringResource(R.string.drive_dest_saved),
+                                peerId = "me",
+                                kind = "saved",
+                                size = 32.dp
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(R.string.drive_dest_saved),
@@ -151,7 +156,7 @@ fun DriveChatDestinationModal(
                     }
 
                     // Available dialog locations if any
-                    locations.take(4).forEach { loc ->
+                    locations.take(6).forEach { loc ->
                         val isLocSelected = !isCustomMode && selectedTarget == loc.id
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -165,14 +170,15 @@ fun DriveChatDestinationModal(
                                 }
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(
-                                    if (loc.kind == "channel") Icons.Default.Campaign else Icons.Default.Group,
-                                    null,
-                                    tint = if (isLocSelected) MutedIceCyan else TextMutedDark
+                                PeerAvatar(
+                                    title = loc.title,
+                                    peerId = loc.id,
+                                    kind = loc.kind,
+                                    size = 32.dp
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(

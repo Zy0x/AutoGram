@@ -808,4 +808,42 @@
     <string name="preview_log_level_debug">DEBUG</string>
     <string name="preview_log_copy">Copy Log</string>
     <string name="preview_log_copied">Entire log copied to clipboard!</string>
+    <!-- Drive Location Switcher & Forum Topics -->
+    <string name="drive_switch_location_title">Select Chat / Drive</string>
+    <string name="drive_switch_location_subtitle">Switch between saved messages, groups, or Telegram channels</string>
+    <string name="drive_search_chat_placeholder">Search chat or drive...</string>
+    <string name="drive_category_all">All</string>
+    <string name="drive_category_saved">Personal</string>
+    <string name="drive_category_groups">Groups &amp; Forums</string>
+    <string name="drive_category_channels">Channels</string>
+    <string name="drive_recent_locations">Recently Opened</string>
+    <string name="drive_kind_saved">Saved Messages</string>
+    <string name="drive_kind_forum">Forum Group</string>
+    <string name="drive_kind_group">Group</string>
+    <string name="drive_kind_channel">Channel</string>
+    <string name="drive_kind_bot">Bot</string>
+    <string name="drive_kind_private">Private Chat</string>
+    <string name="drive_topic_all">All Media</string>
+    <string name="drive_topic_destination">Destination Topic</string>
+    <string name="drive_stats_total">%1$d files</string>
+    <string name="drive_stats_photos">%1$d photos</string>
+    <string name="drive_stats_videos">%1$d videos</string>
+    <string name="drive_stats_docs">%1$d documents</string>
+
+    <!-- MX-Player Video & Media Tools -->
+    <string name="video_speed_title">Playback Speed</string>
+    <string name="video_aspect_fit">Fit to Screen</string>
+    <string name="video_aspect_fill">Fill Screen</string>
+    <string name="video_aspect_16_9">16:9 Aspect</string>
+    <string name="video_aspect_original">Original Size (100%)</string>
+    <string name="video_seek_forward">Forward 10 Seconds</string>
+    <string name="video_seek_rewind">Rewind 10 Seconds</string>
+    <string name="video_loop_enabled">Repeat Loop On</string>
+    <string name="video_loop_disabled">Repeat Loop Off</string>
+    <string name="video_rotate_screen">Fullscreen Rotation</string>
+    <string name="video_tech_info_title">Media Technical Info</string>
+    <string name="video_tech_resolution">Resolution: %1$s</string>
+    <string name="video_tech_duration">Duration: %1$s</string>
+    <string name="video_tech_format">Format: %1$s</string>
+    <string name="video_tech_size">Size: %1$s</string>
 </resources>

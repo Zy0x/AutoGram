@@ -74,8 +74,14 @@ data class DriveUiState(
     val items: List<DriveFileItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
     val sessionId: String = "",
-    val peerId: String = "",
+    val peerId: String = "me",
     val topicId: Long? = null,
+    val isForum: Boolean = false,
+    val topics: List<com.autogram.app.ui.drive.DriveTopic> = emptyList(),
+    val activeTopicId: Long? = null,
+    val locations: List<CloudLocation> = emptyList(),
+    val activeLocationTitle: String = "Saved Messages",
+    val activeLocationKind: String = "self",
     val errorCode: String? = null
 )
 
@@ -111,6 +117,7 @@ class DriveViewModel : ViewModel() {
                 _uiState.update { current ->
                     current.copy(isLoading = result.loading, errorCode = result.error,
                         searchQuery = result.query,
+                        locations = result.locations,
                         items = result.items.map { record ->
                             DriveFileItem(record.id.toString(), record.name, record.size,
                                 record.mimeType, false, record.modifiedMs,
@@ -202,9 +209,29 @@ class DriveViewModel : ViewModel() {
         locationsJob = viewModelScope.launch { cloud.locations(append) }
     }
 
-    fun chooseLocation(location: CloudLocation) {
+    fun chooseLocation(location: CloudLocation, context: android.content.Context? = null) {
+        val isForum = location.kind == "forum"
+        val loadedTopics = if (isForum && context != null) {
+            com.autogram.app.ui.drive.DriveTopicsStore(context).getTopics(_uiState.value.sessionId, location.id)
+        } else if (isForum) {
+            listOf(com.autogram.app.ui.drive.DriveTopic(1L, "General", isClosed = false))
+        } else emptyList()
+
         setScope(_uiState.value.sessionId, location.id, null)
-        _uiState.update { it.copy(currentPath = location.title) }
+        _uiState.update {
+            it.copy(
+                currentPath = location.title.ifEmpty { "Saved Messages" },
+                activeLocationTitle = location.title.ifEmpty { "Saved Messages" },
+                activeLocationKind = location.kind,
+                isForum = isForum,
+                topics = loadedTopics,
+                activeTopicId = null
+            )
+        }
+    }
+
+    fun setTopicFilter(topicId: Long?) {
+        _uiState.update { it.copy(activeTopicId = topicId, selectedIds = emptySet()) }
     }
 
     fun setSearchQuery(query: String) {

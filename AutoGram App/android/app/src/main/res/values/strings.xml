@@ -810,4 +810,43 @@
     <string name="preview_log_level_debug">DEBUG</string>
     <string name="preview_log_copy">Salin Log</string>
     <string name="preview_log_copied">Seluruh log berhasil disalin ke clipboard!</string>
+
+    <!-- Drive Location Switcher & Forum Topics -->
+    <string name="drive_switch_location_title">Pilih Chat / Drive</string>
+    <string name="drive_switch_location_subtitle">Beralih ke pesan tersimpan, grup, atau saluran Telegram</string>
+    <string name="drive_search_chat_placeholder">Cari chat atau drive...</string>
+    <string name="drive_category_all">Semua</string>
+    <string name="drive_category_saved">Pribadi</string>
+    <string name="drive_category_groups">Grup &amp; Forum</string>
+    <string name="drive_category_channels">Saluran</string>
+    <string name="drive_recent_locations">Terakhir Dibuka</string>
+    <string name="drive_kind_saved">Pesan Tersimpan</string>
+    <string name="drive_kind_forum">Grup Forum</string>
+    <string name="drive_kind_group">Grup</string>
+    <string name="drive_kind_channel">Saluran</string>
+    <string name="drive_kind_bot">Bot</string>
+    <string name="drive_kind_private">Chat Pribadi</string>
+    <string name="drive_topic_all">Semua Berkas</string>
+    <string name="drive_topic_destination">Topik Tujuan</string>
+    <string name="drive_stats_total">%1$d berkas</string>
+    <string name="drive_stats_photos">%1$d foto</string>
+    <string name="drive_stats_videos">%1$d video</string>
+    <string name="drive_stats_docs">%1$d dokumen</string>
+
+    <!-- MX-Player Video & Media Tools -->
+    <string name="video_speed_title">Kecepatan Pemutaran</string>
+    <string name="video_aspect_fit">Sesuai Layar (Fit)</string>
+    <string name="video_aspect_fill">Penuh (Fill)</string>
+    <string name="video_aspect_16_9">Rasio 16:9</string>
+    <string name="video_aspect_original">Ukuran Asli (100%)</string>
+    <string name="video_seek_forward">Maju 10 Detik</string>
+    <string name="video_seek_rewind">Mundur 10 Detik</string>
+    <string name="video_loop_enabled">Putar Berulang Aktif</string>
+    <string name="video_loop_disabled">Putar Berulang Nonaktif</string>
+    <string name="video_rotate_screen">Rotasi Layar Penuh</string>
+    <string name="video_tech_info_title">Informasi Teknis Media</string>
+    <string name="video_tech_resolution">Resolusi: %1$s</string>
+    <string name="video_tech_duration">Durasi: %1$s</string>
+    <string name="video_tech_format">Format: %1$s</string>
+    <string name="video_tech_size">Ukuran: %1$s</string>
 </resources>

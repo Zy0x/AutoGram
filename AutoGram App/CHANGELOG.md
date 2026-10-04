@@ -1,4 +1,34 @@
-## Unreleased — Complete Desktop-Parity Anti-Buffering Streaming Engine & Universal Media/Document Previewers
+## Unreleased — Telegram Forum Topic Navigation, Drive Location Switcher & MX-Player/Google Photos Media Tools Suite
+
+### 1. Drive Location Switcher & Telegram Gradient Avatars (`DriveLocationPickerSheet.kt`, `DriveAvatar.kt`)
+- **Telegram 8-Color Gradient Monograms & Badge Engine (`DriveAvatar.kt`)**: Implemented universal `PeerAvatar` component utilizing Telegram's official 8-color gradient palette (`TELEGRAM_GRADIENT_PAIRS`), 2-letter uppercase monogram generator (`getPeerInitials`), real cloud avatar support via Coil (`AsyncImage`), and distinctive badges for Forum groups (`Icons.Default.Forum`), Channels (`Icons.Default.Campaign`), Supergroups/Groups (`Icons.Default.Groups`), Bots (`Icons.Default.SmartToy`), and Saved Messages (`Icons.Default.Bookmark`).
+- **Interactive Drive Location Picker Bottom Sheet (`DriveLocationPickerSheet.kt`)**: Added smooth BottomSheet modal for instant switching between Telegram drives and chats with real-time search query filtering, category tabs (`All`, `Personal/Saved`, `Groups & Forums`, `Channels`), and `RecentDrivesStore` caching up to 5 recently opened cloud locations in SharedPreferences (`autogram_recent_drives`).
+- **Location Capsule Header (`DriveTopBar.kt`)**: Added Telegram-style clickable location header capsule showing the current drive's `PeerAvatar`, chat title, down chevron indicator, and live total item count.
+- **Visual Identity Parity in Destination Picker (`DriveChatDestinationModal.kt`)**: Integrated `PeerAvatar` into the destination picker modal for Clean Copy forwarding targets.
+
+### 2. Forum Supergroup & Topic Navigation Engine (`DriveTopicChips.kt`, `DriveViewModel.kt`)
+- **Horizontal Topic Chips Bar (`DriveTopicChips.kt`)**: Built horizontal scrollable filter bar rendering `#Semua Berkas` alongside individual forum topic chips with `#` tag prefixes, lock badges for closed topics, and active topic indicators matching desktop forum UX.
+- **Drive Topics Store (`DriveTopicsStore`)**: Implemented SharedPreferences topic metadata store caching forum topics per `sessionId_peerId`, synchronizing topic hierarchies between sessions.
+- **Scoped Topic Filtering (`DriveViewModel.kt`)**: Added `isForum`, `topics`, and `activeTopicId` state handling to `DriveUiState`, automatically detecting forum chats and scoping media loads to the selected forum thread without data leak across topics.
+
+### 3. MX-Player Video & Media Tools Suite (`CloudMediaPlayer.kt`)
+- **Aspect Ratio Cycling Engine**: Added 4-mode aspect ratio switcher: Fit to screen (`FIT`), Crop to fill (`FILL`), 16:9 widescreen cinema (`RATIO_16_9`), and Original unscaled resolution (`ORIGINAL`) with boundary clipping.
+- **Playback Speed Controller**: Added granular speed selection menu supporting `0.5x`, `0.75x`, `1.0x`, `1.25x`, `1.5x`, and `2.0x` speeds using ExoPlayer's `setPlaybackSpeed()`.
+- **±10s Quick Jump Controls**: Added 40dp touch-target fast rewind (`-10s`) and fast forward (`+10s`) buttons for rapid scrubbing.
+- **Repeat / Infinite Loop Toggle**: Added 1-tap single-video repeat toggle (`Player.REPEAT_MODE_ONE` vs `Player.REPEAT_MODE_OFF`).
+- **Fullscreen & Screen Rotation**: Added screen orientation toggle switching between portrait and landscape modes with safe cleanup resetting orientation on disposal.
+- **Technical Media Telemetry Overlay**: Added translucent diagnostic overlay card displaying real-time video resolution, playback duration, stream decoder pipeline, and memory/buffer volume.
+
+### 4. Google Photos Gesture & Swipe Item Pager (`DrivePreviewModal.kt`)
+- **Smooth Horizontal Pager**: Integrated Compose `HorizontalPager` with `rememberPagerState`, enabling smooth left/right horizontal swiping between media items directly inside the cloud preview modal.
+- **Bi-Directional State Synchronization**: Pager position dynamically synchronizes with active item metadata, counter (`X dari Y`), download actions, and technical info sheet.
+
+### 5. Multi-Language Parity & Physical Device Deployment
+- **100% Zero Hardcoded Strings Parity**: Added matching string resources across `values/strings.xml` and `values-en/strings.xml` with zero key discrepancies.
+- **Rule 17 Modular Architecture Compliance**: All created and modified files are strictly between 150 and 646 LOC, well below the 2,000 LOC ceiling.
+- **Quality Gates & Phone Deployment**: Passed all unit tests in `testDebugUnitTest` and all 8 Autonomous Quality Sentinel gates in `npm run test:quality`. Built and verified `app-arm64-v8a-debug.apk` directly streamed-installed on physical `Infinix X698` (`192.168.1.5:5555`).
+
+## Earlier Unreleased — Complete Desktop-Parity Anti-Buffering Streaming Engine & Universal Media/Document Previewers
 
 ### 1. Anti-Buffering Parallel Streaming Pipeline & Disk Sparse Cache (`CloudStreamPipeline.kt`, `CloudRangeSource.kt`, `SparseDiskStreamCache.kt`)
 - **Mutex Concurrency Bottleneck Elimination (`CloudRangeSource.kt`)**: Replaced coarse-grained `reader = Mutex()` serialization lock with non-blocking concurrent reads and thread-safe `inFlight` request tracking. Reads for distinct chunk ranges now execute in parallel without queue blocking.

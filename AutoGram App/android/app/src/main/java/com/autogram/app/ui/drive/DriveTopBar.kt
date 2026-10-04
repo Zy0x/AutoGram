@@ -35,6 +35,14 @@ fun DriveTopBar(
     onSearchChange: (String) -> Unit,
     mediaFilter: DriveMediaFilter,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    activeLocationTitle: String = "",
+    activeLocationKind: String = "",
+    activeLocationPeerId: String = "",
+    onOpenLocationPicker: () -> Unit = {},
+    isForum: Boolean = false,
+    topics: List<DriveTopic> = emptyList(),
+    activeTopicId: Long? = null,
+    onTopicSelect: (Long?) -> Unit = {},
     sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
     onSortOrderChange: (DriveSortOrder) -> Unit = {},
     thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
@@ -65,6 +73,64 @@ fun DriveTopBar(
             .padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // Location Switcher Capsule (when not in selection mode)
+        if (selectedCount == 0) {
+            Surface(
+                onClick = onOpenLocationPicker,
+                shape = RoundedCornerShape(16.dp),
+                color = SurfaceElevatedDark.copy(alpha = 0.75f),
+                border = BorderStroke(1.dp, BorderHairline),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PeerAvatar(
+                        title = activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
+                        peerId = activeLocationPeerId,
+                        kind = activeLocationKind,
+                        size = 36.dp
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                ),
+                                color = TextPrimaryDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = stringResource(R.string.drive_switch_location_title),
+                                tint = MutedIceCyan,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.drive_stats_total, itemCount),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = TextSecondaryDark
+                        )
+                    }
+                }
+            }
+        }
         // Selection Mode Header vs. Google Photos Style Search Capsule
         if (selectedCount > 0) {
             Surface(
@@ -409,6 +475,15 @@ fun DriveTopBar(
                     }
                 }
             }
+        }
+
+        // Forum Topics Filter Bar (if current chat is a forum supergroup)
+        if (isForum && topics.isNotEmpty()) {
+            DriveTopicChips(
+                topics = topics,
+                activeTopicId = activeTopicId,
+                onSelectTopic = onTopicSelect
+            )
         }
 
         // Filter Pills Carousel (Photos / Videos / Audio / Documents)
