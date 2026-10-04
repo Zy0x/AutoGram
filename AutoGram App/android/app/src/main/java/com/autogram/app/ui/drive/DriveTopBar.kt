@@ -23,6 +23,7 @@ import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramStatusDot
 import com.autogram.app.viewmodel.DriveGridAspectRatio
 import com.autogram.app.viewmodel.DriveMediaFilter
+import com.autogram.app.viewmodel.DriveSortOrder
 import com.autogram.app.viewmodel.DriveThumbnailQuality
 
 @Composable
@@ -34,6 +35,8 @@ fun DriveTopBar(
     onSearchChange: (String) -> Unit,
     mediaFilter: DriveMediaFilter,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
+    onSortOrderChange: (DriveSortOrder) -> Unit = {},
     thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
     gridAspectRatio: DriveGridAspectRatio = DriveGridAspectRatio.PORTRAIT,
@@ -42,6 +45,7 @@ fun DriveTopBar(
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
     onUpload: () -> Unit,
+    onRemoteUpload: () -> Unit = {},
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onInvertSelection: () -> Unit,
@@ -232,6 +236,18 @@ fun DriveTopBar(
                         )
                     }
 
+                    IconButton(
+                        onClick = onRemoteUpload,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDownload,
+                            contentDescription = stringResource(R.string.drive_remote_upload_title),
+                            tint = MutedIceCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     Box {
                         IconButton(
                             onClick = { menuOpen = true },
@@ -257,13 +273,50 @@ fun DriveTopBar(
                                 onClick = { menuOpen = false; onUpload() }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.tools_title)) },
+                                text = { Text(stringResource(R.string.drive_remote_upload_title)) },
+                                onClick = { menuOpen = false; onRemoteUpload() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.drive_dedup_title)) },
                                 onClick = { menuOpen = false; onOpenTools() }
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.drive_action_select_all)) },
                                 onClick = { menuOpen = false; onSelectAll() }
                             )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(
+                                text = stringResource(R.string.drive_sort_label),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = TextSecondaryDark,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                            DriveSortOrder.entries.forEach { order ->
+                                val labelRes = when (order) {
+                                    DriveSortOrder.DATE_DESC -> R.string.drive_sort_date_desc
+                                    DriveSortOrder.DATE_ASC -> R.string.drive_sort_date_asc
+                                    DriveSortOrder.NAME_ASC -> R.string.drive_sort_name_asc
+                                    DriveSortOrder.NAME_DESC -> R.string.drive_sort_name_desc
+                                    DriveSortOrder.SIZE_DESC -> R.string.drive_sort_size_desc
+                                    DriveSortOrder.SIZE_ASC -> R.string.drive_sort_size_asc
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(stringResource(labelRes))
+                                            if (order == sortOrder) {
+                                                Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = MutedIceCyan)
+                                            }
+                                        }
+                                    },
+                                    onClick = { menuOpen = false; onSortOrderChange(order) }
+                                )
+                            }
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             Text(
                                 text = stringResource(R.string.drive_thumb_quality),

@@ -605,4 +605,58 @@
     <string name="ui2_quick_automation_desc">Automated sync schedules and trigger rules</string>
     <string name="ui2_quick_profiles_desc">MTProto concurrency presets and bandwidth profiles</string>
     <string name="ui2_quick_sync_desc">Two-way sync between local files and Telegram cloud</string>
+
+    <!-- Drive Sorting -->
+    <string name="drive_sort_label">Sort By</string>
+    <string name="drive_sort_name_asc">Name (A-Z)</string>
+    <string name="drive_sort_name_desc">Name (Z-A)</string>
+    <string name="drive_sort_date_desc">Newest</string>
+    <string name="drive_sort_date_asc">Oldest</string>
+    <string name="drive_sort_size_desc">Largest Size</string>
+    <string name="drive_sort_size_asc">Smallest Size</string>
+
+    <!-- Drive Remote Upload -->
+    <string name="drive_remote_upload_title">Upload via URL to This Folder</string>
+    <string name="drive_remote_upload_hint">Paste HTTP, YouTube, TikTok link...</string>
+    <string name="drive_remote_upload_action">Start Cloud Upload</string>
+    <string name="drive_remote_upload_success">Link successfully queued to upload into folder!</string>
+
+    <!-- Drive Duplicate Cleaner Sheet -->
+    <string name="drive_dedup_title">Cloud Drive Duplicate Cleaner</string>
+    <string name="drive_dedup_scanning">Scanning 4-Level duplicates...</string>
+    <string name="drive_dedup_found">%1$d Duplicate Groups Detected</string>
+    <string name="drive_dedup_reclaimable">Reclaimable: %1$s</string>
+    <string name="drive_dedup_clean_action">Auto-Clean Duplicates</string>
+    <string name="drive_dedup_clean_success">%1$d duplicate files successfully cleaned!</string>
+    <string name="drive_dedup_clean_empty">Your cloud is clean! No duplicate files found.</string>
+
+    <!-- File Technical Info Sheet -->
+    <string name="file_info_title">MTProto Telemetry &amp; Details</string>
+    <string name="file_info_msg_id">Telegram Message ID</string>
+    <string name="file_info_dc">Data Center (DC)</string>
+    <string name="file_info_file_ref">File Reference</string>
+    <string name="file_info_hash">Cryptographic SHA-256</string>
+    <string name="file_info_dimensions">Media Dimensions</string>
+    <string name="file_info_duration">Playback Duration</string>
+    <string name="file_info_copy">Copy Value</string>
+    <string name="file_info_copied">Value copied to clipboard!</string>
+
+    <!-- Database Backup & Restore in Settings -->
+    <string name="settings_db_backup_title">Database Backup &amp; Restore</string>
+    <string name="settings_db_backup_desc">Export encrypted local SQLite database or restore from backup.</string>
+    <string name="settings_db_export_action">Export Backup (SAF)</string>
+    <string name="settings_db_restore_action">Restore Database</string>
+    <string name="settings_db_export_success">Database successfully exported!</string>
+    <string name="settings_db_restore_success">Database successfully restored!</string>
+    <string name="settings_db_restore_confirm">Restoring database will overwrite current local data. Continue?</string>
+
+    <!-- Cellular Max Speed Bypass -->
+    <string name="settings_network_bypass_title">Bypass Cellular Maximum Speed</string>
+    <string name="settings_network_bypass_desc">Force 8 Turbo streams constantly even on cellular data (consumes data faster).</string>
+
+    <!-- Additional Drive and Preview Strings -->
+    <string name="drive_delete_success">Successfully deleted %1$d files from cloud</string>
+    <string name="preview_markdown_rendered">Rendered View</string>
+    <string name="preview_markdown_raw">Raw Markdown</string>
+    <string name="native_confirm">Continue</string>
 </resources>

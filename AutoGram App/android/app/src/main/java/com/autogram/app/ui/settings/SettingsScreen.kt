@@ -1,7 +1,11 @@
 package com.autogram.app.ui.settings
 
 import uniffi.autogram_android_bridge.getAvailableStorageBytes
+import android.content.Context
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,15 +34,66 @@ import com.autogram.app.theme.*
 import com.autogram.app.ui.components.*
 import com.autogram.app.ui.drive.formatFileSize
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val playback = remember(context) { AndroidPlaybackPreferences(context) }
     var rememberPosition by remember { mutableStateOf(playback.rememberPosition) }
     val runtime by NativeRuntime.status.collectAsState()
     var refreshStorage by remember { mutableIntStateOf(0) }
+
+    val sharedPrefs = remember(context) { context.getSharedPreferences("autogram_network_prefs", Context.MODE_PRIVATE) }
+    var bypassCellular by remember { mutableStateOf(sharedPrefs.getBoolean("bypass_cellular_turbo", false)) }
+
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    var showRestoreConfirmDialog by remember { mutableStateOf(false) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/x-sqlite3")
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val dbFile = File(context.filesDir, "telegram_migrator.db")
+                    if (dbFile.exists()) {
+                        context.contentResolver.openOutputStream(uri)?.use { outStream ->
+                            dbFile.inputStream().use { inStream ->
+                                inStream.copyTo(outStream)
+                            }
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, context.getString(R.string.settings_db_export_success), Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, context.getString(R.string.settings_db_export_success), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            pendingRestoreUri = uri
+            showRestoreConfirmDialog = true
+        }
+    }
 
     val freeBytes by produceState<Long?>(null, refreshStorage, runtime) {
         value = withContext(Dispatchers.IO) {
@@ -213,6 +268,72 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 }
             }
 
+            // Section: Jaringan & Konkurensi
+            item(key = "section_network") {
+                SettingsSectionHeader(stringResource(R.string.settings_network_bypass_title))
+            }
+
+            item(key = "network_card") {
+                AutoGramGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    borderColor = BorderHairline,
+                    containerColor = SurfaceDeep
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MutedIceCyan.copy(alpha = 0.15f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Speed,
+                                    contentDescription = null,
+                                    tint = MutedIceCyan,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_network_bypass_title),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                ),
+                                color = TextPrimaryDark
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_network_bypass_desc),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                color = TextSecondaryDark
+                            )
+                        }
+                        Switch(
+                            checked = bypassCellular,
+                            onCheckedChange = { checked ->
+                                bypassCellular = checked
+                                sharedPrefs.edit().putBoolean("bypass_cellular_turbo", checked).apply()
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = MutedIceCyan,
+                                uncheckedThumbColor = TextMutedDark,
+                                uncheckedTrackColor = SurfaceElevatedDark
+                            )
+                        )
+                    }
+                }
+            }
+
             // Section 2: Penyimpanan
             item(key = "section_storage") {
                 SettingsSectionHeader(stringResource(R.string.ui2_section_storage))
@@ -275,6 +396,96 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                 tint = MutedIceCyan,
                                 modifier = Modifier.size(20.dp)
                             )
+                        }
+                    }
+                }
+            }
+
+            // Section: Cadangan & Pemulihan Database
+            item(key = "section_db_backup") {
+                SettingsSectionHeader(stringResource(R.string.settings_db_backup_title))
+            }
+
+            item(key = "db_backup_card") {
+                AutoGramGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    borderColor = BorderHairline,
+                    containerColor = SurfaceDeep
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = GoldAccent.copy(alpha = 0.15f),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Backup,
+                                        contentDescription = null,
+                                        tint = GoldAccent,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.settings_db_backup_title),
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    ),
+                                    color = TextPrimaryDark
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_db_backup_desc),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                    color = TextSecondaryDark
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                                    exportLauncher.launch("AutoGram_Backup_$timestamp.db")
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MutedIceCyan.copy(alpha = 0.2f),
+                                    contentColor = MutedIceCyan
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.settings_db_export_action), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    restoreLauncher.launch(arrayOf("*/*"))
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, SoftCoral.copy(alpha = 0.4f)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.SettingsBackupRestore, contentDescription = null, tint = SoftCoral, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.settings_db_restore_action), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = SoftCoral)
+                            }
                         }
                     }
                 }
@@ -398,6 +609,61 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+
+    if (showRestoreConfirmDialog && pendingRestoreUri != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreConfirmDialog = false
+                pendingRestoreUri = null
+            },
+            title = { Text(stringResource(R.string.settings_db_restore_action)) },
+            text = { Text(stringResource(R.string.settings_db_restore_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val uri = pendingRestoreUri
+                        showRestoreConfirmDialog = false
+                        pendingRestoreUri = null
+                        if (uri != null) {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try {
+                                    val dbFile = File(context.filesDir, "telegram_migrator.db")
+                                    val walFile = File(context.filesDir, "telegram_migrator.db-wal")
+                                    val shmFile = File(context.filesDir, "telegram_migrator.db-shm")
+                                    if (walFile.exists()) walFile.delete()
+                                    if (shmFile.exists()) shmFile.delete()
+
+                                    context.contentResolver.openInputStream(uri)?.use { inStream ->
+                                        dbFile.outputStream().use { outStream ->
+                                            inStream.copyTo(outStream)
+                                        }
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, context.getString(R.string.settings_db_restore_success), Toast.LENGTH_LONG).show()
+                                        refreshStorage++
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Restore error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.native_confirm), color = SoftCoral)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showRestoreConfirmDialog = false
+                    pendingRestoreUri = null
+                }) {
+                    Text(stringResource(R.string.drive_action_cancel))
+                }
+            }
+        )
     }
 }
 

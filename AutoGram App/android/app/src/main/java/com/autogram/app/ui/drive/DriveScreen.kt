@@ -47,6 +47,8 @@ fun DriveScreen(
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var isDriveToolsOpen by remember { mutableStateOf(false) }
+    var isRemoteUploadOpen by remember { mutableStateOf(false) }
+    var isDedupCleanerOpen by remember { mutableStateOf(false) }
     var isDestinationModalOpen by remember { mutableStateOf(false) }
     var isTagModalOpen by remember { mutableStateOf(false) }
     var isMoveModalOpen by remember { mutableStateOf(false) }
@@ -62,6 +64,9 @@ fun DriveScreen(
     LaunchedEffect(state.sessionId, state.peerId, state.topicId) {
         previewItem = null
         zipArchiveItem = null
+        isDriveToolsOpen = false
+        isRemoteUploadOpen = false
+        isDedupCleanerOpen = false
         isDestinationModalOpen = false
         isTagModalOpen = false
         isMoveModalOpen = false
@@ -77,11 +82,14 @@ fun DriveScreen(
         modifier = modifier,
         onSearchChange = viewModel::setSearchQuery,
         onMediaFilterChange = viewModel::setMediaFilter,
+        sortOrder = state.sortOrder,
+        onSortOrderChange = viewModel::setSortOrder,
         onThumbnailQualityChange = viewModel::setThumbnailQuality,
         onGridAspectRatioChange = viewModel::setGridAspectRatio,
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { unsupported = true },
+        onRemoteUpload = { isRemoteUploadOpen = true },
         onClearSelection = viewModel::clearSelection,
         onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
         onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter)) },
@@ -136,7 +144,7 @@ fun DriveScreen(
         },
         onTagCategory = { isTagModalOpen = true },
         onDeleteSelected = { isDeleteModalOpen = true },
-        onOpenTools = { isDriveToolsOpen = true },
+        onOpenTools = { isDedupCleanerOpen = true },
         onItemClick = { item ->
             if (state.selectedIds.isNotEmpty()) {
                 viewModel.toggleItemSelection(item.id)
@@ -182,6 +190,31 @@ fun DriveScreen(
         DriveToolsModal(
             allItems = state.items,
             onDismiss = { isDriveToolsOpen = false }
+        )
+    }
+
+    if (isDedupCleanerOpen) {
+        DriveDuplicateCleanerSheet(
+            items = state.items,
+            onDismiss = { isDedupCleanerOpen = false },
+            onCleanDuplicates = {
+                viewModel.loadFolder(state.currentPath)
+            }
+        )
+    }
+
+    if (isRemoteUploadOpen) {
+        DriveRemoteUploadModal(
+            currentFolder = state.currentPath,
+            onDismiss = { isRemoteUploadOpen = false },
+            onSubmitUrl = { _, _, _ ->
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.drive_remote_upload_success),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                isRemoteUploadOpen = false
+            }
         )
     }
 
@@ -243,7 +276,7 @@ fun DriveScreen(
                 viewModel.clearSelection()
                 android.widget.Toast.makeText(
                     context,
-                    "Berhasil menghapus $count berkas dari cloud",
+                    context.getString(R.string.drive_delete_success, count),
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
                 viewModel.loadFolder(state.currentPath)
@@ -261,11 +294,14 @@ fun DriveScreenContent(
     modifier: Modifier = Modifier,
     onSearchChange: (String) -> Unit,
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
+    sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
+    onSortOrderChange: (DriveSortOrder) -> Unit = {},
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
     onGridAspectRatioChange: (DriveGridAspectRatio) -> Unit = {},
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
     onUpload: () -> Unit,
+    onRemoteUpload: () -> Unit = {},
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onInvertSelection: () -> Unit,
@@ -313,6 +349,8 @@ fun DriveScreenContent(
                         onSearchChange = onSearchChange,
                         mediaFilter = state.mediaFilter,
                         onMediaFilterChange = onMediaFilterChange,
+                        sortOrder = sortOrder,
+                        onSortOrderChange = onSortOrderChange,
                         thumbnailQuality = state.thumbnailQuality,
                         onThumbnailQualityChange = onThumbnailQualityChange,
                         gridAspectRatio = state.gridAspectRatio,
@@ -321,6 +359,7 @@ fun DriveScreenContent(
                         onToggleViewMode = onToggleViewMode,
                         onRefresh = onRefresh,
                         onUpload = onUpload,
+                        onRemoteUpload = onRemoteUpload,
                         onClearSelection = onClearSelection,
                         onSelectAll = onSelectAll,
                         onInvertSelection = onInvertSelection,

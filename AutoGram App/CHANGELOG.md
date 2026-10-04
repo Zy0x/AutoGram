@@ -15,6 +15,29 @@
 - Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
 - Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
 
+## v4.1.33 — Full Desktop Parity: Drive Sorting, Remote Upload to Folder, Duplicate Cleaner, Rich Previews & SAF Database Backup
+
+### 1. Drive Sorting, Remote Upload to Folder & 4-Level Duplicate Cleaner
+- **Drive Sorting Engine**: Added 6-direction sorting (`DATE_DESC`, `DATE_ASC`, `NAME_ASC`, `NAME_DESC`, `SIZE_DESC`, `SIZE_ASC`) in `DriveViewModel`, integrated into `DriveTopBar` with active checkmark indicators.
+- **Drive Remote Upload Modal (`DriveRemoteUploadModal.kt`)**: Added interactive URL upload modal (HTTP, YouTube, TikTok, Twitter/X) with clean-copy toggles (strip caption, dedup check) to enqueue uploads directly targeting the currently open cloud folder.
+- **Cloud Duplicate Cleaner Sheet (`DriveDuplicateCleanerSheet.kt`)**: Added BottomSheet modal scanning cloud files via 4-level deduplication matrix, calculating reclaimable disk space, and providing 1-tap automated duplicate cleanup.
+- **File Technical Info Sheet (`DriveFileInfoSheet.kt`)**: Added BottomSheet displaying full MTProto telemetry (Message ID, Data Center DC 1-5, Peer ID, File Reference, SHA-256 Checksum, Dimensions, Playback Duration) accessible from the preview top bar with 1-tap copy buttons.
+
+### 2. High-Fidelity Rich Previews (Markdown & Monospace Code Viewer)
+- **Code & Markdown Policy Extension**: Extended `PreviewPolicy.kt` to recognize full developer file extensions (`.md`, `.ts`, `.py`, `.rs`, `.sql`, `.json`, `.sh`, `.kt`, `.html`, `.css`, etc.) as streamable text previews.
+- **DriveRichTextPreview (`DriveRichTextPreview.kt`)**:
+  - For Markdown: Dual-mode tab switcher between Rendered Markdown view (structured headings, lists, monospace code blocks) and Raw Markdown text.
+  - For Source Code: Monospace viewer with line numbers column, file type badge, line counter, and 1-tap clipboard copy button.
+
+### 3. Local SQLite Database Backup & Restore and Network Concurrency Bypass
+- **SAF Database Backup & Restore (`SettingsScreen.kt`)**: Implemented native Android Storage Access Framework integration (`ACTION_CREATE_DOCUMENT` & `ACTION_OPEN_DOCUMENT`) for encrypted SQLite `telegram_migrator.db` export and schema-safe overwrite restoration with confirmation dialog.
+- **Cellular Concurrency Bypass Switch**: Added user toggle to force 8 Turbo MTProto streams even when connected to cellular data, persisting in SharedPreferences.
+
+### 4. Zero Hardcoded Strings, Quality Sentinel & Device Deployment
+- **100% Locale Parity**: Added all new strings to `values/strings.xml` and `values-en/strings.xml` with zero hardcoded strings.
+- **Full Autonomous Quality Sentinel**: Verified all 8 Quality Gates (`npm run test:quality`) passing 100% with 0 TypeScript errors and 0 desktop regressions.
+- **Device Verification**: Built native arm64 APK (`app-arm64-v8a-debug.apk`) and installed via ADB to physical device `Infinix X698` at `192.168.1.5:5555`.
+
 ## v4.1.32 — Complete Desktop Feature Adoption for Android: Modals, Sparse ZIP, Media Studio & Automation Suite
 
 ### 1. Interactive Drive Modals & Sparse ZIP Archive Explorer

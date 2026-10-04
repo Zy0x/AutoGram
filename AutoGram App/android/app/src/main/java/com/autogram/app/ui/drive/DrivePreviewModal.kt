@@ -5,10 +5,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -32,6 +32,8 @@ fun DrivePreviewModal(
     onNavigateItem: ((DriveFileItem) -> Unit)? = null,
     onDownload: ((DriveFileItem) -> Unit)? = null
 ) {
+    var showInfoSheet by remember { mutableStateOf(false) }
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize().testTag("drive-preview")) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -43,6 +45,9 @@ fun DrivePreviewModal(
                         Text(item.name, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium)
                         Text(formatFileSize(item.size), style = MaterialTheme.typography.bodySmall)
+                    }
+                    IconButton(onClick = { showInfoSheet = true }, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.Info, stringResource(R.string.file_info_title))
                     }
                     if (onDownload != null) IconButton(onClick = { onDownload(item) }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Default.Download, stringResource(R.string.preview_action_download))
@@ -81,5 +86,12 @@ fun DrivePreviewModal(
                 }
             }
         }
+    }
+
+    if (showInfoSheet) {
+        DriveFileInfoSheet(
+            item = item,
+            onDismiss = { showInfoSheet = false }
+        )
     }
 }

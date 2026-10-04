@@ -53,6 +53,15 @@ enum class DriveGridAspectRatio(val ratio: Float, val label: String) {
     PORTRAIT(2f / 3f, "2:3")
 }
 
+enum class DriveSortOrder {
+    DATE_DESC,
+    DATE_ASC,
+    NAME_ASC,
+    NAME_DESC,
+    SIZE_DESC,
+    SIZE_ASC
+}
+
 data class DriveUiState(
     val currentPath: String = "/",
     val searchQuery: String = "",
@@ -60,6 +69,7 @@ data class DriveUiState(
     val mediaFilter: DriveMediaFilter = DriveMediaFilter.ALL,
     val thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
     val gridAspectRatio: DriveGridAspectRatio = DriveGridAspectRatio.PORTRAIT,
+    val sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
     val isLoading: Boolean = false,
     val items: List<DriveFileItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
@@ -261,5 +271,10 @@ class DriveViewModel : ViewModel() {
         if (_uiState.value.selectedIds.isNotEmpty()) {
             _uiState.update { it.copy(errorCode = "drive_delete_unavailable") }
         }
+    }
+
+    fun setSortOrder(order: DriveSortOrder) {
+        if (_uiState.value.sortOrder == order) return
+        _uiState.update { it.copy(sortOrder = order) }
     }
 }

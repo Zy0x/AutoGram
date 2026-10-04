@@ -31,7 +31,7 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
     var text by remember(item, attempt) { mutableStateOf<TextPreview?>(null) }
     var error by remember(item, attempt) { mutableStateOf<String?>(null) }
     var opened by remember(item, attempt) { mutableStateOf(false) }
-    val kind = previewKind(item.mimeType)
+    val kind = previewKind(item.mimeType, item.name)
     LaunchedEffect(item, attempt) {
         var owned: CloudRangeSource? = null
         try {
@@ -90,10 +90,13 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
         }
         bitmap != null -> CloudImageViewer(bitmap, item.name)
         kind == PreviewKind.TEXT -> {
-            text?.let { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-                if (it.truncated) Text(stringResource(R.string.cloud_text_truncated))
-                SelectionContainer { Text(it.text) }
-            } }
+            text?.let {
+                com.autogram.app.ui.drive.preview.DriveRichTextPreview(
+                    fileName = item.name,
+                    preview = it,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         kind == PreviewKind.VIDEO || kind == PreviewKind.AUDIO ->
             key(active) { CloudMediaPlayer(active, Modifier.fillMaxSize(),

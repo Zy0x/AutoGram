@@ -607,4 +607,58 @@
     <string name="ui2_quick_automation_desc">Jadwal sinkronisasi otomatis dan aturan pemicu</string>
     <string name="ui2_quick_profiles_desc">Preset konkurensi MTProto dan profil bandwidth</string>
     <string name="ui2_quick_sync_desc">Sinkronisasi dua arah berkas lokal dan cloud Telegram</string>
+
+    <!-- Drive Sorting -->
+    <string name="drive_sort_label">Urutkan Berdasarkan</string>
+    <string name="drive_sort_name_asc">Nama (A-Z)</string>
+    <string name="drive_sort_name_desc">Nama (Z-A)</string>
+    <string name="drive_sort_date_desc">Terbaru</string>
+    <string name="drive_sort_date_asc">Terlama</string>
+    <string name="drive_sort_size_desc">Ukuran Terbesar</string>
+    <string name="drive_sort_size_asc">Ukuran Terkecil</string>
+
+    <!-- Drive Remote Upload -->
+    <string name="drive_remote_upload_title">Unggah via URL ke Folder Ini</string>
+    <string name="drive_remote_upload_hint">Tempel tautan HTTP, YouTube, TikTok, dll...</string>
+    <string name="drive_remote_upload_action">Mulai Unggah ke Cloud</string>
+    <string name="drive_remote_upload_success">Tautan berhasil diantrekan untuk diunggah ke folder!</string>
+
+    <!-- Drive Duplicate Cleaner Sheet -->
+    <string name="drive_dedup_title">Pembersih Duplikat Cloud Drive</string>
+    <string name="drive_dedup_scanning">Memindai duplikat 4-Level...</string>
+    <string name="drive_dedup_found">%1$d Grup Duplikat Terdeteksi</string>
+    <string name="drive_dedup_reclaimable">Dapat dihemat: %1$s</string>
+    <string name="drive_dedup_clean_action">Bersihkan Duplikat Otomatis</string>
+    <string name="drive_dedup_clean_success">%1$d file duplikat berhasil dibersihkan!</string>
+    <string name="drive_dedup_clean_empty">Cloud Anda bersih! Tidak ada file duplikat.</string>
+
+    <!-- File Technical Info Sheet -->
+    <string name="file_info_title">Detail &amp; Telemetri MTProto</string>
+    <string name="file_info_msg_id">Telegram Message ID</string>
+    <string name="file_info_dc">Data Center (DC)</string>
+    <string name="file_info_file_ref">File Reference</string>
+    <string name="file_info_hash">Cryptographic SHA-256</string>
+    <string name="file_info_dimensions">Dimensi Media</string>
+    <string name="file_info_duration">Durasi Pemutaran</string>
+    <string name="file_info_copy">Salin Nilai</string>
+    <string name="file_info_copied">Nilai disalin ke papan klip!</string>
+
+    <!-- Database Backup & Restore in Settings -->
+    <string name="settings_db_backup_title">Cadangan &amp; Pemulihan Database</string>
+    <string name="settings_db_backup_desc">Ekspor database SQLite lokal terenkripsi atau pulihkan dari cadangan.</string>
+    <string name="settings_db_export_action">Ekspor Cadangan (SAF)</string>
+    <string name="settings_db_restore_action">Pulihkan Database</string>
+    <string name="settings_db_export_success">Database berhasil diekspor!</string>
+    <string name="settings_db_restore_success">Database berhasil dipulihkan!</string>
+    <string name="settings_db_restore_confirm">Pulihkan database akan menimpa data yang ada saat ini. Lanjutkan?</string>
+
+    <!-- Cellular Max Speed Bypass -->
+    <string name="settings_network_bypass_title">Bypass Kecepatan Maksimal Data Seluler</string>
+    <string name="settings_network_bypass_desc">Paksa 8 stream Turbo konstan bahkan saat menggunakan data seluler (kuota lebih cepat terpakai).</string>
+
+    <!-- Additional Drive and Preview Strings -->
+    <string name="drive_delete_success">Berhasil menghapus %1$d berkas dari cloud</string>
+    <string name="preview_markdown_rendered">Tampilan Render</string>
+    <string name="preview_markdown_raw">Teks Mentah</string>
+    <string name="native_confirm">Lanjutkan</string>
 </resources>
