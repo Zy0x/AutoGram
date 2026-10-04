@@ -1,12 +1,14 @@
 package com.autogram.app.viewmodel
 
-import android.app.DownloadManager
 import android.content.Context
-import android.net.Uri
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autogram.app.R
+import com.autogram.app.features.localdownload.LocalDownloadError
+import com.autogram.app.features.localdownload.LocalDownloadException
+import com.autogram.app.features.localdownload.LocalDownloadPolicy
+import com.autogram.app.features.localdownload.LocalDownloadRepository
+import com.autogram.app.features.localdownload.textResource
 import com.autogram.app.ui.remote.CrawledMediaItem
 import com.autogram.app.ui.remote.CrawlerKind
 import com.autogram.app.ui.remote.WebMediaCrawler
@@ -18,18 +20,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uniffi.autogram_android_bridge.BridgeTransferTask
-import java.util.UUID
+import java.util.Locale
 
 enum class RemoteScreenTab { RESOLVER, CRAWLER }
 enum class ResolverMode { SINGLE, BATCH }
-
-enum class RemoteFormat(val labelRes: Int, val ext: String, val badge: String) {
-    FHD_1080P(R.string.remote_format_1080p, "mp4", "1080p"),
-    HD_720P(R.string.remote_format_720p, "mp4", "720p"),
-    SD_480P(R.string.remote_format_480p, "mp4", "480p"),
-    AUDIO_MP3(R.string.remote_format_audio, "mp3", "Audio")
-}
 
 data class RemoteUrlUiState(
     val tab: RemoteScreenTab = RemoteScreenTab.RESOLVER,
@@ -37,7 +31,8 @@ data class RemoteUrlUiState(
     val url: String = "",
     val host: String? = null,
     val platformRes: Int = R.string.remote_platform_generic,
-    val selectedFormat: RemoteFormat = RemoteFormat.FHD_1080P,
+    val isPlatformUrl: Boolean = false,
+    val isValidDirectFile: Boolean = false,
     val batchText: String = "",
     val batchUrls: List<String> = emptyList(),
     val stripCaption: Boolean = false,
@@ -71,12 +66,16 @@ class RemoteUrlViewModel : ViewModel() {
     fun updateUrl(value: String) {
         val bounded = value.take(8192)
         val host = RemoteUrlValidator.parseHost(bounded.trim())
+        val isPlatform = isPlatformHost(host)
+        val isValidFile = LocalDownloadPolicy.validate(bounded.trim()) != null
         val platformRes = detectPlatformRes(host)
         mutableState.update {
             it.copy(
                 url = bounded,
                 host = host,
-                platformRes = platformRes
+                platformRes = platformRes,
+                isPlatformUrl = isPlatform,
+                isValidDirectFile = isValidFile
             )
         }
     }
@@ -84,17 +83,13 @@ class RemoteUrlViewModel : ViewModel() {
     fun updateBatchText(text: String) {
         val lines = text.lines()
             .map { it.trim() }
-            .filter { it.startsWith("http://") || it.startsWith("https://") }
+            .filter { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
         mutableState.update {
             it.copy(
                 batchText = text,
                 batchUrls = lines
             )
         }
-    }
-
-    fun selectFormat(fmt: RemoteFormat) {
-        mutableState.update { it.copy(selectedFormat = fmt) }
     }
 
     fun setStripCaption(strip: Boolean) {
@@ -124,7 +119,7 @@ class RemoteUrlViewModel : ViewModel() {
     fun startCrawling() {
         val current = mutableState.value
         val target = current.crawlerUrl.trim()
-        if (target.isBlank() || (!target.startsWith("http://") && !target.startsWith("https://"))) return
+        if (target.isBlank() || !target.startsWith("https://", ignoreCase = true)) return
 
         crawlJob?.cancel()
         mutableState.update {
@@ -188,165 +183,127 @@ class RemoteUrlViewModel : ViewModel() {
 
     fun enqueueSingleDownload(context: Context, onResult: (Boolean, String) -> Unit) {
         val targetUrl = mutableState.value.url.trim()
-        if (targetUrl.isBlank() || (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://"))) {
-            onResult(false, "Invalid URL")
-            return
-        }
-        val filename = WebMediaCrawler.extractFilename(targetUrl)
-        try {
-            val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-            if (manager != null) {
-                val req = DownloadManager.Request(Uri.parse(targetUrl))
-                    .setTitle(filename)
-                    .setDescription("AutoGram Remote Stream")
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
-                manager.enqueue(req)
-                onResult(true, filename)
+        val directFile = LocalDownloadPolicy.validate(targetUrl)
+        if (directFile == null) {
+            val host = RemoteUrlValidator.parseHost(targetUrl)
+            val msg = if (isPlatformHost(host)) {
+                context.getString(R.string.remote_url_platform_blocked)
             } else {
-                onResult(false, "Download service unavailable")
+                context.getString(R.string.remote_invalid_direct_url)
             }
-        } catch (e: Exception) {
-            onResult(false, e.message ?: "Failed to enqueue download")
-        }
-    }
-
-    fun enqueueSingleUpload(onResult: (Boolean, String) -> Unit) {
-        val current = mutableState.value
-        val targetUrl = current.url.trim()
-        if (targetUrl.isBlank()) {
-            onResult(false, "URL kosong")
+            onResult(false, msg)
             return
         }
-        viewModelScope.launch {
-            val filename = WebMediaCrawler.extractFilename(targetUrl)
-            val success = submitToNativeQueue(
-                url = targetUrl,
-                fileName = filename,
-                stripCaption = current.stripCaption,
-                dedupCheck = current.dedupCheck
-            )
-            onResult(success, filename)
-        }
-    }
 
-    fun enqueueBatchDownload(context: Context, onResult: (Int) -> Unit) {
-        val urls = mutableState.value.batchUrls
-        if (urls.isEmpty()) {
-            onResult(0)
-            return
-        }
-        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-        var queued = 0
-        urls.forEach { u ->
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val fn = WebMediaCrawler.extractFilename(u)
-                val req = DownloadManager.Request(Uri.parse(u))
-                    .setTitle(fn)
-                    .setDescription("AutoGram Batch Download")
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fn)
-                manager?.enqueue(req)
-                queued++
-            } catch (_: Exception) {}
+                val repository = LocalDownloadRepository(context)
+                repository.enqueue(directFile)
+                withContext(Dispatchers.Main) {
+                    onResult(true, directFile.basename)
+                }
+            } catch (e: LocalDownloadException) {
+                val errorMsg = context.getString(e.error.textResource())
+                withContext(Dispatchers.Main) {
+                    onResult(false, errorMsg)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, e.message ?: context.getString(R.string.local_download_error_start))
+                }
+            }
         }
-        onResult(queued)
     }
 
-    fun enqueueBatchUpload(onResult: (Int) -> Unit) {
+    fun enqueueSingleUpload(context: Context, onResult: (Boolean, String) -> Unit) {
+        // Honest notification: remote URL upload to Telegram Cloud is only supported via desktop Grammers engine
+        onResult(false, context.getString(R.string.remote_upload_cloud_disabled_notice))
+    }
+
+    fun enqueueBatchDownload(context: Context, onResult: (Int, Int) -> Unit) {
         val urls = mutableState.value.batchUrls
-        val current = mutableState.value
         if (urls.isEmpty()) {
-            onResult(0)
+            onResult(0, 0)
             return
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            val repository = LocalDownloadRepository(context)
             var queued = 0
+            var skipped = 0
             urls.forEach { u ->
-                val fn = WebMediaCrawler.extractFilename(u)
-                val ok = submitToNativeQueue(u, fn, current.stripCaption, current.dedupCheck)
-                if (ok) queued++
+                val direct = LocalDownloadPolicy.validate(u)
+                if (direct != null) {
+                    try {
+                        repository.enqueue(direct)
+                        queued++
+                    } catch (_: Exception) {
+                        skipped++
+                    }
+                } else {
+                    skipped++
+                }
             }
-            onResult(queued)
+            withContext(Dispatchers.Main) {
+                onResult(queued, skipped)
+            }
         }
     }
 
-    fun downloadSelectedCrawled(context: Context, onResult: (Int) -> Unit) {
-        val state = mutableState.value
-        val items = state.crawledEntries.filter { it.id in state.selectedEntries }
-        if (items.isEmpty()) {
-            onResult(0)
-            return
-        }
-        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-        var queued = 0
-        items.forEach { item ->
-            try {
-                val req = DownloadManager.Request(Uri.parse(item.url))
-                    .setTitle(item.name)
-                    .setDescription("AutoGram Scraped Media")
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, item.name)
-                manager?.enqueue(req)
-                queued++
-            } catch (_: Exception) {}
-        }
-        onResult(queued)
+    fun enqueueBatchUpload(context: Context, onResult: (Int, String) -> Unit) {
+        // Honest notification: batch URL upload to cloud requires desktop runtime
+        onResult(0, context.getString(R.string.remote_upload_cloud_disabled_notice))
     }
 
-    fun uploadSelectedCrawled(onResult: (Int) -> Unit) {
+    fun downloadSelectedCrawled(context: Context, onResult: (Int, Int) -> Unit) {
         val state = mutableState.value
         val items = state.crawledEntries.filter { it.id in state.selectedEntries }
         if (items.isEmpty()) {
-            onResult(0)
+            onResult(0, 0)
             return
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            val repository = LocalDownloadRepository(context)
             var queued = 0
+            var skipped = 0
             items.forEach { item ->
-                val ok = submitToNativeQueue(item.url, item.name, state.stripCaption, state.dedupCheck)
-                if (ok) queued++
+                val direct = LocalDownloadPolicy.validate(item.url)
+                if (direct != null) {
+                    try {
+                        repository.enqueue(direct)
+                        queued++
+                    } catch (_: Exception) {
+                        skipped++
+                    }
+                } else {
+                    skipped++
+                }
             }
-            onResult(queued)
+            withContext(Dispatchers.Main) {
+                onResult(queued, skipped)
+            }
         }
     }
 
-    private suspend fun submitToNativeQueue(
-        url: String,
-        fileName: String,
-        stripCaption: Boolean,
-        dedupCheck: Boolean
-    ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val task = BridgeTransferTask(
-                id = UUID.randomUUID().toString(),
-                fileName = fileName,
-                sourceIdentity = url,
-                destinationIdentity = if (stripCaption) "tg:saved:clean" else "tg:saved",
-                stage = "queued",
-                status = "queued",
-                totalBytes = 0UL,
-                processedBytes = 0UL,
-                speedBps = 0UL,
-                etaSeconds = 0UL,
-                attempt = 0u,
-                paused = false,
-                errorCode = null,
-                updatedMs = System.currentTimeMillis()
-            )
-            uniffi.autogram_android_bridge.upsertTransferTask(task)
-            uniffi.autogram_android_bridge.emitBridgeEvent("transfer_task_changed", "{}")
-            true
-        } catch (_: Exception) {
-            true // Fallback accepted locally
-        } catch (_: LinkageError) {
-            true
-        }
+    fun uploadSelectedCrawled(context: Context, onResult: (Int, String) -> Unit) {
+        // Honest notification: crawled media cloud upload requires desktop runtime
+        onResult(0, context.getString(R.string.remote_upload_cloud_disabled_notice))
+    }
+
+    private fun isPlatformHost(host: String?): Boolean {
+        if (host == null) return false
+        val h = host.lowercase(Locale.ROOT)
+        return h.contains("youtube.com") || h.contains("youtu.be") ||
+                h.contains("tiktok.com") || h.contains("instagram.com") ||
+                h.contains("twitter.com") || h.contains("x.com") ||
+                h.contains("facebook.com") || h.contains("fb.watch") ||
+                h.contains("vimeo.com") || h.contains("dailymotion.com") ||
+                h.contains("pinterest.com") || h.contains("pin.it") ||
+                h.contains("pixiv.net") || h.contains("twitch.tv")
     }
 
     private fun detectPlatformRes(host: String?): Int {
         if (host == null) return R.string.remote_platform_generic
-        val h = host.lowercase()
+        val h = host.lowercase(Locale.ROOT)
         return when {
             h.contains("youtube.com") || h.contains("youtu.be") -> R.string.remote_platform_youtube
             h.contains("tiktok.com") -> R.string.remote_platform_tiktok

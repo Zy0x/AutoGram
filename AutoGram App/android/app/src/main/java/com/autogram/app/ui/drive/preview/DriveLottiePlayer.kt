@@ -1,10 +1,7 @@
 package com.autogram.app.ui.drive.preview
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,14 +15,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.autogram.app.R
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramGlassCard
-import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPInputStream
+
+private const val MAX_DECOMPRESSED_TGS_BYTES = 1024 * 1024 // 1 MB RAM safety limit
 
 data class TgsMetadata(
     val width: Int,
@@ -45,27 +48,45 @@ fun DriveLottiePlayer(
     var isPlaying by remember { mutableStateOf(true) }
     var isLooping by remember { mutableStateOf(true) }
     var isLightCanvas by remember { mutableStateOf(false) }
+    var isUserScrubbing by remember { mutableStateOf(false) }
+    var scrubbedFrame by remember { mutableFloatStateOf(0f) }
 
-    // Decompress TGS GZIP bytes in RAM
-    val jsonString = remember(rawBytes) {
+    // Decompress TGS GZIP bytes in RAM with 1MB decompression safety ceiling
+    val (jsonString, decompressionExceeded) = remember(rawBytes) {
         try {
             val bis = ByteArrayInputStream(rawBytes)
             val gzip = GZIPInputStream(bis)
             val bos = ByteArrayOutputStream()
             val buf = ByteArray(4096)
             var len: Int
+            var totalDecompressed = 0
+            var exceeded = false
             while (gzip.read(buf).also { len = it } > 0) {
+                totalDecompressed += len
+                if (totalDecompressed > MAX_DECOMPRESSED_TGS_BYTES) {
+                    exceeded = true
+                    break
+                }
                 bos.write(buf, 0, len)
             }
             gzip.close()
-            bos.toString("UTF-8")
+            if (exceeded) {
+                null to true
+            } else {
+                bos.toString("UTF-8") to false
+            }
         } catch (_: Exception) {
             // If already uncompressed JSON
-            String(rawBytes, Charsets.UTF_8)
+            if (rawBytes.size <= MAX_DECOMPRESSED_TGS_BYTES) {
+                String(rawBytes, Charsets.UTF_8) to false
+            } else {
+                null to true
+            }
         }
     }
 
     val metadata = remember(jsonString) {
+        if (jsonString == null) return@remember TgsMetadata(512, 512, 60f, 180f, 3f, 0)
         try {
             val obj = JSONObject(jsonString)
             val w = obj.optInt("w", 512)
@@ -82,24 +103,21 @@ fun DriveLottiePlayer(
         }
     }
 
-    var currentFrame by remember { mutableFloatStateOf(0f) }
+    // Authentic Lottie rendering via com.airbnb.android:lottie-compose
+    val composition by rememberLottieComposition(
+        spec = if (jsonString != null) LottieCompositionSpec.JsonString(jsonString) else LottieCompositionSpec.JsonString("{}")
+    )
+    val lottieProgress by animateLottieCompositionAsState(
+        composition = composition,
+        isPlaying = isPlaying && !isUserScrubbing,
+        restartOnPlay = false,
+        iterations = if (isLooping) LottieConstants.IterateForever else 1
+    )
 
-    // Frame animation loop
-    LaunchedEffect(isPlaying, isLooping, metadata) {
-        if (!isPlaying) return@LaunchedEffect
-        val intervalMs = (1000f / metadata.fps.coerceIn(15f, 60f)).toLong().coerceIn(16L, 66L)
-        while (isPlaying) {
-            delay(intervalMs)
-            currentFrame += 1f
-            if (currentFrame >= metadata.totalFrames) {
-                if (isLooping) {
-                    currentFrame = 0f
-                } else {
-                    currentFrame = metadata.totalFrames
-                    isPlaying = false
-                }
-            }
-        }
+    val currentFrame = if (isUserScrubbing) {
+        scrubbedFrame
+    } else {
+        (lottieProgress * metadata.totalFrames).coerceIn(0f, metadata.totalFrames)
     }
 
     Column(
@@ -155,77 +173,74 @@ fun DriveLottiePlayer(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Vector Sticker Visual Indicator (Animated Pulsing Vector Badge)
-                    val pulseScale by animateFloatAsState(
-                        targetValue = if (isPlaying) 1.05f else 1.0f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "sticker-pulse"
-                    )
-
-                    Surface(
-                        shape = CircleShape,
-                        color = SoftViolet.copy(alpha = if (isLightCanvas) 0.15f else 0.25f),
-                        border = BorderStroke(2.dp, SoftViolet.copy(alpha = 0.5f)),
-                        modifier = Modifier.size((140 * pulseScale).dp)
+                if (decompressionExceeded) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = SoftViolet,
-                                modifier = Modifier.size(56.dp)
-                            )
+                        Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
+                        Text(
+                            text = stringResource(R.string.preview_sticker_decompression_limit),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else if (composition != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { if (isUserScrubbing) (scrubbedFrame / metadata.totalFrames).coerceIn(0f, 1f) else lottieProgress },
+                            modifier = Modifier.size(240.dp)
+                        )
+
+                        Text(
+                            text = fileName,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (isLightCanvas) Color(0xFF1D1D1F) else TextPrimaryDark
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = SoftViolet.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = "${metadata.width}x${metadata.height}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = SoftViolet,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = DustySage.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.preview_sticker_fps, metadata.fps.toInt()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = DustySage,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFFFB74D).copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.preview_sticker_layers, metadata.layerCount),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFFFB74D),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                     }
-
-                    Text(
-                        text = fileName,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = if (isLightCanvas) Color(0xFF1D1D1F) else TextPrimaryDark
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = SoftViolet.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "${metadata.width}x${metadata.height}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = SoftViolet,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = DustySage.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "${metadata.fps.toInt()} FPS",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = DustySage,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFFB74D).copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "${metadata.layerCount} Layers",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFFFB74D),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
+                } else {
+                    CircularProgressIndicator(color = SoftViolet)
                 }
             }
         }
@@ -253,7 +268,13 @@ fun DriveLottiePlayer(
 
                 Slider(
                     value = currentFrame,
-                    onValueChange = { currentFrame = it },
+                    onValueChange = {
+                        isUserScrubbing = true
+                        scrubbedFrame = it
+                    },
+                    onValueChangeFinished = {
+                        isUserScrubbing = false
+                    },
                     valueRange = 0f..metadata.totalFrames,
                     modifier = Modifier.fillMaxWidth()
                 )

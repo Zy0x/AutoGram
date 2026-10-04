@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -37,20 +36,6 @@ fun TransferDiagnosticModal(
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-
-    // Estimate MTProto DC based on task ID hash or default DC 4 (standard production Telegram DC)
-    val dcId = remember(task.id) {
-        val h = task.id.hashCode()
-        when (kotlin.math.abs(h) % 3) {
-            0 -> 2
-            1 -> 4
-            else -> 5
-        }
-    }
-
-    val workerCount = remember(task.speedBps) {
-        if (task.speedBps > 10 * 1024 * 1024) 8 else 4
-    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -131,7 +116,7 @@ fun TransferDiagnosticModal(
                     }
                 }
 
-                // Diagnostics Telemetry Body
+                // Diagnostics Telemetry Body - Strictly Authentic Data
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -139,36 +124,45 @@ fun TransferDiagnosticModal(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DiagnosticMetricCard(
-                        icon = Icons.Default.Dns,
-                        title = stringResource(R.string.diagnostic_dc, dcId),
-                        subtitle = "MTProto Endpoint: 149.154.167.5${dcId}:443 (Direct Range Streaming)"
+                        icon = Icons.Default.Info,
+                        title = stringResource(R.string.diagnostic_metric_status),
+                        subtitle = "Status: ${task.status} · Stage: ${task.stage} · Paused: ${task.paused}"
+                    )
+
+                    val progressPercent = if (task.totalBytes > 0L) {
+                        "${(task.transferredBytes * 100L / task.totalBytes).coerceIn(0L, 100L)}%"
+                    } else {
+                        "0%"
+                    }
+                    DiagnosticMetricCard(
+                        icon = Icons.Default.DataUsage,
+                        title = stringResource(R.string.diagnostic_metric_progress),
+                        subtitle = "${formatFileSize(task.transferredBytes)} / ${formatFileSize(task.totalBytes)} ($progressPercent)"
                     )
 
                     DiagnosticMetricCard(
                         icon = Icons.Default.Speed,
-                        title = stringResource(R.string.diagnostic_worker, "$workerCount Stream Pipeline (512 KB Chunks)"),
-                        subtitle = stringResource(
-                            R.string.diagnostic_speed,
-                            "${formatFileSize(task.speedBps)}/s · ETA ${task.etaSecs}s"
-                        )
+                        title = stringResource(R.string.diagnostic_metric_speed),
+                        subtitle = "${formatFileSize(task.speedBps)}/s · ETA: ${task.etaSecs}s"
                     )
 
                     DiagnosticMetricCard(
                         icon = Icons.Default.Replay,
-                        title = stringResource(R.string.diagnostic_attempts, task.attempt),
-                        subtitle = "Idempotent Retry Protocol: Safe with SHA-256 Checksum"
+                        title = stringResource(R.string.diagnostic_metric_retries),
+                        subtitle = stringResource(R.string.diagnostic_attempts, task.attempt)
+                    )
+
+                    // Confidentiality: Mask source and destination endpoints to protect signed URLs and credentials
+                    DiagnosticMetricCard(
+                        icon = Icons.Default.Login,
+                        title = stringResource(R.string.diagnostic_source, stringResource(R.string.diagnostic_endpoint_confidential)),
+                        subtitle = "Source Type: ${if (task.sourceIdentity.startsWith("http")) "Remote Stream" else "Local / Telegram"}"
                     )
 
                     DiagnosticMetricCard(
-                        icon = Icons.Default.Input,
-                        title = stringResource(R.string.diagnostic_source, task.sourceIdentity.ifBlank { "Local Drive Storage" }),
-                        subtitle = "Protocol: Direct Range MTProto"
-                    )
-
-                    DiagnosticMetricCard(
-                        icon = Icons.Default.Output,
-                        title = stringResource(R.string.diagnostic_destination, task.destinationIdentity.ifBlank { "Telegram Cloud" }),
-                        subtitle = "Target: Telegram Cloud Drive / Saved Messages"
+                        icon = Icons.Default.CloudQueue,
+                        title = stringResource(R.string.diagnostic_destination, stringResource(R.string.diagnostic_endpoint_tg)),
+                        subtitle = "Target Type: Telegram Cloud Storage"
                     )
 
                     if (!task.errorCode.isNullOrBlank()) {
@@ -202,16 +196,19 @@ fun TransferDiagnosticModal(
                     OutlinedButton(
                         onClick = {
                             val report = buildString {
-                                appendLine("--- AutoGram MTProto Diagnostics ---")
+                                appendLine("--- AutoGram Transfer Task Diagnostics ---")
                                 appendLine("Task ID: ${task.id}")
                                 appendLine("File: ${task.fileName}")
-                                appendLine("Size: ${task.transferredBytes} / ${task.totalBytes} bytes")
-                                appendLine("Status: ${task.status} (${task.stage})")
-                                appendLine("Speed: ${task.speedBps} bps")
-                                appendLine("DC: DC $dcId")
-                                appendLine("Workers: $workerCount")
+                                appendLine("Progress: ${task.transferredBytes} / ${task.totalBytes} bytes")
+                                appendLine("Status: ${task.status}")
+                                appendLine("Stage: ${task.stage}")
+                                appendLine("Speed: ${task.speedBps} bps (${formatFileSize(task.speedBps)}/s)")
+                                appendLine("ETA: ${task.etaSecs}s")
                                 appendLine("Attempts: ${task.attempt}")
+                                appendLine("Paused: ${task.paused}")
                                 appendLine("Error: ${task.errorCode ?: "None"}")
+                                appendLine("Source: [Protected Endpoint]")
+                                appendLine("Destination: Telegram Cloud")
                             }
                             clipboard.setText(AnnotatedString(report))
                             Toast.makeText(context, context.getString(R.string.file_info_copied), Toast.LENGTH_SHORT).show()

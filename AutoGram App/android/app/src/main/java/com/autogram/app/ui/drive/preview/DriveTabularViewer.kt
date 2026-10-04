@@ -158,7 +158,7 @@ fun DriveTabularViewer(
                             )
                             headers.forEachIndexed { colIdx, header ->
                                 TableCell(
-                                    text = header.ifBlank { "Kolom ${colIdx + 1}" },
+                                    text = header.ifBlank { stringResource(R.string.preview_tabular_col_default, colIdx + 1) },
                                     isHeader = true,
                                     width = 140.dp
                                 )

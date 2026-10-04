@@ -235,45 +235,42 @@ private fun ResolverContent(
                 }
             }
 
-            // Quality & Formats
+            // Direct Download & Platform Notice Banner
             item {
-                AutoGramGlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.remote_quality_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RemoteFormat.values().forEach { fmt ->
-                            val isSel = state.selectedFormat == fmt
-                            Surface(
-                                selected = isSel,
-                                onClick = { viewModel.selectFormat(fmt) },
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSel) SoftViolet.copy(alpha = 0.25f) else SurfaceElevatedDark,
-                                border = BorderStroke(1.dp, if (isSel) SoftViolet else BorderHairline),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = fmt.badge,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isSel) TextPrimaryDark else TextSecondaryDark
-                                    )
-                                    Text(
-                                        text = fmt.ext.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = if (isSel) SoftViolet else TextMutedDark
-                                    )
-                                }
+                if (state.isPlatformUrl) {
+                    AutoGramGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = SoftViolet, modifier = Modifier.size(22.dp))
+                            Text(
+                                text = stringResource(R.string.remote_platform_notice),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondaryDark
+                            )
+                        }
+                    }
+                } else {
+                    AutoGramGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = DustySage, modifier = Modifier.size(20.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.remote_direct_download_only),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = TextPrimaryDark
+                                )
+                                Text(
+                                    text = stringResource(R.string.remote_direct_download_info),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMutedDark
+                                )
                             }
                         }
                     }
@@ -333,7 +330,7 @@ private fun ResolverContent(
                                 Toast.makeText(
                                     context,
                                     if (ok) context.getString(R.string.remote_toast_download_queued) else msg,
-                                    Toast.LENGTH_SHORT
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
                         },
@@ -349,23 +346,22 @@ private fun ResolverContent(
 
                     Button(
                         onClick = {
-                            viewModel.enqueueSingleUpload { ok, msg ->
-                                Toast.makeText(
-                                    context,
-                                    if (ok) context.getString(R.string.remote_toast_upload_queued) else msg,
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            viewModel.enqueueSingleUpload(context) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         },
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet)
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet.copy(alpha = 0.5f))
                     ) {
                         Icon(Icons.Default.CloudUpload, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.remote_action_upload_cloud), fontSize = 12.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(stringResource(R.string.remote_action_upload_cloud), fontSize = 11.sp)
+                            Text(stringResource(R.string.remote_upload_cloud_badge), fontSize = 9.sp, color = TextMutedDark)
+                        }
                     }
                 }
             }
@@ -399,11 +395,11 @@ private fun ResolverContent(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            viewModel.enqueueBatchDownload(context) { count ->
+                            viewModel.enqueueBatchDownload(context) { queued, skipped ->
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.remote_toast_batch_queued, count),
-                                    Toast.LENGTH_SHORT
+                                    context.getString(R.string.remote_toast_batch_result, queued, skipped),
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
                         },
@@ -418,12 +414,8 @@ private fun ResolverContent(
 
                     Button(
                         onClick = {
-                            viewModel.enqueueBatchUpload { count ->
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.remote_toast_batch_queued, count),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            viewModel.enqueueBatchUpload(context) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         },
                         enabled = state.batchUrls.isNotEmpty(),
@@ -431,9 +423,12 @@ private fun ResolverContent(
                             .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet)
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet.copy(alpha = 0.5f))
                     ) {
-                        Text(stringResource(R.string.remote_action_batch_upload, state.batchUrls.size), fontSize = 12.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(stringResource(R.string.remote_action_batch_upload, state.batchUrls.size), fontSize = 11.sp)
+                            Text(stringResource(R.string.remote_upload_cloud_badge), fontSize = 9.sp, color = TextMutedDark)
+                        }
                     }
                 }
             }
@@ -610,11 +605,11 @@ private fun CrawlerContent(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            viewModel.downloadSelectedCrawled(context) { count ->
+                            viewModel.downloadSelectedCrawled(context) { queued, skipped ->
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.remote_toast_batch_queued, count),
-                                    Toast.LENGTH_SHORT
+                                    context.getString(R.string.crawler_download_batch_result, queued, skipped),
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
                         },
@@ -632,12 +627,8 @@ private fun CrawlerContent(
 
                     Button(
                         onClick = {
-                            viewModel.uploadSelectedCrawled { count ->
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.remote_toast_batch_queued, count),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            viewModel.uploadSelectedCrawled(context) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         },
                         enabled = state.selectedEntries.isNotEmpty(),
@@ -645,12 +636,15 @@ private fun CrawlerContent(
                             .weight(1f)
                             .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet)
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftViolet.copy(alpha = 0.5f))
                     ) {
-                        Text(
-                            stringResource(R.string.crawler_upload_selected, state.selectedEntries.size),
-                            fontSize = 11.sp
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                stringResource(R.string.crawler_upload_selected, state.selectedEntries.size),
+                                fontSize = 11.sp
+                            )
+                            Text(stringResource(R.string.remote_upload_cloud_badge), fontSize = 9.sp, color = TextMutedDark)
+                        }
                     }
                 }
             }

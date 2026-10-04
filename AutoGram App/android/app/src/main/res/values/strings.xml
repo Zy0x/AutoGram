@@ -754,4 +754,39 @@
     <string name="statistics_export_csv_title">Laporan_Transfer_AutoGram_%1$s.csv</string>
     <string name="statistics_export_csv_success">Laporan CSV berhasil dibuat dan siap dibagikan!</string>
     <string name="statistics_export_csv_failed">Gagal membuat laporan CSV.</string>
+
+    <!-- Remote URL & Crawler Hub Security & Honest Messaging -->
+    <string name="remote_platform_notice">Resolver platform (YouTube, TikTok, Instagram, dll.) belum tersedia di Android. AutoGram Android saat ini hanya mendukung unduhan langsung URL berkas via HTTPS (gambar, video, audio, dokumen). Gunakan desktop untuk streaming platform.</string>
+    <string name="remote_direct_download_only">Unduhan Langsung Berkas HTTPS</string>
+    <string name="remote_direct_download_info">Mengunduh berkas langsung dari server asal ke penyimpanan perangkat tanpa transkoding.</string>
+    <string name="remote_upload_cloud_disabled_notice">Unggah URL ke Telegram Cloud belum tersedia di Android. Gunakan desktop AutoGram untuk streaming remote URL ke cloud.</string>
+    <string name="remote_upload_cloud_badge">Desktop Only</string>
+    <string name="remote_url_platform_blocked">Tautan platform video/sosial memerlukan resolver desktop. Masukkan URL berkas HTTPS langsung.</string>
+    <string name="remote_invalid_direct_url">URL bukan tautan berkas langsung yang valid (harus HTTPS dan berekstensi yang didukung).</string>
+    <string name="remote_toast_batch_result">%1$d berkas diunduh, %2$d dilewati (bukan berkas langsung)</string>
+    <string name="crawler_download_batch_result">%1$d media diunduh, %2$d dilewati (tidak valid/bukan HTTPS)</string>
+
+    <!-- Zip Explorer Strings -->
+    <string name="zip_reading_directory">Membaca direktori ZIP via MTProto Byte-Range...</string>
+    <string name="zip_error_open">Gagal membuka arsip</string>
+    <string name="zip_extract_error">Gagal mengekstrak berkas</string>
+    <string name="zip_compressed_size">%1$s (terkompresi: %2$s)</string>
+    <string name="zip_encrypted_badge">Terenkripsi</string>
+    <string name="zip_preview_image_decode_failed">Pratinjau gambar tidak dapat didekode.</string>
+
+    <!-- Drive Previewers Strings -->
+    <string name="preview_tabular_col_default">Kolom %1$d</string>
+    <string name="preview_hex_offset_header">OFFSET   </string>
+    <string name="preview_hex_ascii_header">ASCII</string>
+    <string name="preview_sticker_fps">%1$d FPS</string>
+    <string name="preview_sticker_layers">%1$d Lapisan</string>
+    <string name="preview_sticker_decompression_limit">Ukuran stiker melebihi batas aman RAM (1 MB)</string>
+
+    <!-- Transfer Technical Diagnostics Authenticity -->
+    <string name="diagnostic_metric_status">Status &amp; Tahap</string>
+    <string name="diagnostic_metric_progress">Kemajuan Transfer</string>
+    <string name="diagnostic_metric_speed">Kecepatan &amp; Estimasi Waktu</string>
+    <string name="diagnostic_metric_retries">Percobaan Ulang</string>
+    <string name="diagnostic_endpoint_confidential">[Endpoint Terproteksi / Rahasia]</string>
+    <string name="diagnostic_endpoint_tg">Telegram Cloud</string>
 </resources>

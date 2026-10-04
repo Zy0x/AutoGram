@@ -752,4 +752,39 @@
     <string name="statistics_export_csv_title">AutoGram_Transfer_Report_%1$s.csv</string>
     <string name="statistics_export_csv_success">CSV Report successfully created and ready to share!</string>
     <string name="statistics_export_csv_failed">Failed to create CSV report.</string>
+
+    <!-- Remote URL & Crawler Hub Security & Honest Messaging -->
+    <string name="remote_platform_notice">Platform extractors (YouTube, TikTok, Instagram, etc.) are not yet available on Android. AutoGram Android currently supports direct HTTPS file downloads (images, videos, audio, documents). Use desktop for platform streaming.</string>
+    <string name="remote_direct_download_only">Direct HTTPS File Download</string>
+    <string name="remote_direct_download_info">Downloads direct files from origin server to local storage without transcoding.</string>
+    <string name="remote_upload_cloud_disabled_notice">Remote URL cloud upload is not yet available on Android. Use AutoGram desktop to stream remote URLs to cloud.</string>
+    <string name="remote_upload_cloud_badge">Desktop Only</string>
+    <string name="remote_url_platform_blocked">Social/video platform links require the desktop resolver. Please provide a direct HTTPS file URL.</string>
+    <string name="remote_invalid_direct_url">URL is not a valid direct file link (must be HTTPS with a supported extension).</string>
+    <string name="remote_toast_batch_result">%1$d files queued, %2$d skipped (not direct files)</string>
+    <string name="crawler_download_batch_result">%1$d media queued, %2$d skipped (invalid/non-HTTPS)</string>
+
+    <!-- Zip Explorer Strings -->
+    <string name="zip_reading_directory">Reading ZIP directory via MTProto Byte-Range...</string>
+    <string name="zip_error_open">Failed to open archive</string>
+    <string name="zip_extract_error">Failed to extract file</string>
+    <string name="zip_compressed_size">%1$s (compressed: %2$s)</string>
+    <string name="zip_encrypted_badge">Encrypted</string>
+    <string name="zip_preview_image_decode_failed">Image preview could not be decoded.</string>
+
+    <!-- Drive Previewers Strings -->
+    <string name="preview_tabular_col_default">Column %1$d</string>
+    <string name="preview_hex_offset_header">OFFSET   </string>
+    <string name="preview_hex_ascii_header">ASCII</string>
+    <string name="preview_sticker_fps">%1$d FPS</string>
+    <string name="preview_sticker_layers">%1$d Layers</string>
+    <string name="preview_sticker_decompression_limit">Sticker size exceeds RAM safety ceiling (1 MB)</string>
+
+    <!-- Transfer Technical Diagnostics Authenticity -->
+    <string name="diagnostic_metric_status">Status &amp; Stage</string>
+    <string name="diagnostic_metric_progress">Transfer Progress</string>
+    <string name="diagnostic_metric_speed">Speed &amp; Estimated Time</string>
+    <string name="diagnostic_metric_retries">Retry Attempts</string>
+    <string name="diagnostic_endpoint_confidential">[Protected / Confidential Endpoint]</string>
+    <string name="diagnostic_endpoint_tg">Telegram Cloud</string>
 </resources>

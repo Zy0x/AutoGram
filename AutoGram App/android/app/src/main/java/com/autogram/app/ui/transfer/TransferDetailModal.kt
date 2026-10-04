@@ -18,6 +18,7 @@ import com.autogram.app.viewmodel.TransferTaskItem
 fun TransferDetailModal(task: TransferTaskItem, onDismiss: () -> Unit, onTogglePause: () -> Unit) {
     var showDiagnostics by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
+    // Confidentiality Invariant: sourceIdentity and destinationIdentity are never rendered directly to avoid leaking signed URLs or credentials.
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),

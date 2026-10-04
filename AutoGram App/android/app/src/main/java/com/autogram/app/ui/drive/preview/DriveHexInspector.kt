@@ -127,7 +127,7 @@ fun DriveHexInspector(
                     item {
                         Row(modifier = Modifier.padding(bottom = 6.dp)) {
                             Text(
-                                text = "OFFSET   ",
+                                text = stringResource(R.string.preview_hex_offset_header),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,
@@ -145,7 +145,7 @@ fun DriveHexInspector(
                                 color = TextSecondaryDark
                             )
                             Text(
-                                text = "ASCII",
+                                text = stringResource(R.string.preview_hex_ascii_header),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,

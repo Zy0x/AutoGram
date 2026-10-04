@@ -206,7 +206,7 @@ fun ZipExplorerModal(
                             ) {
                                 CircularProgressIndicator(color = SoftViolet)
                                 Text(
-                                    text = "Membaca direktori ZIP via MTProto Byte-Range...",
+                                    text = stringResource(R.string.zip_reading_directory),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = TextSecondaryDark
                                 )
@@ -222,7 +222,7 @@ fun ZipExplorerModal(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = errorMessage ?: "Gagal membuka arsip",
+                                text = errorMessage ?: stringResource(R.string.zip_error_open),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -273,7 +273,7 @@ fun ZipExplorerModal(
                                                         val bytes = reader!!.extractEntryBytes(entry)
                                                         previewBytes = bytes
                                                     } catch (e: Exception) {
-                                                        Toast.makeText(context, e.message ?: "Gagal mengekstrak berkas", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, e.message ?: context.getString(R.string.zip_extract_error), Toast.LENGTH_SHORT).show()
                                                         previewEntry = null
                                                     } finally {
                                                         isPreviewLoading = false
@@ -312,7 +312,11 @@ fun ZipExplorerModal(
                                             )
                                             if (!entry.isFolder) {
                                                 Text(
-                                                    text = "${formatFileSize(entry.uncompressedSize)} (terkompresi: ${formatFileSize(entry.compressedSize)})",
+                                                    text = stringResource(
+                                                        R.string.zip_compressed_size,
+                                                        formatFileSize(entry.uncompressedSize),
+                                                        formatFileSize(entry.compressedSize)
+                                                    ),
                                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                                     color = TextMutedDark
                                                 )
@@ -322,7 +326,7 @@ fun ZipExplorerModal(
                                         if (entry.isEncrypted) {
                                             Icon(
                                                 imageVector = Icons.Default.Lock,
-                                                contentDescription = "Terenkripsi",
+                                                contentDescription = stringResource(R.string.zip_encrypted_badge),
                                                 tint = Color(0xFFFFB74D),
                                                 modifier = Modifier.size(16.dp)
                                             )
@@ -375,7 +379,7 @@ fun ZipExplorerModal(
                                                 modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp)
                                             )
                                         } else {
-                                            Text("Pratinjau gambar tidak dapat didekode.")
+                                            Text(stringResource(R.string.zip_preview_image_decode_failed))
                                         }
                                     } else {
                                         val textSnippet = remember(bytes) {

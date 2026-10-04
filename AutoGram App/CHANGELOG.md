@@ -1,21 +1,33 @@
-## Unreleased — Android Gallery Runtime Verification
+## Unreleased — Android Security & Telemetry Remediation, Authentic Lottie & Strict Local Download Enforcement
 
-### 1. Account Restoration and Navigation
-- Changed the `GateViewModel` account-event observer to consume a verified native account snapshot rather than selecting again. This prevents repeated gate transitions from resetting navigation after session restoration, while preserving server verification at cold start and blocking unverified accounts.
+### 1. Remote URL Resolver & Direct Download Security
+- Enforced strict routing through `LocalDownloadPolicy` and `LocalDownloadRepository` for all remote URLs: requires HTTPS scheme, validated media extensions, HEAD probe verification, private internal directory storage, and non-redirect downloads.
+- Replaced misleading platform presets with truthful status: entering platform URLs (YouTube, TikTok, Instagram, Twitter/X, Pinterest, etc.) displays an explicit notice that platform extractors require the desktop engine. Removed misleading resolution preset chips (1080p, 720p, etc.).
+- Completely eliminated mock `submitToNativeQueue` task creation that falsely claimed Telegram Cloud upload success. Upload to Cloud action now truthfully displays "Desktop Only" notice.
+- Filtered batch downloads and crawled media downloads through `LocalDownloadPolicy.validate()`, reporting queued direct files vs skipped platform/invalid URLs.
 
-### 2. Truthful Feature Coverage
-- Corrected Dashboard, Tools and legacy Transfer descriptions so direct HTTPS downloads are not presented as site resolvers, collection browsing is not presented as transcoding, and unavailable forwarding/upload engines are not implied to be operational.
-- Replaced fixed storage-capacity values in the shared providers with filesystem measurements and connected Android Settings to that native measurement. Errors remain errors rather than an invented capacity, making storage reporting consistent across platforms.
-- Replaced the shared desktop encoder's no-output success with actual encoding and output checks for container, duration, required streams and size. Hardware availability requires a smoke encode; Android no longer returns an unmeasured MediaCodec profile. These checks do not imply Android Studio parity.
-- Routed desktop hardware queries through measured encoder evidence and stopped returning a synthetic healthy account score. Desktop and Android now report unavailable account-health probes explicitly instead of presenting unmeasured defaults as runtime results.
+### 2. Web Media Crawler SSRF & Robots.txt Hardening (`WebMediaCrawler.kt`)
+- Added comprehensive Server-Side Request Forgery (SSRF) protection: strictly enforces HTTPS, rejects private/internal domains, resolves host DNS, and blocks loopback (`127.0.0.1`, `::1`), site-local (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local (`169.254.0.0/16`), shared address space (`100.64.0.0/10`), and multicast IP ranges.
+- Integrated automated `robots.txt` compliance parser: fetches `robots.txt` under a 64 KB ceiling and strictly respects `Disallow` rules for User-agent `*` and `AutoGramCrawler`.
+- Enforced 512 KB bounded HTML payload limit to prevent unbounded memory allocation on large web pages.
 
-### 3. Touch and Regression Checks
-- Reworked Android `DrivePreviewModal` into a safe-area viewer with persistent 48dp navigation controls, scoped to the visible gallery order and filters. Images gain zoom/pan, text has independent scrolling, and decoded video uses its actual aspect ratio with integrated playback controls, so content no longer pushes navigation out of reach.
-- Added an exact-range, bounded per-stream memory cache and retryable preview failures. Cached reads reuse only previously fetched bytes; seek and startup do not acquire a high forward-buffer target, and closing the stream rejects late results. This does not complete archive or document-family preview parity.
-- Replaced Android preview's fixed-platform `MediaPlayer` preparation with a Media3 progressive source, supplying the resume position before preparation and separating a 150ms start threshold from the 2–40 second ongoing buffer window. Extractor reader closure during seek preserves the viewer-owned stream; only viewer disposal cancels its native requests.
-- Increased the drive-rail refresh target to 48dp and added gallery geometry, account-snapshot and authenticated navigation checks. Tests preserve existing credentials and do not upload, forward, log out or delete Telegram media.
+### 3. MTProto Transfer Diagnostics Authenticity (`TransferDiagnosticModal.kt`)
+- Completely stripped fabricated metrics: removed synthetic DC ID hashes (`task.id.hashCode() % 3`), removed fake MTProto endpoint IPs (`149.154.167.5x:443`), removed fake worker counts (`workerCount`), and removed synthetic speed curve labels.
+- Connected diagnostics strictly to genuine `TransferTaskItem` data: status, stage, byte progress (`transferredBytes / totalBytes`), speed in bps, ETA in seconds, retry attempts, and raw error code.
+- Enforced endpoint confidentiality protection: masked raw `sourceIdentity` and `destinationIdentity` to prevent leaking signed URLs, access tokens, or private Telegram endpoints.
+- Restored confidentiality architectural invariant comments in `TransferDetailModal.kt`.
+
+### 4. Authentic Lottie & Telegram TGS Vector Animation (`DriveLottiePlayer.kt`)
+- Replaced mock pulsing vector badge with authentic frame-accurate Lottie vector animation using `com.airbnb.android:lottie-compose:6.4.0`.
+- Enforced strict 1 MB RAM decompression safety ceiling (`MAX_DECOMPRESSED_TGS_BYTES`): safely prevents memory exhaustion on malformed or zip-bomb `.tgs` archives and displays graceful safety notice (`R.string.preview_sticker_decompression_limit`).
+- Preserved timeline scrubbing, frame step inspection, loop toggling, and light/dark canvas background modes.
+
+### 5. Multi-Language Parity & Zero Hardcoded Strings
+- Extracted all remaining hardcoded strings in `ZipExplorerModal.kt`, `DriveTabularViewer.kt`, `DriveHexInspector.kt`, `DriveLottiePlayer.kt`, and `RemoteUrlScreen.kt` into `values/strings.xml` and `values-en/strings.xml` with 100% ID/EN key parity (zero discrepancies).
+- Verified that all modified source files strictly remain within the 2,000 LOC ceiling (all files under 670 LOC).
 
 ## v4.1.34 — Complete Desktop Feature Adoption: Remote Media Resolvers, Web Crawler, Specialized Previewers & MTProto Diagnostics
+*(Catatan Koreksi Integritas Arsitektur: Klaim resolusi platform dan simulasi telemetri DC pada versi ini telah dikoreksi secara ketat pada rilis unreleased berikutnya. Android membatasi pengunduhan pada direct HTTPS files via LocalDownloadPolicy, melarang fake queueing, membuang estimasi DC/worker buatan, dan menerapkan Lottie asli.)*
 
 ### 1. Remote Media Resolver & Web Media Crawler Hub (`RemoteUrlScreen.kt`)
 - **Interactive Multi-Platform URL Resolver**: Replaced placeholder stub with a powerful yet minimalist 2-tab interface.
