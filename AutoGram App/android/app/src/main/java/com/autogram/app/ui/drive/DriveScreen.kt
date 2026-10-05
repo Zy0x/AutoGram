@@ -56,6 +56,8 @@ fun DriveScreen(
     var isLocationPickerOpen by remember { mutableStateOf(false) }
     var isCreateTopicOpen by remember { mutableStateOf(false) }
     var isCustomizeIconOpen by remember { mutableStateOf(false) }
+    var isViewOptionsOpen by remember { mutableStateOf(false) }
+    var isTopicHubOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
@@ -70,6 +72,8 @@ fun DriveScreen(
         isLocationPickerOpen = false
         isCreateTopicOpen = false
         isCustomizeIconOpen = false
+        isViewOptionsOpen = false
+        isTopicHubOpen = false
         isDriveToolsOpen = false
         isRemoteUploadOpen = false
         isDedupCleanerOpen = false
@@ -90,6 +94,8 @@ fun DriveScreen(
         onMediaFilterChange = viewModel::setMediaFilter,
         onOpenLocationPicker = { isLocationPickerOpen = true },
         onTopicSelect = viewModel::setTopicFilter,
+        onOpenViewOptions = { isViewOptionsOpen = true },
+        onOpenTopicHub = { isTopicHubOpen = true },
         sortOrder = state.sortOrder,
         onSortOrderChange = viewModel::setSortOrder,
         onThumbnailQualityChange = viewModel::setThumbnailQuality,
@@ -335,6 +341,30 @@ fun DriveScreen(
         )
     }
 
+    if (isViewOptionsOpen) {
+        DriveViewOptionsSheet(
+            isGridView = state.isGridView,
+            onToggleViewMode = viewModel::toggleViewMode,
+            gridAspectRatio = state.gridAspectRatio,
+            onGridAspectRatioChange = viewModel::setGridAspectRatio,
+            thumbnailQuality = state.thumbnailQuality,
+            onThumbnailQualityChange = viewModel::setThumbnailQuality,
+            sortOrder = state.sortOrder,
+            onSortOrderChange = viewModel::setSortOrder,
+            onDismiss = { isViewOptionsOpen = false }
+        )
+    }
+
+    if (isTopicHubOpen) {
+        DriveTopicHubSheet(
+            topics = state.topics,
+            activeTopicId = state.activeTopicId,
+            onSelectTopic = viewModel::setTopicFilter,
+            onAddTopic = { isCreateTopicOpen = true },
+            onDismiss = { isTopicHubOpen = false }
+        )
+    }
+
     if (unsupported) UnavailableOperationDialog({ unsupported = false })
 }
 
@@ -346,6 +376,8 @@ fun DriveScreenContent(
     onMediaFilterChange: (DriveMediaFilter) -> Unit,
     onOpenLocationPicker: () -> Unit = {},
     onTopicSelect: (Long?) -> Unit = {},
+    onOpenViewOptions: () -> Unit = {},
+    onOpenTopicHub: () -> Unit = {},
     sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
     onSortOrderChange: (DriveSortOrder) -> Unit = {},
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
@@ -379,120 +411,172 @@ fun DriveScreenContent(
     val context = LocalContext.current
     val gridState = rememberLazyGridState()
     LaunchedEffect(state.sessionId, state.peerId, state.searchQuery, state.mediaFilter) { gridState.scrollToItem(0) }
-    AutoGramSurface(modifier) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            // Keep the worker/export owner mounted when gallery headers scroll off screen.
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.nav_drive), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                cloudControls?.invoke()
-            }
-            LazyVerticalGrid(
-                columns = if (state.isGridView) GridCells.Adaptive(104.dp) else GridCells.Fixed(1),
-                state = gridState, modifier = Modifier.weight(1f).testTag("cloud-gallery"),
-                contentPadding = PaddingValues(start = 3.dp, end = 3.dp, bottom = 112.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
-                item(key = "controls", span = { GridItemSpan(maxLineSpan) }) {
-                    DriveTopBar(
-                        currentPath = state.currentPath,
-                        itemCount = filteredItems.size,
-                        selectedCount = state.selectedIds.size,
-                        searchQuery = state.searchQuery,
-                        onSearchChange = onSearchChange,
-                        mediaFilter = state.mediaFilter,
-                        onMediaFilterChange = onMediaFilterChange,
-                        activeLocationTitle = state.activeLocationTitle,
-                        activeLocationKind = state.activeLocationKind,
-                        activeLocationPeerId = state.peerId,
-                        onOpenLocationPicker = onOpenLocationPicker,
-                        isForum = state.isForum,
-                        topics = state.topics,
-                        activeTopicId = state.activeTopicId,
-                        onTopicSelect = onTopicSelect,
-                        sortOrder = sortOrder,
-                        onSortOrderChange = onSortOrderChange,
-                        thumbnailQuality = state.thumbnailQuality,
-                        onThumbnailQualityChange = onThumbnailQualityChange,
-                        gridAspectRatio = state.gridAspectRatio,
-                        onGridAspectRatioChange = onGridAspectRatioChange,
-                        isGridView = state.isGridView,
-                        onToggleViewMode = onToggleViewMode,
-                        onRefresh = onRefresh,
-                        onUpload = onUpload,
-                        onRemoteUpload = onRemoteUpload,
-                        onClearSelection = onClearSelection,
-                        onSelectAll = onSelectAll,
-                        onInvertSelection = onInvertSelection,
-                        onDownloadZip = onDownloadZip,
-                        onCleanForward = onCleanForward,
-                        onMoveFolder = onMoveFolder,
-                        onCopyLinks = onCopyLinks,
-                        onTagCategory = onTagCategory,
-                        onDeleteSelected = onDeleteSelected,
-                        onOpenTools = onOpenTools,
-                        onAddTopic = onAddTopic,
-                        onCustomizeIcon = onCustomizeIcon
-                    )
-                }
-                state.errorCode?.let { code ->
-                    item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
-                        AutoGramErrorState(stringResource(cloudErrorLabel(code)), onRefresh, Modifier.padding(16.dp))
-                    }
-                }
-                if (state.isLoading) item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth())
-                        Text(stringResource(R.string.clean_gallery_loading), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                if (!state.isLoading && filteredItems.isEmpty()) item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                    AutoGramEmptyState(stringResource(R.string.clean_gallery_empty),
-                        stringResource(R.string.clean_gallery_empty_hint), modifier = Modifier.padding(20.dp))
-                }
-                sections.forEach { section ->
-                    item(key = "date:${section.key}", span = { GridItemSpan(maxLineSpan) }) {
-                        val dateLabel = section.timestampMs?.let { ts ->
-                            val now = java.util.Calendar.getInstance()
-                            val itemCal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
-                            if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
-                                now.get(java.util.Calendar.DAY_OF_YEAR) == itemCal.get(java.util.Calendar.DAY_OF_YEAR)) {
-                                stringResource(R.string.ui2_today)
-                            } else if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
-                                now.get(java.util.Calendar.DAY_OF_YEAR) - itemCal.get(java.util.Calendar.DAY_OF_YEAR) == 1) {
-                                stringResource(R.string.ui2_yesterday)
-                            } else {
-                                android.text.format.DateFormat.getMediumDateFormat(context).format(Date(ts))
-                            }
-                        } ?: stringResource(R.string.clean_gallery_unknown_date)
 
-                        Text(
-                            text = dateLabel,
-                            modifier = Modifier.padding(start = 14.dp, top = 20.dp, bottom = 8.dp),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                fontSize = 14.sp
-                            ),
-                            color = TextPrimaryDark
+    AutoGramSurface(modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Unified Header (Location, Search, Tune, More) / Selection Mode
+                DriveUnifiedHeader(
+                    selectedCount = state.selectedIds.size,
+                    activeLocationTitle = state.activeLocationTitle,
+                    activeLocationKind = state.activeLocationKind,
+                    activeLocationPeerId = state.peerId,
+                    isForum = state.isForum,
+                    onOpenLocationPicker = onOpenLocationPicker,
+                    searchQuery = state.searchQuery,
+                    onSearchChange = onSearchChange,
+                    onOpenViewOptions = onOpenViewOptions,
+                    onRefresh = onRefresh,
+                    onOpenTools = onOpenTools,
+                    onCustomizeIcon = onCustomizeIcon,
+                    onClearSelection = onClearSelection,
+                    onSelectAll = onSelectAll,
+                    onInvertSelection = onInvertSelection,
+                    onDownloadZip = onDownloadZip,
+                    onCopyLinks = onCopyLinks
+                )
+
+                // In Normal Mode (not selection mode): Show Forum Topics & Media Filters
+                if (state.selectedIds.isEmpty()) {
+                    if (state.isForum) {
+                        Spacer(Modifier.height(4.dp))
+                        DriveForumTopicStrip(
+                            topics = state.topics,
+                            activeTopicId = state.activeTopicId,
+                            onSelectTopic = onTopicSelect,
+                            onAddTopic = onAddTopic,
+                            onOpenTopicHub = onOpenTopicHub
                         )
                     }
-                    items(section.items, key = { "media:${it.id}" }) { item ->
-                        if (state.isGridView) FileGridItem(
-                            item = item,
-                            isSelected = item.id in state.selectedIds,
-                            onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) },
-                            aspectRatio = state.gridAspectRatio.ratio
-                        )
-                        else FileListItem(item, item.id in state.selectedIds, { onItemClick(item) },
-                            { onItemLongClick(item) }, Modifier.padding(horizontal = 12.dp, vertical = 3.dp))
-                    }
+
+                    Spacer(Modifier.height(4.dp))
+                    DriveMediaFilterStrip(
+                        activeFilter = state.mediaFilter,
+                        onFilterChange = onMediaFilterChange
+                    )
+                    Spacer(Modifier.height(4.dp))
                 }
-                item(key = "pagination", span = { GridItemSpan(maxLineSpan) }) {
-                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { pagingControls?.invoke() }
+
+                // Active Download panel / Cloud controls if mounted
+                cloudControls?.invoke()
+
+                // Error State if any
+                state.errorCode?.let { code ->
+                    AutoGramErrorState(stringResource(cloudErrorLabel(code)), onRefresh, Modifier.padding(16.dp))
+                }
+
+                // Gallery Grid
+                LazyVerticalGrid(
+                    columns = if (state.isGridView) GridCells.Adaptive(104.dp) else GridCells.Fixed(1),
+                    state = gridState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("cloud-gallery"),
+                    contentPadding = PaddingValues(
+                        start = 3.dp,
+                        end = 3.dp,
+                        top = 4.dp,
+                        bottom = if (state.selectedIds.isNotEmpty()) 104.dp else 84.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    if (state.selectedIds.isEmpty()) {
+                        item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
+                    }
+
+                    if (state.isLoading) item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LinearProgressIndicator(Modifier.fillMaxWidth())
+                            Text(stringResource(R.string.clean_gallery_loading), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    if (!state.isLoading && filteredItems.isEmpty()) item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+                        AutoGramEmptyState(
+                            stringResource(R.string.clean_gallery_empty),
+                            stringResource(R.string.clean_gallery_empty_hint),
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+
+                    sections.forEach { section ->
+                        item(key = "date:${section.key}", span = { GridItemSpan(maxLineSpan) }) {
+                            val dateLabel = section.timestampMs?.let { ts ->
+                                val now = java.util.Calendar.getInstance()
+                                val itemCal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
+                                if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
+                                    now.get(java.util.Calendar.DAY_OF_YEAR) == itemCal.get(java.util.Calendar.DAY_OF_YEAR)) {
+                                    stringResource(R.string.ui2_today)
+                                } else if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
+                                    now.get(java.util.Calendar.DAY_OF_YEAR) - itemCal.get(java.util.Calendar.DAY_OF_YEAR) == 1) {
+                                    stringResource(R.string.ui2_yesterday)
+                                } else {
+                                    android.text.format.DateFormat.getMediumDateFormat(context).format(Date(ts))
+                                }
+                            } ?: stringResource(R.string.clean_gallery_unknown_date)
+
+                            Text(
+                                text = dateLabel,
+                                modifier = Modifier.padding(start = 14.dp, top = 16.dp, bottom = 6.dp),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    fontSize = 13.sp
+                                ),
+                                color = TextPrimaryDark
+                            )
+                        }
+
+                        items(section.items, key = { "media:${it.id}" }) { item ->
+                            if (state.isGridView) FileGridItem(
+                                item = item,
+                                isSelected = item.id in state.selectedIds,
+                                onClick = { onItemClick(item) },
+                                onLongClick = { onItemLongClick(item) },
+                                aspectRatio = state.gridAspectRatio.ratio
+                            )
+                            else FileListItem(
+                                item,
+                                item.id in state.selectedIds,
+                                { onItemClick(item) },
+                                { onItemLongClick(item) },
+                                Modifier.padding(horizontal = 12.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    item(key = "pagination", span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { pagingControls?.invoke() }
+                    }
                 }
             }
+
+            // Speed-Dial FAB in Normal Mode
+            if (state.selectedIds.isEmpty()) {
+                DriveSpeedDialFab(
+                    isForum = state.isForum,
+                    onUpload = onUpload,
+                    onRemoteUpload = onRemoteUpload,
+                    onAddTopic = onAddTopic,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Bottom Action Bar in Multi-Selection Mode
+            DriveBottomActionBar(
+                selectedCount = state.selectedIds.size,
+                onCleanForward = onCleanForward,
+                onTagCategory = onTagCategory,
+                onMoveFolder = onMoveFolder,
+                onDownloadZip = onDownloadZip,
+                onDeleteSelected = onDeleteSelected,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }

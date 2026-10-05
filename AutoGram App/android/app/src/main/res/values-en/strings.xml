@@ -904,4 +904,29 @@
     <string name="drive_dest_clean_copy_desc">Upload clean duplicate without \'Forwarded from\' tag</string>
     <string name="drive_dest_select_target">SELECT DESTINATION CHAT</string>
     <string name="drive_dest_topic_label">SELECT DESTINATION FORUM TOPIC</string>
+
+    <!-- Drive Redesign: View Options & Forum Topic Hub -->
+    <string name="drive_view_options_title">View &amp; Sort Options</string>
+    <string name="drive_view_layout_section">GALLERY LAYOUT</string>
+    <string name="drive_view_mode_grid">Grid View</string>
+    <string name="drive_view_mode_grid_desc">Multiple files at once</string>
+    <string name="drive_view_mode_list">List View</string>
+    <string name="drive_view_mode_list_desc">Details with size and name</string>
+    <string name="drive_view_aspect_section">GRID ASPECT RATIO</string>
+    <string name="drive_aspect_poster_title">Vertical Poster</string>
+    <string name="drive_aspect_square_title">Square</string>
+    <string name="drive_view_quality_section">THUMBNAIL QUALITY</string>
+    <string name="drive_thumb_quality_saver">Data Saver</string>
+    <string name="drive_thumb_quality_saver_desc">Fast &amp; low data</string>
+    <string name="drive_thumb_quality_balanced">Balanced</string>
+    <string name="drive_thumb_quality_balanced_desc">Optimized</string>
+    <string name="drive_thumb_quality_sharp">High Definition</string>
+    <string name="drive_thumb_quality_sharp_desc">Full detail</string>
+    <string name="drive_view_sort_section">SORT ORDER</string>
+
+    <string name="drive_topic_hub_title">Forum Topics</string>
+    <string name="drive_topic_search_placeholder">Search forum topics…</string>
+    <string name="drive_topic_all_desc">Show all files across all topics</string>
+    <string name="drive_topic_item_count">%1$d files</string>
+    <string name="drive_topic_not_found">No topics found</string>
 </resources>

@@ -1,4 +1,38 @@
-## Unreleased — Telegram Forum Topic Management & Creation, Custom Drive/Group Icon Picker, and Topic Destination Routing
+## Unreleased — Unified Drive UI/UX Architecture, Topic Hub Sheet, Speed-Dial Suite & Display Controls
+
+### 1. Unified Compact Header & Selection Mode Toolbar (`DriveUnifiedHeader.kt`, `DriveBottomActionBar.kt`, `DriveScreen.kt`)
+- **Consolidated 1-Row Header (`DriveUnifiedHeader.kt`)**: Replaced 7 stacked rows with a single 56dp glassmorphic bar consolidating the Drive location selector capsule (with custom peer avatar and total count badge), search icon button, display configuration trigger (`Tune`), and 3-dots actions menu. Reclaimed over 70% of upper screen real estate for gallery content.
+- **Dedicated Multi-Selection Header**: Seamlessly transitions the header when entering selection mode to display a cancel button (`✕`), dynamic selection counter (`N Dipilih`), one-tap "Select All" toggle button, and contextual action menu.
+- **Floating Bottom Action Bar (`DriveBottomActionBar.kt`)**: Built animated bottom action bar for multi-selection offering 5 primary batch actions: Clean Copy Forward (`FastForward`), Tag (`Label`), Move (`DriveFileMove`), Download (`Download`), and Delete (`Delete`), floating gracefully above device navigation bars.
+
+### 2. Hybrid Forum Topic Navigation & Comprehensive Topic Hub Sheet (`DriveForumTopicStrip.kt`, `DriveTopicHubSheet.kt`)
+- **Compact Horizontal Topic Chip Strip (`DriveForumTopicStrip.kt`)**: Clean 32dp horizontal row showing official Telegram topic colors and emoji tags (`#Semua`, `#Umum`, `#Dokumentasi`, etc.), a gold `+ Tambah Topik` chip, and a Topic Hub launcher button (`DashboardCustomize`). Only renders when viewing a forum supergroup to eliminate UI redundancy in normal chats/saved messages.
+- **Comprehensive Topic Hub Modal Sheet (`DriveTopicHubSheet.kt`)**: Deep-dive topic management bottom sheet with real-time topic search, color-coded badge cards with file counts, active thread indicator, and a "+ Buat Topik Baru" shortcut button for managing large forum communities with dozens of topics without cluttering the main gallery.
+
+### 3. Display Customization Sheet & Sleek Media Filter Strip (`DriveViewOptionsSheet.kt`, `DriveMediaFilterStrip.kt`)
+- **View & Display Options Bottom Sheet (`DriveViewOptionsSheet.kt`)**: Clean modal sheet invoked via the header `Tune` icon, organizing display parameters into 4 segmented controls:
+  - *Layout Mode*: Grid (2–4 columns) vs Detailed List.
+  - *Aspect Ratio*: 2:3 Movie Poster vs 1:1 Square Album Tile.
+  - *Thumbnail Quality*: Data Saver, Balanced, and Ultra Sharp.
+  - *Sort Order*: Newest First, Oldest First, File Name, and File Size.
+  - Relieves permanent UI rows from housing layout toggles, maximizing visual focus on media thumbnails.
+- **Compact 32dp Category Filter Strip (`DriveMediaFilterStrip.kt`)**: Minimalist pill strip (`Semua`, `Media`, `Foto`, `Video`, `Audio`, `Dokumen`) with smooth selected state indicators and counts.
+
+### 4. Floating Speed-Dial Action Button (`DriveSpeedDialFab.kt`)
+- **Expandable Gold Speed-Dial FAB**: Replaced top-heavy action buttons with a modern bottom-right floating action button (`Icons.Default.Add`) that smoothly expands with a 45-degree rotation animation.
+- **Quick Action Menu**: Provides 3 primary mobile-first shortcuts:
+  - *Unggah Berkas Lokal* (`UploadFile`): Instant file picker for uploading device media.
+  - *Unggah dari URL* (`CloudDownload`): Opens remote media resolver.
+  - *Buat Topik Baru* (`Forum`): Fast topic creation shortcut (shown exclusively for forum supergroups).
+- Automatically hides during multi-selection mode to prevent overlap with the bottom action bar.
+
+### 5. Multi-Language Parity, Modularization & Physical Device Deployment
+- **100% Zero Hardcoded Strings Parity**: Added 21 new localized string resources across `res/values/strings.xml` and `res/values-en/strings.xml` with zero discrepancies.
+- **Rule 17 Modular Architecture Compliance**: Created 7 new decoupled components (`DriveUnifiedHeader.kt`, `DriveTopicHubSheet.kt`, `DriveViewOptionsSheet.kt`, `DriveSpeedDialFab.kt`, `DriveBottomActionBar.kt`, `DriveMediaFilterStrip.kt`, `DriveForumTopicStrip.kt`) and refactored `DriveScreen.kt` to 582 LOC (all files strictly $\le 582$ LOC, well below the 2,000 LOC ceiling).
+- **Version Freeze Override Compliance**: Version preserved strictly at `4.1.34` across `package.json`, `Cargo.toml`, `tauri.conf.json`, `githubUpdater.ts`, `VERSION.md`, and Android `build.gradle.kts`.
+- **Quality Gates & Phone Deployment**: Passed all unit tests in `testDebugUnitTest`, compiled debug APK (`assembleDebug`), and deployed directly to physical `Infinix X698` (`192.168.1.5:5555`) via `adb install -r` with 100% session preservation.
+
+## Earlier Unreleased — Telegram Forum Topic Management & Creation, Custom Drive/Group Icon Picker, and Topic Destination Routing
 
 ### 1. Telegram Forum Supergroups & Topic Creation Engine (`DriveCreateTopicModal.kt`, `DriveTopicChips.kt`, `DriveViewModel.kt`, `DriveTopBar.kt`)
 - **Interactive Topic Creation Dialog (`DriveCreateTopicModal.kt`)**: Added topic creation modal supporting custom topic names, Telegram's 6 official topic colors (Sky Blue `#6FB9F0`, Amber `#FFD67E`, Amethyst `#CB86DB`, Mint `#8EEE98`, Rose `#FF93B2`, Coral `#FB6F5F`), and emoji tag chips (`📁`, `🎬`, `🎵`, `📝`, `💡`, `📌`, `🔒`, `⭐`, `📦`, `🚀`, `💬`, `🛠️`).

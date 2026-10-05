@@ -907,4 +907,29 @@
     <string name="drive_dest_clean_copy_desc">Unggah salinan baru tanpa jejak header \'Diteruskan dari\'</string>
     <string name="drive_dest_select_target">PILIH CHAT TUJUAN</string>
     <string name="drive_dest_topic_label">PILIH TOPIK FORUM TUJUAN</string>
+
+    <!-- Drive Redesign: View Options & Forum Topic Hub -->
+    <string name="drive_view_options_title">Opsi Tampilan &amp; Urutan</string>
+    <string name="drive_view_layout_section">TATA LETAK GALERI</string>
+    <string name="drive_view_mode_grid">Kisi (Grid)</string>
+    <string name="drive_view_mode_grid_desc">Banyak berkas sekaligus</string>
+    <string name="drive_view_mode_list">Daftar (List)</string>
+    <string name="drive_view_mode_list_desc">Rincian nama &amp; ukuran</string>
+    <string name="drive_view_aspect_section">RASIO ASPEK KISI</string>
+    <string name="drive_aspect_poster_title">Poster Vertikal</string>
+    <string name="drive_aspect_square_title">Kotak Simetris</string>
+    <string name="drive_view_quality_section">KUALITAS GAMBAR MINI</string>
+    <string name="drive_thumb_quality_saver">Hemat Data</string>
+    <string name="drive_thumb_quality_saver_desc">Cepat &amp; hemat</string>
+    <string name="drive_thumb_quality_balanced">Seimbang</string>
+    <string name="drive_thumb_quality_balanced_desc">Optimal</string>
+    <string name="drive_thumb_quality_sharp">Tajam / Jelas</string>
+    <string name="drive_thumb_quality_sharp_desc">Resolusi tinggi</string>
+    <string name="drive_view_sort_section">URUTKAN BERKAS</string>
+
+    <string name="drive_topic_hub_title">Topik Forum</string>
+    <string name="drive_topic_search_placeholder">Cari topik forum…</string>
+    <string name="drive_topic_all_desc">Tampilkan seluruh berkas di semua topik</string>
+    <string name="drive_topic_item_count">%1$d berkas</string>
+    <string name="drive_topic_not_found">Topik tidak ditemukan</string>
 </resources>
