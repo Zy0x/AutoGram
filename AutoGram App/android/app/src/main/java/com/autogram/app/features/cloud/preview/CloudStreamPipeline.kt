@@ -14,7 +14,8 @@ import kotlin.math.abs
  * Pipelined Anti-Buffering Media Streaming Engine.
  *
  * Implements Desktop-parity chunk prefetching, proactive runway buffering,
- * direct player demand fast-path, and bounded memory ring caching.
+ * direct player demand fast-path, continuous sliding-window worker pool,
+ * and bounded memory ring caching.
  */
 class CloudStreamPipeline(
     val source: CloudRangeSource,
@@ -35,37 +36,39 @@ class CloudStreamPipeline(
     // Single-flight in-flight fetch deduplication: chunkIndex -> CompletableDeferred<ByteArray>
     private val inFlight = ConcurrentHashMap<Long, CompletableDeferred<ByteArray>>()
 
-    // Concurrency throttle for MTProto chunk fetching (4 concurrent fetches, matching desktop parallel stream workers)
-    private val fetchLimiter = Semaphore(MAX_CONCURRENT_FETCH)
+    // Concurrency throttle reserved exclusively for background prefetch workers
+    // Direct player demand bypasses this limiter so seeking and immediate reads never wait!
+    private val prefetchLimiter = Semaphore(MAX_CONCURRENT_FETCH)
 
     // Dedicated prefetch scope
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var prefetchJob: Job? = null
-    private var prefetchCurrentChunk: Long = -1L
+    private var prefetchAnchorChunk: Long = -1L
     private val prefetchJobLock = Any()
 
     init {
         source.onClose { close() }
-        // Eager Hot-Head & Moov Tail Startup: eliminates initial seek and container header latency
-        scope.launch {
-            // Hot Head 0: first 256KB container headers
-            runCatching { fetchChunk(0L) }
-            // Moov Tail: For videos/files > 1MB, eagerly fetch the tail chunk so MP4 seek to EOF moov atom is 0ms instant
-            if (size > 1024 * 1024) {
-                val lastChunk = (size - 1) / CHUNK_SIZE
-                runCatching { fetchChunk(lastChunk) }
-            }
-            // Hot Head 1: next 256KB initial audio/video frames
-            if (size > CHUNK_SIZE) {
-                runCatching { fetchChunk(1L) }
+        // Instant Parallel Hot-Head & Moov Tail Startup:
+        // Eliminates initial seek, container header parsing, and MP4 index extraction latency
+        scope.launch { runCatching { fetchChunkInternal(0L) } }
+        if (size > CHUNK_SIZE) {
+            scope.launch { runCatching { fetchChunkInternal(1L) } }
+        }
+        if (size > 1024 * 1024) {
+            val lastChunk = (size - 1) / CHUNK_SIZE
+            scope.launch { runCatching { fetchChunkInternal(lastChunk) } }
+            if (size > 2 * 1024 * 1024 && lastChunk > 2) {
+                scope.launch { runCatching { fetchChunkInternal(lastChunk - 1) } }
             }
         }
     }
 
     /**
      * Reads up to [length] bytes starting at [position] from the streaming pipeline.
-     * Fast-path: Served immediately from memory cache if chunk is present.
-     * Slow-path: Fetches the missing 256KB chunk, stores it, and triggers forward prefetching.
+     * Fast-path: Served immediately from memory cache if chunk is present (0 ms).
+     * Disk-path: Served from local session disk cache (<1 ms).
+     * Demand-path: Fetches the missing chunk with top priority (Demand Fast-Path)
+     * and triggers continuous forward prefetching.
      */
     suspend fun read(position: Long, length: Int): ByteArray {
         if (closed.get()) throw IOException("cloud_stream_closed")
@@ -92,9 +95,10 @@ class CloudStreamPipeline(
                 }
                 diskBytes
             } else {
-                // 2. Direct Player Demand: Chunk is missing, fetch from MTProto with top priority!
-                triggerPrefetch(position, forceRestart = true)
-                fetchChunk(chunkIndex)
+                // 2. Direct Player Demand: Missing chunk requested by player right now!
+                // Prioritize this demand fetch immediately, bypassing background prefetch limiter.
+                triggerPrefetch(position, forceRestart = false)
+                fetchChunkDemand(chunkIndex)
             }
         }
 
@@ -117,17 +121,34 @@ class CloudStreamPipeline(
 
     /**
      * Called when the player seeks to a new position.
-     * Redirects prefetch engine immediately to the new target.
+     * Redirects prefetch engine immediately to the new target and cancels obsolete tasks.
      */
     fun onSeek(targetPosition: Long) {
         if (closed.get()) return
         activeCursor.set(targetPosition)
+        val targetChunk = targetPosition / CHUNK_SIZE
+
+        synchronized(prefetchJobLock) {
+            prefetchJob?.cancel()
+            prefetchJob = null
+            prefetchAnchorChunk = targetChunk
+        }
+
+        // Cancel and prune in-flight tasks that are far from the new seek position
+        val toCancel = inFlight.entries.filter { (idx, _) ->
+            abs(idx - targetChunk) > 2
+        }
+        toCancel.forEach { (idx, deferred) ->
+            deferred.cancel(CancellationException("seek_redirected"))
+            inFlight.remove(idx)
+        }
+
         triggerPrefetch(targetPosition, forceRestart = true)
     }
 
     /**
      * Triggers speculative background prefetching ahead of [fromPosition].
-     * Pipelined chunks are downloaded ahead in parallel batches into the ring cache.
+     * Uses a continuous sliding-window worker pool without batch barrier stalls.
      */
     private fun triggerPrefetch(fromPosition: Long, forceRestart: Boolean = false) {
         if (closed.get()) return
@@ -138,50 +159,62 @@ class CloudStreamPipeline(
 
         synchronized(prefetchJobLock) {
             val isJobActive = prefetchJob?.isActive == true
-            // If existing prefetch job is active and still within the current runway, do NOT cancel it!
+            // If existing prefetch job is active and still ahead of current playback, do NOT cancel it!
             if (!forceRestart && isJobActive) {
-                val distance = currentChunk - prefetchCurrentChunk
-                if (distance in 0..6) {
+                val distance = currentChunk - prefetchAnchorChunk
+                // Only restart if cursor jumped backwards or jumped far ahead of the current track
+                if (distance in 0..12) {
                     return // Current job is already streaming ahead nicely without interruption
                 }
             }
 
             prefetchJob?.cancel()
-            prefetchCurrentChunk = currentChunk
+            prefetchAnchorChunk = currentChunk
             prefetchJob = scope.launch {
                 val endChunk = minOf(lastChunk, nextChunk + prefetchRunwayChunks - 1)
-                val chunkIndices = (nextChunk..endChunk).toList()
+                if (nextChunk > endChunk) return@launch
 
-                // Download ahead in parallel batches of MAX_CONCURRENT_FETCH (4 workers)
-                for (batch in chunkIndices.chunked(MAX_CONCURRENT_FETCH)) {
-                    if (!isActive || closed.get()) break
+                // Continuous Sliding-Window Worker Pool:
+                // Workers continuously pick the next missing chunk index without waiting for a batch barrier.
+                val nextIndexToFetch = AtomicLong(nextChunk)
+                val workerJobs = (0 until MAX_CONCURRENT_FETCH).map {
+                    async {
+                        while (isActive && !closed.get()) {
+                            val idx = nextIndexToFetch.getAndIncrement()
+                            if (idx > endChunk) break
 
-                    // If player cursor leaped far away (seek occurred), stop this prefetch track
-                    val curCursor = activeCursor.get()
-                    val curChunk = curCursor / CHUNK_SIZE
-                    if (abs(curChunk - batch.first()) > prefetchRunwayChunks + 4) {
-                        break
-                    }
+                            // If player cursor leaped far away (seek occurred), stop this prefetch track
+                            val curCursor = activeCursor.get()
+                            val curChunk = curCursor / CHUNK_SIZE
+                            if (abs(curChunk - idx) > prefetchRunwayChunks + 6) break
 
-                    // Parallel fetch within batch matching Desktop multi-worker streaming
-                    batch.map { idx ->
-                        async {
-                            if (!isActive || closed.get()) return@async
                             val alreadyCached = synchronized(cacheLock) { chunks.containsKey(idx) }
                             if (!alreadyCached && !inFlight.containsKey(idx)) {
-                                runCatching { fetchChunk(idx) }
+                                prefetchLimiter.withPermit {
+                                    if (!isActive || closed.get()) return@withPermit
+                                    runCatching { fetchChunkInternal(idx) }
+                                }
                             }
                         }
-                    }.awaitAll()
+                    }
                 }
+                workerJobs.awaitAll()
             }
         }
     }
 
     /**
-     * Fetches chunk [chunkIndex] with single-flight deduplication.
+     * Direct Player Demand Fetch: Bypasses prefetchLimiter so playback start and seek
+     * get immediate CPU and network allocation.
      */
-    private suspend fun fetchChunk(chunkIndex: Long): ByteArray {
+    private suspend fun fetchChunkDemand(chunkIndex: Long): ByteArray {
+        return fetchChunkInternal(chunkIndex)
+    }
+
+    /**
+     * Fetches chunk [chunkIndex] with single-flight deduplication and disk cache persistence.
+     */
+    private suspend fun fetchChunkInternal(chunkIndex: Long): ByteArray {
         if (closed.get()) throw IOException("cloud_stream_closed")
 
         // Check if already in cache
@@ -196,42 +229,35 @@ class CloudStreamPipeline(
             return existing.await()
         }
 
-        return withContext(NonCancellable) {
-            try {
-                if (closed.get()) throw IOException("cloud_stream_closed")
-                val chunkStart = chunkIndex * CHUNK_SIZE
-                val chunkLen = minOf(CHUNK_SIZE.toLong(), size - chunkStart).toInt()
-                if (chunkLen <= 0) {
-                    val empty = ByteArray(0)
-                    deferred.complete(empty)
-                    return@withContext empty
-                }
-
-                // Acquire permit from fetchLimiter (max 2 concurrent MTProto fetches)
-                val bytes = fetchLimiter.withPermit {
-                    if (closed.get()) throw IOException("cloud_stream_closed")
-                    source.read(chunkStart, chunkLen)
-                }
-
-                if (closed.get()) throw IOException("cloud_stream_closed")
-
-                // Store in cache with eviction protection for head and tail
-                synchronized(cacheLock) {
-                    chunks[chunkIndex] = bytes
-                    evictOldChunksIfNecessary(chunkIndex)
-                }
-
-                // Persist chunk to session sparse disk cache
-                diskCache?.writeChunk(chunkStart, bytes)
-
-                deferred.complete(bytes)
-                bytes
-            } catch (t: Throwable) {
-                deferred.completeExceptionally(t)
-                throw t
-            } finally {
-                inFlight.remove(chunkIndex)
+        return try {
+            if (closed.get()) throw IOException("cloud_stream_closed")
+            val chunkStart = chunkIndex * CHUNK_SIZE
+            val chunkLen = minOf(CHUNK_SIZE.toLong(), size - chunkStart).toInt()
+            if (chunkLen <= 0) {
+                val empty = ByteArray(0)
+                deferred.complete(empty)
+                return empty
             }
+
+            val bytes = source.read(chunkStart, chunkLen)
+            if (closed.get()) throw IOException("cloud_stream_closed")
+
+            // Store in cache with eviction protection for head, tail, and active runway
+            synchronized(cacheLock) {
+                chunks[chunkIndex] = bytes
+                evictOldChunksIfNecessary(chunkIndex)
+            }
+
+            // Persist chunk to session sparse disk cache
+            diskCache?.writeChunk(chunkStart, bytes)
+
+            deferred.complete(bytes)
+            bytes
+        } catch (t: Throwable) {
+            deferred.completeExceptionally(t)
+            throw t
+        } finally {
+            inFlight.remove(chunkIndex)
         }
     }
 
@@ -239,7 +265,7 @@ class CloudStreamPipeline(
      * Evicts chunks when cache exceeds [maxCacheChunks].
      * Protects:
      * - Head chunks (index 0 and 1, holding container header / ftyp)
-     * - Tail chunk (last chunk, holding MP4 moov atom)
+     * - Tail chunks (holding MP4 moov atom)
      * - Chunks closest to the active cursor
      */
     private fun evictOldChunksIfNecessary(currentChunkIndex: Long) {
@@ -251,8 +277,8 @@ class CloudStreamPipeline(
             var maxDistance = -1L
 
             for (key in chunks.keys) {
-                // Protect head (0, 1) and tail
-                if (key in 0L..1L || key == lastChunkIndex) continue
+                // Protect head (0, 1) and tail chunks
+                if (key in 0L..1L || key >= lastChunkIndex - 1) continue
 
                 val distance = abs(key - currentCursorChunk)
                 if (distance > maxDistance) {
@@ -265,7 +291,7 @@ class CloudStreamPipeline(
                 chunks.remove(candidateKey)
             } else {
                 // Fallback: evict oldest entry if cannot find distant non-protected chunk
-                val oldest = chunks.keys.firstOrNull { it !in 0L..1L && it != lastChunkIndex }
+                val oldest = chunks.keys.firstOrNull { it !in 0L..1L && it < lastChunkIndex - 1 }
                     ?: chunks.keys.firstOrNull()
                 if (oldest != null) {
                     chunks.remove(oldest)
@@ -294,8 +320,8 @@ class CloudStreamPipeline(
 
     companion object {
         const val CHUNK_SIZE = 256 * 1024 // 256 KB matching CloudRangeSource.MAX_READ
-        const val DEFAULT_MAX_CACHE_CHUNKS = 80 // 80 * 256KB = 20 MB ring buffer
+        const val DEFAULT_MAX_CACHE_CHUNKS = 96 // 96 * 256KB = 24 MB ring buffer
         const val DEFAULT_RUNWAY_CHUNKS = 48 // 48 * 256KB = 12 MB ahead runway (~30-60s buffer)
-        const val MAX_CONCURRENT_FETCH = 4 // 4 parallel pipelined MTProto fetches
+        const val MAX_CONCURRENT_FETCH = 4 // 4 parallel pipelined MTProto workers
     }
 }

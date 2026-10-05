@@ -106,10 +106,10 @@ internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer 
             }))
         .setLoadControl(DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs = */ 20_000,
-                /* maxBufferMs = */ 60_000,
-                /* bufferForPlaybackMs = */ 400,
-                /* bufferForPlaybackAfterRebufferMs = */ 1_000
+                /* minBufferMs = */ 15_000,
+                /* maxBufferMs = */ 50_000,
+                /* bufferForPlaybackMs = */ 200,
+                /* bufferForPlaybackAfterRebufferMs = */ 350
             )
             .setBackBuffer(
                 /* backBufferDurationMs = */ 15_000,

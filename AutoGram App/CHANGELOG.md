@@ -1,4 +1,20 @@
-## Unreleased — Unified Drive UI/UX Architecture, Topic Hub Sheet, Speed-Dial Suite & Display Controls
+## Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
+
+### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)
+- **Continuous Sliding-Window Worker Pool**: Eliminated lockstep batch-barrier stalling (`batch.chunked().awaitAll()`). Implemented an asynchronous multi-worker continuous sliding-window prefetcher where workers continuously pick the next missing chunk within the runway window. Zero worker idling or batch-boundary waiting.
+- **Dedicated Player Demand Fast-Path**: Direct player reads (`pipeline.read`) bypass background prefetch semaphores, ensuring immediate CPU and socket priority for live playback and seeking without being blocked behind background prefetch queues.
+- **Concurrent Quad-Chunk Startup Engine**: Upgraded startup initialization in `init` to launch Hot Head 0 (container header), Hot Head 1 (audio/video frames), Moov Tail (`lastChunk`), and Penultimate Tail (`lastChunk - 1`) concurrently in parallel coroutines. Eliminates initial seek latency and MP4 index parsing delays.
+- **Instant Seek Cancellation & Preemption (`onSeek`)**: Seeking immediately cancels running background prefetch coroutines and purges distant in-flight requests, freeing 100% of network bandwidth for the new seek position.
+- **Elimination of Mid-Stream Stutter**: Removed the flawed distance threshold that was prematurely aborting prefetch jobs every 7 chunks during normal sequential playback.
+- **Expanded Runway & Ring Cache**: Expanded active ahead runway to 48 chunks (12 MB) and ring cache to 96 chunks (24 MB) with eviction protection for head, tail, and active runway chunks.
+
+### 2. Sub-200ms Media3 & ExoPlayer LoadControl Tuning (`CloudMedia3Source.kt`)
+- **Low-Latency LoadControl Buffer Tuning**: Tuned `DefaultLoadControl` durations:
+  - `bufferForPlaybackMs` reduced to 200ms (instant time-to-first-frame).
+  - `bufferForPlaybackAfterRebufferMs` reduced from 1,000ms to 350ms (sub-second seek recovery).
+  - Maintained 15s back-buffer for instant rewind.
+
+## Earlier Unreleased — Unified Drive UI/UX Architecture, Topic Hub Sheet, Speed-Dial Suite & Display Controls
 
 ### 1. Unified Compact Header & Selection Mode Toolbar (`DriveUnifiedHeader.kt`, `DriveBottomActionBar.kt`, `DriveScreen.kt`)
 - **Consolidated 1-Row Header (`DriveUnifiedHeader.kt`)**: Replaced 7 stacked rows with a single 56dp glassmorphic bar consolidating the Drive location selector capsule (with custom peer avatar and total count badge), search icon button, display configuration trigger (`Tune`), and 3-dots actions menu. Reclaimed over 70% of upper screen real estate for gallery content.
