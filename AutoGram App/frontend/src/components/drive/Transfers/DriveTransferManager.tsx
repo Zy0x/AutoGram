@@ -120,11 +120,11 @@ function ProgressRing({
 
 function encoderLabel(item: TransferSession['items'][number]): string {
   const backend = (item.encoderBackend || '').toLowerCase();
-  const family = backend === 'nvidia'
+  const family = (backend === 'nvidia' || backend === 'nvenc')
     ? 'NVIDIA NVENC'
-    : backend === 'amd'
+    : (backend === 'amd' || backend === 'amf')
       ? 'AMD AMF'
-      : backend === 'intel'
+      : (backend === 'intel' || backend === 'qsv')
         ? 'Intel QSV'
         : backend === 'cpu'
           ? 'CPU x264'

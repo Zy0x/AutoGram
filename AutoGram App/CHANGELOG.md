@@ -46,6 +46,12 @@
 - **Live Mutation Synchronization (`MediaStudio/index.tsx`)**: Extended `onMutationsCommitted` so that uploads and deletions of animated GIFs (`icon_type: "gif"` or `mime_type: "image/gif"`) update `filteredFilesMap['gifs']` in real time.
 - **Live CDP Port 9230 Verification**: Verified live on native desktop executable that message `49058` (`Media_Stream.mp4` / GIF) renders at index 0 of the `All` filter feed, remains synchronized when toggling across `GIFs`, `Media`, and `All`, and passes all 8 quality gates.
 
+### 8. Discrete GPU NVENC Spatial-AQ Flag Fix, Stderr Diagnostics & Media Prep Modularization (`media_prep.rs`, `media_prep_remote.rs`, `media_prep_image.rs`, `DriveTransferManager.tsx`)
+- **Root Cause Resolution for Silent CPU Fallback on NVIDIA GPUs**: Fixed a critical CLI argument bug in `maybe_reencode_for_telegram` (`media_prep.rs`) where `h264_nvenc` was invoked with `"-spatial_aq", "1"` (underscore) instead of FFmpeg's required `"-spatial-aq", "1"` (hyphen). In FFmpeg 9.x, `-spatial_aq` caused immediate argument parsing failure (`Unrecognized option 'spatial_aq'`, exit code `2880417800`), triggering `encoder_runtime_fallback` and forcing all transcodes onto software `libx264` (`CPU x264`) even when a discrete NVIDIA RTX GPU was detected and selected.
+- **Non-Blocking FFmpeg Stderr Diagnostic Capture (`media_prep.rs`)**: Replaced `.stderr(Stdio::null())` on the FFmpeg transcode subprocess with a background reader thread (`Stdio::piped()`, capped at 64 KB) so any future hardware encoder errors are captured and logged in `reencode_fail` and `encoder_runtime_fallback` events.
+- **Transfer Manager GPU Badge Normalization (`DriveTransferManager.tsx`)**: Updated `encoderLabel` in `DriveTransferManager.tsx` to recognize backend identifiers `nvenc`, `amf`, and `qsv` alongside `nvidia`, `amd`, and `intel`, ensuring the GPU hardware acceleration badge renders accurately in the transfer progress header.
+- **Modular Submodule Extraction (<2,000 LOC Compliance)**: Extracted remote URL/DoH/HLS downloaders into `media_prep_remote.rs` (~1,020 lines) and image/sticker transcoders into `media_prep_image.rs` (~340 lines), reducing `media_prep.rs` from 3,039 lines to ~1,750 lines while preserving 100% public API compatibility and adding the `nvenc_strict_hardware_reencode_succeeds_without_cpu_fallback` unit test.
+
 
 
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
