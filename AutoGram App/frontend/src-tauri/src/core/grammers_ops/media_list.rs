@@ -142,12 +142,13 @@ pub fn media_to_row(
         }
         Media::Document(doc) => {
             let mime = doc.mime_type().map(|s| s.to_string());
-            let (native_delivery, is_sticker) = match doc.raw.document.as_ref() {
+            let (native_delivery, is_sticker, is_animated) = match doc.raw.document.as_ref() {
                 Some(grammers_client::tl::enums::Document::Document(raw)) => (
                     has_native_delivery(&raw.attributes),
                     has_sticker_attribute(&raw.attributes),
+                    raw.attributes.iter().any(|a| matches!(a, grammers_client::tl::enums::DocumentAttribute::Animated)),
                 ),
-                _ => (false, false),
+                _ => (false, false, false),
             };
             let n = doc
                 .name()
@@ -224,7 +225,9 @@ pub fn media_to_row(
                 || name_l.ends_with(".ogg")
                 || name_l.ends_with(".opus");
 
-            let icon = if is_video_file {
+            let icon = if is_animated {
+                "gif"
+            } else if is_video_file {
                 "video"
             } else if is_audio_file {
                 "audio"
@@ -285,10 +288,10 @@ pub fn media_to_row(
                 peer_username: None,
                 grouped_id: msg.grouped_id(),
                 is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
-                telegram_category: Some(cls.telegram_category),
-                telegram_subtype: Some(cls.telegram_subtype),
-                drive_category: Some(cls.drive_category),
-                drive_format: Some(if caption_urls.is_empty() {
+                telegram_category: Some(if is_animated { "gif".into() } else { cls.telegram_category }),
+                telegram_subtype: Some(if is_animated { "gif".into() } else { cls.telegram_subtype }),
+                drive_category: Some(if is_animated { "animation".into() } else { cls.drive_category }),
+                drive_format: Some(if is_animated { "GIF".into() } else if caption_urls.is_empty() {
                     cls.drive_format
                 } else {
                     caption_urls.join("\n")
@@ -459,6 +462,7 @@ pub fn tl_message_to_row(
                 }
                 let native_delivery = has_native_delivery(&doc.attributes);
                 let is_sticker = has_sticker_attribute(&doc.attributes);
+                let is_animated = doc.attributes.iter().any(|attr| matches!(attr, grammers_client::tl::enums::DocumentAttribute::Animated));
                 let name = raw_name.unwrap_or_else(|| {
                     if is_sticker {
                         let alt = doc.attributes.iter().find_map(|attr| {
@@ -513,7 +517,9 @@ pub fn tl_message_to_row(
                     || name_l.ends_with(".wav")
                     || name_l.ends_with(".flac");
 
-                let icon_type = if is_video {
+                let icon_type = if is_animated {
+                    "gif".to_string()
+                } else if is_video {
                     "video".to_string()
                 } else if is_image {
                     "photo".to_string()
@@ -561,10 +567,10 @@ pub fn tl_message_to_row(
                     peer_username: None,
                     grouped_id: m.grouped_id,
                     is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
-                    telegram_category: Some(cls.telegram_category),
-                    telegram_subtype: Some(cls.telegram_subtype),
-                    drive_category: Some(cls.drive_category),
-                    drive_format: Some(if message_urls.is_empty() {
+                    telegram_category: Some(if is_animated { "gif".to_string() } else { cls.telegram_category }),
+                    telegram_subtype: Some(if is_animated { "gif".to_string() } else { cls.telegram_subtype }),
+                    drive_category: Some(if is_animated { "animation".to_string() } else { cls.drive_category }),
+                    drive_format: Some(if is_animated { "GIF".to_string() } else if message_urls.is_empty() {
                         cls.drive_format
                     } else {
                         message_urls.join("\n")

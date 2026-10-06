@@ -24,6 +24,12 @@
 - **Guaranteed Even-Dimension Scale Filter**: Updated video scaling presets (`HEMAT`, `JELAS`, and Default `SMART`) to use `scale='trunc(min(<max>,iw)/2)*2':'-2'`. This mathematically truncates width to an even integer while calculating aspect-ratio proportional height rounded to an even integer (`-2`).
 - **Thumbnail Dimension Alignment**: Enhanced `extract_video_thumbnail` to enforce even thumbnail widths (`((thumb_width / 2) * 2).max(2)`), preventing edge-case thumbnail extraction errors.
 
+### 5. Telegram Animated GIF Category Mapping Fix (`media_list.rs`)
+- **Root Cause Resolution for "No match found" under GIFs Filter**: Resolved an issue where selecting the Telegram `GIFs` filter pill in Cloud Drive / Media gallery displayed `No match found` despite Telegram reporting valid GIF items.
+- **`DocumentAttribute::Animated` Detection**: Telegram MTProto returns animated GIFs and silent looping animations as `Document` payloads with MIME `video/mp4` and the `DocumentAttribute::Animated` attribute. Previously, `media_to_row` and `tl_message_to_row` classified all document videos under `telegram_category: "media"`, `icon_type: "video"`, and `telegram_subtype: "video"`.
+- **Accurate Category & Icon Classification**: Updated both `media_to_row` and `tl_message_to_row` to check for `DocumentAttribute::Animated`. When present, items are accurately tagged with `telegram_category: "gif"`, `icon_type: "gif"`, `telegram_subtype: "gif"`, `drive_category: "animation"`, and `drive_format: "GIF"`. This aligns perfectly with frontend filter contracts (`matchesMediaFilter`), ensuring all Telegram GIFs appear in the dedicated GIFs gallery view.
+
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)
