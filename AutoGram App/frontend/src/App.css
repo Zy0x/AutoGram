@@ -10194,6 +10194,8 @@ body:has(.app-layout-drive-focus),
   overflow-y: hidden;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 2px;
 }
 .td-pill {
   border: none;
@@ -10207,6 +10209,7 @@ body:has(.app-layout-drive-focus),
   /* Never mid-word clip "Dokumen" etc. */
   flex-shrink: 0;
   white-space: nowrap;
+  scroll-snap-align: start;
 }
 .td-pill-label {
   white-space: nowrap;

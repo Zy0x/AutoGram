@@ -148,6 +148,37 @@ describe('Telegram media identity normalization', () => {
     expect(matchesMediaFilter(sticker, 'files', 'telegram')).toBe(false);
     expect(matchesMediaFilter(sticker, 'media', 'telegram')).toBe(false);
   });
+
+  it('correctly maps animated GIFs into all, media, and gifs filters while excluding them from files', () => {
+    const animatedGif = toLeanDriveFile({
+      id: 49058,
+      name: 'animation.webm',
+      mimeType: 'video/mp4',
+      iconType: 'gif',
+      asDocument: false,
+      telegramCategory: 'gif',
+      telegramSubtype: 'gif',
+      driveCategory: 'animation',
+      driveFormat: 'GIF',
+    });
+
+    // 1. Universal "all" filter MUST include animated GIFs
+    expect(matchesMediaFilter(animatedGif, 'all', 'telegram')).toBe(true);
+
+    // 2. Visual "media" filter MUST include animated GIFs (parity with Android)
+    expect(matchesMediaFilter(animatedGif, 'media', 'telegram')).toBe(true);
+
+    // 3. Dedicated "gifs" filter MUST strictly match
+    expect(matchesMediaFilter(animatedGif, 'gifs', 'telegram')).toBe(true);
+
+    // 4. "files" filter MUST exclude animated GIFs
+    expect(matchesMediaFilter(animatedGif, 'files', 'telegram')).toBe(false);
+
+    // 5. "audio", "links", "stickers" filters MUST exclude animated GIFs
+    expect(matchesMediaFilter(animatedGif, 'audio', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(animatedGif, 'links', 'telegram')).toBe(false);
+    expect(matchesMediaFilter(animatedGif, 'stickers', 'telegram')).toBe(false);
+  });
 });
 
 const files: DriveFile[] = [

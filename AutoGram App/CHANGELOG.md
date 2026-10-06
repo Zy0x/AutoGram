@@ -29,6 +29,15 @@
 - **`DocumentAttribute::Animated` Detection**: Telegram MTProto returns animated GIFs and silent looping animations as `Document` payloads with MIME `video/mp4` and the `DocumentAttribute::Animated` attribute. Previously, `media_to_row` and `tl_message_to_row` classified all document videos under `telegram_category: "media"`, `icon_type: "video"`, and `telegram_subtype: "video"`.
 - **Accurate Category & Icon Classification**: Updated both `media_to_row` and `tl_message_to_row` to check for `DocumentAttribute::Animated`. When present, items are accurately tagged with `telegram_category: "gif"`, `icon_type: "gif"`, `telegram_subtype: "gif"`, `drive_category: "animation"`, and `drive_format: "GIF"`. This aligns perfectly with frontend filter contracts (`matchesMediaFilter`), ensuring all Telegram GIFs appear in the dedicated GIFs gallery view.
 
+### 6. Universal Filter Harmonization for 'All', 'Media', and 'GIFs' (`driveTypes.ts`, `MediaStudio/index.tsx`, `App.css`)
+- **Universal 'All' Master Feed Assurance**: Enforced invariant that the `All` filter strictly includes all content variants (photos, videos, animated GIFs, document files, audio, and links) without exception, while keeping Telegram sticker packs cleanly isolated in the stickers tab.
+- **Visual 'Media' Cross-Platform Parity with Android**: Harmonized Desktop `matchesMediaFilter` with Android's `DriveMediaFilter.MEDIA` (`category in setOf("photo", "video", "gif")`). The `Media` tab now includes all visual media (photos, videos, and animated GIFs), matching modern gallery expectations (Google Photos / iOS) while the `GIFs` tab remains dedicated for animation-only browsing.
+- **Strict 'Files' Exclusion for Animated Media**: Explicitly excluded items with `tgCat === 'gif'` or `icon === 'gif'` from matching the `files` document filter, preventing animations from cluttering document listings.
+- **Accurate Counter Summation in MediaStudio**: Updated `perspectiveCounts` calculation in `MediaStudio/index.tsx` so `serverMedia` includes `gifCount`, and `serverTotal` strictly aggregates distinct category counts without double-counting.
+- **Scroll-Snap & Anti-Clipping UI Enhancement (`App.css`)**: Enhanced `.td-filter-pills` with `scroll-snap-type: x proximity` and `.td-pill` with `scroll-snap-align: start`, preventing pills from resting in half-clipped states during horizontal scrolling.
+- **Comprehensive Unit Testing**: Added test coverage in `driveSortAndAlbumSettings.test.ts` verifying that animated GIFs match `all`, `media`, and `gifs` while strictly excluding `files`, `audio`, `links`, and `stickers` (104 tests passing).
+
+
 
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 

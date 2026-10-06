@@ -2017,11 +2017,12 @@ function MediaDriveDesktop({
     const localCounts = files.length > 0 ? countPerspectiveMedia(files, viewPerspective) : null;
 
     if (viewPerspective === 'telegram' && cachedMediaBreakdown) {
-      const serverMedia = (cachedMediaBreakdown.photoCount || 0) + (cachedMediaBreakdown.videoCount || 0);
+      const serverMedia = (cachedMediaBreakdown.photoCount || 0) + (cachedMediaBreakdown.videoCount || 0) + (cachedMediaBreakdown.gifCount || 0);
       const serverFiles = cachedMediaBreakdown.fileCount || 0;
       const serverStickers = cachedMediaBreakdown.stickerCount || 0;
       const serverTotal =
-        serverMedia +
+        (cachedMediaBreakdown.photoCount || 0) +
+        (cachedMediaBreakdown.videoCount || 0) +
         serverFiles +
         (cachedMediaBreakdown.linkCount || 0) +
         (cachedMediaBreakdown.gifCount || 0) +

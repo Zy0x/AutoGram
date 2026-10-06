@@ -715,9 +715,11 @@ export function matchesMediaFilter(
   if (perspective === 'telegram') {
     switch (filter) {
       case 'media':
-        if (tgCat === 'sticker' || f.as_document === true || tgCat === 'file' || tgCat === 'link' || icon === 'link' || f.telegram_subtype === 'webpage') return false;
+        if (tgCat === 'sticker' || (f.as_document === true && tgCat !== 'gif' && icon !== 'gif') || tgCat === 'file' || tgCat === 'link' || icon === 'link' || f.telegram_subtype === 'webpage') return false;
         return (
           tgCat === 'media' ||
+          tgCat === 'gif' ||
+          icon === 'gif' ||
           icon === 'photo' ||
           icon === 'video' ||
           icon === 'image' ||
@@ -725,7 +727,7 @@ export function matchesMediaFilter(
           mime.startsWith('video/')
         );
       case 'files':
-        if (tgCat === 'sticker' || tgCat === 'text' || tgCat === 'link' || tgCat === 'restricted' || icon === 'text' || icon === 'link') return false;
+        if (tgCat === 'sticker' || tgCat === 'text' || tgCat === 'link' || tgCat === 'restricted' || tgCat === 'gif' || icon === 'gif' || icon === 'text' || icon === 'link') return false;
         return (
           tgCat === 'file' ||
           f.as_document === true ||
