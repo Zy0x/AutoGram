@@ -1,10 +1,23 @@
-import { ChevronDown, Cpu, Film, Image, PlaySquare, ShieldAlert, Sliders, SlidersHorizontal, Upload, Zap } from 'lucide-react';
+import { ChevronDown, Cpu, Film, Image, PlaySquare, RefreshCw, ShieldAlert, Sliders, SlidersHorizontal, Upload, Zap } from 'lucide-react';
 import type { ReencodeHardware } from '../../../lib/telegram/driveTypes';
 import { PerfSection } from '../../../pages/Settings/PerfSection';
 import { MediaSelect } from '../Navigation/MediaSelect';
 
 export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string; ctx: Record<string, any> }) {
-  const { t, draft, patch, hardwareOptions, currentEncoderMode, hardwareCapabilities, transferActive, applyUnifiedEncodingMode, fetchHardwareCapabilities } = ctx;
+  const {
+    t,
+    draft,
+    patch,
+    hardwareOptions,
+    currentEncoderMode,
+    hardwareCapabilities,
+    transferActive,
+    applyUnifiedEncodingMode,
+    fetchHardwareCapabilities,
+    rescanHardwareCapabilities,
+    isDetectingHardware,
+    triggerCaptionToast,
+  } = ctx;
   return activeTab === 'encoding' ? (
           <div className="td-xfer-focused-panel" id="section-encoding-mode">
             {/* DEVICE PERFORMANCE OPTIMIZATION MODE */}
@@ -137,7 +150,33 @@ export function EncodingSettingsSection({ activeTab, ctx }: { activeTab: string;
                 {/* HARDWARE DEVICE SELECTOR (SHOWS CONDITIONALLY) */}
                 {currentEncoderMode === 'hardware' && (
                   <div className="td-conditional-box">
-                    <label className="td-field-label">{t('ui.generated.pilih_perangkat_gpu_fisik_6e93d3c')}</label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label className="td-field-label" style={{ margin: 0 }}>{t('ui.generated.pilih_perangkat_gpu_fisik_6e93d3c')}</label>
+                      <button
+                        type="button"
+                        disabled={!!transferActive || isDetectingHardware}
+                        className="settings-perf-rescan-btn"
+                        title={t('settings.perf_rescan_btn_title')}
+                        onClick={async () => {
+                          if (rescanHardwareCapabilities) {
+                            const res = await rescanHardwareCapabilities();
+                            if (res?.best_encoder?.device_name && triggerCaptionToast) {
+                              triggerCaptionToast(
+                                t('settings.perf_rescan_success_gpu', {
+                                  name: res.best_encoder.device_name,
+                                  encoder: res.best_encoder.encoder_backend,
+                                })
+                              );
+                            }
+                          } else if (fetchHardwareCapabilities) {
+                            await fetchHardwareCapabilities();
+                          }
+                        }}
+                      >
+                        <RefreshCw size={12} className={isDetectingHardware ? 'animate-spin' : ''} />
+                        <span>{isDetectingHardware ? t('settings.perf_rescan_scanning') : t('settings.perf_rescan_btn')}</span>
+                      </button>
+                    </div>
                     <MediaSelect
                       value={draft.reencodeHardware}
                       disabled={!!transferActive}

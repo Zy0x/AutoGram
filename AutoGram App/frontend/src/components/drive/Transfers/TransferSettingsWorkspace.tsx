@@ -853,7 +853,7 @@ export function TransferSettingsWorkspace({
     return html;
   }, [draft.globalCaption, draft.captionParseMode]);
 
-  const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
+  const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities, rescanHardwareCapabilities } = useTransferHardwareCapabilities();
 
   useEffect(() => {
     fetchHardwareCapabilities();
@@ -1377,6 +1377,9 @@ export function TransferSettingsWorkspace({
             transferActive,
             applyUnifiedEncodingMode,
             fetchHardwareCapabilities,
+            rescanHardwareCapabilities,
+            isDetectingHardware,
+            triggerCaptionToast,
           }}
         />
         {activeTab === 'albums' && (

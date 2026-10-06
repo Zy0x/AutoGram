@@ -3328,6 +3328,7 @@ pub fn run() {
             features::topic_media::commands::tg_thumbs_batch_v2,
             inspect_mp4_layout_cmd,
             core::hardware_capability::get_hardware_capabilities,
+            core::hardware_capability::rescan_hardware_capabilities,
             core::hardware_capability::select_best_encoder,
             start_worker_job,
             kill_worker_job,

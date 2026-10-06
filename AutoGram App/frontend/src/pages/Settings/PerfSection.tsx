@@ -16,11 +16,44 @@ type TierOption = {
 
 export const PerfSection = memo(function PerfSection() {
   const { t } = useTranslation();
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
+  const { hardwareCapabilities, fetchHardwareCapabilities, rescanHardwareCapabilities, isDetectingHardware } = useTransferHardwareCapabilities();
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHardwareCapabilities().catch(() => {});
   }, [fetchHardwareCapabilities]);
+
+  const handleRescan = async () => {
+    if (isScanning || isDetectingHardware) return;
+    setIsScanning(true);
+    setScanFeedback(null);
+    try {
+      const caps = await rescanHardwareCapabilities();
+      const best = caps?.best_encoder;
+      if (best && best.encoder_backend !== 'x264') {
+        setScanFeedback(
+          t('settings.perf_rescan_success_gpu', {
+            name: best.device_name,
+            encoder: best.encoder_backend,
+          })
+        );
+      } else {
+        const cpuStr = caps?.cpu?.processor_name || 'CPU';
+        setScanFeedback(
+          t('settings.perf_rescan_success_cpu', {
+            name: cpuStr,
+          })
+        );
+      }
+      setTimeout(() => setScanFeedback(null), 5000);
+    } catch {
+      setScanFeedback(t('settings.perf_rescan_error'));
+      setTimeout(() => setScanFeedback(null), 4000);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const [tier, setTier] = useState<PerfTier>(() => {
     try {
@@ -183,11 +216,29 @@ export const PerfSection = memo(function PerfSection() {
                   : t('settings.perf_tier_mid_title')}
             </strong>
           </div>
-          <span className="settings-perf-live-pill">
-            <span className="settings-perf-pulse-dot" aria-hidden />
-            <ShieldCheck size={12} className="settings-perf-chip-icon" aria-hidden />
-            <span>{t('settings.perf_engine_rust')}</span>
-          </span>
+          <div className="settings-perf-actions-right">
+            {scanFeedback && (
+              <span className="settings-perf-rescan-badge" role="status">
+                <CheckCircle2 size={12} />
+                <span>{scanFeedback}</span>
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={isScanning || isDetectingHardware}
+              onClick={handleRescan}
+              className="settings-perf-rescan-btn"
+              title={t('settings.perf_rescan_btn_title')}
+            >
+              <RefreshCw size={12} className={isScanning || isDetectingHardware ? 'animate-spin' : ''} />
+              <span>{isScanning || isDetectingHardware ? t('settings.perf_rescan_scanning') : t('settings.perf_rescan_btn')}</span>
+            </button>
+            <span className="settings-perf-live-pill">
+              <span className="settings-perf-pulse-dot" aria-hidden />
+              <ShieldCheck size={12} className="settings-perf-chip-icon" aria-hidden />
+              <span>{t('settings.perf_engine_rust')}</span>
+            </span>
+          </div>
         </div>
 
         <div className="settings-perf-chips-row">

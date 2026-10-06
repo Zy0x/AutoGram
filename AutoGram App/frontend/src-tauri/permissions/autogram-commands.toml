@@ -217,6 +217,7 @@ allow = [
     "cache_clear_disk",
     "cache_trim_disk",
     "get_hardware_capabilities",
+    "rescan_hardware_capabilities",
     "select_best_encoder",
     "get_custom_cache_dir",
     "set_custom_cache_dir",

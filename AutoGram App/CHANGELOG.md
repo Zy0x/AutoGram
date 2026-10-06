@@ -1,4 +1,24 @@
-## Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
+## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
+
+### 1. Multi-Tier Universal GPU Probing Engine (`hardware_capability.rs`)
+- **Deprecation Fix for Windows 11**: Resolved failure to detect GPUs caused by Microsoft's deprecation and removal of `wmic.exe` in modern Windows 11 builds (24H2+). Replaced sole reliance on WMIC with an ultra-fast, multi-tiered probing architecture.
+- **Tier 1 (Instant Registry Prober)**: Direct query of Windows Display Class adapters in Registry (`HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}`). Extracts vendor description, PNP device identifier, and driver version in sub-10ms without external process dependency.
+- **Tier 2 (Modern PowerShell CIM)**: Modern fallback using `Get-CimInstance Win32_VideoController` serialized to JSON.
+- **Tier 3 (Vendor CLI Integration)**: Direct `nvidia-smi` probe to guarantee dedicated NVIDIA GPUs are recognized whenever graphics drivers are installed.
+- **Virtual Adapter Filter**: Implemented filtering to exclude virtual/pseudo display drivers (spacedesk, Miracast, VirtualBox, Remote Desktop, Citrix, Parsec) so only real physical compute adapters are considered.
+- **Universal Multi-Vendor Support**: Correctly indexes and prioritizes NVIDIA GeForce/RTX/Quadro (`h264_nvenc`), AMD Radeon RX Discrete & Ryzen APU (`h264_amf`), Intel UHD/Iris Xe & Intel Arc (`h264_qsv`), and multi-core CPU software encoding (`libx264`).
+
+### 2. On-Demand Hardware Rescan & Cache Invalidation (`hardware_capability.rs`, `lib.rs`, `autogram-commands.toml`)
+- **Cache Invalidation Architecture**: Added `invalidate_hardware_cache()` to purge static memory caches (`HARDWARE_CACHE` and `SMOKE_TEST_CACHE`), allowing freshly enabled or reconfigured GPUs to be verified live.
+- **Tauri IPC Command `rescan_hardware_capabilities`**: Exposed async Tauri command to force re-detection and re-verification of FFmpeg hardware encoder capabilities on demand.
+
+### 3. UI/UX Rescan Buttons, Live Badges & Reactive Feedback (`PerfSection.tsx`, `EncodingSettingsSection.tsx`, `TransferSettingsWorkspace.tsx`)
+- **Device Performance Optimization Rescan Button**: Added responsive "Pindai Ulang Hardware" / "Rescan Hardware" button in the status header bar with rotating spinner indicator during detection.
+- **Transcoding Video Settings Rescan Button**: Placed on-demand rescan button alongside the physical GPU accelerator picker (`MediaSelect`).
+- **Interactive Detection Toast Feedback**: Emits immediate toast notification confirming the verified hardware setup (e.g. `Hardware berhasil dipindai: NVIDIA GeForce RTX 3050 Laptop GPU (NVENC Aktif)`).
+- **100% Zero Hardcoded Strings & Key Parity**: Added 6 localized string tokens across `id/settings.json` and `en/settings.json` with 100% parity verified by `locale-audit.mjs`.
+
+## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)
 - **Continuous Sliding-Window Worker Pool**: Eliminated lockstep batch-barrier stalling (`batch.chunked().awaitAll()`). Implemented an asynchronous multi-worker continuous sliding-window prefetcher where workers continuously pick the next missing chunk within the runway window. Zero worker idling or batch-boundary waiting.

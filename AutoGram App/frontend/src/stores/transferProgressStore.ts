@@ -147,6 +147,31 @@ class TransferProgressStore {
     }
   };
 
+  public rescanHardwareCapabilities = async (): Promise<HardwareCapabilities | null> => {
+    if (this.isDetectingHardware) return this.hardwareCapabilities;
+    this.isDetectingHardware = true;
+    this.notify();
+    try {
+      const caps = await invoke<HardwareCapabilities>('rescan_hardware_capabilities');
+      const best = await invoke<SelectedEncoder>('select_best_encoder');
+      this.hardwareCapabilities = caps;
+      this.selectedEncoder = best;
+      return caps;
+    } catch (err) {
+      console.warn('Failed to rescan hardware capabilities from Tauri:', err);
+      try {
+        const caps = await invoke<HardwareCapabilities>('get_hardware_capabilities');
+        this.hardwareCapabilities = caps;
+        return caps;
+      } catch {
+        return null;
+      }
+    } finally {
+      this.isDetectingHardware = false;
+      this.notify();
+    }
+  };
+
   public clearAllJobs = () => {
     this.jobs.clear();
     this.speedHistories.clear();
@@ -250,8 +275,10 @@ export function useTransferHardwareCapabilities() {
   );
   return {
     hardwareCapabilities: snapshot.hardwareCapabilities,
+    selectedEncoder: snapshot.selectedEncoder,
     isDetectingHardware: snapshot.isDetectingHardware,
     fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
+    rescanHardwareCapabilities: transferProgressStore.rescanHardwareCapabilities,
   };
 }
 

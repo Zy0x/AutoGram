@@ -202,6 +202,41 @@ fn Math_max_u32(a: u32, b: u32) -> u32 {
     }
 }
 
+static HARDWARE_CACHE: OnceLock<Mutex<Option<HardwareCapabilities>>> = OnceLock::new();
+static SMOKE_TEST_CACHE: OnceLock<Mutex<HashMap<String, Result<(), String>>>> = OnceLock::new();
+
+/// Invalidate in-memory hardware detection and encoder test caches.
+pub fn invalidate_hardware_cache() {
+    if let Some(cache) = HARDWARE_CACHE.get() {
+        if let Ok(mut guard) = cache.lock() {
+            *guard = None;
+        }
+    }
+    if let Some(cache) = SMOKE_TEST_CACHE.get() {
+        if let Ok(mut guard) = cache.lock() {
+            guard.clear();
+        }
+    }
+}
+
+fn is_virtual_or_fake_adapter(name: &str) -> bool {
+    let n = name.to_lowercase();
+    n.contains("spacedesk")
+        || n.contains("virtualbox")
+        || n.contains("vmware")
+        || n.contains("remote desktop")
+        || n.contains("rdp encoder")
+        || n.contains("citrix")
+        || n.contains("parsec")
+        || n.contains("miracast")
+        || n.contains("microsoft basic display")
+        || n.contains("microsoft basic render")
+        || n.contains("indirect display")
+        || n.contains("v-display")
+        || n.contains("idisplay")
+        || n.contains("duet display")
+}
+
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct VideoControllerInfo {
@@ -215,50 +250,224 @@ struct VideoControllerInfo {
     DriverVersion: String,
 }
 
+#[cfg(windows)]
+fn query_gpus_from_registry(devices: &mut Vec<VideoControllerInfo>) {
+    let mut cmd = Command::new("reg.exe");
+    cmd.args([
+        "query",
+        r#"HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"#,
+    ]);
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let Ok(output) = cmd.output() else { return };
+    let text = String::from_utf8_lossy(&output.stdout);
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.len() >= 4 && trimmed[trimmed.len() - 4..].chars().all(|c| c.is_ascii_digit()) {
+            if let Some(sub_info) = read_registry_video_subkey(trimmed) {
+                if !sub_info.Name.is_empty() && !is_virtual_or_fake_adapter(&sub_info.Name) {
+                    devices.push(sub_info);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+fn read_registry_video_subkey(subkey: &str) -> Option<VideoControllerInfo> {
+    let mut cmd = Command::new("reg.exe");
+    cmd.args(["query", subkey]);
+    cmd.creation_flags(0x08000000);
+
+    let output = cmd.output().ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+
+    let mut name = String::new();
+    let mut vendor = String::new();
+    let mut pnp = String::new();
+    let mut version = String::new();
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("DriverDesc") {
+            let parts: Vec<&str> = trimmed.splitn(3, "REG_SZ").collect();
+            if parts.len() == 2 {
+                name = parts[1].trim().to_string();
+            }
+        } else if trimmed.starts_with("ProviderName") {
+            let parts: Vec<&str> = trimmed.splitn(3, "REG_SZ").collect();
+            if parts.len() == 2 {
+                vendor = parts[1].trim().to_string();
+            }
+        } else if trimmed.starts_with("MatchingDeviceId") {
+            let parts: Vec<&str> = trimmed.splitn(3, "REG_SZ").collect();
+            if parts.len() == 2 {
+                pnp = parts[1].trim().to_string();
+            }
+        } else if trimmed.starts_with("DriverVersion") {
+            let parts: Vec<&str> = trimmed.splitn(3, "REG_SZ").collect();
+            if parts.len() == 2 {
+                version = parts[1].trim().to_string();
+            }
+        }
+    }
+
+    if name.is_empty() {
+        return None;
+    }
+
+    Some(VideoControllerInfo {
+        Name: name,
+        AdapterCompatibility: vendor,
+        PNPDeviceID: pnp,
+        DriverVersion: version,
+    })
+}
+
+#[cfg(windows)]
+fn query_gpus_from_cim(devices: &mut Vec<VideoControllerInfo>) {
+    let mut cmd = Command::new("powershell.exe");
+    cmd.args([
+        "-NoProfile",
+        "-Command",
+        "Get-CimInstance Win32_VideoController | Select-Object Name, AdapterCompatibility, PNPDeviceID, DriverVersion | ConvertTo-Json -Compress",
+    ]);
+    cmd.creation_flags(0x08000000);
+
+    let Ok(output) = cmd.output() else { return };
+    let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() { return; }
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum CimPayload {
+        Multi(Vec<VideoControllerInfo>),
+        Single(VideoControllerInfo),
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<CimPayload>(trimmed) {
+        match parsed {
+            CimPayload::Multi(list) => {
+                for item in list {
+                    if !item.Name.is_empty() && !devices.iter().any(|d| d.Name == item.Name) {
+                        devices.push(item);
+                    }
+                }
+            }
+            CimPayload::Single(item) => {
+                if !item.Name.is_empty() && !devices.iter().any(|d| d.Name == item.Name) {
+                    devices.push(item);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+fn query_gpu_from_nvidia_smi(devices: &mut Vec<VideoControllerInfo>) {
+    let mut cmd = Command::new("nvidia-smi.exe");
+    cmd.args(["--query-gpu=name,driver_version", "--format=csv,noheader"]);
+    cmd.creation_flags(0x08000000);
+
+    let Ok(output) = cmd.output() else { return };
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() { continue; }
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if !parts.is_empty() {
+            let name = parts[0].trim().to_string();
+            let version = if parts.len() > 1 { parts[1].trim().to_string() } else { String::new() };
+            if !name.is_empty() && !devices.iter().any(|d| d.Name.contains(&name)) {
+                devices.push(VideoControllerInfo {
+                    Name: name,
+                    AdapterCompatibility: "NVIDIA".to_string(),
+                    PNPDeviceID: "NVIDIA_SMI_DETECTED".to_string(),
+                    DriverVersion: version,
+                });
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+fn query_gpus_from_wmic(devices: &mut Vec<VideoControllerInfo>) {
+    let mut cmd = Command::new("cmd.exe");
+    cmd.args([
+        "/c",
+        "wmic path win32_videocontroller get Name,AdapterCompatibility,PNPDeviceID,DriverVersion /format:csv",
+    ]);
+    cmd.creation_flags(0x08000000);
+
+    if let Ok(output) = cmd.output() {
+        let text = String::from_utf8_lossy(&output.stdout);
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with("Node,") {
+                continue;
+            }
+            let parts: Vec<&str> = trimmed.split(',').collect();
+            if parts.len() >= 5 {
+                let vendor = parts[1].trim().to_string();
+                let version = parts[2].trim().to_string();
+                let name = parts[3].trim().to_string();
+                let pnp = parts[4].trim().to_string();
+                if !name.is_empty() && !devices.iter().any(|d| d.Name == name) {
+                    devices.push(VideoControllerInfo {
+                        Name: name,
+                        AdapterCompatibility: vendor,
+                        PNPDeviceID: pnp,
+                        DriverVersion: version,
+                    });
+                }
+            }
+        }
+    }
+}
+
 fn query_gpu_devices() -> Vec<VideoControllerInfo> {
     let mut devices = Vec::new();
 
     #[cfg(windows)]
     {
-        let mut cmd = Command::new("cmd.exe");
-        cmd.args([
-            "/c",
-            "wmic path win32_videocontroller get Name,AdapterCompatibility,PNPDeviceID,DriverVersion /format:csv",
-        ]);
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        // Tier 1: Windows Registry Display Class Enumeration (0ms, Native Windows 10/11)
+        query_gpus_from_registry(&mut devices);
 
-        if let Ok(output) = cmd.output() {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                let trimmed = line.trim();
-                if trimmed.is_empty() || trimmed.starts_with("Node,") {
-                    continue;
-                }
-                let parts: Vec<&str> = trimmed.split(',').collect();
-                if parts.len() >= 5 {
-                    let vendor = parts[1].trim().to_string();
-                    let version = parts[2].trim().to_string();
-                    let name = parts[3].trim().to_string();
-                    let pnp = parts[4].trim().to_string();
-                    if !name.is_empty() {
-                        devices.push(VideoControllerInfo {
-                            Name: name,
-                            AdapterCompatibility: vendor,
-                            PNPDeviceID: pnp,
-                            DriverVersion: version,
-                        });
-                    }
-                }
-            }
+        // Tier 2: PowerShell CIM (Modern official WMI replacement for WMIC)
+        if devices.is_empty() || !devices.iter().any(|d| d.Name.to_uppercase().contains("NVIDIA")) {
+            query_gpus_from_cim(&mut devices);
+        }
+
+        // Tier 3: nvidia-smi probe (Ensures dedicated NVIDIA is caught if driver installed)
+        if !devices.iter().any(|d| d.Name.to_uppercase().contains("NVIDIA")) {
+            query_gpu_from_nvidia_smi(&mut devices);
+        }
+
+        // Tier 4: Legacy wmic fallback (Windows 7/8/early 10)
+        if devices.is_empty() {
+            query_gpus_from_wmic(&mut devices);
         }
     }
 
-    devices
+    // Filter out virtual/software adapters
+    devices.retain(|d| !is_virtual_or_fake_adapter(&d.Name));
+
+    // Deduplicate by normalized name
+    let mut unique_devices = Vec::new();
+    for dev in devices {
+        let norm_name = dev.Name.trim().to_lowercase();
+        if !unique_devices.iter().any(|d: &VideoControllerInfo| d.Name.trim().to_lowercase() == norm_name) {
+            unique_devices.push(dev);
+        }
+    }
+
+    unique_devices
 }
 
 pub fn detect_hardware_capabilities() -> HardwareCapabilities {
-    static CACHE: OnceLock<Mutex<Option<HardwareCapabilities>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(None));
+    let cache = HARDWARE_CACHE.get_or_init(|| Mutex::new(None));
     if let Ok(guard) = cache.lock() {
         if let Some(ref cached) = *guard {
             return cached.clone();
@@ -464,8 +673,7 @@ pub fn resolve_encoder_from_preference(pref: &str) -> (String, String) {
 /// and encode a real frame. Results are cached for this process because driver
 /// initialization is relatively expensive.
 fn smoke_test_encoder_with_device(codec: &str, device_index: Option<u32>) -> Result<(), String> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Result<(), String>>>> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let cache = SMOKE_TEST_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let cache_key = format!(
         "{codec}:{}",
         device_index.map_or_else(|| "auto".into(), |value| value.to_string())
@@ -547,6 +755,16 @@ pub async fn get_hardware_capabilities() -> Result<HardwareCapabilities, String>
     tokio::task::spawn_blocking(detect_hardware_capabilities)
         .await
         .map_err(|e| format!("get_hardware_capabilities task failed: {e}"))
+}
+
+#[tauri::command]
+pub async fn rescan_hardware_capabilities() -> Result<HardwareCapabilities, String> {
+    tokio::task::spawn_blocking(|| {
+        invalidate_hardware_cache();
+        detect_hardware_capabilities()
+    })
+    .await
+    .map_err(|e| format!("rescan_hardware_capabilities task failed: {e}"))
 }
 
 #[tauri::command]

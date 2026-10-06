@@ -561,9 +561,59 @@
   flex-shrink: 0;
 }
 
-.settings-perf-status-tier {
-  color: var(--text-primary, #f1f5f9);
-  font-weight: 750;
+.settings-perf-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-perf-rescan-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 28%, transparent);
+  color: var(--accent-primary, #38bdf8);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.settings-perf-rescan-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 22%, transparent);
+  border-color: var(--accent-primary, #38bdf8);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.settings-perf-rescan-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.settings-perf-rescan-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-perf-rescan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  animation: fadeIn 0.25s ease;
 }
 
 .settings-perf-live-pill {
