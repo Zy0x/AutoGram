@@ -18,6 +18,12 @@
 - **Interactive Detection Toast Feedback**: Emits immediate toast notification confirming the verified hardware setup (e.g. `Hardware berhasil dipindai: NVIDIA GeForce RTX 3050 Laptop GPU (NVENC Aktif)`).
 - **100% Zero Hardcoded Strings & Key Parity**: Added 6 localized string tokens across `id/settings.json` and `en/settings.json` with 100% parity verified by `locale-audit.mjs`.
 
+### 4. Odd-Dimension Video Normalization & FFmpeg Scale Pipeline Fix (`media_prep.rs`)
+- **Root Cause Resolution for Odd-Dimension Media (WebM/VP9)**: Resolved recurring upload failures for non-standard resolution videos (such as `613x1080`, `717x1080`, `725x1080` common in Pixiv Ugoira conversions and cropped web animations).
+- **Macroblock Divisibility by 2 (`yuv420p` Contract)**: In H.264/AVC encoding and Telegram MTProto video playback, chroma subsampling strictly mandates that both width and height must be divisible by 2. Previously, `min(2560,iw)` allowed odd widths to pass through to `libx264`, causing FFmpeg to fail with `width not divisible by 2` and aborting media upload preparation.
+- **Guaranteed Even-Dimension Scale Filter**: Updated video scaling presets (`HEMAT`, `JELAS`, and Default `SMART`) to use `scale='trunc(min(<max>,iw)/2)*2':'-2'`. This mathematically truncates width to an even integer while calculating aspect-ratio proportional height rounded to an even integer (`-2`).
+- **Thumbnail Dimension Alignment**: Enhanced `extract_video_thumbnail` to enforce even thumbnail widths (`((thumb_width / 2) * 2).max(2)`), preventing edge-case thumbnail extraction errors.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

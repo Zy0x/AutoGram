@@ -1105,7 +1105,7 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
     let m = mode.to_ascii_uppercase();
     if m.contains("HEMAT") || m.contains("COMPRESS") || m.contains("LOW") {
         QualityPreset {
-            vf_scale: "scale='min(854,iw)':'-2'",
+            vf_scale: "scale='trunc(min(854,iw)/2)*2':'-2'",
             crf: "28",
             max_rate: "800k",
             buf_size: "1600k",
@@ -1119,7 +1119,7 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
     {
         QualityPreset {
             // Full UHD 4K support up to 3840px width with master bitrate cap
-            vf_scale: "scale='min(3840,iw)':'-2'",
+            vf_scale: "scale='trunc(min(3840,iw)/2)*2':'-2'",
             crf: "18",
             max_rate: "35000k",
             buf_size: "70000k",
@@ -1128,7 +1128,7 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
     } else {
         // Default: SMART / BALANCED / HQ Telegram (up to 2560px QHD/2K without downscaling 1080p/4K master)
         QualityPreset {
-            vf_scale: "scale='min(2560,iw)':'-2'",
+            vf_scale: "scale='trunc(min(2560,iw)/2)*2':'-2'",
             crf: "21",
             max_rate: "15000k",
             buf_size: "30000k",
@@ -1580,7 +1580,7 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     } else {
         320
     };
-    let scale_filter = format!("scale={}:-2", thumb_width);
+    let scale_filter = format!("scale={}:-2", ((thumb_width / 2) * 2).max(2));
 
     let mut cmd = Command::new(&ff);
     let mut args = vec![
