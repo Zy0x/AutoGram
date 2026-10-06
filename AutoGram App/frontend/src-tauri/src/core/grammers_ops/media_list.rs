@@ -1550,11 +1550,60 @@ pub async fn list_media_page_async(
                     };
 
                     let init_offset = offset_id.unwrap_or(0) as i32;
+                    let is_fresh_cursor = initial_cursor.is_none();
                     let mut cursor = normalize_search_cursor(initial_cursor, &current_scope, init_offset);
 
                     let mut latest_pv_count: Option<usize> = None;
                     let mut latest_doc_count: Option<usize> = None;
                     let mut rpc_observations: Vec<LaneRpcObservation> = Vec::new();
+
+                    // Telegram MTProto strictly isolates animated GIFs into InputMessagesFilterGif.
+                    // Telegram servers exclude GIFs from InputMessagesFilterPhotoVideo and InputMessagesFilterDocument.
+                    // When initiating the media stream from the top of the feed (init_offset == 0 and initial_cursor is None),
+                    // proactively fetch the initial batch of animated GIFs and place them in pending_document so that
+                    // GIFs are chronologically interleaved with photos, videos, and documents under the All media filter.
+                    if init_offset == 0 && is_fresh_cursor {
+                        let gif_req = grammers_client::tl::functions::messages::Search {
+                            peer: input_peer.clone(),
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id,
+                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterGif,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: 0,
+                            add_offset: 0,
+                            limit: limit as i32,
+                            max_id: 0,
+                            min_id: min_id_i32,
+                            hash: 0,
+                        };
+                        if let Ok(res) = crate::core::telegram_rpc_guard::invoke_guarded_with_control(
+                            &session_name,
+                            crate::core::session_rate::RpcClass::IndexSearch,
+                            "messages.search.gif_initial",
+                            &active_guard,
+                            || client.invoke(&gif_req),
+                        )
+                        .await
+                        {
+                            let gif_msgs = match res.value {
+                                grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::Slice(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                            };
+                            for tl_msg in gif_msgs {
+                                if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
+                                    cursor.pending_document.push(row);
+                                }
+                            }
+                            cursor.pending_document.sort_by(|a, b| b.id.cmp(&a.id));
+                            cursor.pending_document.dedup_by_key(|r| r.id);
+                        }
+                    }
 
                     // 3. Frontier-Aware Lazy Replenishment Loop (P4.3 RPC Elision)
                     let mut merged_items: Vec<MergedMediaRow> = Vec::with_capacity(limit);

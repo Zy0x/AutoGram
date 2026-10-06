@@ -1364,6 +1364,34 @@ function MediaDriveDesktop({
         return updated;
       });
 
+      // Synchronize animated GIFs in filteredFilesMap live so 'gifs', 'all', and 'media' stay current
+      setFilteredFilesMap((prev) => {
+        let hasChange = false;
+        let newGifs = prev['gifs'] ? [...prev['gifs']] : [];
+        for (const mut of mutations) {
+          if (mut.action === 'upsert') {
+            const isGif = mut.row.icon_type === 'gif' || mut.row.mime_type === 'image/gif' || mut.row.file_ext === 'gif';
+            if (isGif) {
+              const idx = newGifs.findIndex((f) => f.id === mut.row.id);
+              if (idx >= 0) {
+                newGifs[idx] = mut.row;
+              } else {
+                newGifs.unshift(mut.row);
+              }
+              hasChange = true;
+            }
+          } else if (mut.action === 'delete') {
+            const delSet = new Set(mut.message_ids);
+            const beforeLen = newGifs.length;
+            newGifs = newGifs.filter((f) => !delSet.has(f.id));
+            if (newGifs.length !== beforeLen) hasChange = true;
+          }
+        }
+        if (!hasChange) return prev;
+        newGifs.sort((a, b) => b.id - a.id);
+        return { ...prev, gifs: newGifs };
+      });
+
       if (deletedIds.length > 0) {
         const delSet = new Set(deletedIds);
         liveFilesRef.current = liveFilesRef.current.filter((f) => !delSet.has(f.id));
@@ -1977,7 +2005,41 @@ function MediaDriveDesktop({
     [session, sessions, folders, chats, handleSessionChange, executePathLocationNav, showPathJumpToast, setChatQuery, t]
   );
 
-  const activeContentFiles = mediaFilter === 'all' ? files : (filteredFilesMap[mediaFilter] || []);
+  const activeContentFiles = useMemo(() => {
+    if (mediaFilter === 'all') {
+      const base = files || [];
+      const knownGifs = filteredFilesMap['gifs'] || [];
+      if (!knownGifs.length) return base;
+      const knownIds = new Set(base.map((f) => f.id));
+      let merged = [...base];
+      let hasNew = false;
+      for (const g of knownGifs) {
+        if (!knownIds.has(g.id)) {
+          knownIds.add(g.id);
+          merged.push(g);
+          hasNew = true;
+        }
+      }
+      return hasNew ? merged.sort((a, b) => b.id - a.id) : base;
+    }
+    if (mediaFilter === 'media') {
+      const base = filteredFilesMap['media'] || [];
+      const knownGifs = filteredFilesMap['gifs'] || [];
+      if (!knownGifs.length) return base;
+      const knownIds = new Set(base.map((f) => f.id));
+      let merged = [...base];
+      let hasNew = false;
+      for (const g of knownGifs) {
+        if (!knownIds.has(g.id)) {
+          knownIds.add(g.id);
+          merged.push(g);
+          hasNew = true;
+        }
+      }
+      return hasNew ? merged.sort((a, b) => b.id - a.id) : base;
+    }
+    return filteredFilesMap[mediaFilter] || [];
+  }, [files, mediaFilter, filteredFilesMap]);
 
   const findAnyFile = useCallback(
     (id: number): DriveFile | null => {
@@ -4184,6 +4246,50 @@ function MediaDriveDesktop({
       filterRequestSeqRef.current += 1;
     };
   }, [creds, mediaFilter, peerId, topicFilter, t, viewPerspective]);
+
+  // Proactively fetch animated GIFs in the background when viewing 'all' or 'media'
+  // so animated media appears chronologically alongside photos, videos, and documents.
+  const gifPrefetchAttemptedRef = useRef<string | null>(null);
+  const hasLoadedGifs = Boolean(filteredFilesMap['gifs']?.length);
+  useEffect(() => {
+    if (!creds || !peerId) return;
+    if (mediaFilter !== 'all' && mediaFilter !== 'media') return;
+    const hasGifs = (cachedMediaBreakdown?.gifCount ?? 0) > 0;
+    const currentScopeKey = getDriveCacheKey(creds.session, peerId, topicFilterRef.current);
+    if (!hasGifs || hasLoadedGifs) return;
+    if (gifPrefetchAttemptedRef.current === currentScopeKey) return;
+    gifPrefetchAttemptedRef.current = currentScopeKey;
+
+    const tid = topicFilterRef.current;
+    void driveListFiles(creds, peerId, {
+      pageSize: 100,
+      topicId: tid,
+      contentFilter: 'gifs',
+      bypassCache: false,
+      perspective: viewPerspective,
+    })
+      .then((response) => {
+        const next = dedupeByMsgId(response.files || []);
+        if (next.length > 0) {
+          setFilteredFilesMap((prev) => ({
+            ...prev,
+            gifs: next,
+          }));
+          setFilteredHasMoreMap((prev) => ({
+            ...prev,
+            gifs: Boolean(response.has_more),
+          }));
+          setFilteredTotalCountMap((prev) => ({
+            ...prev,
+            gifs: reconcileFilteredTotal('gifs', response.total_count, next.length),
+          }));
+          filteredNextOffsetMapRef.current['gifs'] = response.next_offset_id ?? null;
+        }
+      })
+      .catch((err) => {
+        console.warn('[MediaStudio] Background GIF prefetch failed gracefully:', err);
+      });
+  }, [creds, peerId, mediaFilter, cachedMediaBreakdown?.gifCount, hasLoadedGifs, getDriveCacheKey, viewPerspective]);
 
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);

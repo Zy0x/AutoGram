@@ -37,6 +37,15 @@
 - **Scroll-Snap & Anti-Clipping UI Enhancement (`App.css`)**: Enhanced `.td-filter-pills` with `scroll-snap-type: x proximity` and `.td-pill` with `scroll-snap-align: start`, preventing pills from resting in half-clipped states during horizontal scrolling.
 - **Comprehensive Unit Testing**: Added test coverage in `driveSortAndAlbumSettings.test.ts` verifying that animated GIFs match `all`, `media`, and `gifs` while strictly excluding `files`, `audio`, `links`, and `stickers` (104 tests passing).
 
+### 7. Animated GIF Live Integration in 'All' Feed & Background Lane Synchronization (`MediaStudio/index.tsx`, `media_list.rs`)
+- **Root Cause Resolution for Missing GIFs in 'All' Feed**: Diagnosed and resolved the underlying cause where animated GIFs (e.g. newly converted WebM-to-GIF uploads) were visible under the `GIFs` filter pill but omitted from the universal `All` master feed.
+- **Telegram MTProto Protocol Lane Isolation**: Telegram servers strictly isolate animations into `InputMessagesFilterGif`, completely excluding them from both `InputMessagesFilterPhotoVideo` and `InputMessagesFilterDocument`. In the Rust backend (`media_list.rs`), `list_media_page_async` previously only searched PhotoVideo and Document lanes.
+- **Initial GIF Frontier Ingestion (`media_list.rs`)**: On initial feed query (`init_offset == 0` and fresh search cursor), `list_media_page_async` now proactively queries `InputMessagesFilterGif` guarded via the RPC rate controller, seamlessly interleaving returned GIFs into `cursor.pending_document`. The frontier drain comparator preserves strict message ID descending order so newly posted GIFs appear immediately at index 0.
+- **Dynamic Active Content Merging (`MediaStudio/index.tsx`)**: Replaced direct ternary selection of `activeContentFiles` with a memoized merger that combines base files and known animated GIFs (`filteredFilesMap['gifs']`) deduplicated by unique message ID.
+- **Proactive Background GIF Prefetcher (`MediaStudio/index.tsx`)**: Added a non-blocking background effect that automatically preloads the first page of animated GIFs when viewing `All` or `Media` whenever `cachedMediaBreakdown.gifCount > 0`, ensuring GIFs render chronologically without requiring the user to visit the `GIFs` tab first.
+- **Live Mutation Synchronization (`MediaStudio/index.tsx`)**: Extended `onMutationsCommitted` so that uploads and deletions of animated GIFs (`icon_type: "gif"` or `mime_type: "image/gif"`) update `filteredFilesMap['gifs']` in real time.
+- **Live CDP Port 9230 Verification**: Verified live on native desktop executable that message `49058` (`Media_Stream.mp4` / GIF) renders at index 0 of the `All` filter feed, remains synchronized when toggling across `GIFs`, `Media`, and `All`, and passes all 8 quality gates.
+
 
 
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
