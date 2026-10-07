@@ -909,3 +909,52 @@ fn test_preseeded_gif_does_not_skip_document_lane_on_initial_frontier() {
         vec![52397, 52396, 52395, 52394, 52393, 52392, 52391, 52390, 52389]
     );
 }
+
+#[test]
+fn test_row_matches_filtered_query_telegram_and_drive_perspectives() {
+    // 1. Document-uploaded image (e.g. 52397: 20260510_060956.jpg in #Gudang)
+    let mut doc_photo = dummy_row(52397);
+    doc_photo.name = "20260510_060956.jpg".to_string();
+    doc_photo.mime_type = Some("image/jpeg".to_string());
+    doc_photo.icon_type = "image".to_string();
+    doc_photo.as_document = true;
+    doc_photo.telegram_category = Some("file".to_string());
+    doc_photo.telegram_subtype = Some("doc_photo".to_string());
+    doc_photo.drive_category = Some("image".to_string());
+
+    // In Telegram perspective: belongs to "files", not "media" or "photos"
+    assert!(row_matches_filtered_query(&doc_photo, "files"));
+    assert!(!row_matches_filtered_query(&doc_photo, "media"));
+    assert!(!row_matches_filtered_query(&doc_photo, "photos"));
+    // In Drive perspective: belongs to "images", not "documents" or "archives"
+    assert!(row_matches_filtered_query(&doc_photo, "images"));
+    assert!(!row_matches_filtered_query(&doc_photo, "documents"));
+    assert!(!row_matches_filtered_query(&doc_photo, "archives"));
+
+    // 2. ZIP archive
+    let mut zip_row = dummy_row(52000);
+    zip_row.name = "backup.zip".to_string();
+    zip_row.mime_type = Some("application/zip".to_string());
+    zip_row.icon_type = "document".to_string();
+    zip_row.as_document = true;
+    zip_row.telegram_category = Some("file".to_string());
+    zip_row.drive_category = Some("archive".to_string());
+
+    assert!(row_matches_filtered_query(&zip_row, "files"));
+    assert!(row_matches_filtered_query(&zip_row, "archives"));
+    assert!(!row_matches_filtered_query(&zip_row, "documents"));
+    assert!(!row_matches_filtered_query(&zip_row, "images"));
+
+    // 3. Web / Link row
+    let mut link_row = dummy_row(51000);
+    link_row.name = "https://example.com".to_string();
+    link_row.mime_type = Some("text/x-url".to_string());
+    link_row.icon_type = "link".to_string();
+    link_row.as_document = false;
+    link_row.telegram_category = Some("link".to_string());
+    link_row.drive_category = Some("web".to_string());
+
+    assert!(row_matches_filtered_query(&link_row, "links"));
+    assert!(row_matches_filtered_query(&link_row, "web"));
+    assert!(!row_matches_filtered_query(&link_row, "files"));
+}
