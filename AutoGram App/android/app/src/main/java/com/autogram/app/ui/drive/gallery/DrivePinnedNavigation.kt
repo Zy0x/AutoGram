@@ -9,11 +9,13 @@ import androidx.compose.ui.platform.testTag
 /** Sibling of the only vertical scroll root, never a virtualized gallery item. */
 @Composable
 fun DrivePinnedNavigation(compact: Boolean, selectionMode: Boolean,
-    locations: (@Composable (Boolean) -> Unit)?, header: @Composable (Boolean) -> Unit,
+    locations: (@Composable (Boolean) -> Unit)?,
+    header: @Composable (Boolean, (@Composable () -> Unit)?) -> Unit,
     topics: (@Composable () -> Unit)?) {
     Column(Modifier.fillMaxWidth().testTag(if (compact) "drive-navigation-compact" else "drive-navigation-expanded")) {
-        if (!selectionMode) locations?.invoke(compact)
-        header(compact)
+        val rail: (@Composable () -> Unit)? = if (!selectionMode && locations != null)
+            ({ locations(compact) }) else null
+        header(compact, rail)
         if (!selectionMode) topics?.invoke()
     }
 }

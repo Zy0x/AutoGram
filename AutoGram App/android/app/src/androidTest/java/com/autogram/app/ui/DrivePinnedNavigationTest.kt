@@ -4,7 +4,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.autogram.app.R
@@ -16,11 +17,13 @@ import com.autogram.app.ui.drive.gallery.DriveStories
 import com.autogram.app.viewmodel.*
 import org.junit.Assert.*
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 
 /** Presentation-only fixtures. No credentials, Telegram writes or production worker changes. */
 class DrivePinnedNavigationTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @Before fun prepareUnlockedFixture() = keepUnlockedFixtureAwake { compose.activity }
     private fun text(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
     private val locations = CloudState(scope = CloudScope("fixture", "forum"), locations = listOf(
         CloudLocation("forum", "Fixture forum", "forum"), CloudLocation("other", "Other drive", "channel")))
@@ -65,6 +68,20 @@ class DrivePinnedNavigationTest {
         compose.onNodeWithTag("drive-topic:30").assertIsDisplayed().assertIsSelected()
     }
 
+    @Test fun driveAppearsOnlyOnceAndPickerAndViewOptionsRemainReachable() {
+        var picker = false
+        var options = false
+        compose.setContent { AutoGramTheme { gallery(state,
+            onPicker = { picker = true }, onOptions = { options = true }) } }
+        compose.onAllNodesWithText("Fixture forum").assertCountEquals(1)
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.drive_switch_location_title)).performClick()
+        compose.runOnIdle { assertTrue(picker) }
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.drive_view_options_title)).performClick()
+        compose.runOnIdle { assertTrue(options) }
+    }
+
     @Test fun focusedSearchSurvivesCompactingAndTopicSelectionIsAccessible() {
         var query by mutableStateOf("")
         compose.setContent { AutoGramTheme { gallery(state.copy(searchQuery = query, activeTopicId = 7),
@@ -77,10 +94,12 @@ class DrivePinnedNavigationTest {
     }
 
     @Composable private fun gallery(state: DriveUiState, onTopic: (Long?) -> Unit = {},
-        onHub: () -> Unit = {}, error: String? = null, onRetry: () -> Unit = {}, onQuery: (String) -> Unit = {}) {
+        onHub: () -> Unit = {}, error: String? = null, onRetry: () -> Unit = {}, onQuery: (String) -> Unit = {},
+        onPicker: () -> Unit = {}, onOptions: () -> Unit = {}) {
         DriveScreenContent(state = state.copy(items = state.items.map { it.copy(topicId = state.activeTopicId) }),
             modifier = Modifier.width(320.dp), onSearchChange = onQuery, onMediaFilterChange = {},
             onTopicSelect = onTopic, onOpenTopicHub = onHub, topicsError = error, onRetryTopics = onRetry,
+            onOpenLocationPicker = onPicker, onOpenViewOptions = onOptions,
             onToggleViewMode = {}, onRefresh = {}, onUpload = {}, onClearSelection = {},
             onSelectAll = {}, onInvertSelection = {}, onDownloadZip = {}, onCleanForward = {},
             onMoveFolder = {}, onCopyLinks = {}, onTagCategory = {}, onDeleteSelected = {},

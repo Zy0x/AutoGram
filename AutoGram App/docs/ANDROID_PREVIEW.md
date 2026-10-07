@@ -134,7 +134,9 @@ access, media from the currently loaded collection and compact Remote Link/Studi
 shortcuts. This collection is not an account-wide recent-files index.
 In Cloud Drives, the top circular rail selects actual Telegram locations;
 Saved Messages is always directly available. Scroll horizontally for more locations
-and use more to load additional results. Refresh is in the gallery overflow menu;
+and use more to load additional results. The rail is the single Drive navigation surface;
+there is no repeated location-title row below it. The overflow menu beside the rail
+contains the complete Drive picker, view options and refresh;
 an unsuccessful location request also provides retry. The selected location is highlighted.
 Drive and forum-topic selectors stay above the collection while you scroll; the Drive
 rail becomes compact to leave more room for media. In a forum group, select a topic
@@ -143,12 +145,14 @@ requests remain visible with retry. Recent locations use the latest loaded Teleg
 metadata rather than an old group label. Ordinary groups and channels have no forum
 topic picker.
 
-The collection uses the thumbnail aspect ratio chosen in View options, grouped by the message dates in your device time
-zone. Files with no known date remain in a separate group. Search, media-type filters,
+The collection uses the thumbnail aspect ratio chosen in View options, grouped by
+message dates in your device time zone. Files with no known date remain in a separate
+group. Search, media-type filters,
 list view and long-press selection remain available. The collection menu contains the
-existing actions; their availability has not changed. View options remain under the
-tune icon; search stays below the location title at the top of the collection. In compact
-navigation, use the search icon; an active or nonempty search stays visible. Selecting files reserves
+existing actions; their availability has not changed. View options remain in the
+collection overflow menu; search stays below the Drive rail at the collection start.
+In compact navigation, use the search icon; an active or nonempty search stays visible.
+Selecting files reserves
 space for the action bar. Cloud downloads remain separate from legacy local transfer
 records. Tools uses grouped rows without additional nested cards.
 

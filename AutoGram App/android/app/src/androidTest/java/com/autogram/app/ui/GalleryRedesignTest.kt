@@ -5,7 +5,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
@@ -17,11 +18,13 @@ import com.autogram.app.ui.drive.gallery.DriveStories
 import com.autogram.app.viewmodel.*
 import org.junit.Assert.*
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 
 /** Isolated presentation fixtures: never replace credentials, invoke Telegram or change app records. */
 class GalleryRedesignTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @Before fun prepareUnlockedFixture() = keepUnlockedFixtureAwake { compose.activity }
     private fun text(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
     private val locations = CloudState(scope = CloudScope("fixture", "one"),
         locations = listOf(CloudLocation("one", "Fixture One", "channel"), CloudLocation("two", "Fixture Two", "channel")))

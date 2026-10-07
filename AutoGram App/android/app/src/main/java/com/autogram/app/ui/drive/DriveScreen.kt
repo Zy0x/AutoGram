@@ -397,7 +397,7 @@ fun DriveScreenContent(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Unified Header (Location, Search, Tune, More) / Selection Mode
-                val header: @Composable (Boolean) -> Unit = { collapsed -> DriveUnifiedHeader(
+                val header: @Composable (Boolean, (@Composable () -> Unit)?) -> Unit = { collapsed, rail -> DriveUnifiedHeader(
                     selectedCount = state.selectedIds.size,
                     activeLocationTitle = state.activeLocationTitle,
                     activeLocationKind = state.activeLocationKind,
@@ -416,7 +416,8 @@ fun DriveScreenContent(
                     onDownloadZip = onDownloadZip,
                     onCopyLinks = onCopyLinks,
                     onOpenDownloads = onOpenDownloads,
-                    compact = collapsed
+                    compact = collapsed,
+                    locations = rail
                 ) }
                 DrivePinnedNavigation(compact, state.selectedIds.isNotEmpty(), storyControls, header,
                     if (state.isForum) ({ key(state.sessionId, state.peerId) { DriveForumTopicStrip(state.topics, state.activeTopicId,

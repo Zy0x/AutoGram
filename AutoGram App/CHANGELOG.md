@@ -130,6 +130,12 @@
   - Added `reconcile_composite_lane_page` with an unexhausted frontier guard (`unexhausted_frontier`) and up to 3 bounded replenishment rounds so sparse lanes with older message IDs never cause pagination cursors (`next_offset_id`) to skip unseen items in denser unexhausted lanes.
   - Upgraded the `stickers` history window scan to iterate up to 4 bounded batches (400 messages) when the initial batch contains only text or non-sticker media.
 
+### 17. Single Android Drive Navigation Surface
+
+- **Removed repeated location controls (`DriveUnifiedHeader.kt`, `DrivePinnedNavigation.kt`)**: Integrated the real Drive rail and overflow actions into one measured header, removing the second selected-location title/dropdown below the avatars. Compact navigation retains quick Drive/topic access while reserving more room for media.
+- **Preserved complete access**: Full Drive selection and view options remain in the overflow menu, alongside refresh, downloads and existing actions. Search remains visible at the collection start and stays mounted while active; selection controls, scoped topic reads and native download lifetimes are unchanged.
+- **Presentation regression**: Added physical-device UI coverage proving a location appears only once and that the complete picker and view options still execute their callbacks.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

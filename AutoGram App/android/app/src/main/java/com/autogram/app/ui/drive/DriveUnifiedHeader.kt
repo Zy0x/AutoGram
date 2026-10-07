@@ -27,16 +27,18 @@ fun DriveUnifiedHeader(
     onRefresh: () -> Unit, onOpenTools: () -> Unit, onCustomizeIcon: () -> Unit,
     onClearSelection: () -> Unit, onSelectAll: () -> Unit, onInvertSelection: () -> Unit,
     onDownloadZip: () -> Unit, onCopyLinks: () -> Unit, modifier: Modifier = Modifier,
-    onOpenDownloads: () -> Unit = {}, compact: Boolean = false
+    onOpenDownloads: () -> Unit = {}, compact: Boolean = false,
+    locations: (@Composable () -> Unit)? = null
 ) {
     var menuOpen by remember(activeLocationPeerId, selectedCount > 0) { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
     var searchExpanded by remember(activeLocationPeerId) { mutableStateOf(false) }
     var searchFocused by remember(activeLocationPeerId) { mutableStateOf(false) }
     val showSearch = !compact || searchExpanded || searchFocused || searchQuery.isNotEmpty()
-    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    Column(modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = if (locations == null) 16.dp else 0.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
             if (selectedCount > 0) {
                 IconButton(onClick = onClearSelection, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.Close, stringResource(R.string.drive_action_cancel))
@@ -45,8 +47,9 @@ fun DriveUnifiedHeader(
                     Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
-                // Compact access to the full location picker; the rail owns the avatars.
-                TextButton(onClick = onOpenLocationPicker, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                // Exactly one location presentation: rail when provided, title only as a fallback.
+                if (locations != null) Box(Modifier.weight(1f)) { locations() }
+                else TextButton(onClick = onOpenLocationPicker, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = PaddingValues(0.dp)) {
                     Text(activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
                         Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
@@ -56,9 +59,6 @@ fun DriveUnifiedHeader(
                 if (compact) IconButton(onClick = { searchExpanded = !searchExpanded }, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.Search, stringResource(R.string.drive_search_placeholder), tint = TextSecondaryDark)
                 }
-                IconButton(onClick = onOpenViewOptions, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.Default.Tune, stringResource(R.string.drive_view_options_title), tint = TextSecondaryDark)
-                }
             }
             Box {
                 IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
@@ -66,6 +66,10 @@ fun DriveUnifiedHeader(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     if (selectedCount == 0) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.drive_switch_location_title)) },
+                            onClick = { menuOpen = false; onOpenLocationPicker() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.drive_view_options_title)) },
+                            onClick = { menuOpen = false; onOpenViewOptions() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_refresh)) },
                             onClick = { menuOpen = false; onRefresh() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.cloud_download_title)) },
@@ -103,7 +107,7 @@ fun DriveUnifiedHeader(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = SurfaceDeep, unfocusedContainerColor = SurfaceDeep,
                 focusedBorderColor = MutedIceCyan, unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("drive-search")
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 56.dp).testTag("drive-search")
                 .onFocusChanged { searchFocused = it.isFocused }
         )
     }
