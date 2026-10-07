@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.features.cloud.CloudLocation
+import com.autogram.app.features.cloud.topics.resolveDriveLocation
 import com.autogram.app.theme.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -89,6 +90,7 @@ fun DriveLocationPickerSheet(
     val context = LocalContext.current
     val recentStore = remember(context) { RecentDrivesStore(context) }
     var recents by remember(sessionId) { mutableStateOf(recentStore.getRecents(sessionId)) }
+    val resolvedRecents = remember(recents, locations) { recents.map { resolveDriveLocation(it, locations) } }
 
     var searchQuery by remember { mutableStateOf("") }
     var categoryFilter by remember { mutableStateOf(LocationCategoryFilter.ALL) }
@@ -214,7 +216,7 @@ fun DriveLocationPickerSheet(
             }
 
             // Recents Section (if available and no active search query)
-            if (recents.isNotEmpty() && searchQuery.isBlank() && categoryFilter == LocationCategoryFilter.ALL) {
+            if (resolvedRecents.isNotEmpty() && searchQuery.isBlank() && categoryFilter == LocationCategoryFilter.ALL) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Text(
                         text = stringResource(R.string.drive_recent_locations),
@@ -225,7 +227,7 @@ fun DriveLocationPickerSheet(
                         color = TextMutedDark,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
-                    recents.forEach { recent ->
+                    resolvedRecents.forEach { recent ->
                         LocationRowItem(
                             location = recent,
                             isSelected = recent.id == currentPeerId,

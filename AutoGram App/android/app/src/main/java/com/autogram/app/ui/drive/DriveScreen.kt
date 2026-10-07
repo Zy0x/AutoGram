@@ -24,6 +24,7 @@ import com.autogram.app.ui.drive.gallery.*
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import java.util.Date
 import androidx.compose.ui.platform.testTag
 import com.autogram.app.features.cloud.cloudErrorLabel
@@ -179,7 +180,10 @@ fun DriveScreen(
         cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null },
             showLauncher = false, openRequested = isDownloadsOpen,
             onOpenRequestConsumed = { isDownloadsOpen = false }) },
-        storyControls = { DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation) },
+        storyControls = { compact -> DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation, compact = compact) },
+        topicsLoading = topicsState.loading,
+        topicsError = topicsState.error,
+        onRetryTopics = { viewModel.loadTopics() },
         pagingControls = {
             if (cloudState.nextOffset != null) TextButton(onClick = viewModel::loadMoreMedia, enabled = !cloudState.loading) {
                 Text(stringResource(R.string.cloud_more))
@@ -364,9 +368,12 @@ fun DriveScreenContent(
     onItemClick: (DriveFileItem) -> Unit,
     onItemLongClick: (DriveFileItem) -> Unit,
     cloudControls: (@Composable () -> Unit)? = null,
-    storyControls: (@Composable () -> Unit)? = null,
+    storyControls: (@Composable (Boolean) -> Unit)? = null,
     pagingControls: (@Composable () -> Unit)? = null,
-    onOpenDownloads: () -> Unit = {}
+    onOpenDownloads: () -> Unit = {},
+    topicsLoading: Boolean = false,
+    topicsError: String? = null,
+    onRetryTopics: () -> Unit = {}
 ) {
     val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId) {
         galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)
@@ -374,6 +381,10 @@ fun DriveScreenContent(
     val sections = remember(filteredItems) { gallerySections(filteredItems) }
     val context = LocalContext.current
     val gridState = rememberLazyGridState()
+    val collapseOffset = with(LocalDensity.current) { 48.dp.roundToPx() }
+    val compact by remember(gridState, collapseOffset) {
+        derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > collapseOffset }
+    }
     // Typing must not repeatedly move/dispose a focused virtualized search field.
     LaunchedEffect(state.sessionId, state.peerId, state.mediaFilter, state.activeTopicId) { gridState.scrollToItem(0) }
 
@@ -386,7 +397,7 @@ fun DriveScreenContent(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Unified Header (Location, Search, Tune, More) / Selection Mode
-                val header: @Composable () -> Unit = { DriveUnifiedHeader(
+                val header: @Composable (Boolean) -> Unit = { collapsed -> DriveUnifiedHeader(
                     selectedCount = state.selectedIds.size,
                     activeLocationTitle = state.activeLocationTitle,
                     activeLocationKind = state.activeLocationKind,
@@ -404,11 +415,13 @@ fun DriveScreenContent(
                     onInvertSelection = onInvertSelection,
                     onDownloadZip = onDownloadZip,
                     onCopyLinks = onCopyLinks,
-                    onOpenDownloads = onOpenDownloads
+                    onOpenDownloads = onOpenDownloads,
+                    compact = collapsed
                 ) }
-                if (state.selectedIds.isNotEmpty()) header()
-
-                // In Normal Mode (not selection mode): Show Forum Topics & Media Filters
+                DrivePinnedNavigation(compact, state.selectedIds.isNotEmpty(), storyControls, header,
+                    if (state.isForum) ({ key(state.sessionId, state.peerId) { DriveForumTopicStrip(state.topics, state.activeTopicId,
+                        onTopicSelect, onOpenTopicHub, loading = topicsLoading, error = topicsError,
+                        onRetry = onRetryTopics) } }) else null)
 
                 // Active Download panel / Cloud controls if mounted
                 cloudControls?.invoke()
@@ -435,11 +448,6 @@ fun DriveScreenContent(
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (state.selectedIds.isEmpty()) {
-                        item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
-                        item(key = "header", span = { GridItemSpan(maxLineSpan) }) { header() }
-                        if (state.isForum) item(key = "topics", span = { GridItemSpan(maxLineSpan) }) {
-                            DriveForumTopicStrip(state.topics, state.activeTopicId, onTopicSelect, onOpenTopicHub)
-                        }
                         item(key = "filters", span = { GridItemSpan(maxLineSpan) }) {
                             DriveMediaFilterStrip(state.mediaFilter, onMediaFilterChange)
                         }

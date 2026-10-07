@@ -925,6 +925,7 @@
     <string name="drive_view_sort_section">SORT ORDER</string>
 
     <string name="drive_topic_hub_title">Forum Topics</string>
+    <string name="drive_topic_picker">Topics</string>
     <string name="drive_topic_search_placeholder">Search forum topics…</string>
     <string name="drive_topic_all_desc">Show all files across all topics</string>
     <string name="drive_topic_item_count">%1$d files</string>

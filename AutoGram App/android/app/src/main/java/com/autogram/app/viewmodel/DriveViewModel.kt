@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autogram.app.features.cloud.*
 import com.autogram.app.features.cloud.topics.CloudTopic
+import com.autogram.app.features.cloud.topics.currentDriveLocation
+import com.autogram.app.features.cloud.topics.resolveDriveLocation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
@@ -119,10 +121,17 @@ class DriveViewModel : ViewModel() {
     init {
         viewModelScope.launch {
             cloud.state.collect { result ->
+                val before = _uiState.value
                 _uiState.update { current ->
+                    if (current.sessionId != result.scope.accountId || current.peerId != result.scope.peerId ||
+                        current.topicId != result.scope.topicId) return@update current
+                    val location = currentDriveLocation(current.peerId, result.locations)
                     current.copy(isLoading = result.loading, errorCode = result.error,
                         searchQuery = result.query,
                         locations = result.locations,
+                        activeLocationTitle = location?.title ?: current.activeLocationTitle,
+                        activeLocationKind = location?.kind ?: current.activeLocationKind,
+                        isForum = location?.let { it.kind == "forum" } ?: current.isForum,
                         items = result.items.map { record ->
                             DriveFileItem(record.id.toString(), record.name, record.size,
                                 record.mimeType, false, record.modifiedMs,
@@ -133,6 +142,7 @@ class DriveViewModel : ViewModel() {
                                 topicId = record.topicId)
                         })
                 }
+                if (!before.isForum && _uiState.value.isForum) loadTopics()
                 triggerThumbnailUpgrade()
             }
         }
@@ -195,6 +205,8 @@ class DriveViewModel : ViewModel() {
     }
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
+        val location = if (sessionId == cloud.state.value.scope.accountId)
+            currentDriveLocation(peerId, cloud.state.value.locations) else null
         mediaJob?.cancel(); locationsJob?.cancel(); stopThumbnailUpgrade()
         upgradedIds.clear()
         topicsJob?.cancel()
@@ -203,9 +215,12 @@ class DriveViewModel : ViewModel() {
         _uiState.update {
             it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
                 currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "",
-                topics = emptyList(), activeTopicId = topicId, isForum = false)
+                locations = cloud.state.value.locations, errorCode = cloud.state.value.error,
+                topics = emptyList(), activeTopicId = topicId, isForum = location?.kind == "forum",
+                activeLocationTitle = location?.title.orEmpty(), activeLocationKind = location?.kind ?: "self")
         }
         loadFolder("/")
+        if (_uiState.value.isForum) loadTopics()
     }
 
     fun loadFolder(path: String) {
@@ -227,16 +242,16 @@ class DriveViewModel : ViewModel() {
     }
 
     fun chooseLocation(location: CloudLocation) {
-        val isForum = location.kind == "forum"
+        val resolved = resolveDriveLocation(location, _uiState.value.locations)
+        val isForum = resolved.kind == "forum"
 
-        setScope(_uiState.value.sessionId, location.id, null)
+        setScope(_uiState.value.sessionId, resolved.id, null)
         _uiState.update {
             it.copy(
-                currentPath = location.title.ifEmpty { "/" },
-                activeLocationTitle = location.title,
-                activeLocationKind = location.kind,
+                currentPath = resolved.title.ifEmpty { "/" },
+                activeLocationTitle = resolved.title,
+                activeLocationKind = resolved.kind,
                 isForum = isForum,
-                topics = emptyList(),
                 activeTopicId = null
             )
         }
@@ -244,7 +259,7 @@ class DriveViewModel : ViewModel() {
     }
 
     fun loadTopics(append: Boolean = false) {
-        if (!_uiState.value.isForum || topics.state.value.loading) return
+        if (!_uiState.value.isForum || topicsJob?.isActive == true || topics.state.value.loading) return
         topicsJob = viewModelScope.launch { topics.load(append) }
     }
 

@@ -109,6 +109,13 @@
 - **Build signing consistency (`build_android.ps1`, `app/build.gradle.kts`, `gradle.properties`)**: Debug and future permitted release builds use the same configured identity, restore transient credential environment variables, disable credential-bearing configuration snapshots, and verify each generated APK certificate against the keystore. This supports repeatable updates for APKs signed with the new identity without claiming compatibility with older signatures.
 - **Private material protection (`.gitignore`, Android preview guide)**: Excluded signing directories and keystore formats from version control and documented backup and update-signature constraints. Application version, installed sessions, and release-readiness restrictions remain unchanged.
 
+### 16. Android Pinned Drive and Forum Topic Navigation
+
+- **Persistent collection controls (`DrivePinnedNavigation.kt`, `DriveStories.kt`, `DriveScreen.kt`)**: Moved Drive and forum selectors outside the virtual gallery and added compact location chips during scrolling, keeping destinations reachable without covering media or disposing active download controls.
+- **Live forum metadata (`DriveLocationMetadata.kt`, `DriveViewModel.kt`, location picker)**: Reconciled cached recent locations with account-owned server dialogs and restored forum metadata when scope changes, preventing an older group label from hiding genuine topic selection. Account/peer/topic response guards remain enforced.
+- **Explicit topic and search access (`DriveForumTopicStrip.kt`, `DriveUnifiedHeader.kt`)**: Added a localized topic-picker label, selected-state accessibility and visible topic request progress/errors with retry. Compact search remains reachable and focused or nonempty searches remain mounted.
+- **Regression coverage**: Added metadata policy tests and isolated physical-device presentation scenarios for pinned geometry, compact scrolling, server topic identity, search continuity and error recovery; existing gallery fixtures explicitly select the aspect ratio they verify.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

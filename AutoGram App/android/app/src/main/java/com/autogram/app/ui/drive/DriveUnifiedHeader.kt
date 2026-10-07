@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,10 +27,13 @@ fun DriveUnifiedHeader(
     onRefresh: () -> Unit, onOpenTools: () -> Unit, onCustomizeIcon: () -> Unit,
     onClearSelection: () -> Unit, onSelectAll: () -> Unit, onInvertSelection: () -> Unit,
     onDownloadZip: () -> Unit, onCopyLinks: () -> Unit, modifier: Modifier = Modifier,
-    onOpenDownloads: () -> Unit = {}
+    onOpenDownloads: () -> Unit = {}, compact: Boolean = false
 ) {
     var menuOpen by remember(activeLocationPeerId, selectedCount > 0) { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
+    var searchExpanded by remember(activeLocationPeerId) { mutableStateOf(false) }
+    var searchFocused by remember(activeLocationPeerId) { mutableStateOf(false) }
+    val showSearch = !compact || searchExpanded || searchFocused || searchQuery.isNotEmpty()
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -42,12 +46,15 @@ fun DriveUnifiedHeader(
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
                 // Compact access to the full location picker; the rail owns the avatars.
-                TextButton(onClick = onOpenLocationPicker, modifier = Modifier.weight(1f),
+                TextButton(onClick = onOpenLocationPicker, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     contentPadding = PaddingValues(0.dp)) {
                     Text(activeLocationTitle.ifEmpty { stringResource(R.string.cloud_saved_messages) },
                         Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
                         color = TextPrimaryDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(20.dp), tint = TextSecondaryDark)
+                }
+                if (compact) IconButton(onClick = { searchExpanded = !searchExpanded }, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Default.Search, stringResource(R.string.drive_search_placeholder), tint = TextSecondaryDark)
                 }
                 IconButton(onClick = onOpenViewOptions, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.Tune, stringResource(R.string.drive_view_options_title), tint = TextSecondaryDark)
@@ -81,7 +88,7 @@ fun DriveUnifiedHeader(
                 }
             }
         }
-        if (selectedCount == 0) OutlinedTextField(
+        if (selectedCount == 0 && showSearch) OutlinedTextField(
             value = searchQuery, onValueChange = onSearchChange, singleLine = true,
             placeholder = { Text(stringResource(R.string.drive_search_placeholder), style = MaterialTheme.typography.bodyMedium) },
             leadingIcon = { Icon(Icons.Default.Search, null, tint = TextSecondaryDark) },
@@ -97,6 +104,7 @@ fun DriveUnifiedHeader(
                 focusedContainerColor = SurfaceDeep, unfocusedContainerColor = SurfaceDeep,
                 focusedBorderColor = MutedIceCyan, unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent),
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("drive-search")
+                .onFocusChanged { searchFocused = it.isFocused }
         )
     }
 }

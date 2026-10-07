@@ -1,4 +1,7 @@
 {
+  "drive": {
+    "topicPicker": "Topik"
+  },
   "home": {
     "loadedCollection": "Terbaru di koleksi yang dimuat"
   }

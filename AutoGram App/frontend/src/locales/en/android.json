@@ -1,4 +1,7 @@
 {
+  "drive": {
+    "topicPicker": "Topics"
+  },
   "home": {
     "loadedCollection": "Latest in the loaded collection"
   }

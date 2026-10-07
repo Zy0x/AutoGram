@@ -41,7 +41,8 @@ class GalleryRedesignTest {
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 1.4f)) {
-                AutoGramTheme { gallery(DriveUiState(items = records, selectedIds = selected),
+                AutoGramTheme { gallery(DriveUiState(items = records, selectedIds = selected,
+                    gridAspectRatio = DriveGridAspectRatio.SQUARE),
                     onLong = { selected = setOf(it.id) }) }
             }
         }
@@ -82,6 +83,6 @@ class GalleryRedesignTest {
             onUpload = {}, onClearSelection = {}, onSelectAll = {}, onInvertSelection = {},
             onDownloadZip = {}, onCleanForward = {}, onMoveFolder = {}, onCopyLinks = {}, onTagCategory = {},
             onDeleteSelected = {}, onOpenTools = {}, onItemClick = {}, onItemLongClick = onLong,
-            storyControls = { DriveStories(locations, {}, {}) })
+            storyControls = { compact -> DriveStories(locations, {}, {}, compact = compact) })
     }
 }
