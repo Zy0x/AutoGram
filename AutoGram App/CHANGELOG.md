@@ -136,6 +136,15 @@
 - **Preserved complete access**: Full Drive selection and view options remain in the overflow menu, alongside refresh, downloads and existing actions. Search remains visible at the collection start and stays mounted while active; selection controls, scoped topic reads and native download lifetimes are unchanged.
 - **Presentation regression**: Added physical-device UI coverage proving a location appears only once and that the complete picker and view options still execute their callbacks.
 
+### 19. Real Drive Avatars and Scoped Forum Recovery
+
+- **Real Telegram profile photos (`cloud/avatar.rs`, Android avatar store and gallery rail)**: Added small-photo capabilities from server dialogs, immediate inline profile thumbnails, and visible-only full small-photo reads. The rail displays actual chat photos in both expanded and compact navigation, with initials for photo-less chats and the Saved Messages bookmark preserved.
+- **Separated server cooldowns (`auth/cloud_cooldown.rs`, `CloudStore.kt`)**: Retained FloodWait deadlines by account and RPC family instead of copying optional thumbnail failures into every forum/media operation. Same-family waits remain persistent and conservative unknown/legacy waits are respected; unrelated topic reads no longer inherit file-download errors.
+- **Correct OTP resend classification**: An early resend request now returns the existing resend-unavailable error and its remaining time, rather than creating a global server FloodWait. The challenge's resend deadline remains enforced without blocking an already-authorized account's Drive.
+- **Recovery and isolation**: Visible media and topic reads retry after their reported server deadline. Avatar memory is bounded, account changes reject old responses and cancel pending photo work, and photo decode/network failures retain the fallback without replacing the gallery with an error.
+- **Fast-navigation race**: Switching a topic or Drive no longer discards an in-flight dialog/photo-metadata response belonging to the same account. Forum reads that initially lacked a resolved peer can recover when the live dialog capability arrives; account changes still invalidate older requests.
+- **Regression coverage**: Added scoped-wait persistence/expiry tests, avatar account-isolation/byte-limit tests, and physical-device presentation checks for decoded photos in compact and expanded navigation. Build success alone remains insufficient for complete Android–desktop acceptance.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

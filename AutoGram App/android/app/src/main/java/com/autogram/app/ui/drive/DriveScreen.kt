@@ -46,6 +46,7 @@ fun DriveScreen(
     val state by viewModel.uiState.collectAsState()
     val cloudState by viewModel.cloudState.collectAsState()
     val topicsState by viewModel.topicsState.collectAsState()
+    val avatars by viewModel.avatarState.collectAsState()
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var isDriveToolsOpen by remember { mutableStateOf(false) }
@@ -88,6 +89,18 @@ fun DriveScreen(
 
     LaunchedEffect(state.sessionId) {
         if (state.sessionId.isNotBlank()) viewModel.loadLocations()
+    }
+    LaunchedEffect(state.sessionId, state.peerId, state.topicId, cloudState.error, cloudState.retryAtMs) {
+        if (cloudState.error == "flood_wait" && cloudState.retryAtMs > 0) {
+            kotlinx.coroutines.delay((cloudState.retryAtMs - System.currentTimeMillis()).coerceAtLeast(100))
+            viewModel.loadFolder(state.currentPath)
+        }
+    }
+    LaunchedEffect(state.sessionId, state.peerId, topicsState.error, topicsState.retryAtMs) {
+        if (topicsState.error == "flood_wait" && topicsState.retryAtMs > 0) {
+            kotlinx.coroutines.delay((topicsState.retryAtMs - System.currentTimeMillis()).coerceAtLeast(100))
+            viewModel.loadTopics()
+        }
     }
 
     DriveScreenContent(
@@ -180,7 +193,8 @@ fun DriveScreen(
         cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null },
             showLauncher = false, openRequested = isDownloadsOpen,
             onOpenRequestConsumed = { isDownloadsOpen = false }) },
-        storyControls = { compact -> DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation, compact = compact) },
+        storyControls = { compact -> DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation, compact = compact,
+            avatars = avatars, onAvatar = viewModel::loadAvatar) },
         topicsLoading = topicsState.loading,
         topicsError = topicsState.error,
         onRetryTopics = { viewModel.loadTopics() },

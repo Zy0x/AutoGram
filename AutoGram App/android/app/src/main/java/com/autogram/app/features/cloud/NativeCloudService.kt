@@ -4,7 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.autogram_android_bridge.*
 
-class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.CloudTopicsService {
+class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.CloudTopicsService,
+    com.autogram.app.features.cloud.avatars.CloudAvatarService {
     private suspend fun <T> invoke(block: suspend () -> T): T = withContext(Dispatchers.IO) {
         try { block() }
         catch (error: NativeAuthException.RequestFailed) {
@@ -15,7 +16,12 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
     }
     override suspend fun locations(accountId: String, cursor: String?) = invoke {
         val page = listCloudDialogs(accountId, cursor)
-        CloudLocationsPage(page.accountId, page.items.map { CloudLocation(it.id, it.title, it.kind) }, page.nextCursor)
+        CloudLocationsPage(page.accountId, page.items.map {
+            CloudLocation(it.id, it.title, it.kind, it.photoKey, it.avatarBytes)
+        }, page.nextCursor)
+    }
+    override suspend fun avatar(accountId: String, peerId: String, photoKey: String) = invoke {
+        fetchCloudAvatar(accountId, peerId, photoKey)
     }
     override suspend fun media(scope: CloudScope, before: Int, query: String) = invoke {
         val topic = scope.topicId

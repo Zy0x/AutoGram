@@ -172,7 +172,7 @@ impl Attempt {
                 .next_resend
                 .ok_or_else(|| AuthError::new("resend_unavailable"))?;
             if deadline > Instant::now() {
-                return Err(AuthError::wait(
+                return Err(AuthError::resend_wait(
                     deadline.duration_since(Instant::now()).as_secs() as u32 + 1,
                 ));
             }

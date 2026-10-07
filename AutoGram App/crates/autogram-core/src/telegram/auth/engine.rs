@@ -18,6 +18,8 @@ use tokio_util::sync::CancellationToken;
 mod account_lease;
 #[path = "peer_capability.rs"]
 mod peer_capability;
+#[path = "cloud_cooldown.rs"]
+mod cloud_cooldown;
 
 #[derive(Serialize, Deserialize)]
 struct SavedAccount {
@@ -67,6 +69,7 @@ pub struct AuthEngine {
     accounts: Mutex<HashMap<String, Arc<Connection>>>,
     selected: Mutex<Option<AccountId>>,
     account_operation: AsyncMutex<()>,
+    cooldown_commit: Mutex<()>,
     scope_revision: tokio::sync::watch::Sender<u64>,
 }
 impl AuthEngine {
@@ -77,6 +80,7 @@ impl AuthEngine {
             accounts: Mutex::new(HashMap::new()),
             selected: Mutex::new(None),
             account_operation: AsyncMutex::new(()),
+            cooldown_commit: Mutex::new(()),
             scope_revision: tokio::sync::watch::channel(0).0,
         }
     }
@@ -361,7 +365,17 @@ impl AuthEngine {
         F: FnOnce(grammers_client::Client) -> Fut,
         Fut: std::future::Future<Output = Result<T, AuthError>>,
     {
+        self.cloud_request_scoped(id, &[], operation).await
+    }
+
+    pub(crate) async fn cloud_request_scoped<T, F, Fut>(&self, id: &AccountId,
+        domains: &[RpcDomain], operation: F) -> Result<T, AuthError>
+    where F: FnOnce(grammers_client::Client) -> Fut,
+        Fut: std::future::Future<Output = Result<T, AuthError>>,
+    {
+        // Legacy auth deadlines have unknown provenance: never erase/bypass them.
         self.check_cooldown()?;
+        self.check_cloud_cooldown(id, Some(domains))?;
         let mut revision = self.scope_revision.subscribe();
         let started = *revision.borrow_and_update();
         if self.selected.lock().as_ref() != Some(id) {
@@ -381,7 +395,7 @@ impl AuthEngine {
         match result {
             Err(error) => {
                 if error.code == "not_authorized" { self.invalidate_connection(id, &connection); }
-                Err(self.retain_error(error))
+                Err(self.retain_cloud_error(id, error))
             }
             ok => ok,
         }

@@ -1,6 +1,7 @@
 package com.autogram.app.features.cloud
 
-data class CloudLocation(val id: String, val title: String, val kind: String)
+data class CloudLocation(val id: String, val title: String, val kind: String,
+    val photoKey: String? = null, val avatarBytes: ByteArray? = null)
 data class CloudMedia(
     val id: Int, val name: String, val size: Long, val mimeType: String,
     val modifiedMs: Long, val deliveryKind: String, val telegramCategory: String,
@@ -15,7 +16,8 @@ data class CloudState(
     val locations: List<CloudLocation> = emptyList(), val locationsCursor: String? = null,
     val loadingLocations: Boolean = false, val locationsError: String? = null,
     val items: List<CloudMedia> = emptyList(), val nextOffset: Int? = null,
-    val loading: Boolean = false, val error: String? = null, val retryAtMs: Long = 0
+    val loading: Boolean = false, val error: String? = null, val retryAtMs: Long = 0,
+    val locationsRetryAtMs: Long = 0, val thumbnailRetryAtMs: Long = 0
 )
 data class CloudThumbnail(val messageId: Int, val bytes: ByteArray)
 class CloudFailure(val code: String, val retryAfterSeconds: Long = 0) : Exception(code)

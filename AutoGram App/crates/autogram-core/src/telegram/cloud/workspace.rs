@@ -4,7 +4,7 @@ use super::{
     ranges::*,
     thumbnail::{self, ThumbnailQuality, MAX_THUMBNAIL_BATCH},
 };
-use crate::telegram::auth::{map_rpc, AccountId, AuthEngine, AuthError};
+use crate::telegram::auth::{map_rpc, AccountId, AuthEngine, AuthError, RpcDomain};
 use grammers_client::{client::DialogIter, media::Media, peer::Peer};
 use grammers_session::types::{PeerId, PeerRef};
 use parking_lot::Mutex;
@@ -19,6 +19,8 @@ use tokio_util::sync::CancellationToken;
 const PAGE_SIZE: usize = 50;
 const HISTORY_SCAN: usize = 100;
 const IDLE_TTL: Duration = Duration::from_secs(20 * 60);
+#[path = "avatar.rs"]
+mod avatar;
 
 struct DialogCursor {
     account: AccountId,
@@ -37,6 +39,7 @@ struct StreamEntry {
 struct State {
     revision: u64,
     peers: HashMap<(String, String), PeerRef>,
+    photos: HashMap<(String, String), grammers_client::media::ChatPhoto>,
     cursors: HashMap<String, DialogCursor>,
     streams: HashMap<String, Arc<StreamEntry>>,
 }
@@ -50,6 +53,7 @@ impl State {
                 stream.cancel.cancel();
             }
             self.peers.clear();
+            self.photos.clear();
             self.cursors.clear();
             self.streams.clear();
             self.revision = revision;
@@ -110,7 +114,7 @@ impl CloudWorkspace {
     ) -> Result<CloudDialogPage, AuthError> {
         let revision = auth.cloud_revision();
         let owner = account.clone();
-        auth.cloud_request(&owner, |client| async move {
+        auth.cloud_request_scoped(&owner, &[RpcDomain::Dialogs], |client| async move {
             let mut iter = {
                 let mut state = self.state.lock();
                 state.refresh(revision)?;
@@ -130,8 +134,9 @@ impl CloudWorkspace {
             };
             let mut items = Vec::new();
             let mut peers = Vec::new();
+            let mut photos = Vec::new();
             for _ in 0..PAGE_SIZE {
-                let Some(dialog) = iter.next().await.map_err(map_rpc)? else {
+                let Some(dialog) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(RpcDomain::Dialogs))? else {
                     break;
                 };
                 let id = dialog.peer_id().bot_api_dialog_id_unchecked().to_string();
@@ -145,11 +150,15 @@ impl CloudWorkspace {
                         _ => "group",
                     },
                 };
+                let photo = dialog.peer().photo(false).await.map_err(map_rpc)?;
                 items.push(CloudDialog {
                     id: id.clone(),
                     title: dialog.peer().name().unwrap_or("").into(),
                     kind: kind.into(),
+                    photo_key: photo.as_ref().map(avatar::photo_key),
+                    avatar_bytes: avatar::inline_photo(dialog.peer()),
                 });
+                if let Some(photo) = photo { photos.push(((account.0.clone(), id.clone()), photo)); }
                 peers.push(((account.0.clone(), id), dialog.peer_ref()));
             }
             let next_cursor = (items.len() == PAGE_SIZE).then(token);
@@ -158,6 +167,7 @@ impl CloudWorkspace {
                 return Err(AuthError::new("account_changed"));
             }
             state.peers.extend(peers);
+            state.photos.extend(photos);
             if let Some(next) = &next_cursor {
                 // Bound retained iterator buffers; active cursors must be refreshed after expiry.
                 if state.cursors.len() >= 16 {
@@ -195,7 +205,8 @@ impl CloudWorkspace {
         }
         let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
         let owner = account.clone();
-        auth.cloud_request(&owner, |client| async move {
+        let domain = if query.trim().is_empty() { RpcDomain::History } else { RpcDomain::Search };
+        auth.cloud_request_scoped(&owner, &[domain], |client| async move {
             let mut items = Vec::new();
             let mut scanned = 0;
             let mut last = None;
@@ -204,7 +215,7 @@ impl CloudWorkspace {
                     .iter_messages(peer)
                     .offset_id(before_message_id)
                     .limit(HISTORY_SCAN);
-                while let Some(message) = iter.next().await.map_err(map_rpc)? {
+                while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(item) = metadata::from_message(&message) {
@@ -217,7 +228,7 @@ impl CloudWorkspace {
                     .offset_id(before_message_id)
                     .query(query.trim())
                     .limit(HISTORY_SCAN);
-                while let Some(message) = iter.next().await.map_err(map_rpc)? {
+                while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(item) = metadata::from_message(&message) {
@@ -246,10 +257,10 @@ impl CloudWorkspace {
             return Err(AuthError::new("cloud_cursor_invalid"));
         }
         let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
-        auth.cloud_request(&account, |client| async move {
+        auth.cloud_request_scoped(&account, &[RpcDomain::Topics], |client| async move {
             let page = super::topics::fetch_topics(&client, peer, &cursor)
                 .await
-                .map_err(map_rpc)?;
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Topics))?;
             if page.cursor_error {
                 return Err(AuthError::new("cloud_cursor_invalid"));
             }
@@ -272,7 +283,7 @@ impl CloudWorkspace {
         }
         let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
         let owner = account.clone();
-        auth.cloud_request(&owner, |client| async move {
+        auth.cloud_request_scoped(&owner, &[RpcDomain::Search, RpcDomain::Messages], |client| async move {
             use grammers_client::tl::enums::messages::Messages;
             let response = client
                 .invoke(&super::topics::media_request(
@@ -282,7 +293,7 @@ impl CloudWorkspace {
                     query.trim().into(),
                 ))
                 .await
-                .map_err(map_rpc)?;
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Search))?;
             let messages = match response {
                 Messages::Messages(pack) => pack.messages,
                 Messages::Slice(pack) => pack.messages,
@@ -301,7 +312,7 @@ impl CloudWorkspace {
             let items = client
                 .get_messages_by_id(peer, &ids)
                 .await
-                .map_err(map_rpc)?
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?
                 .into_iter()
                 .flatten()
                 .filter_map(|message| metadata::from_message(&message))
@@ -338,11 +349,11 @@ impl CloudWorkspace {
         let revision = auth.cloud_revision();
         let peer = self.peer(&account, &peer_id, revision)?;
         let owner = account.clone();
-        auth.cloud_request(&owner, |client| async move {
+        auth.cloud_request_scoped(&owner, &[RpcDomain::Messages], |client| async move {
             let mut messages = client
                 .get_messages_by_id(peer, &[message_id])
                 .await
-                .map_err(map_rpc)?;
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
             let message = messages
                 .pop()
                 .flatten()
@@ -406,7 +417,7 @@ impl CloudWorkspace {
         }
         plan_range(stream.descriptor.size, offset, length)?;
         *stream.touched.lock() = Instant::now();
-        auth.cloud_request(&account, |client| async move {
+        auth.cloud_request_scoped(&account, &[RpcDomain::Files], |client| async move {
             tokio::select! {
                 biased;
                 _ = stream.cancel.cancelled() => Err(AuthError::new("cloud_stream_closed")),
@@ -449,11 +460,11 @@ impl CloudWorkspace {
         }
         let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
         let owner = account.clone();
-        auth.cloud_request(&owner, |client| async move {
+        auth.cloud_request_scoped(&owner, &[RpcDomain::Messages, RpcDomain::Files], |client| async move {
             let messages = client
                 .get_messages_by_id(peer, &bounded_ids)
                 .await
-                .map_err(map_rpc)?;
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
             let mut results = Vec::new();
             for maybe_msg in messages.into_iter().flatten() {
                 let msg_id = maybe_msg.id();

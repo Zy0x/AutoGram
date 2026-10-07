@@ -57,8 +57,9 @@ more messages remain. Forum locations are identified from Telegram metadata. The
 topic list, names, colors and closed status are fetched from Telegram, with refresh
 and additional pages in the topic hub. Selecting a topic requests its message scope
 on the server; it does not reuse an unrelated first page of chat history. Legacy
-locally created topic drafts are not treated as cloud topics. Physical-device
-acceptance for this path is still pending; virtual folders remain incomplete.
+locally created topic drafts are not treated as cloud topics. Targeted physical-device
+checks cover existing-account topic/media reads and small profile-photo decoding;
+broader forum acceptance remains incomplete, and virtual folders are not yet complete.
 
 Topic creation, forwarding, tagging, moving, cloud deletion, duplicate cleanup and
 Remote Link upload are not yet connected to complete Android executors. These actions
@@ -69,6 +70,18 @@ supported image, UTF-8 text, audio or video requests real media bytes. Image pre
 limited to 20 MB compressed data and downsampled for display; text preview is limited to
 256 KB. Audio/video support depends on the device decoder. Unsupported formats are not
 reported as successful previews. Archive and document-family parity is not complete.
+
+Drive navigation uses the chat's real Telegram profile photo when available. Small
+inline photos appear first; higher-resolution small photos are loaded for visible
+locations only, with a bounded in-memory cache. Chats without a photo keep their
+initials, and Saved Messages keeps its bookmark. Photos remain available in compact
+navigation without adding a second selected-Drive heading.
+
+Telegram can throttle individual kinds of requests. A thumbnail/photo-download wait
+does not itself mean reading a forum topic failed. Actual waits for the affected
+request family are retained across restarts; older unclassified waits are respected
+until their deadline. Visible media and topic lists retry when their reported wait
+ends. Closing the page or switching accounts cancels the pending UI retry.
 
 The Drive archive browser reads ordinary ZIP catalogs and stored/deflated entries
 through bounded ranges. Its in-memory limits are 8 MB for the directory and 100 MB

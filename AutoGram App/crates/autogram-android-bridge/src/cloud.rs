@@ -13,6 +13,8 @@ pub struct NativeCloudDialog {
     pub id: String,
     pub title: String,
     pub kind: String,
+    pub photo_key: Option<String>,
+    pub avatar_bytes: Option<Vec<u8>>,
 }
 #[derive(Clone, uniffi::Record)]
 pub struct NativeCloudDialogPage {
@@ -92,9 +94,16 @@ pub async fn list_cloud_dialogs(
                 id: item.id,
                 title: item.title,
                 kind: item.kind,
+                photo_key: item.photo_key,
+                avatar_bytes: item.avatar_bytes,
             })
             .collect(),
     })
+}
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn fetch_cloud_avatar(account_id: String, peer_id: String,
+    photo_key: String) -> Result<Vec<u8>, NativeAuthError> {
+    Ok(workspace().fetch_avatar(engine()?, AccountId(account_id), peer_id, photo_key).await?)
 }
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn list_cloud_media(

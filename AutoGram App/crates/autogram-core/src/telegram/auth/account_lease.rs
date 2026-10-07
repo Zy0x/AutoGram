@@ -38,6 +38,7 @@ impl AuthEngine {
     where F: FnOnce(grammers_client::Client) -> Fut,
         Fut: std::future::Future<Output = Result<T, AuthError>> {
         self.check_cooldown()?;
+        self.check_cloud_cooldown(id, None)?;
         let connection = self.accounts.lock().get(&id.0).cloned()
             .ok_or_else(|| AuthError::new("not_authorized"))?;
         let result = tokio::select! {
@@ -53,7 +54,7 @@ impl AuthEngine {
         match result {
             Err(error) => {
                 if error.code == "not_authorized" { self.invalidate_connection(id, &connection); }
-                Err(self.retain_error(error))
+                Err(self.retain_cloud_error(id, error))
             }
             ok => ok,
         }

@@ -875,6 +875,8 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -917,6 +919,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_fn_func_emit_bridge_event(`eventType`: RustBuffer.ByValue,`payloadJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_enqueue_cloud_download(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`messageId`: Int,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_fetch_cloud_avatar(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`photoKey`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_fetch_cloud_thumbnails(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`messageIds`: RustBuffer.ByValue,`quality`: RustBuffer.ByValue,
     ): Long
@@ -1124,6 +1128,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_download(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_fetch_cloud_avatar(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_fetch_cloud_thumbnails(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_account_scores(
@@ -1254,6 +1260,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_download() != 14370.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_fetch_cloud_avatar() != 15138.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_fetch_cloud_thumbnails() != 27807.toShort()) {
@@ -2164,7 +2173,9 @@ public object FfiConverterTypeNativeAuthStep: FfiConverterRustBuffer<NativeAuthS
 data class NativeCloudDialog (
     var `id`: kotlin.String,
     var `title`: kotlin.String,
-    var `kind`: kotlin.String
+    var `kind`: kotlin.String,
+    var `photoKey`: kotlin.String?,
+    var `avatarBytes`: kotlin.ByteArray?
 ) {
 
     companion object
@@ -2179,19 +2190,25 @@ public object FfiConverterTypeNativeCloudDialog: FfiConverterRustBuffer<NativeCl
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalByteArray.read(buf),
         )
     }
 
     override fun allocationSize(value: NativeCloudDialog) = (
             FfiConverterString.allocationSize(value.`id`) +
             FfiConverterString.allocationSize(value.`title`) +
-            FfiConverterString.allocationSize(value.`kind`)
+            FfiConverterString.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`photoKey`) +
+            FfiConverterOptionalByteArray.allocationSize(value.`avatarBytes`)
     )
 
     override fun write(value: NativeCloudDialog, buf: ByteBuffer) {
             FfiConverterString.write(value.`id`, buf)
             FfiConverterString.write(value.`title`, buf)
             FfiConverterString.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`photoKey`, buf)
+            FfiConverterOptionalByteArray.write(value.`avatarBytes`, buf)
     }
 }
 
@@ -3881,6 +3898,21 @@ public object FfiConverterSequenceTypeNativeCloudTopic: FfiConverterRustBuffer<L
         { FfiConverterTypeNativeCloudDownload.lift(it) },
         // Error FFI converter
         NativeDownloadException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `fetchCloudAvatar`(`accountId`: kotlin.String, `peerId`: kotlin.String, `photoKey`: kotlin.String) : kotlin.ByteArray {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_fetch_cloud_avatar(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`peerId`),FfiConverterString.lower(`photoKey`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterByteArray.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
     )
     }
 

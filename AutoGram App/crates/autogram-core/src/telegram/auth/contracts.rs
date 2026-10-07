@@ -82,18 +82,42 @@ impl AuthStep {
 pub struct AuthError {
     pub code: String,
     pub retry_after_seconds: u32,
+    pub(crate) rpc_domain: Option<RpcDomain>,
 }
 impl AuthError {
     pub fn new(code: &str) -> Self {
         Self {
             code: code.into(),
             retry_after_seconds: 0,
+            rpc_domain: None,
         }
     }
     pub fn wait(seconds: u32) -> Self {
         Self {
             code: "flood_wait".into(),
             retry_after_seconds: seconds,
+            rpc_domain: None,
+        }
+    }
+    pub(crate) fn for_rpc(mut self, domain: RpcDomain) -> Self {
+        self.rpc_domain = Some(domain);
+        self
+    }
+    pub(crate) fn resend_wait(seconds: u32) -> Self {
+        let mut error = Self::new("resend_unavailable");
+        error.retry_after_seconds = seconds;
+        error
+    }
+}
+
+/// Separate RPC budgets; file-download throttling must not block forum navigation.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum RpcDomain { Dialogs, History, Search, Topics, Messages, Files }
+impl RpcDomain {
+    pub(super) fn key(self) -> &'static str {
+        match self {
+            Self::Dialogs => "dialogs", Self::History => "history", Self::Search => "search",
+            Self::Topics => "topics", Self::Messages => "messages", Self::Files => "files",
         }
     }
 }

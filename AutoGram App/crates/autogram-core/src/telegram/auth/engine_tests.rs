@@ -114,3 +114,53 @@ async fn retained_flood_wait_also_blocks_account_selection_and_logout() {
     assert!(selection.retry_after_seconds >= 899);
     assert_eq!(restarted.logout(id).await.unwrap_err().code, "flood_wait");
 }
+
+#[test]
+fn file_cooldown_is_durable_account_scoped_and_does_not_poison_forum_or_auth() {
+    let vault = Arc::new(Vault::default());
+    let engine = AuthEngine::new(vault.clone());
+    let a = AccountId("tg_123".into());
+    let b = AccountId("tg_456".into());
+    engine.retain_cloud_error(&a, AuthError::wait(700).for_rpc(RpcDomain::Files));
+    let restarted = AuthEngine::new(vault);
+    assert!(restarted.check_cooldown().is_ok());
+    assert!(restarted.check_cloud_cooldown(&a, Some(&[RpcDomain::Topics, RpcDomain::Search])).is_ok());
+    assert!(restarted.check_cloud_cooldown(&b, Some(&[RpcDomain::Files])).is_ok());
+    let error = restarted.check_cloud_cooldown(&a, Some(&[RpcDomain::Files])).unwrap_err();
+    assert_eq!(error.code, "flood_wait");
+    assert!(error.retry_after_seconds >= 699);
+    assert!(restarted.check_cloud_cooldown(&a, None).is_err()); // Background cannot bypass it.
+}
+
+#[test]
+fn shorter_wait_cannot_shorten_server_deadline_and_expired_wait_recovers() {
+    let vault = Arc::new(Vault::default());
+    let engine = AuthEngine::new(vault.clone());
+    let a = AccountId("tg_123".into());
+    engine.retain_cloud_error(&a, AuthError::wait(700).for_rpc(RpcDomain::Search));
+    engine.retain_cloud_error(&a, AuthError::wait(1).for_rpc(RpcDomain::Search));
+    assert!(engine.check_cloud_cooldown(&a, Some(&[RpcDomain::Search])).unwrap_err().retry_after_seconds >= 699);
+    vault.write("cloud_wait_account_tg_123_search", &serde_json::to_vec(&(unix_seconds() - 1)).unwrap()).unwrap();
+    assert!(engine.check_cloud_cooldown(&a, Some(&[RpcDomain::Search])).is_ok());
+    assert!(engine.retain_cloud_error(&a, AuthError::new("telegram_request_failed")).retry_after_seconds == 0);
+    assert!(engine.check_cloud_cooldown(&a, None).is_ok());
+}
+
+#[test]
+fn unknown_rpc_wait_remains_conservative_and_cannot_be_bypassed() {
+    let engine = AuthEngine::new(Arc::new(Vault::default()));
+    let a = AccountId("tg_123".into());
+    engine.retain_cloud_error(&a, AuthError::wait(900));
+    assert_eq!(engine.check_cloud_cooldown(&a, Some(&[RpcDomain::Topics])).unwrap_err().code, "flood_wait");
+}
+
+#[test]
+fn local_otp_resend_deadline_is_not_a_global_server_flood_wait() {
+    let vault = Arc::new(Vault::default());
+    let engine = AuthEngine::new(vault.clone());
+    let error = engine.retain_error(AuthError::resend_wait(40));
+    assert_eq!(error.code, "resend_unavailable");
+    assert_eq!(error.retry_after_seconds, 40);
+    assert!(vault.read("auth_cooldown").unwrap().is_none());
+    assert!(engine.check_cooldown().is_ok());
+}

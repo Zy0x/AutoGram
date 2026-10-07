@@ -5,6 +5,8 @@ pub struct CloudDialog {
     pub id: String,
     pub title: String,
     pub kind: String,
+    pub photo_key: Option<String>,
+    pub avatar_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

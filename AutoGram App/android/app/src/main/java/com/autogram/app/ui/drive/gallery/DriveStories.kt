@@ -12,6 +12,10 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +26,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import androidx.compose.ui.platform.LocalContext
+import com.autogram.app.features.cloud.avatars.AvatarKey
+import com.autogram.app.features.cloud.avatars.CloudAvatarState
 import com.autogram.app.R
 import com.autogram.app.features.cloud.*
 import com.autogram.app.theme.*
@@ -29,7 +40,8 @@ import com.autogram.app.theme.*
 /** Real account-owned locations; no social/story fixtures or a duplicate refresh toolbar. */
 @Composable
 fun DriveStories(state: CloudState, onLoad: (Boolean) -> Unit, onChoose: (CloudLocation) -> Unit,
-    modifier: Modifier = Modifier, compact: Boolean = false) {
+    modifier: Modifier = Modifier, compact: Boolean = false,
+    avatars: CloudAvatarState = CloudAvatarState(), onAvatar: (String, CloudLocation) -> Unit = { _, _ -> }) {
     val rowState = rememberLazyListState()
     val locations = state.locations.filter { it.id != "me" && it.kind != "self" }
     val activeIndex = if (state.scope.peerId == "me") 0 else locations.indexOfFirst { it.id == state.scope.peerId }
@@ -41,10 +53,11 @@ fun DriveStories(state: CloudState, onLoad: (Boolean) -> Unit, onChoose: (CloudL
         LazyRow(Modifier.testTag("drive-stories"), state = rowState, contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             item(key = "saved") {
-                StoryDrive(CloudLocation("me", stringResource(R.string.cloud_saved_messages), "self"), state, onChoose, compact)
+                StoryDrive(CloudLocation("me", stringResource(R.string.cloud_saved_messages), "self"), state, onChoose, compact,
+                    avatars, onAvatar)
             }
             items(locations, key = { "location:${it.id}" }) {
-                StoryDrive(it, state, onChoose, compact)
+                StoryDrive(it, state, onChoose, compact, avatars, onAvatar)
             }
             if (state.locationsCursor != null) item(key = "more") {
                 Surface(onClick = { onLoad(true) }, enabled = !state.loadingLocations, color = Color.Transparent,
@@ -74,9 +87,15 @@ fun DriveStories(state: CloudState, onLoad: (Boolean) -> Unit, onChoose: (CloudL
 }
 
 @Composable
-private fun StoryDrive(location: CloudLocation, state: CloudState, onChoose: (CloudLocation) -> Unit, compact: Boolean) {
+private fun StoryDrive(location: CloudLocation, state: CloudState, onChoose: (CloudLocation) -> Unit, compact: Boolean,
+    avatars: CloudAvatarState, onAvatar: (String, CloudLocation) -> Unit) {
     val active = state.scope.peerId == location.id || (location.kind == "self" && state.scope.peerId == "me")
     val title = location.title.ifBlank { location.id }
+    val photo = if (avatars.accountId == state.scope.accountId)
+        location.photoKey?.let { avatars.photos[AvatarKey(location.id, it)] } ?: location.avatarBytes else location.avatarBytes
+    LaunchedEffect(state.scope.accountId, location.id, location.photoKey) {
+        if (!location.photoKey.isNullOrBlank()) onAvatar(state.scope.accountId, location)
+    }
     Surface(onClick = { onChoose(location) }, enabled = state.scope.accountId.isNotBlank(),
         shape = MaterialTheme.shapes.small,
         color = if (compact && active) SurfaceElevatedDark else Color.Transparent,
@@ -86,28 +105,42 @@ private fun StoryDrive(location: CloudLocation, state: CloudState, onChoose: (Cl
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (location.kind == "self") Icon(Icons.Default.Bookmark, null, Modifier.size(20.dp), tint = MutedIceCyan)
+                else DriveLocationPhoto(title, photo, active, Modifier.size(24.dp))
                 Text(if (location.kind == "self") stringResource(R.string.ui2_saved) else title,
                     style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     color = if (active) TextPrimaryDark else TextSecondaryDark)
             }
         } else {
         Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Surface(shape = CircleShape, color = SurfaceDeep,
-                border = if (active) BorderStroke(2.dp, MutedIceCyan) else null,
-                modifier = Modifier.size(56.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (location.kind == "self") Icon(Icons.Default.Bookmark, null, Modifier.size(24.dp),
-                        tint = if (active) MutedIceCyan else TextSecondaryDark)
-                    else Text(title.firstOrNull()?.uppercaseChar()?.toString().orEmpty(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = if (active) TextPrimaryDark else TextSecondaryDark)
-                }
-            }
+            if (location.kind == "self") Surface(shape = CircleShape, color = SurfaceDeep,
+                border = if (active) BorderStroke(2.dp, MutedIceCyan) else null, modifier = Modifier.size(56.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Bookmark, null, Modifier.size(24.dp),
+                    tint = if (active) MutedIceCyan else TextSecondaryDark) }
+            } else DriveLocationPhoto(title, photo, active, Modifier.size(56.dp))
             Spacer(Modifier.height(6.dp))
             Text(if (location.kind == "self") stringResource(R.string.ui2_saved) else title,
                 style = MaterialTheme.typography.labelSmall, color = if (active) TextPrimaryDark else TextSecondaryDark,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
         }
+        }
+    }
+}
+
+@Composable
+private fun DriveLocationPhoto(title: String, bytes: ByteArray?, active: Boolean, modifier: Modifier) {
+    val context = LocalContext.current
+    val request = remember(context, bytes) { ImageRequest.Builder(context).data(bytes).size(160)
+        .memoryCachePolicy(CachePolicy.DISABLED).diskCachePolicy(CachePolicy.DISABLED).build() }
+    var decoded by remember(bytes) { mutableStateOf(false) }
+    Surface(shape = CircleShape, color = SurfaceDeep,
+        border = if (active) BorderStroke(2.dp, MutedIceCyan) else null, modifier = modifier) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(title.firstOrNull()?.uppercaseChar()?.toString().orEmpty(),
+                style = MaterialTheme.typography.titleMedium, color = TextSecondaryDark)
+            if (bytes != null) AsyncImage(model = request, contentDescription = null,
+                onSuccess = { decoded = true }, onError = { decoded = false },
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+                    .testTag(if (decoded) "drive-location-photo-ready" else "drive-location-photo-loading"))
         }
     }
 }

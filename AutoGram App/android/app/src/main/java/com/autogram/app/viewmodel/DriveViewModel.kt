@@ -98,6 +98,15 @@ class DriveViewModel : ViewModel() {
     val topicsState = topics.state
     private var topicsJob: Job? = null
     val cloudState = cloud.state
+    private val avatars = com.autogram.app.features.cloud.avatars.CloudAvatarStore(NativeCloudService())
+    val avatarState = avatars.state
+    private val avatarJobs = mutableSetOf<Job>()
+    fun loadAvatar(accountId: String, location: CloudLocation) {
+        if (accountId != avatars.state.value.accountId) return
+        val job = viewModelScope.launch { avatars.load(accountId, location) }
+        avatarJobs.removeAll { it.isCompleted }
+        avatarJobs.add(job)
+    }
     private var mediaJob: Job? = null
     private var locationsJob: Job? = null
     private var thumbUpgradeJob: Job? = null
@@ -142,7 +151,9 @@ class DriveViewModel : ViewModel() {
                                 topicId = record.topicId)
                         })
                 }
-                if (!before.isForum && _uiState.value.isForum) loadTopics()
+                if (_uiState.value.isForum && (!before.isForum ||
+                    (topics.state.value.error == "cloud_location_missing" &&
+                        currentDriveLocation(_uiState.value.peerId, result.locations) != null))) loadTopics()
                 triggerThumbnailUpgrade()
             }
         }
@@ -205,9 +216,14 @@ class DriveViewModel : ViewModel() {
     }
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
+        if (sessionId != avatars.state.value.accountId) {
+            avatarJobs.forEach { it.cancel() }; avatarJobs.clear()
+        }
+        avatars.scope(sessionId)
         val location = if (sessionId == cloud.state.value.scope.accountId)
             currentDriveLocation(peerId, cloud.state.value.locations) else null
-        mediaJob?.cancel(); locationsJob?.cancel(); stopThumbnailUpgrade()
+        mediaJob?.cancel(); stopThumbnailUpgrade()
+        if (sessionId != cloud.state.value.scope.accountId) locationsJob?.cancel()
         upgradedIds.clear()
         topicsJob?.cancel()
         topics.scope(CloudScope(sessionId, peerId))

@@ -8,7 +8,7 @@ class CloudStoreTest {
     @Test fun topicSwitchKeepsServerCooldownVisibleAndDoesNotSendAnotherRead() = runBlocking {
         var calls = 0
         val store = CloudStore(Service({ _, _, _ -> calls++; throw CloudFailure("flood_wait", 5) }), { 1000 })
-        store.scope(scope); store.media()
+        store.scope(scope.copy(topicId = 6)); store.media()
         store.scope(scope.copy(topicId = 7)); store.media()
         assertEquals(1, calls)
         assertEquals("flood_wait", store.state.value.error)
@@ -55,7 +55,7 @@ class CloudStoreTest {
         assertNull(store.state.value.items.single().thumbnailBytes)
     }
 
-    @Test fun thumbnailCancellationIsNotSwallowedAndFloodWaitBlocksFurtherWork() = runBlocking {
+    @Test fun thumbnailCancellationIsNotSwallowedAndFloodWaitOnlyBlocksThumbnailWork() = runBlocking {
         var calls = 0
         val pending = CompletableDeferred<List<CloudThumbnail>>()
         val store = CloudStore(Service(
@@ -67,9 +67,44 @@ class CloudStoreTest {
         assertTrue(old.isCancelled)
         store.upgradeThumbnails("sharp", listOf(42)); store.upgradeThumbnails("sharp", listOf(42))
         assertEquals(2, calls)
-        assertEquals("flood_wait", store.state.value.error)
-        assertEquals(6000L, store.state.value.retryAtMs)
+        assertNull(store.state.value.error)
+        assertEquals(0L, store.state.value.retryAtMs)
+        assertEquals(6000L, store.state.value.thumbnailRetryAtMs)
         assertEquals(42, store.state.value.items.single().id)
+        store.scope(scope.copy(topicId = 7)); store.media()
+        // Service returns an unscoped page: proving the read ran, not fake success.
+        assertEquals("account_changed", store.state.value.error)
+    }
+
+    @Test fun historyWaitDoesNotBlockTopicSearchButReturningToHistoryRetainsRealDeadline() = runBlocking {
+        var calls = 0
+        val store = CloudStore(Service({ s, _, _ ->
+            calls++
+            if (s.topicId == null) throw CloudFailure("flood_wait", 5)
+            CloudMediaPage(s.accountId, s.peerId, listOf(item(7)), null, s.topicId)
+        }), { 1000 })
+        store.scope(scope); store.media()
+        store.scope(scope.copy(topicId = 7)); store.media()
+        assertEquals(2, calls); assertNull(store.state.value.error)
+        assertEquals(7, store.state.value.items.single().id)
+        store.scope(scope); store.media()
+        assertEquals(2, calls); assertEquals("flood_wait", store.state.value.error)
+    }
+
+    @Test fun dialogWaitAndGenericErrorCannotBecomeMediaFloodWait() = runBlocking {
+        var reads = 0
+        val store = CloudStore(Service({ s, _, _ ->
+            reads++; CloudMediaPage(s.accountId, s.peerId, emptyList(), null)
+        }, dialogs = { _, _ -> throw CloudFailure("flood_wait", 9) }), { 1000 })
+        store.scope(scope); store.locations(); store.media()
+        assertEquals(1, reads); assertNull(store.state.value.error)
+        assertEquals(0L, store.state.value.retryAtMs)
+        assertEquals(10000L, store.state.value.locationsRetryAtMs)
+        val broken = CloudStore(Service({ _, _, _ -> throw CloudFailure("cloud_cursor_invalid", 99) }), { 1000 })
+        broken.scope(scope); broken.media()
+        assertEquals("cloud_cursor_invalid", broken.state.value.error)
+        assertEquals(0L, broken.state.value.retryAtMs)
+        broken.scope(scope.copy(topicId = 7)); assertNull(broken.state.value.error)
     }
     private val scope = CloudScope("A", "me")
     private fun item(id: Int) = CloudMedia(id, "file", 20, "text/plain", 1, "document", "file")
@@ -184,6 +219,21 @@ class CloudStoreTest {
         store.scope(CloudScope("B", "3"))
         assertEquals(listOf("3"), store.state.value.locations.map { it.id })
         assertNull(store.state.value.locationsCursor)
+    }
+
+    @Test fun selectingTopicDoesNotDiscardInFlightAccountOwnedDialogsOrProfileMetadata() = runBlocking {
+        val pending = CompletableDeferred<CloudLocationsPage>()
+        val store = CloudStore(Service({ s, _, _ -> CloudMediaPage(s.accountId, s.peerId, emptyList(), null, s.topicId) },
+            dialogs = { _, _ -> pending.await() }))
+        store.scope(scope)
+        val request = launch(start = CoroutineStart.UNDISPATCHED) { store.locations() }
+        store.scope(CloudScope("A", "forum", 7))
+        assertTrue(store.state.value.loadingLocations)
+        pending.complete(CloudLocationsPage("A", listOf(CloudLocation("forum", "forum", "forum", "real-photo")), null))
+        request.join()
+        assertEquals("real-photo", store.state.value.locations.single().photoKey)
+        assertEquals(7L, store.state.value.scope.topicId)
+        assertFalse(store.state.value.loadingLocations)
     }
 
     @Test fun unauthenticatedScopeNeverCallsNativeService() = runBlocking {

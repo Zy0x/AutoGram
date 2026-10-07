@@ -48,7 +48,7 @@ pub(crate) async fn fetch_media_range(client: &Client, media: &Media, size: u64,
             && position % (chunk * 2) == 0 { chunk *= 2; }
         let skip = i32::try_from(position / chunk).map_err(|_| AuthError::new("invalid_range"))?;
         let mut download = client.iter_download(media).chunk_size(chunk as i32).skip_chunks(skip);
-        let bytes = download.next().await.map_err(map_rpc)?
+        let bytes = download.next().await.map_err(|e| map_rpc(e).for_rpc(crate::telegram::auth::RpcDomain::Files))?
             .ok_or_else(|| AuthError::new("cloud_media_truncated"))?;
         // A short response before the requested end must not replay the same floor-aligned chunk.
         validate_chunk(bytes.len(), chunk, remaining)?;

@@ -168,7 +168,8 @@ pub(crate) async fn fetch_thumbnail(
         let mut output = Vec::with_capacity(size.size().min(MAX_THUMBNAIL_BYTES));
         let mut download = client.iter_download(size).chunk_size(DOWNLOAD_CHUNK);
         let mut exceeded = false;
-        while let Some(chunk) = download.next().await.map_err(crate::telegram::auth::map_rpc)? {
+        while let Some(chunk) = download.next().await.map_err(|e|
+            crate::telegram::auth::map_rpc(e).for_rpc(crate::telegram::auth::RpcDomain::Files))? {
             output.extend_from_slice(&chunk);
             if output.len() > MAX_THUMBNAIL_BYTES {
                 exceeded = true;
