@@ -92,23 +92,44 @@ if (-not $SkipNative) {
     }
 }
 
+. (Join-Path $PSScriptRoot 'tools/local_signing.ps1')
+$localSigning = Get-AutoGramLocalSigning
+$previousSigningStore = $env:AUTOGRAM_SIGNING_STORE
+$previousSigningAlias = $env:AUTOGRAM_SIGNING_ALIAS
+$previousSigningPassword = $env:AUTOGRAM_SIGNING_PASSWORD
 Push-Location $PSScriptRoot
 try {
+    $env:AUTOGRAM_SIGNING_STORE = $localSigning.StoreFile
+    $env:AUTOGRAM_SIGNING_ALIAS = $localSigning.Alias
+    $signingCredential = New-Object Management.Automation.PSCredential($localSigning.Alias, $localSigning.Password)
+    $env:AUTOGRAM_SIGNING_PASSWORD = $signingCredential.GetNetworkCredential().Password
+    Write-Host "Local signing certificate: $($localSigning.CertificateSha256)"
     Write-Host "[3/4] Running Android unit tests and lint..."
     $gradleWrapper = Join-Path $PSScriptRoot "gradlew.bat"
-    & $gradleWrapper --no-daemon --project-dir $PSScriptRoot --stacktrace testDebugUnitTest lintDebug
+    & $gradleWrapper --no-daemon --no-configuration-cache --project-dir $PSScriptRoot --stacktrace testDebugUnitTest lintDebug
     if ($LASTEXITCODE -ne 0) { throw "Android tests or lint failed" }
 
     Write-Host "[4/4] Assembling Android APK..."
     $assembleTask = if ($Variant -eq "Release") { "assembleRelease" } else { "assembleDebug" }
-    & $gradleWrapper --no-daemon --project-dir $PSScriptRoot --stacktrace $assembleTask
+    & $gradleWrapper --no-daemon --no-configuration-cache --project-dir $PSScriptRoot --stacktrace $assembleTask
     if ($LASTEXITCODE -ne 0) { throw "Android APK assembly failed" }
 
     $apkFolder = Join-Path $PSScriptRoot "app\build\outputs\apk\$($Variant.ToLowerInvariant())"
     & (Join-Path $PSScriptRoot "tools\verify_native_apks.ps1") -ApkDirectory $apkFolder
+    if ($LASTEXITCODE -ne 0) { throw 'Native APK verification failed' }
+    $apksigner = Join-Path $sdkRoot 'build-tools/34.0.0/apksigner.bat'
     Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk" | ForEach-Object {
+        $certificateOutput = & $apksigner verify --print-certs $_.FullName 2>&1
+        if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed' }
+        $certificateMatch = [regex]::Match(($certificateOutput -join "`n"), 'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]{64})')
+        if (-not $certificateMatch.Success -or $certificateMatch.Groups[1].Value.ToLowerInvariant() -ne $localSigning.CertificateSha256) {
+            throw 'APK signer differs from the permanent local identity'
+        }
         Write-Host "APK: $($_.FullName) ($([math]::Round($_.Length / 1MB, 2)) MB)"
     }
 } finally {
+    $env:AUTOGRAM_SIGNING_STORE = $previousSigningStore
+    $env:AUTOGRAM_SIGNING_ALIAS = $previousSigningAlias
+    $env:AUTOGRAM_SIGNING_PASSWORD = $previousSigningPassword
     Pop-Location
 }

@@ -85,6 +85,10 @@ AutoGram App/worker/temp/
 *.db-journal
 
 # Environments / Secrets
+.signing/
+*.keystore
+*.jks
+*.p12
 .env
 .env.*
 !.env.example

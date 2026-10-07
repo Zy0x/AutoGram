@@ -36,6 +36,14 @@ An APK update must use the same signing identity as the installed application. I
 an update is rejected because of its signature, keep the installed app and its data;
 do not uninstall it or clear storage. A build signed with the original key is required.
 
+New local builds reuse a permanent signing identity kept outside the build caches.
+Keep the signing keystore and its credentials safe: losing them can prevent future
+updates to APKs signed with that identity. Local credentials are encrypted for the
+current Windows user and machine; copying that encrypted credential file to another
+computer does not by itself unlock the key. Protect the drive and arrange a secure,
+recoverable backup before migrating computers. Generating a new identity does not
+make it compatible with an older APK signed by a different key.
+
 Logout contacts Telegram before removing the local session. A network failure leaves
 the encrypted record available for retry. If Telegram confirms logout but local cleanup
 fails, that account is no longer treated as active. Other accounts are not logged out.

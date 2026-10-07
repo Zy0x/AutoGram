@@ -18,6 +18,27 @@ check(versionParts.size == 3 && versionParts[0] in 0..999 && versionParts.drop(1
 val androidReleaseCode = versionParts[0] * 10_000 + versionParts[1] * 100 + versionParts[2]
 
 val nativeAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+// The canonical builder unlocks a permanent local identity, never a cache debug key.
+val localStore = providers.environmentVariable("AUTOGRAM_SIGNING_STORE").orNull?.takeIf { it.isNotBlank() }
+val localAlias = providers.environmentVariable("AUTOGRAM_SIGNING_ALIAS").orNull?.takeIf { it.isNotBlank() }
+val localPassword = providers.environmentVariable("AUTOGRAM_SIGNING_PASSWORD").orNull?.takeIf { it.isNotBlank() }
+val localSigningConfigured = localStore != null && localAlias != null && localPassword != null
+check(listOf(localStore, localAlias, localPassword).all { it == null } || localSigningConfigured) {
+    "Incomplete signing environment. Use android/build_android.ps1."
+}
+check(!localSigningConfigured || !gradle.startParameter.isConfigurationCacheRequested) {
+    "Signing builds must disable configuration cache to avoid persisting credentials."
+}
+check(localSigningConfigured || !layout.projectDirectory.file("../.signing/autogram-local.p12").asFile.exists()) {
+    "Permanent local identity exists but is locked. Use android/build_android.ps1; no debug-key fallback."
+}
+val verifyLocalSigning by tasks.registering {
+    group = "verification"
+    doLast { check(localSigningConfigured) { "APK signing requires the permanent local identity. Use android/build_android.ps1." } }
+}
+tasks.matching { it.name.startsWith("package") && !it.name.contains("Resources") }.configureEach {
+    dependsOn(verifyLocalSigning)
+}
 val nativeLibraries = nativeAbis.map { abi ->
     abi to layout.projectDirectory.file("src/main/jniLibs/$abi/libautogram_android_bridge.so").asFile
 }
@@ -72,6 +93,17 @@ android {
     }
 
     buildTypes {
+        if (localSigningConfigured) {
+            val permanentLocal = signingConfigs.create("permanentLocal") {
+                storeFile = file(localStore!!)
+                storeType = "PKCS12"
+                keyAlias = localAlias
+                storePassword = localPassword
+                keyPassword = localPassword
+            }
+            getByName("debug").signingConfig = permanentLocal
+            getByName("release").signingConfig = permanentLocal
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

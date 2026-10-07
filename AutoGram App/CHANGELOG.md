@@ -103,6 +103,12 @@
 - **Action and download continuity (`DriveBottomActionBar.kt`, `DrivePreviewModal.kt`, `DownloadPanel.kt`)**: Selection actions reserve layout space, preview information/download move into one overflow menu, and the native download panel remains mounted outside the virtual gallery. Existing stream, account isolation and transfer behavior are preserved.
 - **Consistent presentation (`ToolsScreen.kt`, `TransferScreen.kt`, theme/components)**: Introduced grouped flat action rows, restrained sage accents and clearer typography, removing nested borders and redundant decorative containers without hiding operation status or unavailable-feature notices. Added Indonesian/English collection labels and navigation/layout regression coverage.
 
+### 15. Persistent Local Android Signing Identity
+
+- **Permanent keystore provisioning (`android/tools/local_signing.ps1`)**: Added explicit, idempotent creation and validation of an encrypted local signing identity outside build caches, with Windows-protected credentials. Existing identities are never overwritten; missing or inconsistent material blocks the build rather than silently rotating keys.
+- **Build signing consistency (`build_android.ps1`, `app/build.gradle.kts`, `gradle.properties`)**: Debug and future permitted release builds use the same configured identity, restore transient credential environment variables, disable credential-bearing configuration snapshots, and verify each generated APK certificate against the keystore. This supports repeatable updates for APKs signed with the new identity without claiming compatibility with older signatures.
+- **Private material protection (`.gitignore`, Android preview guide)**: Excluded signing directories and keystore formats from version control and documented backup and update-signature constraints. Application version, installed sessions, and release-readiness restrictions remain unchanged.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)
