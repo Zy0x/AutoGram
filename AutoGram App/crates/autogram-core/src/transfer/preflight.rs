@@ -170,20 +170,67 @@ pub fn build_quality_preflight(
         request.presentation_override.as_deref(),
         Some("force_native_media") | Some("native") | Some("original")
     );
-    let resolved_sizes: Vec<u64> = request
-        .paths
-        .iter()
-        .enumerate()
-        .map(|(idx, path)| {
-            if is_remote(path) {
-                0
-            } else if let Some(sz) = request.source_sizes.as_ref().and_then(|s| s.get(idx).copied()).filter(|&s| s > 0) {
-                sz
-            } else {
-                std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0)
+    let total_paths = request.paths.len();
+    let worker_threads = std::thread::available_parallelism()
+        .map(|n| n.get().clamp(2, 8))
+        .unwrap_or(4);
+
+    let resolved_sizes: Vec<u64> = if total_paths >= 16 {
+        let chunk_size = total_paths.div_ceil(worker_threads);
+        std::thread::scope(|scope| {
+            let mut handles = Vec::new();
+            for (chunk_idx, chunk) in request.paths.chunks(chunk_size).enumerate() {
+                let base_idx = chunk_idx * chunk_size;
+                let source_sizes_ref = request.source_sizes.as_ref();
+                handles.push(scope.spawn(move || {
+                    chunk
+                        .iter()
+                        .enumerate()
+                        .map(|(offset, path)| {
+                            let idx = base_idx + offset;
+                            if is_remote(path) {
+                                0
+                            } else if let Some(sz) = source_sizes_ref
+                                .and_then(|s| s.get(idx).copied())
+                                .filter(|&s| s > 0)
+                            {
+                                sz
+                            } else {
+                                std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0)
+                            }
+                        })
+                        .collect::<Vec<u64>>()
+                }));
             }
+            let mut out = Vec::with_capacity(total_paths);
+            for handle in handles {
+                if let Ok(part) = handle.join() {
+                    out.extend(part);
+                }
+            }
+            out
         })
-        .collect();
+    } else {
+        request
+            .paths
+            .iter()
+            .enumerate()
+            .map(|(idx, path)| {
+                if is_remote(path) {
+                    0
+                } else if let Some(sz) = request
+                    .source_sizes
+                    .as_ref()
+                    .and_then(|s| s.get(idx).copied())
+                    .filter(|&s| s > 0)
+                {
+                    sz
+                } else {
+                    std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0)
+                }
+            })
+            .collect()
+    };
 
     let duplicate_check_enabled = duplicate_probe_enabled(request);
     let ledger_candidates: std::collections::HashMap<u64, Vec<super::store::LedgerCandidate>> =
@@ -208,9 +255,7 @@ pub fn build_quality_preflight(
             std::collections::HashMap::new()
         };
 
-    let mut items = Vec::with_capacity(request.paths.len());
-
-    for (index, source) in request.paths.iter().enumerate() {
+    let eval_item = |index: usize, source: &String| -> QualityPreflightItem {
         let remote = is_remote(source);
         let source_path = Path::new(source);
         let resolved_name = request
@@ -522,7 +567,7 @@ pub fn build_quality_preflight(
         if duplicate_match.is_some() {
             requires_confirmation = true;
         }
-        items.push(QualityPreflightItem {
+        QualityPreflightItem {
             index,
             source_path: source.clone(),
             source_name: resolved_name,
@@ -538,8 +583,40 @@ pub fn build_quality_preflight(
             requires_confirmation,
             duplicate_match,
             thumbnail_url,
-        });
-    }
+        }
+    };
+
+    let items: Vec<QualityPreflightItem> = if total_paths >= 16 {
+        let chunk_size = total_paths.div_ceil(worker_threads);
+        std::thread::scope(|scope| {
+            let eval_ref = &eval_item;
+            let mut handles = Vec::new();
+            for (chunk_idx, chunk) in request.paths.chunks(chunk_size).enumerate() {
+                let base_idx = chunk_idx * chunk_size;
+                handles.push(scope.spawn(move || {
+                    chunk
+                        .iter()
+                        .enumerate()
+                        .map(|(offset, source)| eval_ref(base_idx + offset, source))
+                        .collect::<Vec<QualityPreflightItem>>()
+                }));
+            }
+            let mut out = Vec::with_capacity(total_paths);
+            for handle in handles {
+                if let Ok(part) = handle.join() {
+                    out.extend(part);
+                }
+            }
+            out
+        })
+    } else {
+        request
+            .paths
+            .iter()
+            .enumerate()
+            .map(|(index, source)| eval_item(index, source))
+            .collect()
+    };
     let caption = request.global_caption.as_deref().unwrap_or_default().trim();
     let caption_length_utf16 = utf16_len(caption);
     let caption_policy = CaptionOverflowPolicy::parse(request.caption_overflow_policy.as_deref());

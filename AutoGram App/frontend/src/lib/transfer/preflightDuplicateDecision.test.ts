@@ -7,6 +7,8 @@ import {
 import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
+  formatCompactAlbumPartition,
+  isOptimisticPreflightReport,
 } from './preflightDuplicateDecision';
 
 function report(): QualityPreflightReport {
@@ -66,6 +68,26 @@ describe('transfer preflight duplicate decisions', () => {
     });
   });
 
+  it('does not seed upload defaults during optimistic preflight loading so real duplicate skips are preserved', () => {
+    const optimistic = report();
+    optimistic.items = optimistic.items.map((item) => ({
+      ...item,
+      sourceSize: 0,
+      reasonCode: 'optimistic_preflight_loading',
+      duplicateMatch: null,
+    }));
+
+    expect(isOptimisticPreflightReport(optimistic)).toBe(true);
+    const prevChoices = defaultDuplicateChoices(optimistic);
+    expect(prevChoices).toEqual({});
+
+    const enriched = report();
+    expect(isOptimisticPreflightReport(enriched)).toBe(false);
+    const nextDefaults = defaultDuplicateChoices(enriched);
+    const merged = Object.keys(prevChoices).length === 0 ? nextDefaults : { ...nextDefaults, ...prevChoices };
+    expect(merged['exact.jpg']).toBe('skip');
+  });
+
   it('returns only duplicate paths and preserves explicit choices', () => {
     expect(buildPreflightReviewDecision(report(), {
       'exact.jpg': 'upload',
@@ -75,6 +97,21 @@ describe('transfer preflight duplicate decisions', () => {
       skippedPaths: ['probable.jpg'],
       forceUploadPaths: ['exact.jpg'],
     });
+  });
+});
+
+describe('formatCompactAlbumPartition', () => {
+  it('displays direct sums for 6 or fewer groups', () => {
+    expect(formatCompactAlbumPartition([10, 10, 9])).toBe('10 + 10 + 9');
+    expect(formatCompactAlbumPartition([8, 8, 8, 8, 6, 5])).toBe('8 + 8 + 8 + 8 + 6 + 5');
+  });
+
+  it('compacts consecutive identical group sizes with run-length notation for large batches', () => {
+    const sizes2609 = [...Array.from({ length: 260 }, () => 10), 9];
+    expect(formatCompactAlbumPartition(sizes2609)).toBe('260×10 + 9');
+
+    const sizes2601 = [...Array.from({ length: 259 }, () => 10), 6, 5];
+    expect(formatCompactAlbumPartition(sizes2601)).toBe('259×10 + 6 + 5');
   });
 });
 

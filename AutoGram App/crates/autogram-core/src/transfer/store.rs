@@ -12,18 +12,36 @@ fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
+static INITIALIZED_DB_PATHS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashSet<std::path::PathBuf>>,
+> = std::sync::OnceLock::new();
+
 pub(crate) fn open() -> Result<Connection, String> {
     let path = crate::storage::resolve_migrator_db();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("create database dir: {e}"))?;
     }
-    let conn = Connection::open(path).map_err(|e| format!("open transfer store: {e}"))?;
+    let file_existed = std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false);
+    let conn = Connection::open(&path).map_err(|e| format!("open transfer store: {e}"))?;
     conn.execute_batch(
         "PRAGMA foreign_keys=ON; PRAGMA busy_timeout=15000; PRAGMA journal_mode=WAL;",
     )
     .map_err(|e| format!("transfer store pragma: {e}"))?;
-    conn.execute_batch(SCHEMA)
-        .map_err(|e| format!("transfer store schema: {e}"))?;
+
+    let initialized_set = INITIALIZED_DB_PATHS
+        .get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+    let needs_schema = !file_existed
+        || initialized_set
+            .lock()
+            .map(|guard| !guard.contains(&path))
+            .unwrap_or(true);
+    if needs_schema {
+        conn.execute_batch(SCHEMA)
+            .map_err(|e| format!("transfer store schema: {e}"))?;
+        if let Ok(mut guard) = initialized_set.lock() {
+            guard.insert(path);
+        }
+    }
     Ok(conn)
 }
 
@@ -356,6 +374,51 @@ pub fn find_upload_ledger_match(
 ) -> Result<Option<UploadLedgerMatch>, String> {
     let conn = open()?;
     find_upload_ledger_match_with_conn(&conn, account_id, destination_id, topic_id, prepared_sha256, filename, file_size)
+}
+
+/// Fast pre-transcode duplicate lookup for a local source file before running
+/// FFmpeg or image conversion. Only hashes the file if `upload_ledger` contains
+/// at least one row with the same `file_size` for the target destination.
+pub fn find_source_upload_ledger_match(
+    account_id: &str,
+    destination_id: &str,
+    topic_id: Option<i64>,
+    source_path: &std::path::Path,
+    filename: &str,
+) -> Result<Option<(UploadLedgerMatch, String, u64)>, String> {
+    let source_size = match std::fs::metadata(source_path) {
+        Ok(meta) if meta.len() > 0 => meta.len(),
+        _ => return Ok(None),
+    };
+    let conn = open()?;
+    let topic_key = topic_id.unwrap_or(0);
+    let has_size_candidate: bool = match conn.query_row(
+        "SELECT 1 FROM upload_ledger
+         WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND file_size=?4
+         LIMIT 1",
+        params![account_id, destination_id, topic_key, source_size as i64],
+        |_| Ok(true),
+    ) {
+        Ok(found) => found,
+        Err(rusqlite::Error::QueryReturnedNoRows) => false,
+        Err(error) => return Err(format!("query upload ledger size candidate: {error}")),
+    };
+    if !has_size_candidate {
+        return Ok(None);
+    }
+    let sha256 = super::download::sha256_file(source_path)?;
+    if let Some(matched) = find_upload_ledger_match_with_conn(
+        &conn,
+        account_id,
+        destination_id,
+        topic_id,
+        &sha256,
+        filename,
+        source_size,
+    )? {
+        return Ok(Some((matched, sha256, source_size)));
+    }
+    Ok(None)
 }
 
 #[allow(clippy::too_many_arguments)]

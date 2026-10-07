@@ -7003,6 +7003,7 @@ function MediaDriveDesktop({
       // Seamlessly enrich the existing preflight dialog as soon as Rust completes
       reportPromise
         .then((report) => {
+          if (!preflightResolverRef.current) return;
           const enrichedReport: QualityPreflightReport = {
             ...report,
             remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',

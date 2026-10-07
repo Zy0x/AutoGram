@@ -2681,5 +2681,8 @@
   "preflight_bento_tag_file": "BERKAS",
   "type_image": "Foto",
   "slide_graphic": "Grafik slide",
-  "jupyter_output_plot": "Plot keluaran"
+  "jupyter_output_plot": "Plot keluaran",
+  "preflight_scanning_banner": "Memeriksa ukuran berkas, kecocokan format, dan mendeteksi duplikasi pada {{count}} item...",
+  "preflight_analyzing_btn": "Memindai {{count}} berkas...",
+  "preflight_analyzing_item_badge": "Memindai..."
 }

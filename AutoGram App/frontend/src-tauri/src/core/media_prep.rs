@@ -1436,12 +1436,10 @@ pub fn prepare_upload_artifact_with_policy(
     if transformed {
         cleanup_paths.push(PathBuf::from(&prepared));
     }
-    let source_analysis =
-        super::autogram_core::transfer::analyze_media(std::path::Path::new(&local));
     let prepared_path_obj = std::path::Path::new(&prepared);
-    let prepared_analysis = super::autogram_core::transfer::analyze_media(prepared_path_obj);
+    let prepared_category = super::autogram_core::transfer::classify_media(prepared_path_obj);
     let is_image_output = matches!(
-        prepared_analysis.category,
+        prepared_category,
         super::autogram_core::transfer::MediaCategory::JpegImage
             | super::autogram_core::transfer::MediaCategory::PngImage
             | super::autogram_core::transfer::MediaCategory::WebpImage
@@ -1455,6 +1453,12 @@ pub fn prepare_upload_artifact_with_policy(
             )
         })
         .unwrap_or(false);
+
+    let prepared_analysis = if is_image_output {
+        None
+    } else {
+        Some(super::autogram_core::transfer::analyze_media(prepared_path_obj))
+    };
 
     if transformed {
         let validation_error = if is_image_output {
@@ -1478,33 +1482,38 @@ pub fn prepare_upload_artifact_with_policy(
                 == 0
         {
             Some("encoder_output_invalid: transcoded video output file is missing or empty".into())
-        } else if prepared_analysis.probe_available && prepared_analysis.probe_error.is_none() {
-            if !prepared_analysis.is_validated_native_video() {
-                Some(
-                    "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
-                        .into(),
-                )
-            } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode
-            {
-                match (
-                    source_analysis.duration_seconds,
-                    prepared_analysis.duration_seconds,
-                ) {
-                    (Some(source_duration), Some(output_duration)) => {
-                        let tolerance = (source_duration * 0.02).max(2.0);
-                        ((source_duration - output_duration).abs() > tolerance).then(|| {
-                            format!(
-                                "encoder_duration_mismatch: source={source_duration:.3}s output={output_duration:.3}s tolerance={tolerance:.3}s"
-                            )
-                        })
+        } else if let Some(ref prep_analysis) = prepared_analysis {
+            if prep_analysis.probe_available && prep_analysis.probe_error.is_none() {
+                if !prep_analysis.is_validated_native_video() {
+                    Some(
+                        "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
+                            .into(),
+                    )
+                } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode
+                {
+                    let source_analysis =
+                        super::autogram_core::transfer::analyze_media(std::path::Path::new(&local));
+                    match (
+                        source_analysis.duration_seconds,
+                        prep_analysis.duration_seconds,
+                    ) {
+                        (Some(source_duration), Some(output_duration)) => {
+                            let tolerance = (source_duration * 0.02).max(2.0);
+                            ((source_duration - output_duration).abs() > tolerance).then(|| {
+                                format!(
+                                    "encoder_duration_mismatch: source={source_duration:.3}s output={output_duration:.3}s tolerance={tolerance:.3}s"
+                                )
+                            })
+                        }
+                        _ => None,
                     }
-                    _ => None,
+                } else {
+                    None
                 }
             } else {
                 None
             }
         } else {
-            // ffprobe is unavailable or could not probe, but ffmpeg exit status succeeded and output file exists & non-empty
             None
         };
         if let Some(error) = validation_error {
@@ -1516,15 +1525,17 @@ pub fn prepare_upload_artifact_with_policy(
     }
     let native_visual_validated = if is_image_output {
         prepared_path_obj.is_file()
-    } else {
-        match prepared_analysis.category {
+    } else if let Some(ref prep_analysis) = prepared_analysis {
+        match prep_analysis.category {
             super::autogram_core::transfer::MediaCategory::JpegImage
             | super::autogram_core::transfer::MediaCategory::PngImage => true,
             super::autogram_core::transfer::MediaCategory::Mp4Video => {
-                prepared_analysis.is_validated_native_video()
+                prep_analysis.is_validated_native_video()
             }
             _ => false,
         }
+    } else {
+        false
     };
     Ok(PreparedUploadArtifact {
         source_path: path.to_string(),

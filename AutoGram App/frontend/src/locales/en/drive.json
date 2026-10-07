@@ -2681,5 +2681,8 @@
   "preflight_bento_tag_file": "FILE",
   "type_image": "Image",
   "slide_graphic": "Slide graphic",
-  "jupyter_output_plot": "Output Plot"
+  "jupyter_output_plot": "Output Plot",
+  "preflight_scanning_banner": "Checking file sizes, format compatibility, and detecting duplicates across {{count}} items...",
+  "preflight_analyzing_btn": "Scanning {{count}} items...",
+  "preflight_analyzing_item_badge": "Scanning..."
 }
