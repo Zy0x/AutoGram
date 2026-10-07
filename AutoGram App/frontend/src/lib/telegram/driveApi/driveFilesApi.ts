@@ -242,8 +242,19 @@ export async function driveListFiles(
     return result;
   }
 
-  // L2 Persistent Database Instant Paint Check (when opening fresh or after restart)
-  if (topicId == null && !opts?.bypassCache && offsetId == null && localOffset === 0 && !opts?.searchCursor) {
+  // L2 Persistent Database Instant Paint Check (when opening fresh or after restart).
+  // Only short-circuit for the 'all' feed; specific category filters ('files', 'gifs',
+  // 'links', 'audio', 'stickers', and Drive sub-filters) must query the authoritative
+  // server-side MTProto filter lanes so partial L2 pages never truncate category tabs.
+  const isAllContentFilter = !opts?.contentFilter || opts.contentFilter === 'all';
+  if (
+    isAllContentFilter &&
+    topicId == null &&
+    !opts?.bypassCache &&
+    offsetId == null &&
+    localOffset === 0 &&
+    !opts?.searchCursor
+  ) {
     try {
       const indexState = await getMediaIndexState(mediaContext);
       if (indexState && (indexState.backfillComplete || indexState.newestCommittedId > 0)) {
@@ -405,10 +416,25 @@ export async function driveListFiles(
 export async function driveGetFile(
   creds: DriveCredentials,
   folderId: number | null,
-  messageId: number
+  messageId: number,
+  topicId?: number | null
 ) {
-  // Approximate via list_media page around id is expensive; return minimal row from thumbs path.
-  const page = await driveListFiles(creds, folderId, { pageSize: 40, offsetId: messageId + 1 });
+  const lookupPage = await driveListFiles(creds, folderId, {
+    pageSize: 20,
+    offsetId: messageId + 1,
+    topicId: topicId ?? null,
+    contentFilter: 'message_lookup',
+    bypassCache: true,
+  }).catch(() => null);
+  const lookupHit = (lookupPage?.files || []).find((f: any) => Number(f.id) === Number(messageId));
+  if (lookupHit) return { status: 'success', file: lookupHit, backend: 'grammers' };
+
+  const page = await driveListFiles(creds, folderId, {
+    pageSize: 40,
+    offsetId: messageId + 1,
+    topicId: topicId ?? null,
+    bypassCache: true,
+  });
   const hit = (page?.files || []).find((f: any) => Number(f.id) === Number(messageId));
   if (hit) return { status: 'success', file: hit, backend: 'grammers' };
   return { status: 'success', file: null, backend: 'grammers' };

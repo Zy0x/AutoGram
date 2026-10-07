@@ -50,6 +50,7 @@ pub fn media_to_row(
     let id = msg.id() as i64;
     let created = Some(msg.date().to_rfc3339());
     let caption = msg.text().trim();
+    let caption_opt = (!caption.is_empty()).then(|| caption.to_string());
     let caption_urls = extract_http_urls(caption);
     let Some(media) = msg.media() else {
         return None;
@@ -136,6 +137,7 @@ pub fn media_to_row(
                 } else {
                     caption_urls.join("\n")
                 }),
+                caption: caption_opt,
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -300,6 +302,7 @@ pub fn media_to_row(
                 } else {
                     caption_urls.join("\n")
                 }),
+                caption: caption_opt,
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -349,6 +352,7 @@ pub fn media_to_row(
                 telegram_subtype: Some(cls.telegram_subtype),
                 drive_category: Some(cls.drive_category),
                 drive_format: Some(cls.drive_format),
+                caption: caption_opt,
             })
         }
         _ => None,
@@ -375,6 +379,7 @@ pub fn tl_message_to_row(
     let id = m.id as i64;
     let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
     let caption = m.message.trim();
+    let caption_opt = (!caption.is_empty()).then(|| caption.to_string());
     let message_urls = extract_message_urls(m);
     let topic_id = match &m.reply_to {
         Some(grammers_client::tl::enums::MessageReplyHeader::Header(h)) => h
@@ -448,6 +453,7 @@ pub fn tl_message_to_row(
                     } else {
                         message_urls.join("\n")
                     }),
+                    caption: caption_opt,
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -579,6 +585,7 @@ pub fn tl_message_to_row(
                     } else {
                         message_urls.join("\n")
                     }),
+                    caption: caption_opt,
                 })
             }
             grammers_client::tl::enums::MessageMedia::WebPage(ref wp) => {
@@ -658,6 +665,7 @@ pub fn tl_message_to_row(
                     telegram_subtype: Some(cls.telegram_subtype),
                     drive_category: Some(cls.drive_category),
                     drive_format: Some(message_urls.join("\n")),
+                    caption: caption_opt,
                 })
             }
             _ => {
@@ -703,6 +711,7 @@ pub fn tl_message_to_row(
                         telegram_subtype: Some(cls.telegram_subtype),
                         drive_category: Some(cls.drive_category),
                         drive_format: Some(message_urls.join("\n")),
+                        caption: caption_opt,
                     })
                 } else {
                     None
@@ -750,6 +759,7 @@ pub fn tl_message_to_row(
             telegram_subtype: Some(cls.telegram_subtype),
             drive_category: Some(cls.drive_category),
             drive_format: Some(message_urls.join("\n")),
+            caption: caption_opt,
         })
     } else {
         None
@@ -883,7 +893,7 @@ fn extract_message_urls(message: &grammers_client::tl::types::Message) -> Vec<St
     urls
 }
 
-fn tl_link_to_row(
+pub(super) fn tl_link_to_row(
     msg: &grammers_client::tl::enums::Message,
     folder_id: Option<i64>,
 ) -> Option<MediaFileRow> {
@@ -896,6 +906,7 @@ fn tl_link_to_row(
         return None;
     }
     let id = m.id as i64;
+    let caption = m.message.trim();
     let topic_id = match &m.reply_to {
         Some(grammers_client::tl::enums::MessageReplyHeader::Header(header)) => header
             .reply_to_top_id
@@ -946,6 +957,7 @@ fn tl_link_to_row(
         // can render all URLs from one Telegram message without inventing fake
         // message IDs.
         drive_format: Some(urls.join("\n")),
+        caption: (!caption.is_empty()).then(|| caption.to_string()),
     })
 }
 

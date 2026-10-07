@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DriveFile } from '../../../lib/telegram/driveTypes';
+import { filterAndSortDriveFiles, type DriveFile } from '../../../lib/telegram/driveTypes';
 import {
   applyMutationsToFilteredFilesMap,
   getAuxiliaryLanesToPrefetchForAllFilter,
@@ -265,4 +265,53 @@ describe('allFilterReconciliation', () => {
     expect(updated.files.map((f) => f.id)).toEqual([52398]);
     expect(updated.images.map((f) => f.id)).toEqual([52398, 52391]);
   });
+
+  it('filterAndSortDriveFiles matches message caption and link_urls / drive_format', () => {
+    const captionedPhoto = makeFile(52391, {
+      name: 'photo_52391.jpg',
+      caption: 'Dokumentasi Gudang Batch Mei 2026',
+    });
+    const truncatedLink = makeFile(52392, {
+      name: 'Catatan referensi penting untuk arsip…',
+      icon_type: 'link',
+      mime_type: 'text/x-url',
+      telegram_category: 'link',
+      drive_category: 'web',
+      drive_format: 'https://storage.autogram.example/gudang-archive-2026',
+      link_urls: ['https://storage.autogram.example/gudang-archive-2026'],
+    });
+
+    const byCaption = filterAndSortDriveFiles([captionedPhoto, truncatedLink], {
+      query: 'gudang batch mei',
+      mediaFilter: 'all',
+      perspective: 'telegram',
+    });
+    expect(byCaption.map((f) => f.id)).toEqual([52391]);
+
+    const byLinkDomain = filterAndSortDriveFiles([captionedPhoto, truncatedLink], {
+      query: 'storage.autogram.example',
+      mediaFilter: 'links',
+      perspective: 'telegram',
+    });
+    expect(byLinkDomain.map((f) => f.id)).toEqual([52392]);
+  });
+
+  it('applyMutationsToFilteredFilesMap initializes stickers lane when a sticker is upserted via ID lookup', () => {
+    const stickerRow = makeFile(52400, {
+      name: 'sticker_52400.webp',
+      mime_type: 'image/webp',
+      icon_type: 'sticker',
+      as_document: true,
+      telegram_category: 'sticker',
+      topic_id: 15415,
+    });
+
+    const updated = applyMutationsToFilteredFilesMap(
+      {},
+      [{ action: 'upsert', row: stickerRow }],
+      15415
+    );
+    expect(updated.stickers?.map((f) => f.id)).toEqual([52400]);
+  });
 });
+

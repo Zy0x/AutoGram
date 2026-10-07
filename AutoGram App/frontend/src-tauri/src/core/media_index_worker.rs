@@ -1973,6 +1973,7 @@ mod tests {
             telegram_subtype: None,
             drive_category: None,
             drive_format: None,
+            caption: None,
         }
     }
 

@@ -42,6 +42,8 @@ pub struct MediaFileRow {
     pub drive_category: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drive_format: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub caption: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

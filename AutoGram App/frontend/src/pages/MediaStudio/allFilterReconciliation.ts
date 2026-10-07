@@ -292,8 +292,8 @@ export function applyMutationsToFilteredFilesMap(
 
     for (const { key, perspective } of TRACKED_MUTATION_FILTER_KEYS) {
       const existingLane = workingMap[key];
-      // Always keep 'gifs' live, and keep any other lane that has already been loaded in memory
-      if (key !== 'gifs' && existingLane === undefined) continue;
+      // Always keep 'gifs' and 'stickers' live, and keep any other lane that has already been loaded in memory
+      if (key !== 'gifs' && key !== 'stickers' && existingLane === undefined) continue;
       const lane = existingLane ? [...existingLane] : [];
       const idx = lane.findIndex((f) => f.id === mut.row.id);
       const matchesCategory = matchesTopic && matchesMediaFilter(mut.row, key, perspective);

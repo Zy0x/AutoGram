@@ -2108,13 +2108,13 @@ function MediaDriveDesktop({
     if (!targetMsgId || !driveReady || !creds) return;
 
     // Check if we already have it in files list
-    const alreadyExists = files.some((f) => f.id === targetMsgId);
+    const alreadyExists = files.some((f) => f.id === targetMsgId) && activeContentFiles.some((f) => f.id === targetMsgId);
     if (alreadyExists) return;
 
     let cancelled = false;
     const fetchSingleFile = async () => {
       try {
-        const res = await driveGetFile(creds, peerId, targetMsgId);
+        const res = await driveGetFile(creds, peerId, targetMsgId, topicFilter);
         if (cancelled) return;
         if (res && res.status === 'success' && res.file) {
           // Prepend to files list so local search filter matches it
@@ -2122,6 +2122,9 @@ function MediaDriveDesktop({
             if (prev.some((f) => f.id === targetMsgId)) return prev;
             return [res.file, ...prev];
           });
+          setFilteredFilesMap((prev) =>
+            applyMutationsToFilteredFilesMap(prev, [{ action: 'upsert', row: res.file }], topicFilter)
+          );
         }
       } catch (err) {
         console.error('Failed to fetch searched file ID:', err);
@@ -2132,7 +2135,7 @@ function MediaDriveDesktop({
     return () => {
       cancelled = true;
     };
-  }, [query, advFilter.messageId, creds, peerId, driveReady, files, setFiles]);
+  }, [query, advFilter.messageId, creds, peerId, topicFilter, driveReady, files, activeContentFiles, setFiles]);
 
   // Load transfer settings from secure backend store on mount (stable across webview resets)
   useEffect(() => {

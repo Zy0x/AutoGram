@@ -116,6 +116,20 @@
 - **Explicit topic and search access (`DriveForumTopicStrip.kt`, `DriveUnifiedHeader.kt`)**: Added a localized topic-picker label, selected-state accessibility and visible topic request progress/errors with retry. Compact search remains reachable and focused or nonempty searches remain mounted.
 - **Regression coverage**: Added metadata policy tests and isolated physical-device presentation scenarios for pinned geometry, compact scrolling, server topic identity, search continuity and error recovery; existing gallery fixtures explicitly select the aspect ratio they verify.
 
+### 17. Deep Media Filter Hardening: L2 Cache Category Bypass, Caption/Link Search, Multi-Type Message ID Lookup & Multi-Lane Pagination Frontier (`driveFilesApi.ts`, `driveTypes.ts`, `MediaStudio/index.tsx`, `search_contract.rs`, `media_list.rs`, `media_list/filtered_query.rs`)
+- **L2 IndexedDB Cache Category Isolation (`driveFilesApi.ts`)**:
+  - Restricted the L2 IndexedDB instant short-circuit in `driveListFiles` to the universal `All` feed (`!opts?.contentFilter || opts.contentFilter === 'all'`). Previously, when only 1 initial page of `All` was cached in IndexedDB (`backfillComplete === false`) and happened to contain 1–2 documents/GIFs/audio items, switching to `Files`, `GIFs`, `Audio`, `Links`, or Drive sub-tabs (`Images`, `Videos`, `Documents`, `Archives`) returned only those 1–2 local rows with `has_more: false` without querying Telegram's server index.
+- **End-to-End Message Caption & Full Link URL Search (`search_contract.rs`, `media_list.rs`, `driveTypes.ts`)**:
+  - Added `caption: Option<String>` to `MediaFileRow` in `search_contract.rs` and populated it across `media_to_row`, `tl_message_to_row`, and `tl_link_to_row` in `media_list.rs` so Telegram message captions are preserved across IPC to the frontend.
+  - Expanded `filterAndSortDriveFiles` in `driveTypes.ts` to search across `f.caption`, `f.drive_format`, and `f.link_urls` in addition to `id`, `name`, `original_name`, `icon_type`, `mime_type`, and `file_ext`, enabling keyword search over native photo/video captions (`photo_<id>.jpg`, `video_<id>.mp4`) and full link URLs.
+- **Topic-Aware, Multi-Type Message ID Lookup (`driveFilesApi.ts`, `media_list/filtered_query.rs`, `allFilterReconciliation.ts`, `MediaStudio/index.tsx`)**:
+  - Added a dedicated `"message_lookup"` mode in `list_filtered_media_blocking_topic` (`filtered_query.rs`) using `GetReplies` (for forum topics) and `GetHistory` mapped through `tl_message_to_row` and `tl_link_to_row` so searching by message ID resolves any media category (Photo, Video, Document, Archive, GIF, Sticker, Audio, Voice, WebPage, Text Link) in a single lightweight RPC.
+  - Updated `driveGetFile` and `MediaStudio/index.tsx` to pass `topicFilter` and synchronize resolved items into both `files` (`All`) and `filteredFilesMap` (including `stickers`) via `applyMutationsToFilteredFilesMap`.
+- **Lossless Multi-Lane Composite Pagination Frontier & Multi-Batch Sticker Scan (`media_list/filtered_query.rs`, `media_list/tests.rs`)**:
+  - Removed `if init_offset == 0` restrictions on secondary lanes (`InputMessagesFilterGif` in `images`/`media` and `InputMessagesFilterDocument` in `audio`) so subsequent pages (`offset_id > 0`) continue querying all constituent lanes.
+  - Added `reconcile_composite_lane_page` with an unexhausted frontier guard (`unexhausted_frontier`) and up to 3 bounded replenishment rounds so sparse lanes with older message IDs never cause pagination cursors (`next_offset_id`) to skip unseen items in denser unexhausted lanes.
+  - Upgraded the `stickers` history window scan to iterate up to 4 bounded batches (400 messages) when the initial batch contains only text or non-sticker media.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

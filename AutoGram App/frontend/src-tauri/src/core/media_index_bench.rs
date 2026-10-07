@@ -95,6 +95,7 @@ fn make_synthetic_row(id: i64, kind: &str) -> MediaFileRow {
         telegram_subtype: None,
         drive_category: None,
         drive_format: None,
+        caption: None,
     }
 }
 

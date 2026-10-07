@@ -99,6 +99,7 @@ fn dummy_row(id: i64) -> MediaFileRow {
         telegram_subtype: None,
         drive_category: None,
         drive_format: None,
+        caption: None,
     }
 }
 
@@ -958,3 +959,32 @@ fn test_row_matches_filtered_query_telegram_and_drive_perspectives() {
     assert!(row_matches_filtered_query(&link_row, "web"));
     assert!(!row_matches_filtered_query(&link_row, "files"));
 }
+
+#[test]
+fn test_reconcile_composite_lane_page_holds_back_items_below_unexhausted_frontier() {
+    // Scenario: Sparse lane (e.g. Video) has an old item at ID 500 and is exhausted.
+    // Dense lane (e.g. Document) scanned 50000..49000 (unexhausted, frontier = 49000)
+    // and found video-documents at 49800 and 49200.
+    // Page 1 MUST NOT emit 500 or set next_offset_id = 500, because doing so would skip
+    // all video-documents between 49000 and 501 on Page 2.
+    let candidates = vec![dummy_row(49800), dummy_row(49200), dummy_row(500)];
+    let (page1_files, page1_next_offset, page1_has_more) =
+        reconcile_composite_lane_page(candidates, Some(49000), Some(49000), true, 50);
+
+    let page1_ids: Vec<i64> = page1_files.iter().map(|r| r.id).collect();
+    assert_eq!(page1_ids, vec![49800, 49200]);
+    assert_eq!(page1_next_offset, Some(49000));
+    assert!(page1_has_more);
+
+    // On Page 2 (starting at offset 49000), Document lane finds 30000 and 200 and is now exhausted.
+    // Video lane (queried at offset 49000) returns 500 again and is exhausted.
+    let page2_candidates = vec![dummy_row(30000), dummy_row(500), dummy_row(200)];
+    let (page2_files, page2_next_offset, page2_has_more) =
+        reconcile_composite_lane_page(page2_candidates, None, Some(200), false, 50);
+
+    let page2_ids: Vec<i64> = page2_files.iter().map(|r| r.id).collect();
+    assert_eq!(page2_ids, vec![30000, 500, 200]);
+    assert_eq!(page2_next_offset, Some(200));
+    assert!(!page2_has_more);
+}
+
