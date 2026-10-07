@@ -65,6 +65,12 @@
 
 
 
+### 10. Android Drive Preview Responsiveness & Read-Only Version Verification
+- **Preview transport dispatch (`CloudRangeSource.kt`)**: Moved transport setup and native byte conversion onto the I/O dispatcher, keeping this work away from the Android display thread when opening photos and documents. Network reads remain asynchronous; exact byte ranges, per-stream caching, account isolation and existing player buffering remain unchanged. A dedicated caller-thread regression test covers the boundary.
+- **Version freeze protection (`quality-sentinel.mjs`)**: Replaced automatic version synchronization during quality checks with read-only comparison of package, desktop engine, updater and version-document metadata. A mismatch now fails verification without changing application versions.
+- **ZIP preview build validation (`DriveZipViewer.kt`)**: Corrected two extraction-result string calls to match the Indonesian/English resource contract, removing Android lint errors without disabling validation or changing extraction behavior.
+- **Sparse archive correctness (`SparseZipReader.kt`)**: Fixed end-of-directory offsets relative to the archive tail and consumed directory/entry slices through bounded range reads instead of treating a single 256 KB response as complete. Stored and deflated entries now reject incomplete output; controlled tests cover a 700 KB payload, a 6,000-entry directory and empty deflated files. Encrypted ZIP and ZIP64 parity remain outside this verified scope.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

@@ -252,11 +252,8 @@ try {
 // ============================================================================
 logHeader('7. RELEASE VERSION & METADATA PARITY GATE');
 try {
-  // Run sync-version tool to verify and auto-synchronize
-  const syncScript = path.join(import.meta.dirname, 'sync-version.mjs');
-  if (fs.existsSync(syncScript)) {
-    execSync(`node "${syncScript}"`, { cwd: root, stdio: 'pipe' });
-  }
+  // Verification must be read-only: a quality run never authorizes a release bump.
+  // Report mismatches instead of synchronizing metadata from historical changelogs.
 
   const pkgJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const currentVer = pkgJson.version;
@@ -268,10 +265,15 @@ try {
   const tauriConf = JSON.parse(fs.readFileSync(path.join(root, 'src-tauri', 'tauri.conf.json'), 'utf8'));
   const tauriVer = tauriConf.version;
 
-  if (cargoVer === currentVer && tauriVer === currentVer) {
-    logPass('Version Parity', `All release targets match active version v${currentVer} (package.json, Cargo.toml, tauri.conf.json).`);
+  const updaterSource = fs.readFileSync(path.join(srcRoot, 'lib', 'tauri', 'githubUpdater.ts'), 'utf8');
+  const updaterVer = updaterSource.match(/export const CURRENT_APP_VERSION = '([^']+)';/)?.[1];
+  const versionSource = fs.readFileSync(path.join(appRoot, 'VERSION.md'), 'utf8');
+  const documentedVer = versionSource.match(/^AutoGram Version: v([^\r\n]+)/m)?.[1];
+
+  if ([cargoVer, tauriVer, updaterVer, documentedVer].every(version => version === currentVer)) {
+    logPass('Version Parity', `All release targets match active version v${currentVer}; metadata checked without changes.`);
   } else {
-    logFail('Version Parity', `Mismatch detected! package.json=${currentVer}, Cargo.toml=${cargoVer}, tauri.conf.json=${tauriVer}`);
+    logFail('Version Parity', `Mismatch detected! package.json=${currentVer}, Cargo.toml=${cargoVer}, tauri.conf.json=${tauriVer}, githubUpdater.ts=${updaterVer}, VERSION.md=${documentedVer}`);
     allPassed = false;
   }
 } catch (e) {

@@ -3,8 +3,6 @@ package com.autogram.app.features.cloud.preview
 import com.autogram.app.features.cloud.CloudFailure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
 import uniffi.autogram_android_bridge.*
@@ -68,7 +66,9 @@ class CloudRangeSource(
         val fullBytes = if (isLeader) {
             try {
                 if (closed.get()) throw CloudFailure("cloud_stream_closed")
-                val fetched = fetch(offset, bounded)
+                // Keep transport setup and native byte marshalling off Main. Injected
+                // adapters may also block despite a suspend signature; ranges stay exact.
+                val fetched = withContext(Dispatchers.IO) { fetch(offset, bounded) }
                 if (closed.get()) throw CloudFailure("cloud_stream_closed")
                 if (fetched.size != bounded) throw CloudFailure("cloud_media_truncated")
                 cache.put(offset, fetched)

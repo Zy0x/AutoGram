@@ -1,7 +1,10 @@
 package com.autogram.app.ui.drive.zip
 
 import com.autogram.app.features.cloud.preview.CloudRangeSource
+import com.autogram.app.features.cloud.CloudFailure
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -47,7 +50,8 @@ class SparseZipReader(private val source: CloudRangeSource) {
         }
         if (eocdPos < 0) return@withContext emptyList()
 
-        val buf = ByteBuffer.wrap(tailBytes, eocdPos, tailBytes.size - eocdPos).order(ByteOrder.LITTLE_ENDIAN)
+        val buf = ByteBuffer.wrap(tailBytes, eocdPos, tailBytes.size - eocdPos)
+            .slice().order(ByteOrder.LITTLE_ENDIAN)
         buf.position(4) // skip 4-byte signature
         buf.short // diskNumber
         buf.short // cdStartDisk
@@ -59,7 +63,7 @@ class SparseZipReader(private val source: CloudRangeSource) {
         if (cdSize <= 0 || cdOffset < 0 || cdOffset + cdSize > totalSize) return@withContext emptyList()
 
         // Read Central Directory slice
-        val cdBytes = source.read(cdOffset, cdSize.toInt())
+        val cdBytes = readExact(cdOffset, cdSize, 8 * 1024 * 1024L)
         val cdBuf = ByteBuffer.wrap(cdBytes).order(ByteOrder.LITTLE_ENDIAN)
 
         val entries = mutableListOf<ZipEntryItem>()
@@ -114,6 +118,7 @@ class SparseZipReader(private val source: CloudRangeSource) {
     suspend fun extractEntryBytes(entry: ZipEntryItem): ByteArray = withContext(Dispatchers.IO) {
         if (entry.isEncrypted) throw IllegalStateException("Berkas terenkripsi (ZipCrypto/AES). Masukkan kata sandi.")
         if (entry.compressedSize > 100 * 1024 * 1024) throw IllegalStateException("Ukuran berkas terlalu besar untuk diekstrak langsung ke RAM.")
+        if (entry.uncompressedSize !in 0..100 * 1024 * 1024L) throw CloudFailure("cloud_format_unsupported")
 
         // Read Local File Header (minimum 30 bytes)
         val headerBytes = source.read(entry.localHeaderOffset, 30)
@@ -126,23 +131,46 @@ class SparseZipReader(private val source: CloudRangeSource) {
         val localExtraLen = hBuf.short.toInt() and 0xFFFF
 
         val dataOffset = entry.localHeaderOffset + 30 + localNameLen + localExtraLen
-        val compressedBytes = source.read(dataOffset, entry.compressedSize.toInt())
+        val compressedBytes = readExact(dataOffset, entry.compressedSize, 100 * 1024 * 1024L)
 
         when (entry.compressionMethod) {
-            0 -> compressedBytes // Stored (no compression)
+            0 -> {
+                if (compressedBytes.size.toLong() != entry.uncompressedSize) throw CloudFailure("cloud_media_truncated")
+                compressedBytes // Stored (no compression)
+            }
             8 -> { // Deflated
                 val inflater = Inflater(true) // nowrap = true
-                inflater.setInput(compressedBytes)
-                val out = ByteArray(entry.uncompressedSize.toInt())
-                val resultLen = inflater.inflate(out)
-                inflater.end()
-                if (resultLen.toLong() != entry.uncompressedSize) {
-                    out.copyOf(resultLen)
-                } else {
-                    out
+                try {
+                    inflater.setInput(compressedBytes)
+                    // Even empty deflate entries need output capacity to consume the terminator.
+                    val out = ByteArray(maxOf(1, entry.uncompressedSize.toInt()))
+                    val resultLen = inflater.inflate(out)
+                    if (resultLen.toLong() != entry.uncompressedSize || !inflater.finished()) {
+                        throw CloudFailure("cloud_media_truncated")
+                    }
+                    if (entry.uncompressedSize == 0L) ByteArray(0) else out
+                } finally {
+                    inflater.end()
                 }
             }
             else -> throw UnsupportedOperationException("Metode kompresi tidak didukung: ${entry.compressionMethod}")
         }
+    }
+
+    /** CloudRangeSource intentionally caps each call; consume only the declared slice. */
+    private suspend fun readExact(offset: Long, length: Long, limit: Long): ByteArray {
+        if (offset < 0 || length < 0 || length > limit || length > source.size - offset) {
+            throw CloudFailure("invalid_range")
+        }
+        val output = ByteArray(length.toInt())
+        var copied = 0
+        while (copied < output.size) {
+            currentCoroutineContext().ensureActive()
+            val chunk = source.read(offset + copied, output.size - copied)
+            if (chunk.isEmpty()) throw CloudFailure("cloud_media_truncated")
+            chunk.copyInto(output, copied)
+            copied += chunk.size
+        }
+        return output
     }
 }

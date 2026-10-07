@@ -242,7 +242,7 @@ fun DriveZipViewer(
                                         val success = extractSingleEntry(source, entry)
                                         isExtracting = false
                                         extractMessage = if (success) {
-                                            context.getString(R.string.zip_extract_success, entry.name.substringAfterLast('/'))
+                                            context.getString(R.string.zip_extract_success)
                                         } else {
                                             context.getString(R.string.zip_extract_failed)
                                         }
@@ -323,7 +323,7 @@ fun DriveZipViewer(
                                 scope.launch {
                                     val success = extractSingleEntry(source, entry)
                                     extractMessage = if (success) {
-                                        context.getString(R.string.zip_extract_success, entry.name.substringAfterLast('/'))
+                                        context.getString(R.string.zip_extract_success)
                                     } else {
                                         context.getString(R.string.zip_extract_failed)
                                     }

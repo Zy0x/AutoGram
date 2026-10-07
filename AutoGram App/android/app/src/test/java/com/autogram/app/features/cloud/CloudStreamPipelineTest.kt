@@ -6,12 +6,13 @@ import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.IOException
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class CloudStreamPipelineTest {
 
     @Test
     fun sequentialReadsUseChunkedPrefetchingWithoutPerSegmentFetches() = runBlocking {
-        val fetches = mutableListOf<Pair<Long, Int>>()
+        val fetches = ConcurrentLinkedQueue<Pair<Long, Int>>()
         val totalSize = 1024L * 1024L // 1 MB = 4 chunks of 256 KB
         val source = CloudRangeSource(totalSize, { offset, len ->
             fetches.add(offset to len)
@@ -41,7 +42,7 @@ class CloudStreamPipelineTest {
 
     @Test
     fun directDemandFetchesTargetChunkImmediately() = runBlocking {
-        val fetches = mutableListOf<Pair<Long, Int>>()
+        val fetches = ConcurrentLinkedQueue<Pair<Long, Int>>()
         val totalSize = 2L * 1024L * 1024L // 2 MB
         val source = CloudRangeSource(totalSize, { offset, len ->
             fetches.add(offset to len)
@@ -165,7 +166,7 @@ class CloudStreamPipelineTest {
 
     @Test
     fun seekUpdatesCursorAndDirectsPrefetch() = runBlocking {
-        val fetches = mutableListOf<Long>()
+        val fetches = ConcurrentLinkedQueue<Long>()
         val totalSize = 10L * CloudStreamPipeline.CHUNK_SIZE
         val source = CloudRangeSource(totalSize, { offset, len ->
             fetches.add(offset)
