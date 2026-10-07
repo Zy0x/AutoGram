@@ -30,7 +30,12 @@ fun DriveTopicHubSheet(
     activeTopicId: Long?,
     onSelectTopic: (Long?) -> Unit,
     onAddTopic: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    loading: Boolean = false,
+    error: String? = null,
+    hasMore: Boolean = false,
+    onRefresh: () -> Unit = {},
+    onMore: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -190,6 +195,17 @@ fun DriveTopicHubSheet(
                         .fillMaxWidth()
                         .height(48.dp)
                 )
+            }
+
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            error?.let { Text(stringResource(com.autogram.app.features.cloud.cloudErrorLabel(it))) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = onRefresh, enabled = !loading, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.cloud_refresh))
+                }
+                if (hasMore) TextButton(onClick = onMore, enabled = !loading, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.cloud_more))
+                }
             }
 
             // Topics List

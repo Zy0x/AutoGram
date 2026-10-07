@@ -3,6 +3,7 @@ package com.autogram.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autogram.app.features.cloud.*
+import com.autogram.app.features.cloud.topics.CloudTopic
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
@@ -78,10 +79,10 @@ data class DriveUiState(
     val peerId: String = "me",
     val topicId: Long? = null,
     val isForum: Boolean = false,
-    val topics: List<com.autogram.app.ui.drive.DriveTopic> = emptyList(),
+    val topics: List<CloudTopic> = emptyList(),
     val activeTopicId: Long? = null,
     val locations: List<CloudLocation> = emptyList(),
-    val activeLocationTitle: String = "Saved Messages",
+    val activeLocationTitle: String = "",
     val activeLocationKind: String = "self",
     val errorCode: String? = null
 )
@@ -91,6 +92,9 @@ class DriveViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(DriveUiState())
     val uiState: StateFlow<DriveUiState> = _uiState.asStateFlow()
     private val cloud = CloudStore(NativeCloudService())
+    private val topics = com.autogram.app.features.cloud.topics.CloudTopicsStore(NativeCloudService())
+    val topicsState = topics.state
+    private var topicsJob: Job? = null
     val cloudState = cloud.state
     private var mediaJob: Job? = null
     private var locationsJob: Job? = null
@@ -125,10 +129,19 @@ class DriveViewModel : ViewModel() {
                                 deliveryKind = record.deliveryKind, telegramCategory = record.telegramCategory,
                                 cloudAccountId = result.scope.accountId, cloudPeerId = result.scope.peerId,
                                 cloudMessageId = record.id, width = record.width, height = record.height,
-                                durationSeconds = record.durationSeconds, thumbnailBytes = record.thumbnailBytes)
+                                durationSeconds = record.durationSeconds, thumbnailBytes = record.thumbnailBytes,
+                                topicId = record.topicId)
                         })
                 }
                 triggerThumbnailUpgrade()
+            }
+        }
+        viewModelScope.launch {
+            topics.state.collect { result ->
+                _uiState.update { current ->
+                    if (current.sessionId == result.scope.accountId && current.peerId == result.scope.peerId)
+                        current.copy(topics = result.items) else current
+                }
             }
         }
     }
@@ -184,10 +197,13 @@ class DriveViewModel : ViewModel() {
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
         mediaJob?.cancel(); locationsJob?.cancel(); stopThumbnailUpgrade()
         upgradedIds.clear()
-        cloud.scope(CloudScope(sessionId, peerId))
+        topicsJob?.cancel()
+        topics.scope(CloudScope(sessionId, peerId))
+        cloud.scope(CloudScope(sessionId, peerId, topicId))
         _uiState.update {
             it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
-                currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "")
+                currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "",
+                topics = emptyList(), activeTopicId = topicId, isForum = false)
         }
         loadFolder("/")
     }
@@ -210,35 +226,37 @@ class DriveViewModel : ViewModel() {
         locationsJob = viewModelScope.launch { cloud.locations(append) }
     }
 
-    fun chooseLocation(location: CloudLocation, context: android.content.Context? = null) {
+    fun chooseLocation(location: CloudLocation) {
         val isForum = location.kind == "forum"
-        val loadedTopics = if (isForum && context != null) {
-            com.autogram.app.ui.drive.DriveTopicsStore(context).getTopics(_uiState.value.sessionId, location.id)
-        } else if (isForum) {
-            listOf(com.autogram.app.ui.drive.DriveTopic(1L, "General", isClosed = false))
-        } else emptyList()
 
         setScope(_uiState.value.sessionId, location.id, null)
         _uiState.update {
             it.copy(
-                currentPath = location.title.ifEmpty { "Saved Messages" },
-                activeLocationTitle = location.title.ifEmpty { "Saved Messages" },
+                currentPath = location.title.ifEmpty { "/" },
+                activeLocationTitle = location.title,
                 activeLocationKind = location.kind,
                 isForum = isForum,
-                topics = loadedTopics,
+                topics = emptyList(),
                 activeTopicId = null
             )
         }
+        if (isForum) loadTopics()
+    }
+
+    fun loadTopics(append: Boolean = false) {
+        if (!_uiState.value.isForum || topics.state.value.loading) return
+        topicsJob = viewModelScope.launch { topics.load(append) }
     }
 
     fun setTopicFilter(topicId: Long?) {
-        _uiState.update { it.copy(activeTopicId = topicId, selectedIds = emptySet()) }
-    }
-
-    fun addTopic(title: String, colorHex: String?, iconEmoji: String?, context: android.content.Context) {
-        val updated = com.autogram.app.ui.drive.DriveTopicsStore(context)
-            .addTopic(_uiState.value.sessionId, _uiState.value.peerId, title, colorHex, iconEmoji)
-        _uiState.update { it.copy(topics = updated) }
+        val current = _uiState.value
+        if (topicId == current.activeTopicId) return
+        if (topicId != null && current.topics.none { it.id == topicId }) return
+        mediaJob?.cancel(); stopThumbnailUpgrade(); upgradedIds.clear()
+        cloud.scope(CloudScope(current.sessionId, current.peerId, topicId))
+        _uiState.update { it.copy(activeTopicId = topicId, topicId = topicId,
+            items = emptyList(), selectedIds = emptySet(), searchQuery = "") }
+        mediaJob = viewModelScope.launch { cloud.media() }
     }
 
     fun setSearchQuery(query: String) {

@@ -20,7 +20,8 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
         val current = mutable.value
         mutable.value = if (scope.accountId == current.scope.accountId) {
             current.copy(scope = scope, query = "", items = emptyList(), nextOffset = null,
-                loading = false, error = null, loadingLocations = false)
+                loading = false, error = if (current.retryAtMs > now()) current.error ?: "flood_wait" else null,
+                loadingLocations = false)
         } else CloudState(scope = scope)
     }
     fun query(query: String) {
@@ -41,7 +42,7 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
         try {
             val page = service.media(request.scope, offset, request.query)
             if (revision != mediaRevision) return
-            if (page.accountId != request.scope.accountId || page.peerId != request.scope.peerId) {
+            if (page.accountId != request.scope.accountId || page.peerId != request.scope.peerId || page.topicId != request.scope.topicId) {
                 throw CloudFailure("account_changed")
             }
             if (page.nextOffset != null && (page.nextOffset <= 0 || (offset > 0 && page.nextOffset >= offset))) {

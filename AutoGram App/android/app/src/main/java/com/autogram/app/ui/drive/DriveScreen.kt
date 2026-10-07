@@ -44,6 +44,7 @@ fun DriveScreen(
     val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsState()
     val cloudState by viewModel.cloudState.collectAsState()
+    val topicsState by viewModel.topicsState.collectAsState()
     var previewItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var zipArchiveItem by remember { mutableStateOf<DriveFileItem?>(null) }
     var isDriveToolsOpen by remember { mutableStateOf(false) }
@@ -218,9 +219,7 @@ fun DriveScreen(
         DriveDuplicateCleanerSheet(
             items = state.items,
             onDismiss = { isDedupCleanerOpen = false },
-            onCleanDuplicates = {
-                viewModel.loadFolder(state.currentPath)
-            }
+            onCleanDuplicates = { unsupported = true }
         )
     }
 
@@ -228,14 +227,7 @@ fun DriveScreen(
         DriveRemoteUploadModal(
             currentFolder = state.currentPath,
             onDismiss = { isRemoteUploadOpen = false },
-            onSubmitUrl = { _, _, _ ->
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.drive_remote_upload_success),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                isRemoteUploadOpen = false
-            }
+            onSubmitUrl = { _, _, _ -> unsupported = true }
         )
     }
 
@@ -244,15 +236,7 @@ fun DriveScreen(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
             locations = cloudState.locations,
             sessionId = state.sessionId,
-            onForward = { target, clean, targetTopicId ->
-                val count = state.selectedIds.size.coerceAtLeast(1)
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.drive_forward_success, count),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                viewModel.clearSelection()
-            },
+            onForward = { _, _, _ -> unsupported = true },
             onDismiss = { isDestinationModalOpen = false }
         )
     }
@@ -260,10 +244,7 @@ fun DriveScreen(
     if (isCreateTopicOpen) {
         DriveCreateTopicModal(
             onDismiss = { isCreateTopicOpen = false },
-            onCreateTopic = { title, colorHex, emoji ->
-                viewModel.addTopic(title, colorHex, emoji, context)
-                isCreateTopicOpen = false
-            }
+            onCreateTopic = { _, _, _ -> unsupported = true }
         )
     }
 
@@ -281,15 +262,7 @@ fun DriveScreen(
     if (isTagModalOpen) {
         DriveTagCategoryModal(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
-            onApply = { category, tag ->
-                val count = state.selectedIds.size.coerceAtLeast(1)
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.drive_tag_success, count),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                viewModel.clearSelection()
-            },
+            onApply = { _, _ -> unsupported = true },
             onDismiss = { isTagModalOpen = false }
         )
     }
@@ -298,15 +271,7 @@ fun DriveScreen(
         DriveMoveFolderModal(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
             currentPath = state.currentPath,
-            onMove = { targetPath ->
-                val count = state.selectedIds.size.coerceAtLeast(1)
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.drive_move_success, count, targetPath),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                viewModel.clearSelection()
-            },
+            onMove = { _ -> unsupported = true },
             onDismiss = { isMoveModalOpen = false }
         )
     }
@@ -314,16 +279,7 @@ fun DriveScreen(
     if (isDeleteModalOpen) {
         DriveConfirmDeleteModal(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
-            onConfirm = {
-                val count = state.selectedIds.size.coerceAtLeast(1)
-                viewModel.clearSelection()
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.drive_delete_success, count),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                viewModel.loadFolder(state.currentPath)
-            },
+            onConfirm = { unsupported = true },
             onDismiss = { isDeleteModalOpen = false }
         )
     }
@@ -334,7 +290,7 @@ fun DriveScreen(
             locations = state.locations,
             sessionId = state.sessionId,
             onSelectLocation = { location ->
-                viewModel.chooseLocation(location, context)
+                viewModel.chooseLocation(location)
                 isLocationPickerOpen = false
             },
             onDismiss = { isLocationPickerOpen = false }
@@ -361,7 +317,10 @@ fun DriveScreen(
             activeTopicId = state.activeTopicId,
             onSelectTopic = viewModel::setTopicFilter,
             onAddTopic = { isCreateTopicOpen = true },
-            onDismiss = { isTopicHubOpen = false }
+            onDismiss = { isTopicHubOpen = false },
+            loading = topicsState.loading, error = topicsState.error,
+            hasMore = topicsState.next != null,
+            onRefresh = { viewModel.loadTopics() }, onMore = { viewModel.loadTopics(true) }
         )
     }
 

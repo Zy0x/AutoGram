@@ -3,7 +3,7 @@ use crate::auth::{engine, NativeAuthError};
 use autogram_core::telegram::{auth::AccountId, cloud::*};
 use std::sync::OnceLock;
 
-fn workspace() -> &'static CloudWorkspace {
+pub(crate) fn workspace() -> &'static CloudWorkspace {
     static WORKSPACE: OnceLock<CloudWorkspace> = OnceLock::new();
     WORKSPACE.get_or_init(CloudWorkspace::default)
 }

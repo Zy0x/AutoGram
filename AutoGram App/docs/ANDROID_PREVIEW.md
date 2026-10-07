@@ -32,6 +32,9 @@ these records. OTPs, passwords and QR tokens are not written to the session vaul
 If the key is lost or ciphertext is damaged, the application reports a storage error
 instead of replacing the vault. Do not remove app data to troubleshoot without first
 understanding that doing so removes local sessions and records.
+An APK update must use the same signing identity as the installed application. If
+an update is rejected because of its signature, keep the installed app and its data;
+do not uninstall it or clear storage. A build signed with the original key is required.
 
 Logout contacts Telegram before removing the local session. A network failure leaves
 the encrypted record available for retry. If Telegram confirms logout but local cleanup
@@ -42,7 +45,16 @@ fails, that account is no longer treated as active. Other accounts are not logge
 After selecting a server-verified account, Cloud Drives can read Saved Messages or a
 chat/channel selected from **Choose chat or channel**. Search requests go to Telegram;
 **Load more** reads the next message page. A page may contain no matching media while
-more messages remain. Folder and forum-topic navigation are not yet equivalent to desktop.
+more messages remain. Forum locations are identified from Telegram metadata. Their
+topic list, names, colors and closed status are fetched from Telegram, with refresh
+and additional pages in the topic hub. Selecting a topic requests its message scope
+on the server; it does not reuse an unrelated first page of chat history. Legacy
+locally created topic drafts are not treated as cloud topics. Physical-device
+acceptance for this path is still pending; virtual folders remain incomplete.
+
+Topic creation, forwarding, tagging, moving, cloud deletion, duplicate cleanup and
+Remote Link upload are not yet connected to complete Android executors. These actions
+report unavailable instead of successful completion and do not change cloud files.
 
 Cards use message metadata and any thumbnail already included by Telegram. Opening a
 supported image, UTF-8 text, audio or video requests real media bytes. Image preview is

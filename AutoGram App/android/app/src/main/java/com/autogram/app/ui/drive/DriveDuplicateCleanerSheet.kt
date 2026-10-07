@@ -1,6 +1,5 @@
 package com.autogram.app.ui.drive
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,7 +39,6 @@ fun DriveDuplicateCleanerSheet(
     onDismiss: () -> Unit,
     onCleanDuplicates: (List<String>) -> Unit
 ) {
-    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Analyze duplicates: group by exact size and canonical stem
@@ -196,12 +193,6 @@ fun DriveDuplicateCleanerSheet(
                             group.files.drop(1).map { it.id }
                         }
                         onCleanDuplicates(idsToDelete)
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.drive_dedup_clean_success, idsToDelete.size),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        onDismiss()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = SoftCoral, contentColor = Color.White),
                     shape = RoundedCornerShape(12.dp),

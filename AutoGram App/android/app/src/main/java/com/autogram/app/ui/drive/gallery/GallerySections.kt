@@ -26,7 +26,7 @@ fun galleryItems(
     activeTopicId: Long? = null
 ): List<DriveFileItem> =
     items.filter { item ->
-        val matchesTopic = activeTopicId == null || item.topicId == null || item.topicId == activeTopicId
+        val matchesTopic = activeTopicId == null || item.topicId == activeTopicId
         val matchesSearch = item.cloudAccountId != null || query.isBlank() || item.name.contains(query, true)
         val category = item.telegramCategory.lowercase(java.util.Locale.ROOT)
         val mime = item.mimeType.lowercase(java.util.Locale.ROOT)

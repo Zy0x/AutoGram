@@ -6,6 +6,12 @@ import org.junit.Test
 import java.util.TimeZone
 
 class GallerySectionsTest {
+    @Test fun selectedTopicExcludesUnknownAndOtherTopicMedia() {
+        val records = listOf(item("unknown", 1), item("selected", 2).copy(topicId = 7),
+            item("other", 3).copy(topicId = 8))
+        assertEquals(listOf("selected"), galleryItems(records, "", DriveMediaFilter.ALL, 7).map { it.id })
+        assertEquals(3, galleryItems(records, "", DriveMediaFilter.ALL, null).size)
+    }
     private fun item(id: String, time: Long, category: String = "photo", cloud: Boolean = false) =
         DriveFileItem(id, "$id.bin", 120, "application/octet-stream", false, time,
             telegramCategory = category, cloudAccountId = if (cloud) "test-only" else null)

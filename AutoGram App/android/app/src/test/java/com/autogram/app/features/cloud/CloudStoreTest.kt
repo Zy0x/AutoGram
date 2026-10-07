@@ -5,6 +5,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CloudStoreTest {
+    @Test fun topicSwitchKeepsServerCooldownVisibleAndDoesNotSendAnotherRead() = runBlocking {
+        var calls = 0
+        val store = CloudStore(Service({ _, _, _ -> calls++; throw CloudFailure("flood_wait", 5) }), { 1000 })
+        store.scope(scope); store.media()
+        store.scope(scope.copy(topicId = 7)); store.media()
+        assertEquals(1, calls)
+        assertEquals("flood_wait", store.state.value.error)
+        assertEquals(6000L, store.state.value.retryAtMs)
+    }
+    @Test fun topicSearchCannotPublishAnUnscopedHistoryPage() = runBlocking {
+        var requested: CloudScope? = null
+        val store = CloudStore(Service({ s, _, _ ->
+            requested = s
+            CloudMediaPage(s.accountId, s.peerId, listOf(item(9)), null)
+        }))
+        store.scope(scope.copy(topicId = 7)); store.media()
+        assertEquals(7L, requested?.topicId)
+        assertEquals("account_changed", store.state.value.error)
+        assertTrue(store.state.value.items.isEmpty())
+    }
     @Test fun appendPreservesPendingThumbnailButFullRefreshRejectsIt() = runBlocking {
         var pending = CompletableDeferred<List<CloudThumbnail>>()
         val store = CloudStore(Service(

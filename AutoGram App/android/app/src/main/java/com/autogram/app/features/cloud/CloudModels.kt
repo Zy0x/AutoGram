@@ -5,11 +5,11 @@ data class CloudMedia(
     val id: Int, val name: String, val size: Long, val mimeType: String,
     val modifiedMs: Long, val deliveryKind: String, val telegramCategory: String,
     val width: Int? = null, val height: Int? = null, val durationSeconds: Double? = null,
-    val thumbnailBytes: ByteArray? = null
+    val thumbnailBytes: ByteArray? = null, val topicId: Long? = null
 )
 data class CloudLocationsPage(val accountId: String, val items: List<CloudLocation>, val nextCursor: String?)
-data class CloudMediaPage(val accountId: String, val peerId: String, val items: List<CloudMedia>, val nextOffset: Int?)
-data class CloudScope(val accountId: String = "", val peerId: String = "me")
+data class CloudMediaPage(val accountId: String, val peerId: String, val items: List<CloudMedia>, val nextOffset: Int?, val topicId: Long? = null)
+data class CloudScope(val accountId: String = "", val peerId: String = "me", val topicId: Long? = null)
 data class CloudState(
     val scope: CloudScope = CloudScope(), val query: String = "",
     val locations: List<CloudLocation> = emptyList(), val locationsCursor: String? = null,

@@ -1,6 +1,5 @@
 package com.autogram.app.ui.drive
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,7 +27,6 @@ fun DriveRemoteUploadModal(
     onDismiss: () -> Unit,
     onSubmitUrl: (url: String, stripCaption: Boolean, dedupCheck: Boolean) -> Unit
 ) {
-    val context = LocalContext.current
     var urlInput by remember { mutableStateOf("") }
     var stripCaption by remember { mutableStateOf(true) }
     var dedupCheck by remember { mutableStateOf(true) }
@@ -138,8 +135,6 @@ fun DriveRemoteUploadModal(
                             val trimmed = urlInput.trim()
                             if (trimmed.isNotBlank()) {
                                 onSubmitUrl(trimmed, stripCaption, dedupCheck)
-                                Toast.makeText(context, context.getString(R.string.drive_remote_upload_success), Toast.LENGTH_SHORT).show()
-                                onDismiss()
                             }
                         },
                         enabled = urlInput.trim().isNotBlank(),

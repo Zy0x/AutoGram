@@ -17,13 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.features.cloud.CloudLocation
+import com.autogram.app.features.cloud.CloudScope
+import com.autogram.app.features.cloud.NativeCloudService
+import com.autogram.app.features.cloud.topics.CloudTopicsStore
+import kotlinx.coroutines.launch
 import com.autogram.app.theme.*
 
 @Composable
@@ -34,7 +37,6 @@ fun DriveChatDestinationModal(
     onForward: (targetPeerId: String, cleanCopy: Boolean, targetTopicId: Long?) -> Unit = { _, _, _ -> },
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
     var selectedTarget by remember { mutableStateOf("me") }
     var cleanCopy by remember { mutableStateOf(true) }
     var customChatId by remember { mutableStateOf("") }
@@ -45,12 +47,14 @@ fun DriveChatDestinationModal(
         locations.find { it.id == selectedTarget }
     }
     val isTargetForum = selectedLocation?.kind == "forum"
-    val forumTopics = remember(selectedTarget, sessionId, isTargetForum) {
-        if (isTargetForum) {
-            DriveTopicsStore(context).getTopics(sessionId, selectedTarget)
-        } else {
-            emptyList()
-        }
+    val topicsStore = remember { CloudTopicsStore(NativeCloudService()) }
+    val topicsState by topicsStore.state.collectAsState()
+    val topicJobs = rememberCoroutineScope()
+    val forumTopics = if (topicsState.scope == CloudScope(sessionId, selectedTarget)) topicsState.items else emptyList()
+    LaunchedEffect(selectedTarget, sessionId, isTargetForum) {
+        selectedTopicId = null
+        topicsStore.scope(CloudScope(sessionId, selectedTarget))
+        if (isTargetForum) topicsStore.load()
     }
 
     AlertDialog(
@@ -263,6 +267,19 @@ fun DriveChatDestinationModal(
                 }
 
                 // If Selected Destination is a Forum Supergroup, show Forum Topic Selector
+                if (isTargetForum) {
+                    if (topicsState.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    topicsState.error?.let { Text(stringResource(com.autogram.app.features.cloud.cloudErrorLabel(it))) }
+                    Row(Modifier.fillMaxWidth()) {
+                        TextButton(enabled = !topicsState.loading, onClick = { topicJobs.launch { topicsStore.load() } }) {
+                            Text(stringResource(R.string.cloud_refresh))
+                        }
+                        if (topicsState.next != null) TextButton(enabled = !topicsState.loading,
+                            onClick = { topicJobs.launch { topicsStore.load(true) } }) {
+                            Text(stringResource(R.string.cloud_more))
+                        }
+                    }
+                }
                 if (isTargetForum && forumTopics.isNotEmpty()) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),

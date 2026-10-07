@@ -1,6 +1,7 @@
 use super::{
     contracts::*,
-    metadata, ranges::*,
+    metadata,
+    ranges::*,
     thumbnail::{self, ThumbnailQuality, MAX_THUMBNAIL_BATCH},
 };
 use crate::telegram::auth::{map_rpc, AccountId, AuthEngine, AuthError};
@@ -137,7 +138,12 @@ impl CloudWorkspace {
                 let kind = match dialog.peer() {
                     Peer::User(_) => "user",
                     Peer::Channel(_) => "channel",
-                    Peer::Group(_) => "group",
+                    Peer::Group(group) => match &group.raw {
+                        grammers_client::tl::enums::Chat::Channel(channel) if channel.forum => {
+                            "forum"
+                        }
+                        _ => "group",
+                    },
                 };
                 items.push(CloudDialog {
                     id: id.clone(),
@@ -224,6 +230,96 @@ impl CloudWorkspace {
                 peer_id,
                 items,
                 next_offset: if scanned == HISTORY_SCAN { last } else { None },
+            })
+        })
+        .await
+    }
+
+    pub async fn list_topics(
+        &self,
+        auth: &AuthEngine,
+        account: AccountId,
+        peer_id: String,
+        cursor: super::topics::TopicCursor,
+    ) -> Result<super::topics::CloudTopicPage, AuthError> {
+        if cursor.message_id < 0 || cursor.topic_id < 0 || cursor.date < 0 {
+            return Err(AuthError::new("cloud_cursor_invalid"));
+        }
+        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        auth.cloud_request(&account, |client| async move {
+            let page = super::topics::fetch_topics(&client, peer, &cursor)
+                .await
+                .map_err(map_rpc)?;
+            if page.cursor_error {
+                return Err(AuthError::new("cloud_cursor_invalid"));
+            }
+            Ok(page)
+        })
+        .await
+    }
+
+    pub async fn list_topic_media(
+        &self,
+        auth: &AuthEngine,
+        account: AccountId,
+        peer_id: String,
+        topic_id: i32,
+        before: i32,
+        query: String,
+    ) -> Result<CloudMediaPage, AuthError> {
+        if topic_id <= 0 || before < 0 || query.len() > 512 {
+            return Err(AuthError::new("invalid_cloud_query"));
+        }
+        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        let owner = account.clone();
+        auth.cloud_request(&owner, |client| async move {
+            use grammers_client::tl::enums::messages::Messages;
+            let response = client
+                .invoke(&super::topics::media_request(
+                    peer,
+                    topic_id,
+                    before,
+                    query.trim().into(),
+                ))
+                .await
+                .map_err(map_rpc)?;
+            let messages = match response {
+                Messages::Messages(pack) => pack.messages,
+                Messages::Slice(pack) => pack.messages,
+                Messages::ChannelMessages(pack) => pack.messages,
+                Messages::NotModified(_) => return Err(AuthError::new("cloud_cursor_invalid")),
+            };
+            let ids: Vec<i32> = messages
+                .into_iter()
+                .filter_map(|message| match message {
+                    grammers_client::tl::enums::Message::Message(message) => Some(message.id),
+                    grammers_client::tl::enums::Message::Service(message) => Some(message.id),
+                    _ => None,
+                })
+                .collect();
+            // Grammers constructs peer maps internally; hydrate only the bounded server result.
+            let items = client
+                .get_messages_by_id(peer, &ids)
+                .await
+                .map_err(map_rpc)?
+                .into_iter()
+                .flatten()
+                .filter_map(|message| metadata::from_message(&message))
+                .collect();
+            // Search may return a short non-final page. Keep advancing until an empty page.
+            let next_offset = ids
+                .iter()
+                .copied()
+                .filter(|id| *id > 0 && (before == 0 || *id < before))
+                .min();
+            if !ids.is_empty() && next_offset.is_none() {
+                return Err(AuthError::new("cloud_cursor_invalid"));
+            }
+            Ok(CloudMediaPage {
+                account_id: account.0,
+                peer_id,
+                items,
+                next_offset,
             })
         })
         .await
@@ -362,7 +458,9 @@ impl CloudWorkspace {
             for maybe_msg in messages.into_iter().flatten() {
                 let msg_id = maybe_msg.id();
                 if let Some(media) = maybe_msg.media() {
-                    if let Some(bytes) = thumbnail::fetch_thumbnail(&client, &media, quality).await? {
+                    if let Some(bytes) =
+                        thumbnail::fetch_thumbnail(&client, &media, quality).await?
+                    {
                         results.push(CloudThumbnailItem {
                             message_id: msg_id,
                             thumbnail_bytes: bytes,

@@ -4,6 +4,7 @@ pub mod jpeg;
 pub mod metadata;
 mod ranges;
 pub mod thumbnail;
+pub mod topics;
 mod workspace;
 
 pub use contracts::*;

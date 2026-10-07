@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 mod session_inventory;
 mod auth;
 mod cloud;
+mod cloud_topics;
 mod cloud_download;
 mod platform;
 #[cfg(test)]

@@ -871,6 +871,10 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -943,6 +947,10 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_fn_func_list_cloud_downloads(`accountId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_cloud_media(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`beforeMessageId`: Int,`query`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_list_cloud_topic_media(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: Int,`beforeMessageId`: Int,`query`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_list_cloud_topics(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`cursor`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_list_drive_items(`sessionId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`parentPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
@@ -1146,6 +1154,10 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_cloud_media(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_cloud_topic_media(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_cloud_topics(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_drive_items(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_session_summaries(
@@ -1287,6 +1299,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_cloud_media() != 7391.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_cloud_topic_media() != 8.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_cloud_topics() != 36792.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_drive_items() != 39237.toShort()) {
@@ -2467,6 +2485,126 @@ public object FfiConverterTypeNativeCloudThumbnail: FfiConverterRustBuffer<Nativ
 
 
 
+data class NativeCloudTopic (
+    var `id`: kotlin.Int,
+    var `title`: kotlin.String,
+    var `topMessage`: kotlin.Int,
+    var `closed`: kotlin.Boolean,
+    var `iconColor`: kotlin.Int
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudTopic: FfiConverterRustBuffer<NativeCloudTopic> {
+    override fun read(buf: ByteBuffer): NativeCloudTopic {
+        return NativeCloudTopic(
+            FfiConverterInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudTopic) = (
+            FfiConverterInt.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterInt.allocationSize(value.`topMessage`) +
+            FfiConverterBoolean.allocationSize(value.`closed`) +
+            FfiConverterInt.allocationSize(value.`iconColor`)
+    )
+
+    override fun write(value: NativeCloudTopic, buf: ByteBuffer) {
+            FfiConverterInt.write(value.`id`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterInt.write(value.`topMessage`, buf)
+            FfiConverterBoolean.write(value.`closed`, buf)
+            FfiConverterInt.write(value.`iconColor`, buf)
+    }
+}
+
+
+
+data class NativeCloudTopicPage (
+    var `accountId`: kotlin.String,
+    var `peerId`: kotlin.String,
+    var `topics`: List<NativeCloudTopic>,
+    var `next`: NativeTopicCursor?
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudTopicPage: FfiConverterRustBuffer<NativeCloudTopicPage> {
+    override fun read(buf: ByteBuffer): NativeCloudTopicPage {
+        return NativeCloudTopicPage(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeNativeCloudTopic.read(buf),
+            FfiConverterOptionalTypeNativeTopicCursor.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudTopicPage) = (
+            FfiConverterString.allocationSize(value.`accountId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterSequenceTypeNativeCloudTopic.allocationSize(value.`topics`) +
+            FfiConverterOptionalTypeNativeTopicCursor.allocationSize(value.`next`)
+    )
+
+    override fun write(value: NativeCloudTopicPage, buf: ByteBuffer) {
+            FfiConverterString.write(value.`accountId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterSequenceTypeNativeCloudTopic.write(value.`topics`, buf)
+            FfiConverterOptionalTypeNativeTopicCursor.write(value.`next`, buf)
+    }
+}
+
+
+
+data class NativeTopicCursor (
+    var `date`: kotlin.Int,
+    var `messageId`: kotlin.Int,
+    var `topicId`: kotlin.Int
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeTopicCursor: FfiConverterRustBuffer<NativeTopicCursor> {
+    override fun read(buf: ByteBuffer): NativeTopicCursor {
+        return NativeTopicCursor(
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeTopicCursor) = (
+            FfiConverterInt.allocationSize(value.`date`) +
+            FfiConverterInt.allocationSize(value.`messageId`) +
+            FfiConverterInt.allocationSize(value.`topicId`)
+    )
+
+    override fun write(value: NativeTopicCursor, buf: ByteBuffer) {
+            FfiConverterInt.write(value.`date`, buf)
+            FfiConverterInt.write(value.`messageId`, buf)
+            FfiConverterInt.write(value.`topicId`, buf)
+    }
+}
+
+
+
 data class RepairSummary (
     var `success`: kotlin.Boolean,
     var `outputPath`: kotlin.String,
@@ -3252,6 +3390,38 @@ public object FfiConverterOptionalTypeNativeAccount: FfiConverterRustBuffer<Nati
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeNativeTopicCursor: FfiConverterRustBuffer<NativeTopicCursor?> {
+    override fun read(buf: ByteBuffer): NativeTopicCursor? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeNativeTopicCursor.read(buf)
+    }
+
+    override fun allocationSize(value: NativeTopicCursor?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeNativeTopicCursor.allocationSize(value)
+        }
+    }
+
+    override fun write(value: NativeTopicCursor?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeNativeTopicCursor.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceInt: FfiConverterRustBuffer<List<kotlin.Int>> {
     override fun read(buf: ByteBuffer): List<kotlin.Int> {
         val len = buf.getInt()
@@ -3557,6 +3727,34 @@ public object FfiConverterSequenceTypeNativeCloudThumbnail: FfiConverterRustBuff
 
 
 
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeNativeCloudTopic: FfiConverterRustBuffer<List<NativeCloudTopic>> {
+    override fun read(buf: ByteBuffer): List<NativeCloudTopic> {
+        val len = buf.getInt()
+        return List<NativeCloudTopic>(len) {
+            FfiConverterTypeNativeCloudTopic.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NativeCloudTopic>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNativeCloudTopic.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NativeCloudTopic>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNativeCloudTopic.write(it, buf)
+        }
+    }
+}
+
+
+
+
 
 
 
@@ -3845,6 +4043,36 @@ public object FfiConverterSequenceTypeNativeCloudThumbnail: FfiConverterRustBuff
         { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
         // lift function
         { FfiConverterTypeNativeCloudMediaPage.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `listCloudTopicMedia`(`accountId`: kotlin.String, `peerId`: kotlin.String, `topicId`: kotlin.Int, `beforeMessageId`: kotlin.Int, `query`: kotlin.String) : NativeCloudMediaPage {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_cloud_topic_media(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`peerId`),FfiConverterInt.lower(`topicId`),FfiConverterInt.lower(`beforeMessageId`),FfiConverterString.lower(`query`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudMediaPage.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `listCloudTopics`(`accountId`: kotlin.String, `peerId`: kotlin.String, `cursor`: NativeTopicCursor?) : NativeCloudTopicPage {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_cloud_topics(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`peerId`),FfiConverterOptionalTypeNativeTopicCursor.lower(`cursor`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudTopicPage.lift(it) },
         // Error FFI converter
         NativeAuthException.ErrorHandler,
     )

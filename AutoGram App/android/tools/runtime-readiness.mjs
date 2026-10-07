@@ -19,7 +19,7 @@ const workflowRequirements = [
   { id: 'account_switch', requiredExports: ['list_authorized_accounts', 'select_authorized_account',
     'last_selected_account', 'logout_account'],
     blockers: ['Unverified on a packaged Android device with real Telegram: account revalidation, isolated switching, cold-start restoration, revoked-session handling and logout/retry. Offline inventory and persisted identities alone are not authorization proof.'] },
-  { id: 'cloud_listing_cards', requiredExports: ['list_cloud_dialogs', 'list_cloud_media'],
+  { id: 'cloud_listing_cards', requiredExports: ['list_cloud_dialogs', 'list_cloud_media', 'list_cloud_topics', 'list_cloud_topic_media'],
     blockers: ['Unverified: Telegram-backed scoped dialog/topic/media indexing, refresh and cards matched to real messages; local SQLite rows alone do not prove cloud listing or mutation.'] },
   { id: 'cloud_preview', requiredExports: ['open_cloud_media_stream', 'read_cloud_media_range', 'close_cloud_media_stream', 'read_cloud_archive_entry'],
     blockers: ['Unverified: real Telegram media playback/seeking and each file-preview family, including bounded sparse encrypted-archive extraction with measured network bytes. Device-file previews alone are insufficient.'] },

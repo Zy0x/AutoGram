@@ -1,6 +1,5 @@
 package com.autogram.app.ui.drive
 
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -25,84 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autogram.app.R
 import com.autogram.app.theme.*
-import org.json.JSONArray
-import org.json.JSONObject
 
-data class DriveTopic(
-    val id: Long,
-    val title: String,
-    val topMessageId: Long? = null,
-    val isClosed: Boolean = false,
-    val colorHex: String? = null,
-    val iconEmoji: String? = null,
-    val messageCount: Int? = null
-)
-
-/**
- * Persistence cache for Forum Topics (matching desktop driveTopicsCache.ts).
- */
-class DriveTopicsStore(context: Context) {
-    private val preferences = context.applicationContext.getSharedPreferences("autogram_drive_topics", Context.MODE_PRIVATE)
-
-    fun getTopics(sessionId: String, peerId: String): List<DriveTopic> {
-        val raw = preferences.getString("${sessionId}_$peerId", null) ?: return defaultTopics()
-        return try {
-            val array = JSONArray(raw)
-            val list = mutableListOf<DriveTopic>()
-            for (i in 0 until array.length()) {
-                val obj = array.getJSONObject(i)
-                list.add(
-                    DriveTopic(
-                        id = obj.getLong("id"),
-                        title = obj.getString("title"),
-                        topMessageId = if (obj.has("topMessageId")) obj.getLong("topMessageId") else null,
-                        isClosed = obj.optBoolean("isClosed", false),
-                        colorHex = if (obj.has("colorHex")) obj.getString("colorHex") else null,
-                        iconEmoji = if (obj.has("iconEmoji")) obj.getString("iconEmoji") else null,
-                        messageCount = if (obj.has("messageCount")) obj.getInt("messageCount") else null
-                    )
-                )
-            }
-            if (list.isEmpty()) defaultTopics() else list
-        } catch (_: Exception) {
-            defaultTopics()
-        }
-    }
-
-    fun saveTopics(sessionId: String, peerId: String, topics: List<DriveTopic>) {
-        val array = JSONArray()
-        topics.forEach {
-            val obj = JSONObject()
-                .put("id", it.id)
-                .put("title", it.title)
-                .put("isClosed", it.isClosed)
-            if (it.topMessageId != null) obj.put("topMessageId", it.topMessageId)
-            if (it.colorHex != null) obj.put("colorHex", it.colorHex)
-            if (it.iconEmoji != null) obj.put("iconEmoji", it.iconEmoji)
-            if (it.messageCount != null) obj.put("messageCount", it.messageCount)
-            array.put(obj)
-        }
-        preferences.edit().putString("${sessionId}_$peerId", array.toString()).apply()
-    }
-
-    fun addTopic(sessionId: String, peerId: String, title: String, colorHex: String?, iconEmoji: String?): List<DriveTopic> {
-        val current = getTopics(sessionId, peerId).toMutableList()
-        val nextId = (current.maxOfOrNull { it.id } ?: 0L) + 1L
-        val newTopic = DriveTopic(
-            id = nextId,
-            title = title,
-            colorHex = colorHex,
-            iconEmoji = iconEmoji
-        )
-        current.add(newTopic)
-        saveTopics(sessionId, peerId, current)
-        return current
-    }
-
-    private fun defaultTopics(): List<DriveTopic> = listOf(
-        DriveTopic(id = 1L, title = "General", isClosed = false, colorHex = "#6FB9F0", iconEmoji = "💬")
-    )
-}
+typealias DriveTopic = com.autogram.app.features.cloud.topics.CloudTopic
 
 /**
  * Interactive Horizontal Topic Chip Bar for Telegram Forum Supergroups.
