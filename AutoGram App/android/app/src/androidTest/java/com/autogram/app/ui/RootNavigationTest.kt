@@ -15,6 +15,12 @@ class RootNavigationTest {
     private fun text(id: Int) = compose.activity.getString(id)
     private fun primary(id: Int) = compose.onNode(hasText(text(id)) and hasClickAction()
         and !hasAnyAncestor(hasScrollAction()))
+    private fun openSettings() {
+        primary(R.string.nav_tools).performTouchInput { click() }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.nav_settings)))
+        compose.onNode(hasText(text(R.string.nav_settings)) and hasClickAction()
+            and hasAnyAncestor(hasScrollAction())).performTouchInput { click() }
+    }
 
     /** Safe aggregate phase diagnostics: no media content, filename or account value in output. */
     @Test fun authorizedCloudPhotoRangeDiagnostic() {
@@ -123,14 +129,13 @@ class RootNavigationTest {
         val bounds = primary(R.string.nav_drive).getUnclippedBoundsInRoot()
         assertTrue("Navigation must remain bounded", bounds.bottom - bounds.top <= 112.dp)
         primary(R.string.nav_drive).assertHeightIsAtLeast(48.dp)
-        compose.onNodeWithContentDescription(text(R.string.drive_toggle_view_accessibility)).performClick()
         primary(R.string.nav_home).performTouchInput { click() }
         compose.waitUntil(timeoutMillis = 10_000) {
-            compose.onAllNodesWithText(text(R.string.ui2_open_drive_action)).fetchSemanticsNodes().isNotEmpty() &&
-                compose.onNodeWithText(text(R.string.ui2_open_drive_action)).isDisplayed()
+            compose.onAllNodesWithTag("home-collection").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onNodeWithTag("home-collection").isDisplayed()
         }
-        compose.onNodeWithText(text(R.string.ui2_open_drive_action)).assertIsDisplayed()
-        primary(R.string.nav_settings).performTouchInput { click() }
+        compose.onNodeWithTag("home-collection").assertIsDisplayed()
+        openSettings()
         val settingsTitle = hasText(text(R.string.ui2_settings_title)) and hasAnyAncestor(hasScrollAction())
         compose.waitUntil(timeoutMillis = 10_000) {
             compose.onAllNodes(settingsTitle).fetchSemanticsNodes().size == 1 &&
@@ -148,21 +153,18 @@ class RootNavigationTest {
         val bounds = primary(R.string.nav_home).getUnclippedBoundsInRoot()
         assertTrue("Navigation must not cover page content", bounds.bottom - bounds.top <= 112.dp)
         primary(R.string.nav_home).assertHeightIsAtLeast(48.dp)
-        compose.onNodeWithText(text(R.string.home_action_open_remote)).performTouchInput { click() }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.nav_remote)))
+        compose.onNodeWithText(text(R.string.nav_remote)).performTouchInput { click() }
         compose.onNodeWithText(text(R.string.remote_input_label)).assertIsDisplayed()
     }
 
     @Test fun primaryRoutesAndAccountFormAreReachableByTouch() {
         primary(R.string.nav_transfer).performTouchInput { click() }
-        compose.onNodeWithText(text(R.string.real_queue_scope)).assertIsDisplayed()
-        primary(R.string.nav_settings).performTouchInput { click() }
-        compose.onNodeWithText(text(R.string.real_settings_title)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.ui2_transfer_subtitle)).assertIsDisplayed()
+        openSettings()
+        compose.onNodeWithText(text(R.string.ui2_settings_title)).assertIsDisplayed()
         primary(R.string.nav_tools).performTouchInput { click() }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(text(R.string.nav_accounts)))
-        // Scroll the card clear of the floating dock before dispatching a real tap.
-        compose.onNode(hasScrollAction()).performTouchInput {
-            swipeUp(startY = height * 0.5f, endY = height * 0.25f)
-        }
         compose.onNode(hasText(text(R.string.nav_accounts)) and hasClickAction()
             and hasAnyAncestor(hasScrollAction())).performTouchInput { click() }
         compose.onNodeWithText(text(R.string.auth_title)).assertIsDisplayed()

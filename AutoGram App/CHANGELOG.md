@@ -96,6 +96,13 @@
   - Mapped Drive perspective `"web"` to `list_links_blocking_topic` (`InputMessagesFilterUrl`), `"images"` to a composite query across `Photos` + image `Document` + `Gif`, `"videos"` to `Video` + video `Document`, `"audio"` to `Music` + `Voice` + audio `Document`, and added bounded multi-page scanning for `"documents"` and `"archives"` subcategories inside `InputMessagesFilterDocument`.
   - Added `resolveActiveFilterContentFiles` so every category tab in both `Telegram` and `Drive` perspectives bidirectionally merges server-fetched category items with matching items already loaded in `All` or other lanes.
 
+### 14. Android Clean Workspace and Media-First Gallery
+
+- **Reserved navigation space (`MainActivity.kt`, `BottomNavBar.kt`)**: Replaced the floating dock with four measured destinations and keyboard-aware content sizing, preventing navigation from covering page content. Settings remains accessible in Tools; existing routes and account protection are unchanged.
+- **Media-first Home and Drive (`HomeScreen.kt`, `HomeMediaShelf.kt`, `DriveStories.kt`, `DriveUnifiedHeader.kt`)**: Removed duplicate hero cards and location decorations. Home shows only actual media from the loaded account/location; Drive starts with real location avatars, visible search and quieter filters, with larger touch controls.
+- **Action and download continuity (`DriveBottomActionBar.kt`, `DrivePreviewModal.kt`, `DownloadPanel.kt`)**: Selection actions reserve layout space, preview information/download move into one overflow menu, and the native download panel remains mounted outside the virtual gallery. Existing stream, account isolation and transfer behavior are preserved.
+- **Consistent presentation (`ToolsScreen.kt`, `TransferScreen.kt`, theme/components)**: Introduced grouped flat action rows, restrained sage accents and clearer typography, removing nested borders and redundant decorative containers without hiding operation status or unavailable-feature notices. Added Indonesian/English collection labels and navigation/layout regression coverage.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

@@ -29,13 +29,13 @@ class BottomNavigationLayoutTest {
             CompositionLocalProvider(LocalDensity provides Density(density, fontScale)) {
                 AutoGramTheme {
                     val controller = rememberNavController()
-                    Box(Modifier.width(width.dp).height(580.dp)) {
-                        NavHost(controller, startDestination = Screen.Home.route) {
+                    Column(Modifier.width(width.dp).height(580.dp)) {
+                        NavHost(controller, startDestination = Screen.Home.route, modifier = Modifier.weight(1f)) {
                             Screen.primaryItems.forEach { screen ->
                                 composable(screen.route) { Text("route:${screen.route}") }
                             }
                         }
-                        Box(Modifier.align(Alignment.BottomCenter)) { BottomNavBar(controller) }
+                        BottomNavBar(controller)
                     }
                 }
             }

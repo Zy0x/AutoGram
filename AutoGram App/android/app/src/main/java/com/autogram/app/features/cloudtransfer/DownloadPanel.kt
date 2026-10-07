@@ -27,7 +27,8 @@ import java.io.File
 /** Actual native queue, separate from legacy metadata tasks. Private completion means ready to save. */
 @Composable
 fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () -> Unit,
-    queue: DownloadQueue = NativeDownloadQueue) {
+    queue: DownloadQueue = NativeDownloadQueue, showLauncher: Boolean = true,
+    openRequested: Boolean = false, onOpenRequestConsumed: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val accountActions = remember(accountId) {
@@ -77,6 +78,12 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
         }
     }
     DisposableEffect(accountActions) { onDispose { accountActions.cancel() } }
+    LaunchedEffect(openRequested) {
+        if (openRequested) {
+            visible = true
+            onOpenRequestConsumed()
+        }
+    }
     LaunchedEffect(accountId, selected?.id) {
         val item = selected
         if (item != null) {
@@ -107,7 +114,7 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
             delay(750)
         }
     }
-    TextButton(enabled = accountId.isNotEmpty(), onClick = { visible = true }) {
+    if (showLauncher) TextButton(enabled = accountId.isNotEmpty(), onClick = { visible = true }) {
         Text(stringResource(R.string.cloud_download_title))
     }
     if (visible) AlertDialog(onDismissRequest = { if (!copying) visible = false },

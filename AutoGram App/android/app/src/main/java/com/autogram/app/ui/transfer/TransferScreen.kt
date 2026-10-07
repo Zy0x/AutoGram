@@ -30,9 +30,15 @@ import com.autogram.app.viewmodel.*
 private enum class TransferTab { ALL, ACTIVE, COMPLETED }
 
 @Composable
-fun TransferScreen(viewModel: TransferViewModel, modifier: Modifier = Modifier) {
+fun TransferScreen(viewModel: TransferViewModel, modifier: Modifier = Modifier, accountId: String = "") {
     val state by viewModel.uiState.collectAsState()
-    TransferScreenContent(state, modifier, viewModel::togglePause, viewModel::loadTransfers)
+    var downloadsOpen by remember(accountId) { mutableStateOf(false) }
+    TransferScreenContent(state, modifier, viewModel::togglePause, viewModel::loadTransfers,
+        onOpenDownloads = if (accountId.isNotBlank()) ({ downloadsOpen = true }) else null)
+    // Keep the real queue/SAF lifetime outside lazy rows, just like Drive.
+    com.autogram.app.features.cloudtransfer.DownloadPanel(accountId, null, {},
+        showLauncher = false, openRequested = downloadsOpen,
+        onOpenRequestConsumed = { downloadsOpen = false })
 }
 
 @Composable
@@ -40,7 +46,8 @@ fun TransferScreenContent(
     state: TransferUiState,
     modifier: Modifier = Modifier,
     onTogglePause: (TransferTaskItem) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onOpenDownloads: (() -> Unit)? = null
 ) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     var currentTab by remember { mutableStateOf(TransferTab.ALL) }
@@ -62,7 +69,7 @@ fun TransferScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Header: Title & Refresh Button
@@ -77,7 +84,7 @@ fun TransferScreenContent(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.transfer_header_title),
+                            text = stringResource(R.string.nav_transfer),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 24.sp,
@@ -92,10 +99,13 @@ fun TransferScreenContent(
                         )
                     }
 
+                    if (onOpenDownloads != null) IconButton(onClick = onOpenDownloads, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.CloudDownload, stringResource(R.string.cloud_download_title), tint = MutedIceCyan)
+                    }
                     IconButton(
                         onClick = onRetry,
                         enabled = !state.isLoading,
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -178,15 +188,14 @@ fun TransferScreenContent(
                     (task.transferredBytes.toDouble() / task.totalBytes).toFloat().coerceIn(0f, 1f)
                 } else 0f
 
-                AutoGramGlassCard(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    borderColor = if (isRunning) ChampagneGold.copy(alpha = 0.4f) else BorderHairline,
-                    containerColor = SurfaceDeep,
+                    color = CanvasDeepNavy,
                     onClick = { selectedId = task.id }
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -223,7 +232,7 @@ fun TransferScreenContent(
                                 text = task.fileName,
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.5.sp
+                                    fontSize = 15.sp
                                 ),
                                 color = TextPrimaryDark,
                                 maxLines = 1,
@@ -237,7 +246,7 @@ fun TransferScreenContent(
                                 Text(
                                     text = stringResource(transferStatusLabel(task.status)),
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     color = when {
@@ -258,7 +267,7 @@ fun TransferScreenContent(
                                         formatFileSize(task.transferredBytes),
                                         if (task.totalBytes > 0) formatFileSize(task.totalBytes) else stringResource(R.string.real_unknown)
                                     ),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = TextSecondaryDark
                                 )
                             }
@@ -326,9 +335,8 @@ private fun TransferFilterChip(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) MutedIceCyan.copy(alpha = 0.2f) else SurfaceGlass,
-        border = BorderStroke(1.dp, if (isSelected) MutedIceCyan else BorderHairline),
-        modifier = Modifier.heightIn(min = 36.dp)
+        color = if (isSelected) MutedIceCyan.copy(alpha = 0.12f) else Color.Transparent,
+        modifier = Modifier.heightIn(min = 48.dp)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -339,7 +347,7 @@ private fun TransferFilterChip(
                 text = label,
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 12.sp
+                    fontSize = 14.sp
                 ),
                 color = if (isSelected) TextPrimaryDark else TextSecondaryDark
             )
@@ -350,7 +358,7 @@ private fun TransferFilterChip(
                 ) {
                     Text(
                         text = "$count",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                         color = if (isSelected) TextPrimaryDark else TextSecondaryDark,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                     )

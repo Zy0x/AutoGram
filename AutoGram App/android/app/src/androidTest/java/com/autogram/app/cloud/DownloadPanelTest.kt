@@ -39,6 +39,19 @@ class DownloadPanelTest {
         compose.setContent { AutoGramTheme { DownloadPanel("", null, {}) } }
         compose.onNodeWithText(compose.activity.getString(R.string.cloud_download_title)).assertIsNotEnabled()
     }
+    @Test fun overflowRequestOpensQueueWithoutAStandaloneLauncher() {
+        val requested = mutableStateOf(false)
+        compose.setContent { AutoGramTheme {
+            DownloadPanel("tg_987654321", null, {}, WaitingQueue(), showLauncher = false,
+                openRequested = requested.value, onOpenRequestConsumed = { requested.value = false })
+        } }
+        compose.onNodeWithText(compose.activity.getString(R.string.cloud_download_title)).assertDoesNotExist()
+        compose.runOnIdle { requested.value = true }
+        compose.onNodeWithText(compose.activity.getString(R.string.cloud_download_empty)).assertIsDisplayed()
+        compose.runOnIdle { org.junit.Assert.assertFalse(requested.value) }
+        compose.onNodeWithText(compose.activity.getString(R.string.native_close)).performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.cloud_download_title)).assertDoesNotExist()
+    }
     @Test fun realEmptyNativeQueueHasClosableDialogNoInventedProgress() {
         compose.setContent { AutoGramTheme { DownloadPanel("tg_987654321", null, {}) } }
         compose.onNodeWithText(compose.activity.getString(R.string.cloud_download_title)).performClick()

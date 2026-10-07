@@ -1,18 +1,18 @@
 package com.autogram.app.ui.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -21,71 +21,36 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.autogram.app.navigation.Screen
 import com.autogram.app.theme.*
 
+/** Placed after content in a Column, never above it as a touch-catching overlay. */
 @Composable
 fun BottomNavBar(navController: NavController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            color = SurfaceDock.copy(alpha = 0.97f),
-            shadowElevation = 2.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    val entry by navController.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
+    Surface(color = CanvasDeepNavy, modifier = Modifier.fillMaxWidth().testTag("primary-navigation")) {
+        Column(Modifier.navigationBarsPadding()) {
+            HorizontalDivider(color = BorderHairline)
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Screen.primaryItems.forEach { screen ->
-                    val isSelected = when {
-                        currentRoute == screen.route -> true
-                        currentRoute !in Screen.primaryItems.map { it.route } && screen is Screen.Tools -> true
-                        else -> false
-                    }
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 64.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = NeonCyan)
-                            ) {
-                                navigatePrimary(navController, screen.route, currentRoute)
-                            },
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) NeonCyan.copy(alpha = 0.14f) else Color.Transparent,
-                        border = null
+                    val selected = route == screen.route ||
+                        (route !in Screen.primaryItems.map { it.route } && screen == Screen.Tools)
+                    Column(
+                        Modifier.weight(1f).heightIn(min = 56.dp).clip(RoundedCornerShape(12.dp))
+                            .selectable(selected = selected, role = Role.Tab,
+                                onClick = { navigatePrimary(navController, screen.route, route) })
+                            .padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Column(
-                            // This floating dock wraps its children. Filling height here
-                            // would expand its touch surface over the entire page.
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = stringResource(screen.titleRes),
-                                tint = if (isSelected) NeonCyan else TextSecondaryDark,
-                                modifier = Modifier.size(21.dp)
-                            )
-                            Spacer(Modifier.height(3.dp))
-                            Text(
-                                text = stringResource(screen.titleRes),
-                                color = if (isSelected) TextPrimaryDark else TextSecondaryDark,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 2,
-                                textAlign = TextAlign.Center,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        Box(Modifier.clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) MutedIceCyan.copy(alpha = 0.14f) else Color.Transparent)
+                            .padding(horizontal = 14.dp, vertical = 4.dp)) {
+                            Icon(screen.icon, null, Modifier.size(22.dp),
+                                tint = if (selected) MutedIceCyan else TextSecondaryDark)
                         }
+                        Text(stringResource(screen.titleRes),
+                            color = if (selected) TextPrimaryDark else TextSecondaryDark,
+                            style = MaterialTheme.typography.labelSmall, maxLines = 2,
+                            textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

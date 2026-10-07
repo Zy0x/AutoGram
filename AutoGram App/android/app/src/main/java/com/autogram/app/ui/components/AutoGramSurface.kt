@@ -81,7 +81,7 @@ fun AutoGramBrand(modifier: Modifier = Modifier, compact: Boolean = false) {
 fun AutoGramGlassCard(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(18.dp),
-    borderColor: Color = BorderHairline,
+    borderColor: Color = Color.Transparent,
     containerColor: Color = SurfaceGlass,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -91,7 +91,7 @@ fun AutoGramGlassCard(
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(1.dp, borderColor)
+        border = if (borderColor == Color.Transparent) null else BorderStroke(1.dp, borderColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             content()
@@ -138,7 +138,7 @@ fun AutoGramCard(
         modifier = modifier,
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = SurfaceGlass),
-        border = BorderStroke(1.dp, BorderHairline)
+        border = null
     ) {
         content()
     }
@@ -200,46 +200,19 @@ fun AutoGramMetricCard(
 }
 
 @Composable
-fun AutoGramGlowButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    brush: Brush = ChampagneToCyanBrush,
-    enabled: Boolean = true
-) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        color = Color.Transparent
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(if (enabled) brush else Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF1E293B)))),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 18.dp)
-            ) {
-                if (icon != null) {
-                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                }
-                Text(
-                    text = text,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp
-                    )
-                )
-            }
+fun AutoGramGlowButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier,
+    icon: ImageVector? = null, brush: Brush = ChampagneToCyanBrush, enabled: Boolean = true) {
+    Surface(onClick = onClick, enabled = enabled,
+        modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp),
+        color = SurfaceElevatedDark) {
+        Row(Modifier.fillMaxWidth().background(if (enabled) brush
+            else Brush.linearGradient(listOf(SurfaceElevatedDark, SurfaceElevatedDark)))
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically) {
+            val foreground = if (enabled) ObsidianPrimary else TextSecondaryDark
+            if (icon != null) Icon(icon, null, Modifier.size(18.dp), tint = foreground)
+            Text(text, color = foreground, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -357,44 +330,14 @@ fun AutoGramEmptyState(
     icon: ImageVector = Icons.Default.FolderOpen,
     modifier: Modifier = Modifier
 ) {
-    AutoGramGlassCard(
-        modifier = modifier.fillMaxWidth(),
-        containerColor = SurfaceGlassSoft,
-        borderColor = BorderHairline
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 32.dp, horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = ChampagneGold.copy(alpha = 0.12f),
-                modifier = Modifier.size(56.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = ChampagneGold,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = TextPrimaryDark
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                color = TextSecondaryDark,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-        }
+    Column(modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Icon(icon, null, tint = TextSecondaryDark, modifier = Modifier.size(32.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, color = TextPrimaryDark,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(description, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryDark,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +38,7 @@ fun DrivePreviewModal(
     onDownload: ((DriveFileItem) -> Unit)? = null
 ) {
     var showInfoSheet by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val initialIndex = remember(item, allItems) {
         allItems.indexOfFirst {
@@ -64,15 +66,22 @@ fun DrivePreviewModal(
                         Icon(Icons.Default.Close, stringResource(R.string.native_close))
                     }
                     Column(Modifier.weight(1f).padding(8.dp)) {
-                        Text(activeItem.name, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        Text(activeItem.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium)
-                        Text(formatFileSize(activeItem.size), style = MaterialTheme.typography.bodySmall)
                     }
-                    IconButton(onClick = { showInfoSheet = true }, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Default.Info, stringResource(R.string.file_info_title))
-                    }
-                    if (onDownload != null) IconButton(onClick = { onDownload(activeItem) }, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Default.Download, stringResource(R.string.preview_action_download))
+                    Box {
+                        IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Default.MoreVert, stringResource(R.string.clean_gallery_actions))
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.file_info_title)) },
+                                leadingIcon = { Icon(Icons.Default.Info, null) },
+                                onClick = { menuOpen = false; showInfoSheet = true })
+                            if (onDownload != null) DropdownMenuItem(
+                                text = { Text(stringResource(R.string.preview_action_download)) },
+                                leadingIcon = { Icon(Icons.Default.Download, null) },
+                                onClick = { menuOpen = false; onDownload(activeItem) })
+                        }
                     }
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

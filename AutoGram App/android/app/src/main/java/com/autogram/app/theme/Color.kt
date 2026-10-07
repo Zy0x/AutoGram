@@ -28,11 +28,12 @@ val SurfaceGlassSoft = Color(0xFF161B20)
 val SurfaceDock = Color(0xFF1B2127)
 
 // Gold & Accent System (Titanium Soft Luxury)
-val GoldAccent = Color(0xFFE0C89C)              // Reserved warm status accent
-val GoldAccentLight = Color(0xFFFFD27A)
+val PrimaryAccent = Color(0xFFA9C9B6)          // Restrained sage, shared across interaction chrome
+val GoldAccent = PrimaryAccent                // Compatibility alias, not an extra chrome color
+val GoldAccentLight = PrimaryAccent
 val ChampagneGold = GoldAccent
 val ChampagneLight = GoldAccentLight
-val MutedIceCyan = Color(0xFFB0CADB)            // Quiet blue-gray primary
+val MutedIceCyan = PrimaryAccent
 val DustySage = Color(0xFFA8C6B1)
 val SoftViolet = Color(0xFFA78BFA)              // Video
 val WarmAmber = Color(0xFFE9C176)               // Audio / Amber
@@ -53,7 +54,7 @@ val AccentAmber = WarmAmber
 val AccentViolet = SoftViolet
 
 // Typography
-val TextPrimaryDark = Color(0xFFF8FAFC)
+val TextPrimaryDark = Color(0xFFF5F3EF)
 val TextSecondaryDark = Color(0xFFADB6BF)
 val TextMutedDark = Color(0xFF909AA5)
 

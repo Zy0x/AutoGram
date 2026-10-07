@@ -72,8 +72,9 @@ Network, decoder and file layout still affect start time; playback is not guaran
 instant. Seeking requests the required position rather than downloading all preceding
 bytes. Closing the preview or changing account invalidates the old stream.
 
-Preview uses the available screen area with fixed close, download and previous/next
-controls. Navigation follows the current gallery filter and date order within the same
+Preview uses the available screen area with fixed close and previous/next controls.
+The overflow menu provides file information and download without crowding the title.
+Navigation follows the current gallery filter and date order within the same
 account and location; folders and unsupported neighboring formats are skipped. Images
 support pinch/pan, double-tap zoom and reset; text scrolls independently of the controls.
 Video fits its measured aspect ratio, with integrated play/pause and seek controls.
@@ -91,8 +92,8 @@ credential or local file path. Clear playback history removes these positions on
 
 ## Cloud downloads
 
-Open a cloud media card and choose **Download**, then inspect **Cloud downloads** in
-Cloud Drives. New download jobs retain their original account, even when you switch
+Open a cloud media card and choose **More → Download**, then inspect **Cloud downloads**
+from the gallery overflow menu or the download icon in Transfers. New download jobs retain their original account, even when you switch
 accounts. The native engine verifies source identity, writes bounded chunks and checks
 actual file size and SHA-256. Pause, resume, cancel and retry act on these real jobs,
 not older metadata-only transfer records.
@@ -118,16 +119,23 @@ Opening the app verifies the saved session with Telegram. Subsequent account-cha
 events consume the engine's verified selection without repeatedly restarting the
 login gate; unverified or revoked accounts still cannot open the workspace.
 
-The Dashboard provides account access, a primary Cloud Drives entry and compact tool
-shortcuts. In Cloud Drives, the top circular rail selects actual Telegram locations;
+The bottom navigation has four destinations: Home, Drive, Transfers and Tools.
+It reserves its own space rather than floating over the collection. Settings and all
+secondary destinations remain available in Tools. The Dashboard provides account
+access, media from the currently loaded collection and compact Remote Link/Studio
+shortcuts. This collection is not an account-wide recent-files index.
+In Cloud Drives, the top circular rail selects actual Telegram locations;
 Saved Messages is always directly available. Scroll horizontally for more locations
-and use refresh or more to load additional results. The selected location is highlighted.
+and use more to load additional results. Refresh is in the gallery overflow menu;
+an unsuccessful location request also provides retry. The selected location is highlighted.
 
 The collection uses square thumbnails grouped by the message dates in your device time
 zone. Files with no known date remain in a separate group. Search, media-type filters,
 list view and long-press selection remain available. The collection menu contains the
-existing actions; their availability has not changed. Cloud downloads remain separate
-from legacy local transfer records. Tools can expand feature coverage details per row.
+existing actions; their availability has not changed. View options remain under the
+tune icon; search stays visible below the location title. Selecting files reserves
+space for the action bar. Cloud downloads remain separate from legacy local transfer
+records. Tools uses grouped rows without additional nested cards.
 
 ## Remaining feature boundaries
 

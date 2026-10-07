@@ -60,6 +60,7 @@ fun DriveScreen(
     var isViewOptionsOpen by remember { mutableStateOf(false) }
     var isTopicHubOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
+    var isDownloadsOpen by remember(state.sessionId) { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
         viewModel.setPreviewActive(previewItem != null || zipArchiveItem != null)
@@ -174,7 +175,10 @@ fun DriveScreen(
             }
         },
         onItemLongClick = { item -> viewModel.toggleItemSelection(item.id) },
-        cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null }) },
+        onOpenDownloads = { isDownloadsOpen = true },
+        cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null },
+            showLauncher = false, openRequested = isDownloadsOpen,
+            onOpenRequestConsumed = { isDownloadsOpen = false }) },
         storyControls = { DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation) },
         pagingControls = {
             if (cloudState.nextOffset != null) TextButton(onClick = viewModel::loadMoreMedia, enabled = !cloudState.loading) {
@@ -361,7 +365,8 @@ fun DriveScreenContent(
     onItemLongClick: (DriveFileItem) -> Unit,
     cloudControls: (@Composable () -> Unit)? = null,
     storyControls: (@Composable () -> Unit)? = null,
-    pagingControls: (@Composable () -> Unit)? = null
+    pagingControls: (@Composable () -> Unit)? = null,
+    onOpenDownloads: () -> Unit = {}
 ) {
     val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId) {
         galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)
@@ -369,7 +374,8 @@ fun DriveScreenContent(
     val sections = remember(filteredItems) { gallerySections(filteredItems) }
     val context = LocalContext.current
     val gridState = rememberLazyGridState()
-    LaunchedEffect(state.sessionId, state.peerId, state.searchQuery, state.mediaFilter) { gridState.scrollToItem(0) }
+    // Typing must not repeatedly move/dispose a focused virtualized search field.
+    LaunchedEffect(state.sessionId, state.peerId, state.mediaFilter, state.activeTopicId) { gridState.scrollToItem(0) }
 
     AutoGramSurface(modifier) {
         Box(
@@ -380,7 +386,7 @@ fun DriveScreenContent(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Unified Header (Location, Search, Tune, More) / Selection Mode
-                DriveUnifiedHeader(
+                val header: @Composable () -> Unit = { DriveUnifiedHeader(
                     selectedCount = state.selectedIds.size,
                     activeLocationTitle = state.activeLocationTitle,
                     activeLocationKind = state.activeLocationKind,
@@ -397,29 +403,12 @@ fun DriveScreenContent(
                     onSelectAll = onSelectAll,
                     onInvertSelection = onInvertSelection,
                     onDownloadZip = onDownloadZip,
-                    onCopyLinks = onCopyLinks
-                )
+                    onCopyLinks = onCopyLinks,
+                    onOpenDownloads = onOpenDownloads
+                ) }
+                if (state.selectedIds.isNotEmpty()) header()
 
                 // In Normal Mode (not selection mode): Show Forum Topics & Media Filters
-                if (state.selectedIds.isEmpty()) {
-                    if (state.isForum) {
-                        Spacer(Modifier.height(4.dp))
-                        DriveForumTopicStrip(
-                            topics = state.topics,
-                            activeTopicId = state.activeTopicId,
-                            onSelectTopic = onTopicSelect,
-                            onAddTopic = onAddTopic,
-                            onOpenTopicHub = onOpenTopicHub
-                        )
-                    }
-
-                    Spacer(Modifier.height(4.dp))
-                    DriveMediaFilterStrip(
-                        activeFilter = state.mediaFilter,
-                        onFilterChange = onMediaFilterChange
-                    )
-                    Spacer(Modifier.height(4.dp))
-                }
 
                 // Active Download panel / Cloud controls if mounted
                 cloudControls?.invoke()
@@ -440,13 +429,20 @@ fun DriveScreenContent(
                         start = 3.dp,
                         end = 3.dp,
                         top = 4.dp,
-                        bottom = if (state.selectedIds.isNotEmpty()) 104.dp else 84.dp
+                        bottom = if (state.selectedIds.isNotEmpty()) 16.dp else 80.dp
                     ),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     if (state.selectedIds.isEmpty()) {
                         item(key = "stories", span = { GridItemSpan(maxLineSpan) }) { storyControls?.invoke() }
+                        item(key = "header", span = { GridItemSpan(maxLineSpan) }) { header() }
+                        if (state.isForum) item(key = "topics", span = { GridItemSpan(maxLineSpan) }) {
+                            DriveForumTopicStrip(state.topics, state.activeTopicId, onTopicSelect, onOpenTopicHub)
+                        }
+                        item(key = "filters", span = { GridItemSpan(maxLineSpan) }) {
+                            DriveMediaFilterStrip(state.mediaFilter, onMediaFilterChange)
+                        }
                     }
 
                     if (state.isLoading) item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
@@ -513,6 +509,9 @@ fun DriveScreenContent(
                         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { pagingControls?.invoke() }
                     }
                 }
+                // Consume measured space, including accessibility font scaling.
+                DriveBottomActionBar(state.selectedIds.size, onCleanForward, onTagCategory,
+                    onMoveFolder, onDownloadZip, onDeleteSelected)
             }
 
             // Speed-Dial FAB in Normal Mode
@@ -526,16 +525,6 @@ fun DriveScreenContent(
                 )
             }
 
-            // Bottom Action Bar in Multi-Selection Mode
-            DriveBottomActionBar(
-                selectedCount = state.selectedIds.size,
-                onCleanForward = onCleanForward,
-                onTagCategory = onTagCategory,
-                onMoveFolder = onMoveFolder,
-                onDownloadZip = onDownloadZip,
-                onDeleteSelected = onDeleteSelected,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
 }

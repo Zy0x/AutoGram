@@ -16,6 +16,18 @@ import org.junit.Test
 /** Isolated UI fixtures only: no account, cloud writes, settings or history changes. */
 class DrivePreviewUiTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun overflowPreservesInformationAndDownloadForTheActiveItem() {
+        val record = DriveFileItem("1", "preview-fixture", 20, "text/plain", false, 0)
+        var downloaded: DriveFileItem? = null
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        compose.setContent { AutoGramTheme {
+            DrivePreviewModal(record, onDismiss = {}, onDownload = { downloaded = it })
+        } }
+        compose.onNodeWithContentDescription(context.getString(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(context.getString(R.string.file_info_title)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.preview_action_download)).performClick()
+        compose.runOnIdle { assertEquals(record, downloaded) }
+    }
     @Test fun decodedImageSupportsDoubleTapZoomAndReset() {
         val bitmap = android.graphics.Bitmap.createBitmap(800, 400, android.graphics.Bitmap.Config.ARGB_8888)
         compose.setContent { AutoGramTheme {

@@ -45,7 +45,8 @@ sealed class Screen(
     data object Settings : Screen("settings", R.string.nav_settings, Icons.Default.Settings)
 
     companion object {
-        val primaryItems: List<Screen> get() = listOf(Home, Drive, Transfer, Tools, Settings)
+        // Settings remains reachable through Tools; the phone dock holds primary work only.
+        val primaryItems: List<Screen> get() = listOf(Home, Drive, Transfer, Tools)
         val items: List<Screen> get() = listOf(
             Home, Drive, Transfer, Remote, LocalDownloads, LocalPreview, Forwarder, Studio, Tools,
             Accounts, Jobs, Automation, Statistics, Profiles, Sync, ApiSetup, Settings

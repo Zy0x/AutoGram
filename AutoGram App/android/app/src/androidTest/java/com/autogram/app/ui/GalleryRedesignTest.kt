@@ -56,12 +56,22 @@ class GalleryRedesignTest {
 
     @Test fun railAppearsAboveSearchAndErrorsRemainRetryable() {
         var refreshed = false
-        compose.setContent { AutoGramTheme { gallery(DriveUiState(errorCode = "cloud_read_failed"),
+        compose.setContent { AutoGramTheme { gallery(DriveUiState(),
             onRefresh = { refreshed = true }) } }
         val stories = compose.onNodeWithTag("drive-stories").getUnclippedBoundsInRoot()
         val search = compose.onNode(hasSetTextAction()).getUnclippedBoundsInRoot()
         assertTrue(stories.top < search.top)
-        compose.onNodeWithTag("cloud-gallery").performScrollToNode(hasText(text(R.string.cloud_read_failed)))
+        // Refresh now belongs to the contextual menu, not a second rail toolbar.
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.drive_action_refresh)).performClick()
+        compose.runOnIdle { assertTrue(refreshed) }
+    }
+
+    @Test fun actualReadErrorRemainsVisibleAndRetryable() {
+        var refreshed = false
+        compose.setContent { AutoGramTheme { gallery(DriveUiState(errorCode = "cloud_read_failed"),
+            onRefresh = { refreshed = true }) } }
+        compose.onNodeWithText(text(R.string.cloud_read_failed)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.drive_action_refresh)).performClick()
         compose.runOnIdle { assertTrue(refreshed) }
     }

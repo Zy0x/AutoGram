@@ -932,4 +932,5 @@
     <string name="drive_topic_all_desc">Tampilkan seluruh berkas di semua topik</string>
     <string name="drive_topic_item_count">%1$d berkas</string>
     <string name="drive_topic_not_found">Topik tidak ditemukan</string>
+    <string name="clean_home_collection">Terbaru di koleksi yang dimuat</string>
 </resources>

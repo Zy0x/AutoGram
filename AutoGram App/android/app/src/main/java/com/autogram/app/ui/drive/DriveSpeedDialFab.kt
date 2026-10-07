@@ -55,7 +55,7 @@ fun DriveSpeedDialFab(
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(end = 16.dp, bottom = 80.dp)
+            modifier = Modifier.padding(end = 16.dp, bottom = 16.dp)
         ) {
             // Speed Dial Items
             AnimatedVisibility(
@@ -108,9 +108,9 @@ fun DriveSpeedDialFab(
             FloatingActionButton(
                 onClick = { isExpanded = !isExpanded },
                 shape = CircleShape,
-                containerColor = GoldAccent,
-                contentColor = Color.Black,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                containerColor = MutedIceCyan,
+                contentColor = ObsidianPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
                 modifier = Modifier.size(56.dp)
             ) {
                 Icon(
@@ -161,7 +161,7 @@ private fun SpeedDialActionItem(
             containerColor = SurfaceElevatedDark,
             contentColor = iconTint,
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
-            modifier = Modifier.size(42.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = icon,

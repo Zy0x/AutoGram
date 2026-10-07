@@ -8,6 +8,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -158,13 +163,15 @@ fun AutoGramAppRoot(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val useRail = maxWidth >= 720.dp
         
-        Box(modifier = Modifier.fillMaxSize()) {
-            Row(Modifier.fillMaxSize()) {
-                if (useRail) AutoGramNavigationRail(navController)
+        Row(Modifier.fillMaxSize()) {
+            if (useRail) AutoGramNavigationRail(navController)
+            Column(Modifier.weight(1f).imePadding()) {
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Home.route,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).then(
+                        if (!useRail) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier
+                    )
                 ) {
                     composable(Screen.Home.route) {
                         HomeScreen(
@@ -180,7 +187,7 @@ fun AutoGramAppRoot(
                         DriveScreen(viewModel = driveViewModel)
                     }
                     composable(Screen.Transfer.route) {
-                        TransferScreen(viewModel = transferViewModel)
+                        TransferScreen(viewModel = transferViewModel, accountId = driveState.sessionId)
                     }
                     composable(Screen.Forwarder.route) {
                         ForwarderScreen()
@@ -227,15 +234,7 @@ fun AutoGramAppRoot(
                         SettingsScreen()
                     }
                 }
-            }
-
-            // Floating Glass Capsule Bottom Navigation Bar (Overlays content gracefully)
-            if (!useRail) {
-                Box(
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    BottomNavBar(navController = navController)
-                }
+                if (!useRail) BottomNavBar(navController)
             }
         }
     }

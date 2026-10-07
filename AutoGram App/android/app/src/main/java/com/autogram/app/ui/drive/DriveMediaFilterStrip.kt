@@ -44,26 +44,19 @@ fun DriveMediaFilterStrip(
             Surface(
                 onClick = { onFilterChange(filter) },
                 shape = RoundedCornerShape(10.dp),
-                color = if (isSelected) MutedIceCyan.copy(alpha = 0.2f) else SurfaceGlassSoft,
-                border = BorderStroke(
-                    1.dp,
-                    if (isSelected) MutedIceCyan else BorderHairline
-                ),
-                modifier = Modifier.height(32.dp)
+                color = if (isSelected) MutedIceCyan.copy(alpha = 0.12f) else androidx.compose.ui.graphics.Color.Transparent,
+                modifier = Modifier.heightIn(min = 48.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    if (isSelected) {
-                        AutoGramStatusDot(color = MutedIceCyan, size = 5.dp)
-                    }
                     Text(
                         text = stringResource(labelRes),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp
+                            fontSize = 14.sp
                         ),
                         color = if (isSelected) TextPrimaryDark else TextSecondaryDark
                     )
