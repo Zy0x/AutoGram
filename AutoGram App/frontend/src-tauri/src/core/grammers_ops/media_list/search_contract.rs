@@ -141,7 +141,13 @@ pub fn evaluate_frontier_step(
     doc_exhausted: bool,
 ) -> FrontierStep {
     let head_pv = pending_pv.first();
-    let head_doc = pending_doc.first();
+    // Out-of-band rows (e.g. InputMessagesFilterGif pre-seeded into pending_doc) can have IDs
+    // older than the searched Document frontier (or exist while doc_offset == 0 before the
+    // Document lane has been queried). Only treat head_doc as a valid frontier head when the
+    // Document lane is exhausted or has been searched down to/below head_doc.id.
+    let head_doc = pending_doc
+        .first()
+        .filter(|doc| doc_exhausted || (doc_offset > 0 && (doc.id as i32) >= doc_offset));
 
     match (head_pv, head_doc) {
         // Case 1: Both heads known
@@ -226,7 +232,9 @@ pub fn drain_provably_safe_frontier(
         }
 
         let head_pv = pending_pv.get(pv_idx);
-        let head_doc = pending_doc.get(doc_idx);
+        let head_doc = pending_doc
+            .get(doc_idx)
+            .filter(|doc| doc_exhausted || (doc_offset > 0 && (doc.id as i32) >= doc_offset));
 
         let step = match (head_pv, head_doc) {
             (Some(pv), Some(doc)) => {

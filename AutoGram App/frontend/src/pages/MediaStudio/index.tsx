@@ -9,6 +9,11 @@ import {
   partialIndexNeedsAutoResume,
 } from './indexScope';
 import { reconcileFilteredTotal } from './filterCountPolicy';
+import {
+  mergeAllFilterContentFiles,
+  mergeReconciledFilesIntoAllState,
+  shouldPrefetchFilesLaneForAllFilter,
+} from './allFilterReconciliation';
 import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
 
@@ -1743,11 +1748,12 @@ function MediaDriveDesktop({
   const pendingTargetMsgIdRef = useRef<number | null>(null);
   const pendingPathNavRef = useRef<ParsedTelegramPath | null>(null);
 
-  // Watch files: when new files load and we have a pending target message ID, auto-select & focus card
+  // Watch files and filteredFilesMap: when new files load and we have a pending target message ID, auto-select & focus card
   useEffect(() => {
-    if (pendingTargetMsgIdRef.current == null || !files.length) return;
+    const mergedAll = mergeAllFilterContentFiles(files || [], filteredFilesMap);
+    if (pendingTargetMsgIdRef.current == null || !mergedAll.length) return;
     const targetId = pendingTargetMsgIdRef.current;
-    const targetFile = files.find((f) => f.id === targetId);
+    const targetFile = mergedAll.find((f) => f.id === targetId);
     if (targetFile) {
       setSelectedIds([targetId]);
       setQuery(String(targetId));
@@ -1761,7 +1767,7 @@ function MediaDriveDesktop({
         }
       }, 1500);
     }
-  }, [files, showPathJumpToast, t]);
+  }, [files, filteredFilesMap, showPathJumpToast, t]);
 
   /** Execute chat/topic/media location navigation on given folders and chats lists */
   const executePathLocationNav = useCallback(
@@ -1876,8 +1882,10 @@ function MediaDriveDesktop({
         // Auto-fill media ID into location search query (DriveTopBar search)
         setQuery(String(msgId));
 
-        // Check if file is already in currently loaded files
-        const existingFile = files.find((f) => f.id === msgId);
+        // Check if file is already in currently loaded files or merged category lanes
+        const existingFile =
+          mergeAllFilterContentFiles(files || [], filteredFilesMap).find((f) => f.id === msgId) ||
+          files.find((f) => f.id === msgId);
         if (existingFile) {
           setSelectedIds([msgId]);
           showPathJumpToast(
@@ -2007,20 +2015,7 @@ function MediaDriveDesktop({
 
   const activeContentFiles = useMemo(() => {
     if (mediaFilter === 'all') {
-      const base = files || [];
-      const knownGifs = filteredFilesMap['gifs'] || [];
-      if (!knownGifs.length) return base;
-      const knownIds = new Set(base.map((f) => f.id));
-      let merged = [...base];
-      let hasNew = false;
-      for (const g of knownGifs) {
-        if (!knownIds.has(g.id)) {
-          knownIds.add(g.id);
-          merged.push(g);
-          hasNew = true;
-        }
-      }
-      return hasNew ? merged.sort((a, b) => b.id - a.id) : base;
+      return mergeAllFilterContentFiles(files || [], filteredFilesMap);
     }
     if (mediaFilter === 'media') {
       const base = filteredFilesMap['media'] || [];
@@ -3453,6 +3448,8 @@ function MediaDriveDesktop({
     setTotalBytes(null);
     setFilesHasMore(false);
     setNextOffsetId(null);
+    searchCursorRef.current = null;
+    setSearchCursor(null);
     setLoadingFiles(true);
 
     // Read normalized durable index for delta comparison and stats metadata only.
@@ -3663,6 +3660,8 @@ function MediaDriveDesktop({
       const hasMore = !!res.has_more;
       setFilesHasMore(hasMore);
       setNextOffsetId(res.next_offset_id ?? null);
+      searchCursorRef.current = res.search_cursor ?? null;
+      setSearchCursor(res.search_cursor ?? null);
       try {
         saveDriveLocationSnapshot(localStorage, creds.session, peerId, tid, {
           files: page,
@@ -4008,12 +4007,15 @@ function MediaDriveDesktop({
       const res = await driveListFiles(creds, peerId, {
         pageSize: requestedPageSize,
         offsetId: offsetAtStart,
+        searchCursor: searchCursorRef.current,
         topicId: tid,
         quickStats: false,
         sortMode: 'newest',
         localOffset: files.length,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
+      searchCursorRef.current = res.search_cursor ?? null;
+      setSearchCursor(res.search_cursor ?? null);
       let page: DriveFile[] = res.files || [];
       if (page.length) {
         primeThumbsFromFileList(creds, peerId, page, thumbLocationOptions);
@@ -4284,12 +4286,68 @@ function MediaDriveDesktop({
             gifs: reconcileFilteredTotal('gifs', response.total_count, next.length),
           }));
           filteredNextOffsetMapRef.current['gifs'] = response.next_offset_id ?? null;
+          setFiles((prev) => mergeReconciledFilesIntoAllState(prev, next));
         }
       })
       .catch((err) => {
         console.warn('[MediaStudio] Background GIF prefetch failed gracefully:', err);
       });
   }, [creds, peerId, mediaFilter, cachedMediaBreakdown?.gifCount, hasLoadedGifs, getDriveCacheKey, viewPerspective]);
+
+  // Proactively reconcile the top Document ('files') lane when viewing 'all'
+  // so document messages (including photos/archives sent as files) are always present at the head of All.
+  const filesPrefetchAttemptedRef = useRef<string | null>(null);
+  const hasLoadedFilesLane = Boolean(filteredFilesMap['files']?.length);
+  useEffect(() => {
+    if (!creds || mediaFilter !== 'all') return;
+    if (!shouldPrefetchFilesLaneForAllFilter(files, filteredFilesMap, cachedMediaBreakdown?.fileCount)) {
+      return;
+    }
+    const currentScopeKey = getDriveCacheKey(creds.session, peerId, topicFilterRef.current);
+    if (hasLoadedFilesLane || filesPrefetchAttemptedRef.current === currentScopeKey) return;
+    filesPrefetchAttemptedRef.current = currentScopeKey;
+
+    const tid = topicFilterRef.current;
+    void driveListFiles(creds, peerId, {
+      pageSize: 100,
+      topicId: tid,
+      contentFilter: 'files',
+      bypassCache: false,
+      perspective: viewPerspective,
+    })
+      .then((response) => {
+        const next = dedupeByMsgId(response.files || []);
+        if (next.length > 0) {
+          setFilteredFilesMap((prev) => ({
+            ...prev,
+            files: next,
+          }));
+          setFilteredHasMoreMap((prev) => ({
+            ...prev,
+            files: Boolean(response.has_more),
+          }));
+          setFilteredTotalCountMap((prev) => ({
+            ...prev,
+            files: reconcileFilteredTotal('files', response.total_count, next.length),
+          }));
+          filteredNextOffsetMapRef.current['files'] = response.next_offset_id ?? null;
+          setFiles((prev) => mergeReconciledFilesIntoAllState(prev, next));
+        }
+      })
+      .catch((err) => {
+        console.warn('[MediaStudio] Background Files lane prefetch failed gracefully:', err);
+      });
+  }, [
+    creds,
+    peerId,
+    mediaFilter,
+    files,
+    filteredFilesMap,
+    cachedMediaBreakdown?.fileCount,
+    hasLoadedFilesLane,
+    getDriveCacheKey,
+    viewPerspective,
+  ]);
 
   const indexingActiveRef = useRef(false);
   const indexingPausedRef = useRef(false);

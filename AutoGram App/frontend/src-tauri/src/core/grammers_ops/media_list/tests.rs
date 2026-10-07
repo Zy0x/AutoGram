@@ -840,3 +840,72 @@ fn test_truncate_first_line_multibyte_safe() {
     let short = "Hello World";
     assert_eq!(truncate_first_line(short, 60), "Hello World");
 }
+
+#[test]
+fn test_preseeded_gif_does_not_skip_document_lane_on_initial_frontier() {
+    // Regression test for #Gudang (U8542241823/D-1003214112048/T15415/52397):
+    // When InputMessagesFilterGif pre-seeds an older GIF (id = 45000) into pending_document
+    // before SearchLane::Document has been fetched (doc_offset == 0, doc_exhausted == false),
+    // drain_provably_safe_frontier MUST return FrontierStep::FetchBoth (never FetchPv alone).
+    let mut pending_pv = Vec::new();
+    let mut pending_doc = vec![dummy_row(45000)];
+    let mut emitted = Vec::new();
+
+    let step0 = drain_provably_safe_frontier(
+        &mut pending_pv,
+        &mut pending_doc,
+        0,
+        0,
+        false,
+        false,
+        10,
+        &mut emitted,
+    );
+    assert_eq!(
+        step0,
+        FrontierStep::FetchBoth,
+        "Pre-seeded GIF with doc_offset == 0 must still trigger FetchBoth so Document lane is queried"
+    );
+    assert!(emitted.is_empty());
+
+    // Simulate FetchBoth: PV returns 52391..52388, DOC returns 52397..52392 and 52389 (doc_offset = 52389)
+    pending_pv.extend([
+        dummy_row(52391),
+        dummy_row(52390),
+        dummy_row(52388),
+        dummy_row(52387),
+    ]);
+    pending_doc.extend([
+        dummy_row(52397),
+        dummy_row(52396),
+        dummy_row(52395),
+        dummy_row(52394),
+        dummy_row(52393),
+        dummy_row(52392),
+        dummy_row(52389),
+    ]);
+
+    let step1 = drain_provably_safe_frontier(
+        &mut pending_pv,
+        &mut pending_doc,
+        52387,
+        52389,
+        false,
+        false,
+        10,
+        &mut emitted,
+    );
+    // Should emit 52397..52392 (6 docs), 52391..52390 (2 pvs), 52389 (1 doc) = 9 items,
+    // and then pause at PV 52388 because 52388 <= doc_offset (52389) while the remaining
+    // item in pending_doc is GIF 45000 (< 52389) and !doc_exhausted!
+    assert_eq!(
+        step1,
+        FrontierStep::FetchDoc,
+        "Once real documents >= doc_offset are drained, an older GIF (45000 < 52389) must not prevent FetchDoc"
+    );
+    let emitted_ids: Vec<i64> = emitted.iter().map(|m| m.row.id).collect();
+    assert_eq!(
+        emitted_ids,
+        vec![52397, 52396, 52395, 52394, 52393, 52392, 52391, 52390, 52389]
+    );
+}
