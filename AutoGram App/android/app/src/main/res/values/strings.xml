@@ -945,4 +945,20 @@
     <string name="preview_info_topic">ID topik Telegram</string>
     <string name="preview_info_category">Kategori dan jenis pengiriman</string>
     <string name="preview_info_duration_value">%1$02d:%2$02d (%3$d detik)</string>
+    <string name="player_aspect">Rasio tampilan</string>
+    <string name="player_mute">Bisukan audio</string>
+    <string name="player_unlock">Buka kunci gestur</string>
+    <string name="player_lock">Kunci gestur</string>
+    <string name="player_gesture_help">Panduan gestur</string>
+    <string name="player_gesture_explanation">Geser horizontal di tengah video untuk seek; posisi diterapkan saat jari dilepas. Ketuk dua kali sisi kiri/kanan untuk mundur/maju 10 detik, atau tengah untuk putar/jeda. Tahan tanpa bergerak untuk mempercepat sementara. Geser vertikal kiri untuk kecerahan, kanan untuk volume. Untuk media sebelumnya/berikutnya, geser panjang dari tepi video atau gunakan dua jari; tombol navigasi di bawah tetap tersedia. Kunci gestur melalui menu ini dan buka kembali melalui menu yang sama.</string>
+    <string name="player_audio_tracks">Trek audio</string>
+    <string name="player_subtitle_tracks">Subtitle</string>
+    <string name="player_track_auto">Otomatis</string>
+    <string name="player_track_off">Nonaktif</string>
+    <string name="player_track_number">Trek %1$d</string>
+    <string name="player_unknown">Belum diketahui</string>
+    <string name="player_hold_speed">%1$.1fx · tahan untuk mempercepat</string>
+    <string name="player_volume_value">Volume %1$d%%</string>
+    <string name="player_brightness_value">Kecerahan %1$d%%</string>
+    <string name="player_show_controls">Tampilkan kontrol pemutar</string>
 </resources>

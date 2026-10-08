@@ -37,6 +37,8 @@ class ImagePagerGestureTest {
                 CloudImageViewer(bitmap, row.name, paging)
             })
         } }
+        compose.onAllNodesWithContentDescription(text(R.string.clean_gallery_actions)).assertCountEquals(1)
+        compose.onNodeWithText(text(R.string.preview_rotate_cw)).assertDoesNotExist()
         compose.onNodeWithTag("preview-image-ready").performTouchInput { swipeLeft() }
         compose.waitUntil(5000) { selected.id == "2" }
         compose.onNodeWithTag("preview-image-ready").performTouchInput { swipeRight() }
@@ -46,8 +48,8 @@ class ImagePagerGestureTest {
             SemanticsProperties.StateDescription, InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.preview_image_zoom_value, 250)))
         compose.onNodeWithTag("preview-image-ready").performTouchInput { swipeLeft() }
         compose.runOnIdle { assertEquals("1", selected.id) }
-        compose.onNodeWithTag("preview-image-tools").performScrollToNode(hasContentDescription(text(R.string.cloud_preview_reset_zoom)))
-        compose.onNodeWithTag("preview-image-reset").performClick()
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.cloud_preview_reset_zoom)).performClick()
         compose.onNodeWithTag("preview-image-ready").performTouchInput { swipeLeft() }
         compose.waitUntil(5000) { selected.id == "2" }
     }
@@ -85,9 +87,13 @@ class ImagePagerGestureTest {
         compose.setContent { AutoGramTheme { CloudImageViewer(bitmap, "gesture-fixture") } }
         val image = compose.onNodeWithTag("preview-image-ready")
         image.assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
-        compose.onNodeWithContentDescription(text(R.string.preview_rotate_cw)).assertHeightIsAtLeast(androidx.compose.ui.unit.Dp(48f)).performClick()
-        compose.onNodeWithTag("preview-image-tools").performScrollToNode(hasContentDescription(text(R.string.preview_flip_h)))
-        compose.onNodeWithContentDescription(text(R.string.preview_flip_h)).performClick().assertIsOn()
+        compose.onNodeWithText(text(R.string.preview_image_zoom_in)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).assertHeightIsAtLeast(androidx.compose.ui.unit.Dp(48f)).performClick()
+        compose.onNodeWithText(text(R.string.preview_rotate_cw)).assertHeightIsAtLeast(androidx.compose.ui.unit.Dp(48f)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.preview_flip_h)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.preview_flip_h)).assertIsSelected()
     }
 
     @Test fun twoFingerPinchAndAccessibleResetKeepTheSelectedPhoto() {

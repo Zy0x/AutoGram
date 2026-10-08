@@ -36,8 +36,9 @@ class DrivePreviewUiTest {
         val reset = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.cloud_preview_reset_zoom)
         compose.onNodeWithContentDescription(reset).assertDoesNotExist()
         compose.onNodeWithTag("preview-image-ready").performTouchInput { doubleClick() }
-        compose.onNodeWithTag("preview-image-tools").performScrollToNode(hasContentDescription(reset))
-        compose.onNodeWithContentDescription(reset).assertIsDisplayed().performTouchInput { click() }
+        val more = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.clean_gallery_actions)
+        compose.onNodeWithContentDescription(more).performClick()
+        compose.onNodeWithText(reset).assertIsDisplayed().performTouchInput { click() }
         compose.onNodeWithContentDescription(reset).assertDoesNotExist()
     }
     @Test fun chromeRemainsReachableAndNavigatesBothDirectionsThenCloses() {

@@ -1,5 +1,12 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Android Clean Preview and Deliberate Video Gestures
+- Removed the persistent photo transform toolbar and visible zoom buttons; pinch, focal double-tap and accessible actions remain available. Rotation, flips and reset now use the existing gallery overflow menu, with no duplicate overflow button inside a hosted viewer.
+- Split Android video playback into controller, rendering, menu and gesture-policy modules. Playback speed, repeat, aspect ratio, screen rotation, mute, gesture lock, available audio/subtitle tracks and real decoder information are accessible through the same overflow menu. Embedded subtitles are rendered by Media3, not represented as metadata-only options.
+- Added centre-drag seek committed on release, side double-tap seeking and stationary-hold temporary speed boost. Deliberate edge/two-finger swipes navigate videos without allowing the gallery pager to intercept normal seeking. Short/diagonal swipes do not switch media; gesture cancellation and background transitions restore the original playback speed/state.
+- Video transport controls hide during playback and remain available when paused, with accessible and keyboard actions. Brightness applies to the preview window and volume to the player only; preview dismissal restores temporary window settings. Prepared videos retain seek access during buffering, without changing startup or ongoing buffer targets.
+- Added isolated synthetic-MP4 gesture/track/lifecycle regressions and updated photo-menu tests. These changes do not certify full MX Player or desktop parity; physical-device acceptance is still required for the packaged revision.
+
 ### Android Photo Preview Navigation and Accessible Transforms
 - Corrected the interaction between the image viewer and gallery pager: normal-scale horizontal swipes navigate files, while enlarged images retain pan gestures. Added focal-point double-tap zoom, 25–800% scale, rotation, flips, reset, accessible transform actions and 48dp controls.
 - Scoped preview identities now include account, chat and message identity; navigation honors the active topic and filename-based format detection. Only a settled visible page owns a stream/player, preventing adjacent-page network reads or simultaneous autoplay. Thumbnail updates no longer restart the active preview.

@@ -121,7 +121,30 @@ The overflow menu provides file information and download without crowding the ti
 Navigation follows the current gallery filter and date order within the same
 account and location; folders and unsupported neighboring formats are skipped. Images
 support pinch/pan, double-tap zoom and reset; text scrolls independently of the controls.
-Video fits its measured aspect ratio, with integrated play/pause and seek controls.
+Photos do not display zoom buttons: pinch or double-tap to zoom and drag to pan an
+enlarged image. Rotation, flips and reset are in the same overflow menu as file
+information and download; accessible transform actions remain available.
+
+Video fits its measured aspect ratio. Tap to reveal or hide play/pause and the
+timeline; controls hide after three seconds of uninterrupted playback. Drag
+horizontally in the centre of the video to preview a seek, then release to apply it.
+Double-tap left/right to rewind/advance ten seconds, or the centre to play/pause.
+Hold still to temporarily increase speed; releasing, cancelling or leaving the
+foreground restores the previous speed and playback intent.
+
+To navigate videos, use a deliberate long horizontal swipe beginning near an edge,
+a two-finger horizontal swipe, or the previous/next controls below. A centre seek
+does not change media. Very short, slow or strongly diagonal gallery gestures are
+ignored. Vertical gestures on the left adjust preview brightness; those on the
+right adjust this player's volume, not the phone's system volume.
+
+The overflow menu contains playback speed, aspect ratio, repeat, mute, rotation,
+gesture lock/unlock, gesture help and actual stream information. Available embedded
+audio and subtitle tracks can be selected there; unsupported tracks are disabled,
+and absent tracks are not invented. Embedded subtitles are displayed on the video.
+These controls do not add codecs unsupported by the phone, external subtitle-file
+import or picture-in-picture. Physical gesture acceptance remains pending for the
+latest revision; this is not a complete MX Player replacement.
 The progressive player separates a 200 ms startup threshold from its 15–50 second
 ongoing buffer window, and supplies the saved position before preparing the media.
 Failed reads can be retried. Transport setup and native byte conversion run separately

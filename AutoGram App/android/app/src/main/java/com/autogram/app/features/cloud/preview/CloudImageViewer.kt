@@ -4,10 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,9 +16,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
-import androidx.compose.ui.unit.dp
 import com.autogram.app.R
 import com.autogram.app.features.cloud.preview.image.*
+import com.autogram.app.features.cloud.preview.controls.*
 
 /** Pinch/pan and double-tap only the decoded image, never its navigation chrome. */
 @Composable
@@ -49,6 +45,15 @@ internal fun CloudImageViewer(bitmap: Bitmap, name: String, onPagingEnabled: (Bo
         val flipV = stringResource(R.string.preview_flip_v)
         val reset = stringResource(R.string.cloud_preview_reset_zoom)
         val zoomLabel = stringResource(R.string.preview_image_zoom_value, (transform.zoom * 100).toInt())
+        val updateLatest by rememberUpdatedState<(ImageTransform) -> Unit> { update(it) }
+        val tools = remember(transform, rotateLeft, rotateRight, flipH, flipV, reset) { listOf(
+            PreviewTool("image.rotate_left", rotateLeft) { updateLatest(transform.rotate(-90)) },
+            PreviewTool("image.rotate_right", rotateRight) { updateLatest(transform.rotate(90)) },
+            PreviewTool("image.flip_h", flipH, checked = transform.flipH) { updateLatest(transform.copy(flipH = !transform.flipH)) },
+            PreviewTool("image.flip_v", flipV, checked = transform.flipV) { updateLatest(transform.copy(flipV = !transform.flipV)) },
+            PreviewTool("image.reset", reset, enabled = transform != ImageTransform()) { updateLatest(ImageTransform()) }
+        ) }
+        PublishPreviewTools(tools)
         Image(bitmap.asImageBitmap(), contentDescription = name, contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize().testTag("preview-image-ready")
                 .semantics {
@@ -79,20 +84,6 @@ internal fun CloudImageViewer(bitmap: Bitmap, name: String, onPagingEnabled: (Bo
                     rotationZ = transform.rotation.toFloat()
                     translationX = transform.x; translationY = transform.y
                 })
-        Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), color = MaterialTheme.colorScheme.surface.copy(alpha = .9f)) {
-            LazyRow(Modifier.testTag("preview-image-tools"), verticalAlignment = Alignment.CenterVertically,
-                contentPadding = PaddingValues(horizontal = 8.dp)) {
-                item { IconButton(onClick = { update(transform.atZoom(transform.zoom / 1.25f)) }, Modifier.size(48.dp)) { Icon(Icons.Default.ZoomOut, zoomOut) } }
-                item { Text(zoomLabel, Modifier.widthIn(min = 56.dp), style = MaterialTheme.typography.labelMedium) }
-                item { IconButton(onClick = { update(transform.atZoom(transform.zoom * 1.25f)) }, Modifier.size(48.dp)) { Icon(Icons.Default.ZoomIn, zoomIn) } }
-                item { IconButton(onClick = { update(transform.rotate(-90)) }, Modifier.size(48.dp)) { Icon(Icons.Default.RotateLeft, rotateLeft) } }
-                item { IconButton(onClick = { update(transform.rotate(90)) }, Modifier.size(48.dp)) { Icon(Icons.Default.RotateRight, rotateRight) } }
-                item { IconToggleButton(transform.flipH, { update(transform.copy(flipH = it)) }, Modifier.size(48.dp)) { Icon(Icons.Default.Flip, flipH) } }
-                item { IconToggleButton(transform.flipV, { update(transform.copy(flipV = it)) }, Modifier.size(48.dp)) { Icon(Icons.Default.Flip, flipV) } }
-                if (transform != ImageTransform()) item {
-                    IconButton(onClick = { update(ImageTransform()) }, Modifier.size(48.dp).testTag("preview-image-reset")) { Icon(Icons.Default.RestartAlt, reset) }
-                }
-            }
-        }
+        StandalonePreviewTools(tools, Modifier.align(Alignment.TopEnd))
     }
 }

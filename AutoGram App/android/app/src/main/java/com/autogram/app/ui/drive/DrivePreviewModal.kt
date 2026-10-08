@@ -30,6 +30,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.foundation.focusable
 import com.autogram.app.features.preview.PreviewKind
 import com.autogram.app.features.preview.previewKind
+import com.autogram.app.features.cloud.preview.controls.*
 
 /** Verified cloud items use their native range capability; local inventory is metadata only. */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -44,6 +45,8 @@ fun DrivePreviewModal(
 ) {
     var showInfoSheet by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var toolGroup by remember { mutableStateOf<String?>(null) }
+    val tools = remember { PreviewToolsRegistry() }
     val coroutineScope = rememberCoroutineScope()
     val entries = scopedPreviewItems(item, allItems)
     val keys = entries.map(::previewItemKey)
@@ -98,7 +101,8 @@ fun DrivePreviewModal(
     }
     val previousLabel = stringResource(R.string.real_previous)
     val nextLabel = stringResource(R.string.real_next)
-    val navigationReady = !aligning && lastKeys == keys && lastRequest == requestedKey && !pagerState.isScrollInProgress
+    val navigationReady = !tools.navigationLocked && !aligning && lastKeys == keys && lastRequest == requestedKey && !pagerState.isScrollInProgress
+    LaunchedEffect(activeKey) { toolGroup = null; menuOpen = false }
     fun navigate(delta: Int): Boolean {
         val target = pagerState.settledPage + delta
         if (!navigationReady || target !in entries.indices) return false
@@ -107,6 +111,7 @@ fun DrivePreviewModal(
     }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+      CompositionLocalProvider(LocalPreviewTools provides tools, LocalPreviewNavigation provides ::navigate) {
         Surface(Modifier.fillMaxSize().testTag("drive-preview")
             .semantics { customActions = buildList {
                 if (navigationReady && pagerState.settledPage > 0) add(CustomAccessibilityAction(previousLabel) { navigate(-1) })
@@ -135,6 +140,7 @@ fun DrivePreviewModal(
                             Icon(Icons.Default.MoreVert, stringResource(R.string.clean_gallery_actions))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            PreviewToolMenuItems(tools.tools, { menuOpen = false }, { toolGroup = it })
                             DropdownMenuItem(text = { Text(stringResource(R.string.file_info_title)) },
                                 leadingIcon = { Icon(Icons.Default.Info, null) },
                                 onClick = { menuOpen = false; showInfoSheet = true })
@@ -148,7 +154,9 @@ fun DrivePreviewModal(
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         HorizontalPager(
                             state = pagerState,
-                            userScrollEnabled = pagingEnabled && !aligning && lastKeys == keys && lastRequest == requestedKey,
+                            userScrollEnabled = pagingEnabled && !tools.navigationLocked &&
+                                previewKind(activeItem.mimeType, activeItem.name) != PreviewKind.VIDEO &&
+                                !aligning && lastKeys == keys && lastRequest == requestedKey,
                             modifier = Modifier.fillMaxSize().testTag("preview-pager"),
                             key = { page -> keys[page] }
                         ) { page ->
@@ -180,6 +188,8 @@ fun DrivePreviewModal(
                 }
             }
         }
+        tools.tools.firstOrNull { it.id == toolGroup }?.let { PreviewToolDialog(it) { toolGroup = null } }
+      }
     }
 
     if (showInfoSheet) {

@@ -942,4 +942,20 @@
     <string name="preview_info_topic">Telegram topic ID</string>
     <string name="preview_info_category">Category and delivery type</string>
     <string name="preview_info_duration_value">%1$02d:%2$02d (%3$d seconds)</string>
+    <string name="player_aspect">Aspect ratio</string>
+    <string name="player_mute">Mute audio</string>
+    <string name="player_unlock">Unlock gestures</string>
+    <string name="player_lock">Lock gestures</string>
+    <string name="player_gesture_help">Gesture guide</string>
+    <string name="player_gesture_explanation">Drag horizontally in the centre to seek; the position is applied on release. Double-tap left/right to rewind/advance 10 seconds, or the centre to play/pause. Hold still for temporary faster playback. Swipe vertically on the left for brightness, right for volume. To change media, make a long swipe starting near the video edge or use two fingers; the navigation buttons below remain available. Lock gestures here and unlock through the same menu.</string>
+    <string name="player_audio_tracks">Audio tracks</string>
+    <string name="player_subtitle_tracks">Subtitles</string>
+    <string name="player_track_auto">Automatic</string>
+    <string name="player_track_off">Off</string>
+    <string name="player_track_number">Track %1$d</string>
+    <string name="player_unknown">Unknown</string>
+    <string name="player_hold_speed">%1$.1fx · hold to boost</string>
+    <string name="player_volume_value">Volume %1$d%%</string>
+    <string name="player_brightness_value">Brightness %1$d%%</string>
+    <string name="player_show_controls">Show player controls</string>
 </resources>
