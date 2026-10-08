@@ -80,8 +80,15 @@ navigation without adding a second selected-Drive heading.
 Telegram can throttle individual kinds of requests. A thumbnail/photo-download wait
 does not itself mean reading a forum topic failed. Actual waits for the affected
 request family are retained across restarts; older unclassified waits are respected
-until their deadline. Visible media and topic lists retry when their reported wait
-ends. Closing the page or switching accounts cancels the pending UI retry.
+until their deadline. Visible media and topic lists may retry once when their reported
+wait ends. Closing the page or switching accounts cancels the pending UI retry.
+
+Rapid Drive/topic selections settle briefly before a network read starts. Recently
+loaded media and forum lists can reopen from short-lived, account-scoped memory
+caches; this avoids downloading the same metadata on every switch. Refresh still
+requests current server data and obeys genuine Telegram waits. Higher-resolution
+thumbnails are requested only for visible cards after scrolling settles, not for
+every loaded file. These caches are bounded and cleared when changing accounts.
 
 The Drive archive browser reads ordinary ZIP catalogs and stored/deflated entries
 through bounded ranges. Its in-memory limits are 8 MB for the directory and 100 MB
@@ -170,6 +177,13 @@ space for the action bar. Cloud downloads remain separate from legacy local tran
 records. Tools uses grouped rows without additional nested cards.
 
 ## Remaining feature boundaries
+
+Recently loaded Drive collections and forum topics are reused for up to five minutes
+within the same account. Use Refresh for a fresh server reading. A genuine Telegram
+wait allows at most one automatic recovery for the current navigation/refresh action;
+another wait requires a deliberate action instead of continuously retrying. Optional
+thumbnail batches use a slower separate lane and stop repeated failed upgrades while
+the current collection is open. Preview byte ranges do not use that optional lane.
 
 Settings reports available space from the shared native engine's filesystem measurement,
 not a fixed storage estimate or the configured cache budget. Storage-provider errors

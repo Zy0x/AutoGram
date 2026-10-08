@@ -88,18 +88,18 @@ fun DriveScreen(
     }
 
     LaunchedEffect(state.sessionId) {
-        if (state.sessionId.isNotBlank()) viewModel.loadLocations()
+        if (state.sessionId.isNotBlank()) viewModel.loadLocations(refresh = false)
     }
     LaunchedEffect(state.sessionId, state.peerId, state.topicId, cloudState.error, cloudState.retryAtMs) {
         if (cloudState.error == "flood_wait" && cloudState.retryAtMs > 0) {
             kotlinx.coroutines.delay((cloudState.retryAtMs - System.currentTimeMillis()).coerceAtLeast(100))
-            viewModel.loadFolder(state.currentPath)
+            viewModel.resumeMediaAfterWait()
         }
     }
     LaunchedEffect(state.sessionId, state.peerId, topicsState.error, topicsState.retryAtMs) {
         if (topicsState.error == "flood_wait" && topicsState.retryAtMs > 0) {
             kotlinx.coroutines.delay((topicsState.retryAtMs - System.currentTimeMillis()).coerceAtLeast(100))
-            viewModel.loadTopics()
+            viewModel.resumeTopicsAfterWait()
         }
     }
 
@@ -108,6 +108,7 @@ fun DriveScreen(
         modifier = modifier,
         onSearchChange = viewModel::setSearchQuery,
         onMediaFilterChange = viewModel::setMediaFilter,
+        onVisibleMedia = viewModel::setVisibleMedia,
         onOpenLocationPicker = { isLocationPickerOpen = true },
         onTopicSelect = viewModel::setTopicFilter,
         onOpenViewOptions = { isViewOptionsOpen = true },
@@ -193,7 +194,7 @@ fun DriveScreen(
         cloudControls = { DownloadPanel(state.sessionId, downloadItem, { downloadItem = null },
             showLauncher = false, openRequested = isDownloadsOpen,
             onOpenRequestConsumed = { isDownloadsOpen = false }) },
-        storyControls = { compact -> DriveStories(cloudState, viewModel::loadLocations, viewModel::chooseLocation, compact = compact,
+        storyControls = { compact -> DriveStories(cloudState, { append -> viewModel.loadLocations(append) }, viewModel::chooseLocation, compact = compact,
             avatars = avatars, onAvatar = viewModel::loadAvatar) },
         topicsLoading = topicsState.loading,
         topicsError = topicsState.error,
@@ -387,7 +388,8 @@ fun DriveScreenContent(
     onOpenDownloads: () -> Unit = {},
     topicsLoading: Boolean = false,
     topicsError: String? = null,
-    onRetryTopics: () -> Unit = {}
+    onRetryTopics: () -> Unit = {},
+    onVisibleMedia: (List<Int>, Boolean) -> Unit = { _, _ -> }
 ) {
     val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId) {
         galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)
@@ -395,6 +397,17 @@ fun DriveScreenContent(
     val sections = remember(filteredItems) { gallerySections(filteredItems) }
     val context = LocalContext.current
     val gridState = rememberLazyGridState()
+    val visibleCallback by rememberUpdatedState(onVisibleMedia)
+    LaunchedEffect(gridState, state.sessionId, state.peerId, state.activeTopicId) {
+        snapshotFlow {
+            gridState.layoutInfo.visibleItemsInfo.mapNotNull { cell ->
+                (cell.key as? String)?.takeIf { it.startsWith("media:") }?.removePrefix("media:")?.toIntOrNull()
+            } to gridState.isScrollInProgress
+        }.collect { (ids, scrolling) -> visibleCallback(ids, scrolling) }
+    }
+    DisposableEffect(state.sessionId, state.peerId, state.activeTopicId) {
+        onDispose { visibleCallback(emptyList(), false) }
+    }
     val collapseOffset = with(LocalDensity.current) { 48.dp.roundToPx() }
     val compact by remember(gridState, collapseOffset) {
         derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > collapseOffset }

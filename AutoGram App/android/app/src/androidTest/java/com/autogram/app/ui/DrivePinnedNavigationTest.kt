@@ -93,12 +93,23 @@ class DrivePinnedNavigationTest {
         compose.onNodeWithTag("drive-search").assertIsDisplayed().assertTextContains("fixture")
     }
 
+    @Test fun viewportReportsVisibleCardsRatherThanWholeLoadedPage() {
+        var visible = emptyList<Int>()
+        compose.setContent { AutoGramTheme { gallery(state, onVisible = { ids, _ -> visible = ids }) } }
+        compose.waitUntil(10_000) { visible.isNotEmpty() }
+        compose.runOnIdle { assertTrue(visible.size < records.size); assertFalse(60 in visible) }
+        compose.onNodeWithTag("cloud-gallery").performScrollToNode(hasContentDescription("fixture-60"))
+        compose.waitUntil(10_000) { 60 in visible }
+        compose.runOnIdle { assertFalse(1 in visible); assertTrue(visible.size < records.size) }
+    }
+
     @Composable private fun gallery(state: DriveUiState, onTopic: (Long?) -> Unit = {},
         onHub: () -> Unit = {}, error: String? = null, onRetry: () -> Unit = {}, onQuery: (String) -> Unit = {},
-        onPicker: () -> Unit = {}, onOptions: () -> Unit = {}) {
+        onPicker: () -> Unit = {}, onOptions: () -> Unit = {}, onVisible: (List<Int>, Boolean) -> Unit = { _, _ -> }) {
         DriveScreenContent(state = state.copy(items = state.items.map { it.copy(topicId = state.activeTopicId) }),
             modifier = Modifier.width(320.dp), onSearchChange = onQuery, onMediaFilterChange = {},
             onTopicSelect = onTopic, onOpenTopicHub = onHub, topicsError = error, onRetryTopics = onRetry,
+            onVisibleMedia = onVisible,
             onOpenLocationPicker = onPicker, onOpenViewOptions = onOptions,
             onToggleViewMode = {}, onRefresh = {}, onUpload = {}, onClearSelection = {},
             onSelectAll = {}, onInvertSelection = {}, onDownloadZip = {}, onCleanForward = {},

@@ -3,6 +3,8 @@ package com.autogram.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autogram.app.features.cloud.*
+import com.autogram.app.features.cloud.reads.CloudReadCoalescer
+import com.autogram.app.features.cloud.reads.CloudAutomaticRetryBudget
 import com.autogram.app.features.cloud.topics.CloudTopic
 import com.autogram.app.features.cloud.topics.currentDriveLocation
 import com.autogram.app.features.cloud.topics.resolveDriveLocation
@@ -89,16 +91,20 @@ data class DriveUiState(
     val errorCode: String? = null
 )
 
-class DriveViewModel : ViewModel() {
+class DriveViewModel(
+    cloudService: CloudService = NativeCloudService(),
+    topicsService: com.autogram.app.features.cloud.topics.CloudTopicsService = NativeCloudService(),
+    avatarService: com.autogram.app.features.cloud.avatars.CloudAvatarService = NativeCloudService()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveUiState())
     val uiState: StateFlow<DriveUiState> = _uiState.asStateFlow()
-    private val cloud = CloudStore(NativeCloudService())
-    private val topics = com.autogram.app.features.cloud.topics.CloudTopicsStore(NativeCloudService())
+    private val cloud = CloudStore(cloudService)
+    private val topics = com.autogram.app.features.cloud.topics.CloudTopicsStore(topicsService)
     val topicsState = topics.state
-    private var topicsJob: Job? = null
+    private val topicReads = CloudReadCoalescer(viewModelScope)
     val cloudState = cloud.state
-    private val avatars = com.autogram.app.features.cloud.avatars.CloudAvatarStore(NativeCloudService())
+    private val avatars = com.autogram.app.features.cloud.avatars.CloudAvatarStore(avatarService)
     val avatarState = avatars.state
     private val avatarJobs = mutableSetOf<Job>()
     fun loadAvatar(accountId: String, location: CloudLocation) {
@@ -107,13 +113,45 @@ class DriveViewModel : ViewModel() {
         avatarJobs.removeAll { it.isCompleted }
         avatarJobs.add(job)
     }
-    private var mediaJob: Job? = null
+    private val mediaReads = CloudReadCoalescer(viewModelScope)
     private var locationsJob: Job? = null
     private var thumbUpgradeJob: Job? = null
     private var thumbnailWorkerRevision = 0L
     private var previewActive = false
     private var pendingThumbnailIds = emptySet<Int>()
     private val upgradedIds = mutableSetOf<Int>()
+    private var visibleMediaIds = emptySet<Int>()
+    private var galleryScrolling = false
+    private val mediaRecovery = CloudAutomaticRetryBudget()
+    private val topicRecovery = CloudAutomaticRetryBudget()
+    private val thumbnailRecovery = CloudAutomaticRetryBudget()
+    private val failedThumbnailIds = mutableSetOf<Int>()
+    private var mediaRetryAppend = false
+    private var topicRetryAppend = false
+
+    private fun resetMediaIntent() {
+        mediaRecovery.reset(); thumbnailRecovery.reset()
+        failedThumbnailIds.clear(); mediaRetryAppend = false
+    }
+
+    fun resumeMediaAfterWait() {
+        if (mediaReads.isActive || cloud.state.value.loading || !mediaRecovery.take()) return
+        val append = mediaRetryAppend
+        mediaReads.submit(settleMs = 0) { cloud.media(append, preferCache = !append) }
+    }
+
+    fun resumeTopicsAfterWait() {
+        if (topicReads.isActive || topics.state.value.loading || !topicRecovery.take()) return
+        val append = topicRetryAppend
+        topicReads.submit(settleMs = 0) { topics.load(append, preferCache = !append) }
+    }
+
+    fun setVisibleMedia(ids: List<Int>, scrolling: Boolean) {
+        visibleMediaIds = ids.toSet()
+        if (galleryScrolling != scrolling || scrolling || ids.isEmpty()) stopThumbnailUpgrade()
+        galleryScrolling = scrolling
+        if (!scrolling) triggerThumbnailUpgrade()
+    }
 
     private fun stopThumbnailUpgrade() {
         thumbnailWorkerRevision++
@@ -125,6 +163,15 @@ class DriveViewModel : ViewModel() {
         if (previewActive == active) return
         previewActive = active
         if (active) stopThumbnailUpgrade() else triggerThumbnailUpgrade()
+    }
+
+    private fun mediaItems(result: CloudState) = result.items.map { record ->
+        DriveFileItem(record.id.toString(), record.name, record.size, record.mimeType,
+            false, record.modifiedMs, deliveryKind = record.deliveryKind,
+            telegramCategory = record.telegramCategory, cloudAccountId = result.scope.accountId,
+            cloudPeerId = result.scope.peerId, cloudMessageId = record.id, width = record.width,
+            height = record.height, durationSeconds = record.durationSeconds,
+            thumbnailBytes = record.thumbnailBytes, topicId = record.topicId)
     }
 
     init {
@@ -141,19 +188,11 @@ class DriveViewModel : ViewModel() {
                         activeLocationTitle = location?.title ?: current.activeLocationTitle,
                         activeLocationKind = location?.kind ?: current.activeLocationKind,
                         isForum = location?.let { it.kind == "forum" } ?: current.isForum,
-                        items = result.items.map { record ->
-                            DriveFileItem(record.id.toString(), record.name, record.size,
-                                record.mimeType, false, record.modifiedMs,
-                                deliveryKind = record.deliveryKind, telegramCategory = record.telegramCategory,
-                                cloudAccountId = result.scope.accountId, cloudPeerId = result.scope.peerId,
-                                cloudMessageId = record.id, width = record.width, height = record.height,
-                                durationSeconds = record.durationSeconds, thumbnailBytes = record.thumbnailBytes,
-                                topicId = record.topicId)
-                        })
+                        items = mediaItems(result))
                 }
                 if (_uiState.value.isForum && (!before.isForum ||
                     (topics.state.value.error == "cloud_location_missing" &&
-                        currentDriveLocation(_uiState.value.peerId, result.locations) != null))) loadTopics()
+                        currentDriveLocation(_uiState.value.peerId, result.locations) != null))) loadTopics(refresh = false)
                 triggerThumbnailUpgrade()
             }
         }
@@ -168,7 +207,7 @@ class DriveViewModel : ViewModel() {
     }
 
     private fun triggerThumbnailUpgrade() {
-        if (previewActive) return
+        if (previewActive || galleryScrolling || visibleMediaIds.isEmpty()) return
         if (cloud.state.value.loading) return
         if (thumbUpgradeJob?.isActive == true) return
         val currentQuality = _uiState.value.thumbnailQuality
@@ -179,24 +218,42 @@ class DriveViewModel : ViewModel() {
         val eligible = currentItems.filter { item ->
             item.id > 0 &&
             (item.thumbnailBytes != null || item.telegramCategory in setOf("photo", "video", "gif", "sticker")) &&
-            !upgradedIds.contains(item.id)
+            item.id in visibleMediaIds && item.id !in failedThumbnailIds && !upgradedIds.contains(item.id)
         }
         if (eligible.isEmpty()) return
 
         val revision = thumbnailWorkerRevision
         val requestScope = cloud.state.value.scope
         thumbUpgradeJob = viewModelScope.launch {
-            val chunks = eligible.map { it.id }.chunked(24)
+            // Optional work starts only after the viewport/selection settles; never warm a whole page.
+            delay(600)
+            val chunks = eligible.map { it.id }.chunked(4)
             for (chunk in chunks) {
                 currentCoroutineContext().ensureActive()
                 if (revision != thumbnailWorkerRevision || requestScope != cloud.state.value.scope) return@launch
+                if (galleryScrolling || chunk.none { it in visibleMediaIds }) continue
+                val visibleChunk = chunk.filter { it in visibleMediaIds }
                 // Reserve before publication: store emissions must not schedule this batch again.
-                pendingThumbnailIds = chunk.toSet()
-                upgradedIds.addAll(chunk)
-                cloud.upgradeThumbnails(currentQuality.wireValue, chunk)
+                pendingThumbnailIds = visibleChunk.toSet()
+                upgradedIds.addAll(visibleChunk)
+                val completed = cloud.upgradeThumbnails(currentQuality.wireValue, visibleChunk)
                 currentCoroutineContext().ensureActive()
                 if (revision != thumbnailWorkerRevision) return@launch
                 pendingThumbnailIds = emptySet()
+                if (!completed) {
+                    upgradedIds.removeAll(visibleChunk)
+                    failedThumbnailIds.addAll(visibleChunk)
+                    val retryAt = cloud.state.value.thumbnailRetryAtMs
+                    val waitForServer = retryAt > System.currentTimeMillis() && thumbnailRecovery.take()
+                    if (waitForServer) delay((retryAt - System.currentTimeMillis()).coerceAtLeast(0))
+                    thumbUpgradeJob = null
+                    if (waitForServer) {
+                        failedThumbnailIds.removeAll(visibleChunk)
+                        triggerThumbnailUpgrade()
+                    }
+                    return@launch
+                }
+                delay(150)
             }
             if (revision != thumbnailWorkerRevision) return@launch
             thumbUpgradeJob = null
@@ -207,6 +264,7 @@ class DriveViewModel : ViewModel() {
     fun setThumbnailQuality(quality: DriveThumbnailQuality) {
         if (_uiState.value.thumbnailQuality == quality) return
         stopThumbnailUpgrade()
+        thumbnailRecovery.reset(); failedThumbnailIds.clear()
         cloud.invalidateThumbnails()
         _uiState.update { it.copy(thumbnailQuality = quality) }
         upgradedIds.clear()
@@ -216,48 +274,57 @@ class DriveViewModel : ViewModel() {
     }
 
     fun setScope(sessionId: String, peerId: String, topicId: Long?) {
+        resetMediaIntent(); topicRecovery.reset(); topicRetryAppend = false
         if (sessionId != avatars.state.value.accountId) {
             avatarJobs.forEach { it.cancel() }; avatarJobs.clear()
         }
         avatars.scope(sessionId)
         val location = if (sessionId == cloud.state.value.scope.accountId)
             currentDriveLocation(peerId, cloud.state.value.locations) else null
-        mediaJob?.cancel(); stopThumbnailUpgrade()
+        mediaReads.cancel(); stopThumbnailUpgrade(); visibleMediaIds = emptySet()
         if (sessionId != cloud.state.value.scope.accountId) locationsJob?.cancel()
         upgradedIds.clear()
-        topicsJob?.cancel()
+        topicReads.cancel()
         topics.scope(CloudScope(sessionId, peerId))
         cloud.scope(CloudScope(sessionId, peerId, topicId))
+        // StateFlow can publish before this UI scope update, or suppress an identical cache hit.
+        // Restore the confirmed snapshot directly instead of relying on a second emission.
+        val restored = cloud.state.value
         _uiState.update {
             it.copy(sessionId = sessionId, peerId = peerId, topicId = topicId,
-                currentPath = "/", items = emptyList(), selectedIds = emptySet(), searchQuery = "",
+                currentPath = "/", items = mediaItems(restored), isLoading = restored.loading,
+                selectedIds = emptySet(), searchQuery = "",
                 locations = cloud.state.value.locations, errorCode = cloud.state.value.error,
-                topics = emptyList(), activeTopicId = topicId, isForum = location?.kind == "forum",
+                topics = topics.state.value.items, activeTopicId = topicId, isForum = location?.kind == "forum",
                 activeLocationTitle = location?.title.orEmpty(), activeLocationKind = location?.kind ?: "self")
         }
-        loadFolder("/")
-        if (_uiState.value.isForum) loadTopics()
+        mediaReads.submit { cloud.media(preferCache = true) }
+        if (_uiState.value.isForum) loadTopics(refresh = false)
     }
 
     fun loadFolder(path: String) {
-        mediaJob?.cancel(); stopThumbnailUpgrade()
+        resetMediaIntent()
+        mediaReads.cancel(); stopThumbnailUpgrade()
         upgradedIds.clear()
         _uiState.update { it.copy(currentPath = path, selectedIds = emptySet()) }
-        mediaJob = viewModelScope.launch { cloud.media() }
+        mediaReads.submit(settleMs = 0) { cloud.media() }
     }
 
     fun loadMoreMedia() {
-        if (cloud.state.value.loading) return
-        mediaJob = viewModelScope.launch { cloud.media(append = true) }
+        if (cloud.state.value.loading || mediaReads.isActive) return
+        mediaRecovery.reset(); mediaRetryAppend = true
+        mediaReads.submit(settleMs = 0) { cloud.media(append = true) }
     }
 
-    fun loadLocations(append: Boolean = false) {
-        if (append && cloud.state.value.loadingLocations) return
+    fun loadLocations(append: Boolean = false, refresh: Boolean = true) {
+        if (cloud.state.value.loadingLocations) return
+        if (!append && !refresh && cloud.state.value.locations.isNotEmpty()) return
         locationsJob?.cancel()
         locationsJob = viewModelScope.launch { cloud.locations(append) }
     }
 
     fun chooseLocation(location: CloudLocation) {
+        if (_uiState.value.peerId == location.id && _uiState.value.topicId == null) return
         val resolved = resolveDriveLocation(location, _uiState.value.locations)
         val isForum = resolved.kind == "forum"
 
@@ -271,31 +338,37 @@ class DriveViewModel : ViewModel() {
                 activeTopicId = null
             )
         }
-        if (isForum) loadTopics()
+        if (isForum) loadTopics(refresh = false)
     }
 
-    fun loadTopics(append: Boolean = false) {
-        if (!_uiState.value.isForum || topicsJob?.isActive == true || topics.state.value.loading) return
-        topicsJob = viewModelScope.launch { topics.load(append) }
+    fun loadTopics(append: Boolean = false, refresh: Boolean = true) {
+        if (!_uiState.value.isForum || topicReads.isActive || topics.state.value.loading) return
+        if (refresh) topicRecovery.reset()
+        topicRetryAppend = append
+        topicReads.submit(settleMs = if (refresh) 0 else 240) { topics.load(append, preferCache = !refresh) }
     }
 
     fun setTopicFilter(topicId: Long?) {
         val current = _uiState.value
         if (topicId == current.activeTopicId) return
         if (topicId != null && current.topics.none { it.id == topicId }) return
-        mediaJob?.cancel(); stopThumbnailUpgrade(); upgradedIds.clear()
+        resetMediaIntent()
+        mediaReads.cancel(); stopThumbnailUpgrade(); upgradedIds.clear(); visibleMediaIds = emptySet()
         cloud.scope(CloudScope(current.sessionId, current.peerId, topicId))
         _uiState.update { it.copy(activeTopicId = topicId, topicId = topicId,
-            items = emptyList(), selectedIds = emptySet(), searchQuery = "") }
-        mediaJob = viewModelScope.launch { cloud.media() }
+            items = mediaItems(cloud.state.value), isLoading = cloud.state.value.loading,
+            errorCode = cloud.state.value.error, selectedIds = emptySet(), searchQuery = "") }
+        mediaReads.submit { cloud.media(preferCache = true) }
     }
 
     fun setSearchQuery(query: String) {
+        if (query == _uiState.value.searchQuery) return
+        resetMediaIntent()
         stopThumbnailUpgrade(); upgradedIds.clear()
-        mediaJob?.cancel()
+        mediaReads.cancel()
         cloud.query(query)
         _uiState.update { it.copy(searchQuery = query, items = emptyList(), selectedIds = emptySet()) }
-        mediaJob = viewModelScope.launch { delay(350); cloud.media() }
+        mediaReads.submit(settleMs = 350) { cloud.media(preferCache = true) }
     }
 
     fun setMediaFilter(filter: DriveMediaFilter) {

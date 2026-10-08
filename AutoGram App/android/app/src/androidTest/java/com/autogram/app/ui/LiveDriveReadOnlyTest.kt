@@ -7,6 +7,7 @@ import com.autogram.app.features.cloud.*
 import com.autogram.app.features.cloud.topics.CloudTopicsStore
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import com.autogram.app.features.cloud.reads.CloudReadCoalescer
 import org.junit.Assert.*
 import org.junit.Test
 import uniffi.autogram_android_bridge.lastSelectedAccount
@@ -44,15 +45,35 @@ class LiveDriveReadOnlyTest {
             val chosen = topics.state.value.items.sortedBy { it.id == 1L }.take(2)
             assertEquals("Two real topics required for navigation acceptance", 2, chosen.size)
             var mediaRows = 0
+            var nativeMediaReads = 0
+            val countingService = object : CloudService {
+                override suspend fun locations(accountId: String, cursor: String?) = service.locations(accountId, cursor)
+                override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String) = service.thumbnails(scope, messageIds, quality)
+                override suspend fun media(scope: CloudScope, before: Int, query: String): CloudMediaPage {
+                    nativeMediaReads++
+                    return service.media(scope, before, query)
+                }
+            }
+            val media = CloudStore(countingService)
             for (topic in chosen) {
-                val page = service.media(CloudScope(account, forum.id, topic.id), 0, "")
-                assertEquals(account, page.accountId); assertEquals(forum.id, page.peerId)
-                assertEquals(topic.id, page.topicId)
-                mediaRows += page.items.size
+                val scope = CloudScope(account, forum.id, topic.id)
+                media.scope(scope); media.media(preferCache = true)
+                assertNull("Actual media read failed", media.state.value.error)
+                assertEquals(scope, media.state.value.scope)
+                mediaRows += media.state.value.items.size
             }
             assertTrue("Selected real topics contained no media; inspect another forum", mediaRows > 0)
+            val coalescer = CloudReadCoalescer(this)
+            var last: kotlinx.coroutines.Job? = null
+            repeat(40) { index ->
+                media.scope(CloudScope(account, forum.id, chosen[index % 2].id))
+                last = coalescer.submit { media.media(preferCache = true) }
+            }
+            last!!.join()
+            assertEquals("Rapid reopening must reuse real confirmed pages, not issue 40 Telegram reads", 2, nativeMediaReads)
+            assertNull(media.state.value.error)
             // Aggregate evidence only; never log account IDs, names, URLs or image bytes.
-            Log.i("AutoGramReadOnlyAudit", "photo_bytes=${bytes.size} decoded_pixels=$pixels topics=${chosen.size} media_rows=$mediaRows")
+            Log.i("AutoGramReadOnlyAudit", "photo_bytes=${bytes.size} decoded_pixels=$pixels topics=${chosen.size} media_rows=$mediaRows native_media_reads=$nativeMediaReads")
             assertEquals("Inspection must not select another account", account, lastSelectedAccount())
         }
     }

@@ -145,6 +145,15 @@
 - **Fast-navigation race**: Switching a topic or Drive no longer discards an in-flight dialog/photo-metadata response belonging to the same account. Forum reads that initially lacked a resolved peer can recover when the live dialog capability arrives; account changes still invalidate older requests.
 - **Regression coverage**: Added scoped-wait persistence/expiry tests, avatar account-isolation/byte-limit tests, and physical-device presentation checks for decoded photos in compact and expanded navigation. Build success alone remains insufficient for complete Android–desktop acceptance.
 
+### 20. Rapid Drive Navigation and Visible-Only Thumbnail Scheduling
+
+- **Coalesced navigation (`CloudReadScheduling.kt`, `DriveViewModel.kt`)**: Intermediate selections in a rapid burst are cancelled before native dispatch, while duplicate pending reads are coalesced. Metadata admission is paced across adapter instances so simultaneous topic, dialog and thumbnail activity does not start an uncontrolled request burst; preview byte-range reads remain independent.
+- **Confirmed scoped read reuse (`CloudStore.kt`, `CloudTopicsStore.kt`)**: Recently loaded media, forum lists and thumbnail bytes use bounded, expiring memory caches keyed by the actual account, peer, topic/query and thumbnail quality. Switching back reuses confirmed server results; explicit refresh remains a real server operation, respects genuine FloodWait, and never clears stored cooldowns or sessions.
+- **Viewport-driven thumbnail work (`DriveScreen.kt`, `DriveViewModel.kt`)**: Only visible cards receive optional higher-resolution thumbnail requests, in batches of four after scrolling settles. Scrolling, preview and navigation cancel obsolete optional work instead of upgrading every loaded item in the background.
+- **Bounded automatic recovery (`CloudAutomaticRetryBudget.kt`, `DriveViewModel.kt`)**: A second genuine server wait no longer starts an endless automatic refresh cycle. Recovery preserves append cursors, optional thumbnail batches use a separate two-second admission lane, and failed upgrades stay paused until recovery or an explicit new action. Confirmed collection/topic snapshots remain available for up to five minutes; manual refresh still checks the server.
+- **Cached navigation presentation (`DriveViewModel.kt`)**: Scope changes restore confirmed cards and forum choices directly, avoiding an empty gallery when a cached StateFlow value is identical and produces no additional emission. Physical Main-dispatcher regression tests cover returning to a Drive, alternating topics and reopening the cached forum picker without duplicate service reads.
+- **Regression coverage**: Added cancellation/pacing, rapid-selection request-count, cache expiry/byte-bound, cursor and scope-isolation checks, plus physical-device viewport and opt-in real-page cache navigation tests. No application version or database schema is changed.
+
 ## Earlier Unreleased — Low-Latency Anti-Buffering Media Streaming Engine, Continuous Sliding-Window Prefetcher & Sub-200ms ExoPlayer Tuning
 
 ### 1. Low-Latency Anti-Buffering Streaming Engine (`CloudStreamPipeline.kt`)

@@ -203,6 +203,8 @@ class CloudStoreTest {
         val store = CloudStore(Service({ _, _, _ -> pending.await() }))
         store.scope(scope)
         val old = launch(start = CoroutineStart.UNDISPATCHED) { store.media() }
+        // A genuinely new query supersedes the old read; identical pending calls now coalesce.
+        store.query("fresh")
         val fresh = launch(start = CoroutineStart.UNDISPATCHED) { store.media() }
         old.cancelAndJoin(); assertTrue(store.state.value.loading)
         fresh.cancelAndJoin(); assertFalse(store.state.value.loading); assertNull(store.state.value.error)

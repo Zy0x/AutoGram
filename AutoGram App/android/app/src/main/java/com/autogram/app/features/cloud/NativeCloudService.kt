@@ -15,6 +15,7 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
         catch (_: LinkageError) { throw CloudFailure("native_runtime_unavailable") }
     }
     override suspend fun locations(accountId: String, cursor: String?) = invoke {
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val page = listCloudDialogs(accountId, cursor)
         CloudLocationsPage(page.accountId, page.items.map {
             CloudLocation(it.id, it.title, it.kind, it.photoKey, it.avatarBytes)
@@ -26,6 +27,7 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
     override suspend fun media(scope: CloudScope, before: Int, query: String) = invoke {
         val topic = scope.topicId
         if (topic != null && topic !in 1..Int.MAX_VALUE.toLong()) throw CloudFailure("invalid_cloud_query")
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val page = if (topic == null) listCloudMedia(scope.accountId, scope.peerId, before, query)
             else listCloudTopicMedia(scope.accountId, scope.peerId, topic.toInt(), before, query)
         CloudMediaPage(page.accountId, page.peerId, page.items.map {
@@ -35,6 +37,7 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
         }, page.nextOffset, topic)
     }
     override suspend fun topics(scope: CloudScope, cursor: com.autogram.app.features.cloud.topics.TopicCursor?) = invoke {
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val page = listCloudTopics(scope.accountId, scope.peerId, cursor?.let {
             NativeTopicCursor(it.date, it.messageId, it.topicId)
         })
@@ -45,6 +48,8 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
             page.next?.let { com.autogram.app.features.cloud.topics.TopicCursor(it.date, it.messageId, it.topicId) })
     }
     override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String): List<CloudThumbnail> = invoke {
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.thumbnails.awaitTurn()
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val result = fetchCloudThumbnails(scope.accountId, scope.peerId, messageIds, quality)
         result.map { CloudThumbnail(it.messageId, it.thumbnailBytes) }
     }
