@@ -34,10 +34,11 @@ class DrivePreviewUiTest {
             com.autogram.app.features.cloud.preview.CloudImageViewer(bitmap, "isolated-preview-fixture")
         } }
         val reset = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.cloud_preview_reset_zoom)
-        compose.onNodeWithText(reset).assertDoesNotExist()
+        compose.onNodeWithContentDescription(reset).assertDoesNotExist()
         compose.onNodeWithTag("preview-image-ready").performTouchInput { doubleClick() }
-        compose.onNodeWithText(reset).assertIsDisplayed().performTouchInput { click() }
-        compose.onNodeWithText(reset).assertDoesNotExist()
+        compose.onNodeWithTag("preview-image-tools").performScrollToNode(hasContentDescription(reset))
+        compose.onNodeWithContentDescription(reset).assertIsDisplayed().performTouchInput { click() }
+        compose.onNodeWithContentDescription(reset).assertDoesNotExist()
     }
     @Test fun chromeRemainsReachableAndNavigatesBothDirectionsThenCloses() {
         val records = (1..3).map { DriveFileItem("$it", "preview-fixture-$it", 20, "text/plain", false, 0) }

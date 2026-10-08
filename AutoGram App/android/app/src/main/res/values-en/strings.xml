@@ -428,7 +428,7 @@
     <string name="cloud_rate_limited">Telegram requires a pause. Try again after the cooldown ends.</string>
     <string name="cloud_refresh_required">The location or page expired. Refresh the chat list.</string>
     <string name="cloud_read_failed">Cloud media could not be read. Check your connection and try again.</string>
-    <string name="cloud_image_too_large">This image exceeds the in-memory preview limit (20 MB).</string>
+    <string name="cloud_image_too_large">This image exceeds safe decoding limits or the 256 MiB preview size limit.</string>
     <string name="cloud_format_unsupported">This format is not supported by the device player yet.</string>
     <string name="cloud_preview_loading">Opening media from Telegram…</string>
     <string name="cloud_text_truncated">Only the first 256 KB are displayed.</string>
@@ -931,4 +931,15 @@
     <string name="drive_topic_item_count">%1$d files</string>
     <string name="drive_topic_not_found">No topics found</string>
     <string name="clean_home_collection">Latest in the loaded collection</string>
+    <string name="preview_image_zoom_in">Zoom in on image</string>
+    <string name="preview_image_zoom_out">Zoom out of image</string>
+    <string name="preview_image_zoom_value">%1$d%%</string>
+    <string name="preview_image_storage_low">Not enough storage for the temporary image preview.</string>
+    <string name="preview_metadata_unknown">Not supplied by the source</string>
+    <string name="preview_hash_not_computed">Not yet calculated from the complete file</string>
+    <string name="preview_info_peer">Telegram chat ID</string>
+    <string name="preview_info_account">Telegram account ID</string>
+    <string name="preview_info_topic">Telegram topic ID</string>
+    <string name="preview_info_category">Category and delivery type</string>
+    <string name="preview_info_duration_value">%1$02d:%2$02d (%3$d seconds)</string>
 </resources>

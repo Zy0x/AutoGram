@@ -1,5 +1,12 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Android Photo Preview Navigation and Accessible Transforms
+- Corrected the interaction between the image viewer and gallery pager: normal-scale horizontal swipes navigate files, while enlarged images retain pan gestures. Added focal-point double-tap zoom, 25–800% scale, rotation, flips, reset, accessible transform actions and 48dp controls.
+- Scoped preview identities now include account, chat and message identity; navigation honors the active topic and filename-based format detection. Only a settled visible page owns a stream/player, preventing adjacent-page network reads or simultaneous autoplay. Thumbnail updates no longer restart the active preview.
+- Replaced full encoded-image RAM allocation and the former 20MiB rejection with bounded disk-backed decoding, pixel sampling and temporary-file cleanup. Removed simulated DC identifiers and SHA-256 values from the information panel; unavailable metadata is explicitly identified instead of fabricated.
+- Added isolated gesture, viewer-lifetime, scope and large-image decoder regressions. Full desktop preview parity remains incomplete; advanced inspector, document, encrypted-archive and comparison workflows are not certified by these changes.
+- Separated media startup/header parsing and saved-position reads from speculative runway buffering. Android's confirmed playback state now enables the existing bounded prefetch workers, preserving ongoing buffer targets while avoiding unnecessary prefix fetches before playback.
+
 ### 1. Multi-Tier Universal GPU Probing Engine (`hardware_capability.rs`)
 - **Deprecation Fix for Windows 11**: Resolved failure to detect GPUs caused by Microsoft's deprecation and removal of `wmic.exe` in modern Windows 11 builds (24H2+). Replaced sole reliance on WMIC with an ultra-fast, multi-tiered probing architecture.
 - **Tier 1 (Instant Registry Prober)**: Direct query of Windows Display Class adapters in Registry (`HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}`). Extracts vendor description, PNP device identifier, and driver version in sub-10ms without external process dependency.

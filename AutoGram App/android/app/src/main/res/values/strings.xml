@@ -430,7 +430,7 @@
     <string name="cloud_rate_limited">Telegram meminta jeda. Coba lagi setelah waktu tunggu berakhir.</string>
     <string name="cloud_refresh_required">Lokasi atau halaman telah kedaluwarsa. Segarkan daftar chat.</string>
     <string name="cloud_read_failed">Media cloud tidak dapat dibaca. Periksa koneksi dan coba lagi.</string>
-    <string name="cloud_image_too_large">Gambar ini melebihi batas pratinjau dalam memori (20 MB).</string>
+    <string name="cloud_image_too_large">Gambar ini melebihi batas aman decoding atau ukuran pratinjau 256 MiB.</string>
     <string name="cloud_format_unsupported">Format ini belum didukung oleh pemutar perangkat.</string>
     <string name="cloud_preview_loading">Membuka media dari Telegram…</string>
     <string name="cloud_text_truncated">Hanya 256 KB awal ditampilkan.</string>
@@ -934,4 +934,15 @@
     <string name="drive_topic_item_count">%1$d berkas</string>
     <string name="drive_topic_not_found">Topik tidak ditemukan</string>
     <string name="clean_home_collection">Terbaru di koleksi yang dimuat</string>
+    <string name="preview_image_zoom_in">Perbesar gambar</string>
+    <string name="preview_image_zoom_out">Perkecil gambar</string>
+    <string name="preview_image_zoom_value">%1$d%%</string>
+    <string name="preview_image_storage_low">Ruang penyimpanan tidak cukup untuk pratinjau gambar sementara.</string>
+    <string name="preview_metadata_unknown">Tidak diberikan oleh sumber</string>
+    <string name="preview_hash_not_computed">Belum dihitung dari seluruh isi berkas</string>
+    <string name="preview_info_peer">ID chat Telegram</string>
+    <string name="preview_info_account">ID akun Telegram</string>
+    <string name="preview_info_topic">ID topik Telegram</string>
+    <string name="preview_info_category">Kategori dan jenis pengiriman</string>
+    <string name="preview_info_duration_value">%1$02d:%2$02d (%3$d detik)</string>
 </resources>

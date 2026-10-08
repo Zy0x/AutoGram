@@ -50,6 +50,22 @@ fails, that account is no longer treated as active. Other accounts are not logge
 
 ## Cloud Drives and preview
 
+Photo preview supports left/right gallery swipes at normal scale, previous/next
+buttons, pinch/pan, focal-point double-tap zoom, 25–800% scaling, rotation and flips.
+When zoomed in, one-finger dragging pans the image rather than switching files;
+reset the zoom to resume swiping. Image controls expose accessibility actions and
+48dp touch targets. Only a settled active page opens a media stream; adjacent pages
+use an existing thumbnail and do not autoplay another video or audio track.
+Image decoding uses a temporary app-cache file and sampling with a bounded pixel
+budget. The former 20MiB encoded-image limit is replaced by a 256MiB safety limit
+and available-storage checks; format decoding still depends on the device.
+Information panels do not invent a Telegram DC ID or a SHA-256 digest. A file hash
+is unavailable until the complete binary content is actually hashed.
+
+This does not establish complete desktop preview parity. Office/eBook/notebook/font
+viewers, the full inspector workbench, encrypted/nested ZIP workflows, split comparison
+and advanced video gestures/PiP still require implementation and acceptance testing.
+
 After selecting a server-verified account, Cloud Drives can read Saved Messages or a
 chat/channel selected from **Choose chat or channel**. Search requests go to Telegram;
 **Load more** reads the next message page. A page may contain no matching media while
@@ -67,7 +83,7 @@ report unavailable instead of successful completion and do not change cloud file
 
 Cards use message metadata and any thumbnail already included by Telegram. Opening a
 supported image, UTF-8 text, audio or video requests real media bytes. Image preview is
-limited to 20 MB compressed data and downsampled for display; text preview is limited to
+limited to 256 MiB encoded data and sampled within a bounded pixel budget; text preview is limited to
 256 KB. Audio/video support depends on the device decoder. Unsupported formats are not
 reported as successful previews. Archive and document-family parity is not complete.
 
@@ -111,7 +127,9 @@ ongoing buffer window, and supplies the saved position before preparing the medi
 Failed reads can be retried. Transport setup and native byte conversion run separately
 from the display thread. The exact-range reader reuses previously requested slices;
 the video pipeline also fetches bounded chunks ahead and uses a temporary, per-stream disk cache. These
-buffers are separate from the threshold for starting playback. Device testing is still
+speculative runway begins only after playback is confirmed, not while parsing the
+header or restoring a saved position. Paused/buffering playback stops speculation.
+These buffers are separate from the threshold for starting playback. Device testing is still
 required to verify start/resume performance on the current build.
 
 **Settings → Remember cloud playback position** controls local resume history. Positions

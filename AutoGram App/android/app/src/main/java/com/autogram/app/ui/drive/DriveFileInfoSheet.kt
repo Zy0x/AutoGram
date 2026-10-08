@@ -83,7 +83,7 @@ fun DriveFileInfoSheet(
                     )
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = TextMutedDark)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.native_close), tint = TextMutedDark)
                 }
             }
 
@@ -129,27 +129,32 @@ fun DriveFileInfoSheet(
                 TelemetryRow(
                     label = stringResource(R.string.file_info_msg_id),
                     value = item.cloudMessageId?.toString() ?: item.id,
-                    onCopy = { copyToClipboard("Message ID", item.cloudMessageId?.toString() ?: item.id) }
+                    onCopy = { copyToClipboard(context.getString(R.string.file_info_msg_id), item.cloudMessageId?.toString() ?: item.id) }
                 )
 
                 // DC
-                val dcId = (item.cloudMessageId ?: 0) % 5 + 1
                 TelemetryRow(
                     label = stringResource(R.string.file_info_dc),
-                    value = "DC $dcId (Telegram MTProto Production)",
-                    onCopy = { copyToClipboard("DC", "DC $dcId") }
+                    value = stringResource(R.string.preview_metadata_unknown)
                 )
 
                 // Peer ID
                 TelemetryRow(
-                    label = "Telegram Peer / Chat ID",
-                    value = item.cloudPeerId ?: "Saved Messages",
-                    onCopy = { copyToClipboard("Peer ID", item.cloudPeerId ?: "Saved Messages") }
+                    label = stringResource(R.string.preview_info_peer),
+                    value = item.cloudPeerId ?: stringResource(R.string.preview_metadata_unknown),
+                    onCopy = item.cloudPeerId?.let { peer -> { copyToClipboard(context.getString(R.string.preview_info_peer), peer) } }
                 )
+
+                item.cloudAccountId?.let { account -> TelemetryRow(
+                    label = stringResource(R.string.preview_info_account), value = account,
+                    onCopy = { copyToClipboard(context.getString(R.string.preview_info_account), account) }) }
+                item.topicId?.let { topic -> TelemetryRow(
+                    label = stringResource(R.string.preview_info_topic), value = topic.toString(),
+                    onCopy = { copyToClipboard(context.getString(R.string.preview_info_topic), topic.toString()) }) }
 
                 // Category & Delivery
                 TelemetryRow(
-                    label = "Telegram Category & Delivery",
+                    label = stringResource(R.string.preview_info_category),
                     value = "${item.telegramCategory.uppercase()} (${item.deliveryKind})",
                     onCopy = null
                 )
@@ -169,18 +174,15 @@ fun DriveFileInfoSheet(
                     val secs = (item.durationSeconds % 60).toInt()
                     TelemetryRow(
                         label = stringResource(R.string.file_info_duration),
-                        value = String.format("%02d:%02d (%d detik)", mins, secs, item.durationSeconds.toInt()),
+                        value = stringResource(R.string.preview_info_duration_value, mins, secs, item.durationSeconds.toInt()),
                         onCopy = null
                     )
                 }
 
-                // Cryptographic SHA-256 (Simulated/actual payload hash)
-                val shaHash = item.id.hashCode().toString(16).padStart(64, 'a')
+                // A record ID is not a binary digest. Never manufacture a file hash.
                 TelemetryRow(
                     label = stringResource(R.string.file_info_hash),
-                    value = shaHash,
-                    isMonospace = true,
-                    onCopy = { copyToClipboard("SHA-256", shaHash) }
+                    value = stringResource(R.string.preview_hash_not_computed)
                 )
             }
 
@@ -228,7 +230,7 @@ private fun TelemetryRow(
                 )
             }
             if (onCopy != null) {
-                IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onCopy, modifier = Modifier.size(48.dp)) {
                     Icon(
                         Icons.Default.ContentCopy,
                         contentDescription = stringResource(R.string.file_info_copy),

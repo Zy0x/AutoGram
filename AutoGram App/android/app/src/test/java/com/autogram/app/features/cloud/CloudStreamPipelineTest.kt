@@ -11,6 +11,29 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class CloudStreamPipelineTest {
 
     @Test
+    fun startupAndSavedSeekDoNotOpenSpeculativePrefixRunway() = runBlocking {
+        val fetches = ConcurrentLinkedQueue<Long>()
+        val chunk = CloudStreamPipeline.CHUNK_SIZE.toLong()
+        val source = CloudRangeSource(40 * chunk, { offset, len ->
+            fetches.add(offset)
+            ByteArray(len)
+        }, {})
+        val pipeline = CloudStreamPipeline(source)
+        try {
+            pipeline.read(0, 44) // Container header only.
+            pipeline.onSeek(30 * chunk)
+            pipeline.read(30 * chunk, 100)
+            delay(100)
+            assertEquals(setOf(0L, 30 * chunk), fetches.toSet())
+            assertEquals(2, fetches.size)
+            pipeline.setPlaybackActive(true)
+            withTimeout(2000) { while (!fetches.contains(31 * chunk)) delay(10) }
+            assertFalse("Playing runway must start at destination, not prefix", fetches.contains(chunk))
+            pipeline.setPlaybackActive(false)
+        } finally { pipeline.close(); source.close() }
+    }
+
+    @Test
     fun sequentialReadsUseChunkedPrefetchingWithoutPerSegmentFetches() = runBlocking {
         val fetches = ConcurrentLinkedQueue<Pair<Long, Int>>()
         val totalSize = 1024L * 1024L // 1 MB = 4 chunks of 256 KB

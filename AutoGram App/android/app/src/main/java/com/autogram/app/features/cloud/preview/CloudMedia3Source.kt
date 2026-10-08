@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -117,7 +118,13 @@ internal fun cloudPlayer(context: Context, source: CloudRangeSource): ExoPlayer 
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build())
-        .build()
+        .build().also { player ->
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    pipeline.setPlaybackActive(isPlaying)
+                }
+            })
+        }
 }
 
 internal fun cloudMediaItem(): MediaItem = MediaItem.fromUri("autogram-cloud://media")

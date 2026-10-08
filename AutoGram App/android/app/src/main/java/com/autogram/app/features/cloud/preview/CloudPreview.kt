@@ -1,12 +1,12 @@
 package com.autogram.app.features.cloud.preview
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -24,16 +24,19 @@ import kotlinx.coroutines.*
 import java.io.ByteArrayInputStream
 
 @Composable
-fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
-    var attempt by remember(item) { mutableIntStateOf(0) }
-    var source by remember(item, attempt) { mutableStateOf<CloudRangeSource?>(null) }
-    var image by remember(item, attempt) { mutableStateOf<Bitmap?>(null) }
-    var text by remember(item, attempt) { mutableStateOf<TextPreview?>(null) }
-    var rawBytes by remember(item, attempt) { mutableStateOf<ByteArray?>(null) }
-    var error by remember(item, attempt) { mutableStateOf<String?>(null) }
-    var opened by remember(item, attempt) { mutableStateOf(false) }
+fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier, onPagingEnabled: (Boolean) -> Unit = {}) {
+    val cacheDirectory = LocalContext.current.cacheDir
     val kind = previewKind(item.mimeType, item.name)
-    LaunchedEffect(item, attempt) {
+    // Optional thumbnail/metadata publication must not restart the active stream.
+    val lifetime = remember(item.cloudAccountId, item.cloudPeerId, item.cloudMessageId, item.id) { Any() }
+    var attempt by remember(lifetime) { mutableIntStateOf(0) }
+    var source by remember(lifetime, kind, attempt) { mutableStateOf<CloudRangeSource?>(null) }
+    var image by remember(lifetime, kind, attempt) { mutableStateOf<Bitmap?>(null) }
+    var text by remember(lifetime, kind, attempt) { mutableStateOf<TextPreview?>(null) }
+    var rawBytes by remember(lifetime, kind, attempt) { mutableStateOf<ByteArray?>(null) }
+    var error by remember(lifetime, kind, attempt) { mutableStateOf<String?>(null) }
+    var opened by remember(lifetime, kind, attempt) { mutableStateOf(false) }
+    LaunchedEffect(lifetime, kind, attempt) {
         var owned: CloudRangeSource? = null
         try {
             if (kind == PreviewKind.UNSUPPORTED) throw CloudFailure("cloud_format_unsupported")
@@ -46,17 +49,7 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
             val active = owned
             when (kind) {
                 PreviewKind.IMAGE -> {
-                    if (active.size > 20 * 1024 * 1024) throw CloudFailure("cloud_image_too_large")
-                    val bytes = readPrefix(active, active.size.toInt())
-                    image = withContext(Dispatchers.Default) {
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw CloudFailure("cloud_format_unsupported")
-                        var sample = 1
-                        while (bounds.outWidth / sample > 1600 || bounds.outHeight / sample > 1600) sample *= 2
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-                            ?: throw CloudFailure("cloud_format_unsupported")
-                    }
+                    image = com.autogram.app.features.cloud.preview.image.decodeCloudImage(active, cacheDirectory)
                 }
                 PreviewKind.TEXT, PreviewKind.MARKDOWN, PreviewKind.CODE, PreviewKind.LOG -> text = withContext(Dispatchers.IO) {
                     readTextPreview(ByteArrayInputStream(readPrefix(active, minOf(active.size, 256 * 1024L + 1).toInt())))
@@ -95,7 +88,7 @@ fun CloudPreview(item: DriveFileItem, modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.cloud_preview_loading))
             }
         }
-        bitmap != null -> CloudImageViewer(bitmap, item.name)
+        bitmap != null -> CloudImageViewer(bitmap, item.name, onPagingEnabled)
         kind == PreviewKind.ZIP -> {
             com.autogram.app.ui.drive.preview.DriveZipViewer(
                 source = active,

@@ -28,6 +28,9 @@ class CloudStreamPipeline(
 
     private val closed = AtomicBoolean(false)
     private val activeCursor = AtomicLong(0L)
+    // Parsing headers and restoring a saved position are demand-only. The player's
+    // confirmed playing event opens the unchanged steady-state runway.
+    private val playbackActive = AtomicBoolean(false)
 
     // Bounded chunk cache: chunkIndex -> ByteArray (each chunk is up to CHUNK_SIZE bytes)
     private val chunks = LinkedHashMap<Long, ByteArray>(maxCacheChunks, 0.75f, true)
@@ -48,20 +51,14 @@ class CloudStreamPipeline(
 
     init {
         source.onClose { close() }
-        // Warm chunk 0 (container header) and tail chunk (MP4 moov index) under the concurrency limiter
-        // so opening a video preview does not blast 8 simultaneous upload.getFile RPCs.
-        scope.launch {
-            prefetchLimiter.withPermit {
-                if (!closed.get()) runCatching { fetchChunkInternal(0L) }
-            }
-        }
-        if (size > 1024 * 1024) {
-            val lastChunk = (size - 1) / CHUNK_SIZE
-            scope.launch {
-                prefetchLimiter.withPermit {
-                    if (!closed.get()) runCatching { fetchChunkInternal(lastChunk) }
-                }
-            }
+    }
+
+    fun setPlaybackActive(active: Boolean) {
+        playbackActive.set(active)
+        if (active) triggerPrefetch(activeCursor.get(), forceRestart = true)
+        else synchronized(prefetchJobLock) {
+            prefetchJob?.cancel()
+            prefetchJob = null
         }
     }
 
@@ -153,7 +150,7 @@ class CloudStreamPipeline(
      * Uses a continuous sliding-window worker pool without batch barrier stalls.
      */
     private fun triggerPrefetch(fromPosition: Long, forceRestart: Boolean = false) {
-        if (closed.get()) return
+        if (closed.get() || !playbackActive.get()) return
         val currentChunk = fromPosition / CHUNK_SIZE
         val nextChunk = currentChunk + 1
         val lastChunk = (size - 1).coerceAtLeast(0) / CHUNK_SIZE
@@ -181,7 +178,7 @@ class CloudStreamPipeline(
                 val nextIndexToFetch = AtomicLong(nextChunk)
                 val workerJobs = (0 until MAX_CONCURRENT_FETCH).map {
                     async {
-                        while (isActive && !closed.get()) {
+                        while (isActive && !closed.get() && playbackActive.get()) {
                             val idx = nextIndexToFetch.getAndIncrement()
                             if (idx > endChunk) break
 
@@ -259,7 +256,7 @@ class CloudStreamPipeline(
             deferred.completeExceptionally(t)
             throw t
         } finally {
-            inFlight.remove(chunkIndex)
+            inFlight.remove(chunkIndex, deferred)
         }
     }
 

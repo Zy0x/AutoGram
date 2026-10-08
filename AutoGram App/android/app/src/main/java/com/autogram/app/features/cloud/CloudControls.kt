@@ -64,6 +64,7 @@ fun cloudErrorLabel(code: String): Int = when (code) {
     "cloud_cursor_expired", "cloud_location_missing" -> R.string.cloud_refresh_required
     "cloud_media_truncated", "cloud_stream_closed", "cloud_cursor_invalid" -> R.string.cloud_read_failed
     "cloud_image_too_large" -> R.string.cloud_image_too_large
+    "storage_space_unavailable" -> R.string.preview_image_storage_low
     "cloud_format_unsupported" -> R.string.cloud_format_unsupported
     "drive_operation_unavailable", "drive_delete_unavailable" -> R.string.real_cloud_unavailable
     else -> R.string.cloud_read_failed
