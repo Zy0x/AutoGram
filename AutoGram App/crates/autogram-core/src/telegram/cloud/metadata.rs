@@ -96,7 +96,12 @@ pub fn canonical_photo_name(message_id: i64) -> String {
     format!("photo_{message_id}.jpg")
 }
 
-fn document_metadata(message: &Message, doc: &Document, sticker: bool) -> Option<MediaMetadata> {
+fn document_metadata(
+    message_id: i32,
+    modified_ms: i64,
+    doc: &Document,
+    sticker: bool,
+) -> Option<MediaMetadata> {
     let tl::enums::Document::Document(raw) = doc.raw.document.as_ref()? else {
         return None;
     };
@@ -127,17 +132,17 @@ fn document_metadata(message: &Message, doc: &Document, sticker: bool) -> Option
     };
     let resolution = doc.resolution().filter(|(w, h)| *w > 0 && *h > 0);
     Some(MediaMetadata {
-        id: message.id(),
+        id: message_id,
         name: doc
             .name()
             .filter(|name| !name.is_empty())
             .map(str::to_owned)
             .unwrap_or_else(|| {
-                fallback_document_name(i64::from(message.id()), doc.mime_type(), native)
+                fallback_document_name(i64::from(message_id), doc.mime_type(), native)
             }),
         size: doc.size()? as u64,
         mime_type: doc.mime_type().unwrap_or("application/octet-stream").into(),
-        modified_ms: message.date().timestamp_millis(),
+        modified_ms,
         delivery_kind: if native || sticker {
             "native"
         } else {
@@ -154,14 +159,14 @@ fn document_metadata(message: &Message, doc: &Document, sticker: bool) -> Option
     })
 }
 
-pub fn from_message(message: &Message) -> Option<MediaMetadata> {
-    match message.media()? {
+pub fn from_media(message_id: i32, modified_ms: i64, media: &Media) -> Option<MediaMetadata> {
+    match media {
         Media::Photo(photo) => Some(MediaMetadata {
-            id: message.id(),
-            name: canonical_photo_name(i64::from(message.id())),
+            id: message_id,
+            name: canonical_photo_name(i64::from(message_id)),
             size: photo.size()? as u64,
             mime_type: "image/jpeg".into(),
-            modified_ms: message.date().timestamp_millis(),
+            modified_ms,
             delivery_kind: "native".into(),
             telegram_category: "photo".into(),
             width: None,
@@ -169,9 +174,39 @@ pub fn from_message(message: &Message) -> Option<MediaMetadata> {
             duration_seconds: None,
             thumbnail_bytes: inline_thumbnail(photo.thumbs()),
         }),
-        Media::Document(doc) => document_metadata(message, &doc, false),
-        Media::Sticker(sticker) => document_metadata(message, &sticker.document, true),
+        Media::Document(doc) => document_metadata(message_id, modified_ms, doc, false),
+        Media::Sticker(sticker) => {
+            document_metadata(message_id, modified_ms, &sticker.document, true)
+        }
         _ => None,
+    }
+}
+
+pub fn from_message(message: &Message) -> Option<MediaMetadata> {
+    let media = message.media()?;
+    from_media(message.id(), message.date().timestamp_millis(), &media)
+}
+
+/// Extracts `(message_id, Option<(MediaMetadata, Media)>)` directly from a raw TL `Message`
+/// returned by `messages.Search` without issuing a second `get_messages_by_id` RPC.
+pub fn from_raw_message(
+    raw: tl::enums::Message,
+) -> (Option<i32>, Option<(MediaMetadata, Media)>) {
+    match raw {
+        tl::enums::Message::Message(msg) => {
+            let id = msg.id;
+            let modified_ms = i64::from(msg.date) * 1000;
+            let parsed = msg
+                .media
+                .and_then(Media::from_raw)
+                .and_then(|media| {
+                    let item = from_media(id, modified_ms, &media)?;
+                    Some((item, media))
+                });
+            (Some(id), parsed)
+        }
+        tl::enums::Message::Service(msg) => (Some(msg.id), None),
+        tl::enums::Message::Empty(_) => (None, None),
     }
 }
 
@@ -203,5 +238,13 @@ mod tests {
             "video_2.webm"
         );
         assert_eq!(fallback_document_name(3, None, false), "file_3.bin");
+    }
+    #[test]
+    fn raw_service_and_empty_messages_preserve_pagination_ids_without_media() {
+        let empty = tl::enums::Message::Empty(tl::types::MessageEmpty {
+            id: 10,
+            peer_id: None,
+        });
+        assert_eq!(from_raw_message(empty).0, None);
     }
 }

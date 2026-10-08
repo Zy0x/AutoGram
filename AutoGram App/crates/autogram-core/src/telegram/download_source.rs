@@ -1,10 +1,11 @@
 //! Real account-pinned Grammers source for durable downloads. No UI selection lease.
-use super::{auth::{AccountId, AuthEngine, AuthError, map_rpc}, cloud::fetch_media_range};
+use super::{auth::{AccountId, AuthEngine, AuthError, RpcDomain, map_rpc}, cloud::fetch_media_range};
 use crate::transfer::cloud_download::{AccountScope, CloudByteRangeSource,
     CloudDownloadIdentity, PeerKind, RangeChunk, RemoteObject, SourceFailure};
 use async_trait::async_trait;
 use grammers_client::{media::Media, message::Message, tl};
 use grammers_session::types::PeerId;
+use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
 
@@ -12,6 +13,7 @@ pub struct TelegramDownloadSource<'a> {
     auth: &'a AuthEngine,
     scope: AccountScope,
     cancel: CancellationToken,
+    media_cache: Mutex<Vec<(CloudDownloadIdentity, Media)>>,
 }
 
 impl<'a> TelegramDownloadSource<'a> {
@@ -26,7 +28,19 @@ impl<'a> TelegramDownloadSource<'a> {
         };
         if !identity.verified || identity.user_id != scope.authorized_user_id()
             || identity.id.0 != scope.account_id() { return Err(SourceFailure::WrongScope); }
-        Ok(Self { auth, scope, cancel })
+        Ok(Self { auth, scope, cancel, media_cache: Mutex::new(Vec::new()) })
+    }
+
+    fn store_cached_media(&self, identity: &CloudDownloadIdentity, media: Media) {
+        let mut cache = self.media_cache.lock();
+        if let Some((_, existing)) = cache.iter_mut().find(|(id, _)| id == identity) {
+            *existing = media;
+            return;
+        }
+        if cache.len() >= 8 {
+            cache.remove(0);
+        }
+        cache.push((identity.clone(), media));
     }
 
     /// Derive the immutable job identity from a real message, never from UI names/URLs.
@@ -34,7 +48,9 @@ impl<'a> TelegramDownloadSource<'a> {
         message_id: i32) -> Result<CloudDownloadIdentity, SourceFailure> {
         let message = self.message(kind, peer_id, topic_id, message_id).await?;
         let media = message.media().ok_or(SourceFailure::NotFound)?;
-        media_identity(self.scope.clone(), kind, peer_id, topic_id, message_id, &media)
+        let identity = media_identity(self.scope.clone(), kind, peer_id, topic_id, message_id, &media)?;
+        self.store_cached_media(&identity, media);
+        Ok(identity)
     }
 
     pub async fn target_dialog(&self, dialog: &str, topic: Option<i32>, message: i32)
@@ -56,8 +72,11 @@ impl<'a> TelegramDownloadSource<'a> {
         let peer = peer_id_for(kind, peer_id)?;
         let account = AccountId(self.scope.account_id().into());
         let reference = self.auth.job_peer(&account, peer, &self.cancel).await.map_err(source_error)?;
-        self.auth.account_request(&account, &self.cancel, |client| async move {
-            let mut messages = client.get_messages_by_id(reference, &[message_id]).await.map_err(map_rpc)?;
+        self.auth.account_request_scoped(&account, &[RpcDomain::Messages], &self.cancel, |client| async move {
+            let mut messages = client
+                .get_messages_by_id(reference, &[message_id])
+                .await
+                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
             let message = messages.pop().flatten().ok_or_else(|| AuthError::new("cloud_message_missing"))?;
             let thread = match message.reply_header() {
                 Some(tl::enums::MessageReplyHeader::Header(header)) => header.reply_to_top_id.or(header.reply_to_msg_id),
@@ -77,7 +96,22 @@ impl<'a> TelegramDownloadSource<'a> {
         let current = media_identity(self.scope.clone(), identity.peer_kind(), identity.peer_id(),
             identity.topic_id(), identity.message_id(), &media)?;
         if current != *identity { return Err(SourceFailure::IdentityChanged); }
+        self.store_cached_media(identity, media.clone());
         Ok(media)
+    }
+
+    async fn cached_or_verified_media(&self, identity: &CloudDownloadIdentity) -> Result<Media, SourceFailure> {
+        if identity.scope() != &self.scope { return Err(SourceFailure::WrongScope); }
+        let cached = self
+            .media_cache
+            .lock()
+            .iter()
+            .find(|(id, _)| id == identity)
+            .map(|(_, media)| media.clone());
+        if let Some(media) = cached {
+            return Ok(media);
+        }
+        self.verified_media(identity).await
     }
 }
 
@@ -86,7 +120,7 @@ impl CloudByteRangeSource for TelegramDownloadSource<'_> {
     fn scope(&self) -> &AccountScope { &self.scope }
 
     async fn describe(&self, identity: &CloudDownloadIdentity) -> Result<RemoteObject, SourceFailure> {
-        self.verified_media(identity).await?;
+        self.cached_or_verified_media(identity).await?;
         Ok(RemoteObject { identity: identity.clone(), size: identity.expected_size() })
     }
 
@@ -94,7 +128,7 @@ impl CloudByteRangeSource for TelegramDownloadSource<'_> {
         length: usize) -> Result<RangeChunk, SourceFailure> {
         if length == 0 || length > 512 * 1024 || offset.checked_add(length as u64)
             .is_none_or(|end| end > identity.expected_size()) { return Err(SourceFailure::Network); }
-        let mut media = self.verified_media(identity).await?;
+        let mut media = self.cached_or_verified_media(identity).await?;
         let account = AccountId(self.scope.account_id().into());
         let mut bytes = Vec::with_capacity(length);
         while bytes.len() < length {
@@ -102,7 +136,7 @@ impl CloudByteRangeSource for TelegramDownloadSource<'_> {
             let part_length = (length - bytes.len()).min(256 * 1024) as u32;
             let mut refreshed = false;
             let part = loop {
-                let result = self.auth.account_request(&account, &self.cancel, |client| {
+                let result = self.auth.account_request_scoped(&account, &[RpcDomain::Files], &self.cancel, |client| {
                     let media = media.clone();
                     async move { fetch_media_range(&client, &media, identity.expected_size(), part_offset, part_length).await }
                 }).await;

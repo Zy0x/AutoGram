@@ -32,8 +32,8 @@ class PacedCloudReads(private val gapMs: Long = 450,
 
 /** All native cloud adapter instances share metadata admission; streaming has its own lifetime. */
 internal object NativeCloudReadScheduling {
-    val metadata = PacedCloudReads()
-    // Optional batches hydrate message IDs and download several layers, not a single RPC.
-    // Keep a separate conservative lane without slowing preview byte ranges.
+    val metadata = PacedCloudReads(gapMs = 600)
+    val avatars = PacedCloudReads(gapMs = 350)
+    // Optional batches download thumbnail layers in a separate conservative lane without slowing navigation or preview byte ranges.
     val thumbnails = PacedCloudReads(gapMs = 2_000)
 }

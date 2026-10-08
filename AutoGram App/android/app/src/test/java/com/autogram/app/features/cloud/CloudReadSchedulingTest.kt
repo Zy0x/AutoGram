@@ -69,4 +69,9 @@ class CloudReadSchedulingTest {
         time = 1100; assertNull(cache.get("one"))
         cache.clear(); assertNull(cache.get("three"))
     }
+    @Test fun nativeReadSchedulingIsolatesAvatarThumbnailAndMetadataLanes() {
+        assertNotSame(NativeCloudReadScheduling.metadata, NativeCloudReadScheduling.avatars)
+        assertNotSame(NativeCloudReadScheduling.metadata, NativeCloudReadScheduling.thumbnails)
+        assertNotSame(NativeCloudReadScheduling.avatars, NativeCloudReadScheduling.thumbnails)
+    }
 }

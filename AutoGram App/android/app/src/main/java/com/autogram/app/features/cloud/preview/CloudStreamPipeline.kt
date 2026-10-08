@@ -48,17 +48,19 @@ class CloudStreamPipeline(
 
     init {
         source.onClose { close() }
-        // Instant Parallel Hot-Head & Moov Tail Startup:
-        // Eliminates initial seek, container header parsing, and MP4 index extraction latency
-        scope.launch { runCatching { fetchChunkInternal(0L) } }
-        if (size > CHUNK_SIZE) {
-            scope.launch { runCatching { fetchChunkInternal(1L) } }
+        // Warm chunk 0 (container header) and tail chunk (MP4 moov index) under the concurrency limiter
+        // so opening a video preview does not blast 8 simultaneous upload.getFile RPCs.
+        scope.launch {
+            prefetchLimiter.withPermit {
+                if (!closed.get()) runCatching { fetchChunkInternal(0L) }
+            }
         }
         if (size > 1024 * 1024) {
             val lastChunk = (size - 1) / CHUNK_SIZE
-            scope.launch { runCatching { fetchChunkInternal(lastChunk) } }
-            if (size > 2 * 1024 * 1024 && lastChunk > 2) {
-                scope.launch { runCatching { fetchChunkInternal(lastChunk - 1) } }
+            scope.launch {
+                prefetchLimiter.withPermit {
+                    if (!closed.get()) runCatching { fetchChunkInternal(lastChunk) }
+                }
             }
         }
     }
@@ -321,7 +323,7 @@ class CloudStreamPipeline(
     companion object {
         const val CHUNK_SIZE = 256 * 1024 // 256 KB matching CloudRangeSource.MAX_READ
         const val DEFAULT_MAX_CACHE_CHUNKS = 96 // 96 * 256KB = 24 MB ring buffer
-        const val DEFAULT_RUNWAY_CHUNKS = 48 // 48 * 256KB = 12 MB ahead runway (~30-60s buffer)
-        const val MAX_CONCURRENT_FETCH = 4 // 4 parallel pipelined MTProto workers
+        const val DEFAULT_RUNWAY_CHUNKS = 12 // 12 * 256KB = 3 MB ahead runway (avoids FloodWait burst)
+        const val MAX_CONCURRENT_FETCH = 2 // 2 parallel pipelined MTProto workers
     }
 }

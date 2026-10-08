@@ -85,3 +85,23 @@ async fn late_revocation_cannot_remove_a_newer_connection() {
     assert!(Arc::ptr_eq(engine.accounts.lock().get(&id.0).unwrap(), &replacement));
     assert_eq!(*engine.selected.lock(), Some(id));
 }
+
+#[tokio::test]
+async fn scoped_background_request_ignores_unrelated_topic_wait_but_enforces_file_wait() {
+    struct MemVault(parking_lot::Mutex<std::collections::HashMap<String, Vec<u8>>>);
+    impl AuthSecretStore for MemVault {
+        fn read(&self, k: &str) -> Result<Option<Vec<u8>>, AuthError> { Ok(self.0.lock().get(k).cloned()) }
+        fn write(&self, k: &str, v: &[u8]) -> Result<(), AuthError> { self.0.lock().insert(k.into(), v.to_vec()); Ok(()) }
+        fn remove(&self, k: &str) -> Result<(), AuthError> { self.0.lock().remove(k); Ok(()) }
+        fn keys(&self) -> Result<Vec<String>, AuthError> { Ok(self.0.lock().keys().cloned().collect()) }
+    }
+    let engine = Arc::new(AuthEngine::new(Arc::new(MemVault( Default::default() ))));
+    let id = AccountId("tg_123".into());
+    engine.accounts.lock().insert(id.0.clone(), Arc::new(Connection::new(1, SessionData::default())));
+    engine.retain_cloud_error(&id, AuthError::wait(300).for_rpc(crate::telegram::auth::RpcDomain::Topics));
+    let ok = engine.account_request_scoped(&id, &[crate::telegram::auth::RpcDomain::Files], &CancellationToken::new(), |_| async { Ok(7) }).await;
+    assert_eq!(ok.unwrap(), 7);
+    engine.retain_cloud_error(&id, AuthError::wait(300).for_rpc(crate::telegram::auth::RpcDomain::Files));
+    let err = engine.account_request_scoped(&id, &[crate::telegram::auth::RpcDomain::Files], &CancellationToken::new(), |_| async { Ok(7) }).await.unwrap_err();
+    assert_eq!(err.code, "flood_wait");
+}

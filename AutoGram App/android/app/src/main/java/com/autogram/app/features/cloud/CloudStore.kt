@@ -16,7 +16,7 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
     private data class MediaKey(val scope: CloudScope, val query: String)
     private data class MediaSnapshot(val items: List<CloudMedia>, val next: Int?)
     private data class ThumbnailKey(val account: String, val peer: String, val id: Int, val quality: String)
-    private val mediaCache = ScopedReadCache<MediaKey, MediaSnapshot>(now, 300_000, 8, 12L * 1024 * 1024) {
+    private val mediaCache = ScopedReadCache<MediaKey, MediaSnapshot>(now, 300_000, 24, 12L * 1024 * 1024) {
         page -> page.items.sumOf { (it.thumbnailBytes?.size ?: 0).toLong() + 512 + it.name.length * 2 }
     }
     private val thumbnailCache = ScopedReadCache<ThumbnailKey, ByteArray>(now, 300_000, 128, 8L * 1024 * 1024) { it.size.toLong() }

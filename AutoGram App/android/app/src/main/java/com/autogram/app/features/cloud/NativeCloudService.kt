@@ -22,6 +22,7 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
         }, page.nextCursor)
     }
     override suspend fun avatar(accountId: String, peerId: String, photoKey: String) = invoke {
+        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.avatars.awaitTurn()
         fetchCloudAvatar(accountId, peerId, photoKey)
     }
     override suspend fun media(scope: CloudScope, before: Int, query: String) = invoke {
@@ -49,7 +50,6 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
     }
     override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String): List<CloudThumbnail> = invoke {
         com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.thumbnails.awaitTurn()
-        com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val result = fetchCloudThumbnails(scope.accountId, scope.peerId, messageIds, quality)
         result.map { CloudThumbnail(it.messageId, it.thumbnailBytes) }
     }

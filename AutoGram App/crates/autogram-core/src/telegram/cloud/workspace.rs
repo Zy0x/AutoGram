@@ -18,6 +18,7 @@ use tokio_util::sync::CancellationToken;
 
 const PAGE_SIZE: usize = 50;
 const HISTORY_SCAN: usize = 100;
+const MAX_CACHED_MEDIA: usize = 512;
 const IDLE_TTL: Duration = Duration::from_secs(20 * 60);
 #[path = "avatar.rs"]
 mod avatar;
@@ -30,8 +31,9 @@ struct DialogCursor {
 }
 struct StreamEntry {
     descriptor: CloudStream,
+    peer: PeerRef,
     revision: u64,
-    media: Media,
+    media: Mutex<Media>,
     cancel: CancellationToken,
     touched: Mutex<Instant>,
 }
@@ -40,6 +42,7 @@ struct State {
     revision: u64,
     peers: HashMap<(String, String), PeerRef>,
     photos: HashMap<(String, String), grammers_client::media::ChatPhoto>,
+    media: HashMap<(String, String, i32), Media>,
     cursors: HashMap<String, DialogCursor>,
     streams: HashMap<String, Arc<StreamEntry>>,
 }
@@ -54,6 +57,7 @@ impl State {
             }
             self.peers.clear();
             self.photos.clear();
+            self.media.clear();
             self.cursors.clear();
             self.streams.clear();
             self.revision = revision;
@@ -68,6 +72,15 @@ impl State {
             alive
         });
         Ok(())
+    }
+
+    fn cache_media(&mut self, entries: impl IntoIterator<Item = ((String, String, i32), Media)>) {
+        for (key, media) in entries {
+            if self.media.len() >= MAX_CACHED_MEDIA && !self.media.contains_key(&key) {
+                self.media.clear();
+            }
+            self.media.insert(key, media);
+        }
     }
 }
 
@@ -150,7 +163,11 @@ impl CloudWorkspace {
                         _ => "group",
                     },
                 };
-                let photo = dialog.peer().photo(false).await.map_err(map_rpc)?;
+                let photo = dialog
+                    .peer()
+                    .photo(false)
+                    .await
+                    .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Dialogs))?;
                 items.push(CloudDialog {
                     id: id.clone(),
                     title: dialog.peer().name().unwrap_or("").into(),
@@ -203,11 +220,13 @@ impl CloudWorkspace {
         if before_message_id < 0 || query.len() > 512 {
             return Err(AuthError::new("invalid_cloud_query"));
         }
-        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        let revision = auth.cloud_revision();
+        let peer = self.peer(&account, &peer_id, revision)?;
         let owner = account.clone();
         let domain = if query.trim().is_empty() { RpcDomain::History } else { RpcDomain::Search };
         auth.cloud_request_scoped(&owner, &[domain], |client| async move {
             let mut items = Vec::new();
+            let mut cached_media = Vec::new();
             let mut scanned = 0;
             let mut last = None;
             if query.trim().is_empty() {
@@ -218,8 +237,15 @@ impl CloudWorkspace {
                 while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
                     scanned += 1;
                     last = Some(message.id());
-                    if let Some(item) = metadata::from_message(&message) {
-                        items.push(item);
+                    if let Some(media) = message.media() {
+                        if let Some(item) = metadata::from_media(
+                            message.id(),
+                            message.date().timestamp_millis(),
+                            &media,
+                        ) {
+                            cached_media.push(((account.0.clone(), peer_id.clone(), item.id), media));
+                            items.push(item);
+                        }
                     }
                 }
             } else {
@@ -231,9 +257,22 @@ impl CloudWorkspace {
                 while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
                     scanned += 1;
                     last = Some(message.id());
-                    if let Some(item) = metadata::from_message(&message) {
-                        items.push(item);
+                    if let Some(media) = message.media() {
+                        if let Some(item) = metadata::from_media(
+                            message.id(),
+                            message.date().timestamp_millis(),
+                            &media,
+                        ) {
+                            cached_media.push(((account.0.clone(), peer_id.clone(), item.id), media));
+                            items.push(item);
+                        }
                     }
+                }
+            }
+            if !cached_media.is_empty() {
+                let mut state = self.state.lock();
+                if state.revision == revision && auth.cloud_revision() == revision {
+                    state.cache_media(cached_media);
                 }
             }
             Ok(CloudMediaPage {
@@ -281,9 +320,10 @@ impl CloudWorkspace {
         if topic_id <= 0 || before < 0 || query.len() > 512 {
             return Err(AuthError::new("invalid_cloud_query"));
         }
-        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        let revision = auth.cloud_revision();
+        let peer = self.peer(&account, &peer_id, revision)?;
         let owner = account.clone();
-        auth.cloud_request_scoped(&owner, &[RpcDomain::Search, RpcDomain::Messages], |client| async move {
+        auth.cloud_request_scoped(&owner, &[RpcDomain::Search], |client| async move {
             use grammers_client::tl::enums::messages::Messages;
             let response = client
                 .invoke(&super::topics::media_request(
@@ -300,23 +340,20 @@ impl CloudWorkspace {
                 Messages::ChannelMessages(pack) => pack.messages,
                 Messages::NotModified(_) => return Err(AuthError::new("cloud_cursor_invalid")),
             };
-            let ids: Vec<i32> = messages
-                .into_iter()
-                .filter_map(|message| match message {
-                    grammers_client::tl::enums::Message::Message(message) => Some(message.id),
-                    grammers_client::tl::enums::Message::Service(message) => Some(message.id),
-                    _ => None,
-                })
-                .collect();
-            // Grammers constructs peer maps internally; hydrate only the bounded server result.
-            let items = client
-                .get_messages_by_id(peer, &ids)
-                .await
-                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?
-                .into_iter()
-                .flatten()
-                .filter_map(|message| metadata::from_message(&message))
-                .collect();
+            // Parse media metadata directly from the Search response without a second get_messages_by_id RPC.
+            let mut ids = Vec::with_capacity(messages.len());
+            let mut items = Vec::new();
+            let mut cached_media = Vec::new();
+            for raw in messages {
+                let (maybe_id, maybe_parsed) = metadata::from_raw_message(raw);
+                if let Some(id) = maybe_id {
+                    ids.push(id);
+                }
+                if let Some((item, media)) = maybe_parsed {
+                    cached_media.push(((account.0.clone(), peer_id.clone(), item.id), media));
+                    items.push(item);
+                }
+            }
             // Search may return a short non-final page. Keep advancing until an empty page.
             let next_offset = ids
                 .iter()
@@ -325,6 +362,12 @@ impl CloudWorkspace {
                 .min();
             if !ids.is_empty() && next_offset.is_none() {
                 return Err(AuthError::new("cloud_cursor_invalid"));
+            }
+            if !cached_media.is_empty() {
+                let mut state = self.state.lock();
+                if state.revision == revision && auth.cloud_revision() == revision {
+                    state.cache_media(cached_media);
+                }
             }
             Ok(CloudMediaPage {
                 account_id: account.0,
@@ -348,21 +391,47 @@ impl CloudWorkspace {
         }
         let revision = auth.cloud_revision();
         let peer = self.peer(&account, &peer_id, revision)?;
+        let cached_media = {
+            let mut state = self.state.lock();
+            state.refresh(revision)?;
+            state
+                .media
+                .get(&(account.0.clone(), peer_id.clone(), message_id))
+                .cloned()
+        };
         let owner = account.clone();
-        auth.cloud_request_scoped(&owner, &[RpcDomain::Messages], |client| async move {
-            let mut messages = client
-                .get_messages_by_id(peer, &[message_id])
-                .await
-                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
-            let message = messages
-                .pop()
-                .flatten()
-                .ok_or_else(|| AuthError::new("cloud_message_missing"))?;
-            let info = metadata::from_message(&message)
+        let domains: &[RpcDomain] = if cached_media.is_some() {
+            &[RpcDomain::Files]
+        } else {
+            &[RpcDomain::Messages]
+        };
+        auth.cloud_request_scoped(&owner, domains, |client| async move {
+            let media = match cached_media {
+                Some(media) => media,
+                None => {
+                    let mut messages = client
+                        .get_messages_by_id(peer, &[message_id])
+                        .await
+                        .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
+                    let message = messages
+                        .pop()
+                        .flatten()
+                        .ok_or_else(|| AuthError::new("cloud_message_missing"))?;
+                    let media = message
+                        .media()
+                        .ok_or_else(|| AuthError::new("cloud_message_missing"))?;
+                    let mut state = self.state.lock();
+                    if state.revision == revision && auth.cloud_revision() == revision {
+                        state.cache_media([(
+                            (account.0.clone(), peer_id.clone(), message_id),
+                            media.clone(),
+                        )]);
+                    }
+                    media
+                }
+            };
+            let info = metadata::from_media(message_id, 0, &media)
                 .ok_or_else(|| AuthError::new("cloud_media_unsupported"))?;
-            let media = message
-                .media()
-                .ok_or_else(|| AuthError::new("cloud_message_missing"))?;
             let descriptor = CloudStream {
                 id: token(),
                 account_id: account.0.clone(),
@@ -383,8 +452,9 @@ impl CloudWorkspace {
                 descriptor.id.clone(),
                 Arc::new(StreamEntry {
                     descriptor: descriptor.clone(),
+                    peer,
                     revision,
-                    media,
+                    media: Mutex::new(media),
                     cancel: CancellationToken::new(),
                     touched: Mutex::new(Instant::now()),
                 }),
@@ -418,10 +488,44 @@ impl CloudWorkspace {
         plan_range(stream.descriptor.size, offset, length)?;
         *stream.touched.lock() = Instant::now();
         auth.cloud_request_scoped(&account, &[RpcDomain::Files], |client| async move {
-            tokio::select! {
+            let current_media = stream.media.lock().clone();
+            let first = tokio::select! {
                 biased;
-                _ = stream.cancel.cancelled() => Err(AuthError::new("cloud_stream_closed")),
-                bytes = fetch_media_range(&client, &stream.media, stream.descriptor.size, offset, length) => bytes,
+                _ = stream.cancel.cancelled() => return Err(AuthError::new("cloud_stream_closed")),
+                bytes = fetch_media_range(&client, &current_media, stream.descriptor.size, offset, length) => bytes,
+            };
+            match first {
+                Err(err) if err.code == "file_reference_expired" => {
+                    let mut refreshed = client
+                        .get_messages_by_id(stream.peer, &[stream.descriptor.message_id])
+                        .await
+                        .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
+                    let fresh_media = refreshed
+                        .pop()
+                        .flatten()
+                        .and_then(|m| m.media())
+                        .ok_or_else(|| AuthError::new("cloud_message_missing"))?;
+                    *stream.media.lock() = fresh_media.clone();
+                    {
+                        let mut state = self.state.lock();
+                        if state.revision == revision && auth.cloud_revision() == revision {
+                            state.cache_media([(
+                                (
+                                    stream.descriptor.account_id.clone(),
+                                    stream.descriptor.peer_id.clone(),
+                                    stream.descriptor.message_id,
+                                ),
+                                fresh_media.clone(),
+                            )]);
+                        }
+                    }
+                    tokio::select! {
+                        biased;
+                        _ = stream.cancel.cancelled() => Err(AuthError::new("cloud_stream_closed")),
+                        bytes = fetch_media_range(&client, &fresh_media, stream.descriptor.size, offset, length) => bytes,
+                    }
+                }
+                other => other,
             }
         }).await
     }
@@ -458,25 +562,93 @@ impl CloudWorkspace {
         if bounded_ids.is_empty() {
             return Ok(Vec::new());
         }
-        let peer = self.peer(&account, &peer_id, auth.cloud_revision())?;
+        let revision = auth.cloud_revision();
+        let peer = self.peer(&account, &peer_id, revision)?;
+        let (mut resolved, missing_ids) = {
+            let mut state = self.state.lock();
+            state.refresh(revision)?;
+            let mut resolved = Vec::with_capacity(bounded_ids.len());
+            let mut missing = Vec::new();
+            for &id in &bounded_ids {
+                if let Some(media) = state
+                    .media
+                    .get(&(account.0.clone(), peer_id.clone(), id))
+                    .cloned()
+                {
+                    resolved.push((id, media));
+                } else {
+                    missing.push(id);
+                }
+            }
+            (resolved, missing)
+        };
         let owner = account.clone();
-        auth.cloud_request_scoped(&owner, &[RpcDomain::Messages, RpcDomain::Files], |client| async move {
-            let messages = client
-                .get_messages_by_id(peer, &bounded_ids)
-                .await
-                .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
+        let domains: &[RpcDomain] = if missing_ids.is_empty() {
+            &[RpcDomain::Files]
+        } else {
+            &[RpcDomain::Messages, RpcDomain::Files]
+        };
+        auth.cloud_request_scoped(&owner, domains, |client| async move {
+            if !missing_ids.is_empty() {
+                let messages = client
+                    .get_messages_by_id(peer, &missing_ids)
+                    .await
+                    .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
+                let mut newly_cached = Vec::new();
+                for maybe_msg in messages.into_iter().flatten() {
+                    let msg_id = maybe_msg.id();
+                    if let Some(media) = maybe_msg.media() {
+                        newly_cached.push((
+                            (account.0.clone(), peer_id.clone(), msg_id),
+                            media.clone(),
+                        ));
+                        resolved.push((msg_id, media));
+                    }
+                }
+                if !newly_cached.is_empty() {
+                    let mut state = self.state.lock();
+                    if state.revision == revision && auth.cloud_revision() == revision {
+                        state.cache_media(newly_cached);
+                    }
+                }
+            }
             let mut results = Vec::new();
-            for maybe_msg in messages.into_iter().flatten() {
-                let msg_id = maybe_msg.id();
-                if let Some(media) = maybe_msg.media() {
-                    if let Some(bytes) =
-                        thumbnail::fetch_thumbnail(&client, &media, quality).await?
-                    {
+            for (msg_id, media) in resolved {
+                match thumbnail::fetch_thumbnail(&client, &media, quality).await {
+                    Ok(Some(bytes)) => {
                         results.push(CloudThumbnailItem {
                             message_id: msg_id,
                             thumbnail_bytes: bytes,
                         });
                     }
+                    Ok(None) => {}
+                    Err(err) if err.code == "file_reference_expired" => {
+                        let mut refreshed = client
+                            .get_messages_by_id(peer, &[msg_id])
+                            .await
+                            .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Messages))?;
+                        if let Some(fresh_media) = refreshed.pop().flatten().and_then(|m| m.media())
+                        {
+                            {
+                                let mut state = self.state.lock();
+                                if state.revision == revision && auth.cloud_revision() == revision {
+                                    state.cache_media([(
+                                        (account.0.clone(), peer_id.clone(), msg_id),
+                                        fresh_media.clone(),
+                                    )]);
+                                }
+                            }
+                            if let Some(bytes) =
+                                thumbnail::fetch_thumbnail(&client, &fresh_media, quality).await?
+                            {
+                                results.push(CloudThumbnailItem {
+                                    message_id: msg_id,
+                                    thumbnail_bytes: bytes,
+                                });
+                            }
+                        }
+                    }
+                    Err(err) => return Err(err),
                 }
             }
             Ok(results)

@@ -280,7 +280,9 @@ class DriveViewModel(
         }
         avatars.scope(sessionId)
         val location = if (sessionId == cloud.state.value.scope.accountId)
-            currentDriveLocation(peerId, cloud.state.value.locations) else null
+            currentDriveLocation(peerId, cloud.state.value.locations)
+                ?: currentDriveLocation(peerId, _uiState.value.locations)
+        else null
         mediaReads.cancel(); stopThumbnailUpgrade(); visibleMediaIds = emptySet()
         if (sessionId != cloud.state.value.scope.accountId) locationsJob?.cancel()
         upgradedIds.clear()
@@ -338,7 +340,9 @@ class DriveViewModel(
                 activeTopicId = null
             )
         }
-        if (isForum) loadTopics(refresh = false)
+        if (isForum && !topicReads.isActive && !topics.state.value.loading) {
+            loadTopics(refresh = false)
+        }
     }
 
     fun loadTopics(append: Boolean = false, refresh: Boolean = true) {

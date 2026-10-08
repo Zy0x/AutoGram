@@ -37,8 +37,17 @@ impl AuthEngine {
         cancel: &CancellationToken, operation: F) -> Result<T, AuthError>
     where F: FnOnce(grammers_client::Client) -> Fut,
         Fut: std::future::Future<Output = Result<T, AuthError>> {
+        self.account_request_scoped(id, &[], cancel, operation).await
+    }
+
+    pub(crate) async fn account_request_scoped<T, F, Fut>(&self, id: &AccountId,
+        domains: &[crate::telegram::auth::RpcDomain],
+        cancel: &CancellationToken, operation: F) -> Result<T, AuthError>
+    where F: FnOnce(grammers_client::Client) -> Fut,
+        Fut: std::future::Future<Output = Result<T, AuthError>> {
         self.check_cooldown()?;
-        self.check_cloud_cooldown(id, None)?;
+        let domain_filter = if domains.is_empty() { None } else { Some(domains) };
+        self.check_cloud_cooldown(id, domain_filter)?;
         let connection = self.accounts.lock().get(&id.0).cloned()
             .ok_or_else(|| AuthError::new("not_authorized"))?;
         let result = tokio::select! {
