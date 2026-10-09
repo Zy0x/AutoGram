@@ -220,7 +220,9 @@ function markerCandidates(file, scope) {
   }
   return [...found.values()].sort((a, b) => a.line - b.line || compare(a.kind, b.kind));
 }
-function inventory() {
+export function collectSourceInventory() {
+  // A second call must observe the current source, not a cached earlier snapshot.
+  sources.clear();
   const filesByScope = Object.fromEntries(Object.entries(scopes).map(([key, path]) => [key, walk(path)]));
   for (const file of Object.values(filesByScope).flat()) read(file);
   const sidebarItems = requireItems(matches(paths.sidebar, /\{\s*id:\s*'([^']+)'[^\n]*labelKey:\s*'([^']+)'/g)
@@ -315,7 +317,7 @@ try {
     console.log(`Usage: node "${slash(relative(process.cwd(), fileURLToPath(import.meta.url)))}" [--json | --summary]\nRead-only; no dependencies, network, generated files, or parity percentages.`);
   } else {
     if (args.length > 1 || args.some(arg => !['--json', '--summary'].includes(arg))) throw new Error('Use --json, --summary, or no arguments.');
-    const report = inventory();
+    const report = collectSourceInventory();
     console.log(args[0] === '--json' ? JSON.stringify(report, null, 2) : render(report, args[0] === '--summary'));
     if (report.changedDuringRead.length) process.exitCode = 2;
   }

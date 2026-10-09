@@ -9,17 +9,18 @@ The native engine is packaged for arm64-v8a, armeabi-v7a, x86_64, and x86; choos
 matching APK, or the larger universal APK. Local engine readiness does not mean
 that a Telegram account is signed in.
 
-Available workflows include navigation, local queue records, folder-cache summaries,
-and direct HTTPS file downloads managed by Android. Telegram sign-in, cloud transfer
-execution, provider crawlers, sparse archive streaming, and automation still need
-Android integration. A visible page or control is not a guarantee of support.
+Implemented preview paths include native Telegram sign-in, account-scoped cloud
+navigation and media range reads, a persistent native cloud-download queue, device-file
+preview and direct HTTPS downloads. Real-account/device acceptance is still required
+for the complete workflows. Upload, provider crawlers, processing and automation remain
+incomplete. A visible page or control is not a guarantee of support.
 If the app reports that its native engine is unavailable, use a rebuilt APK for
 your device architecture; never copy session files from another installation.
 
-The Android Accounts page lists local session-file names and their origins without
-reading credentials or contacting Telegram. Native sessions are shown as **not verified**;
-legacy sources are marked **migration required**. Refresh errors preserve the last
-loaded list. This inventory does not add sign-in or session migration support.
+The Accounts page provides phone/OTP/2FA and QR sign-in through the native engine.
+Stored session inventory is separate from live authorization: selecting or restoring
+an account requires a Telegram identity check. Android Keystore protects new session
+records. Legacy session inventory is not an automatic migration or authorization.
 Android and desktop use the same release-version source; matching version numbers do
 not mean that all desktop features are available on Android.
 
@@ -28,10 +29,16 @@ chosen through Android's document picker. It reads the selected file itself; it 
 not Telegram cloud streaming. Text preview is limited to 256 KiB, with a truncation
 notice. Unsupported formats and unreadable files show an explicit error.
 
-Cloud preview currently shows metadata and any cached thumbnail only. Unimplemented
-archive, upload, album, settings and cloud actions no longer display sample content
-or simulated success. Transfer cards show stored measurements and distinguish failed,
-skipped and cancelled records; changing a local pause flag does not start a worker.
+Cloud image/audio/video previews use byte ranges and an Android player; the full set
+of desktop document and encrypted-archive previews is not yet equivalent. Jobs exposes
+the actual account-scoped cloud-download queue through an explicit action, without
+starting work on page entry. Older transfer cards remain metadata records and cannot
+be treated as executable jobs. Forwarder, Automation, Sync and Profiles show their
+missing-engine boundaries instead of example jobs or simulated success. Studio does
+not announce a split, transcode or album result without an executor. Database backup
+and restore are unavailable until a consistent, validated workflow exists; the preview
+does not overwrite the live database to simulate restoration. Unsupported network
+preferences are not presented as active engine policy.
 The canonical builder permits preview Debug APKs, but blocks Release packaging while
 the required cloud workflows and their real-device acceptance evidence are missing.
 
@@ -85,6 +92,12 @@ To avoid wasting user bandwidth and Telegram storage quota, every file transfer 
 ---
 
 ## 🎬 3. Universal Remote Media & Subtitle Pipeline
+
+Android Drive batch downloads preserve the account, chat and forum topic. Their
+feedback distinguishes acknowledged queue entries from failed requests and unconfirmed
+background startup. Failed batches retain their selection; leaving the original
+account/location stops remaining requests. Upload and full desktop parity remain
+in development, as described in the Android preview guide.
 
 - **Stream Range Proxy**: Bypasses WebView2 CORS and Referer restrictions by proxying signed streaming URLs locally through Rust.
 - **Subtitle Transformer**: Converts embedded captions into standardized `.SRT` and `.VTT` subtitle tracks.

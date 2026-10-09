@@ -1,11 +1,7 @@
 package com.autogram.app.ui.settings
 
 import uniffi.autogram_android_bridge.getAvailableStorageBytes
-import android.content.Context
-import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,72 +24,27 @@ import androidx.compose.ui.unit.sp
 import com.autogram.app.BuildConfig
 import com.autogram.app.R
 import com.autogram.app.features.cloud.preview.AndroidPlaybackPreferences
+import com.autogram.app.features.workspace.UnavailableOperationDialog
 import com.autogram.app.runtime.NativeRuntime
 import com.autogram.app.runtime.NativeRuntimeStatus
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.*
 import com.autogram.app.ui.drive.formatFileSize
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val playback = remember(context) { AndroidPlaybackPreferences(context) }
     var rememberPosition by remember { mutableStateOf(playback.rememberPosition) }
     val runtime by NativeRuntime.status.collectAsState()
     var refreshStorage by remember { mutableIntStateOf(0) }
 
-    val sharedPrefs = remember(context) { context.getSharedPreferences("autogram_network_prefs", Context.MODE_PRIVATE) }
-    var bypassCellular by remember { mutableStateOf(sharedPrefs.getBoolean("bypass_cellular_turbo", false)) }
-
-    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
-    var showRestoreConfirmDialog by remember { mutableStateOf(false) }
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/x-sqlite3")
-    ) { uri ->
-        if (uri != null) {
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    val dbFile = File(context.filesDir, "telegram_migrator.db")
-                    if (dbFile.exists()) {
-                        context.contentResolver.openOutputStream(uri)?.use { outStream ->
-                            dbFile.inputStream().use { inStream ->
-                                inStream.copyTo(outStream)
-                            }
-                        }
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, context.getString(R.string.settings_db_export_success), Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, context.getString(R.string.settings_db_export_success), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    val restoreLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            pendingRestoreUri = uri
-            showRestoreConfirmDialog = true
-        }
-    }
+    // A live SQLite file copy is not a consistent backup; truncating it while native
+    // connections own WAL is not a restore. Keep both fail-closed until the shared
+    // snapshot/validation/atomic-commit service exists. Never touch database or vault.
+    var showBackupBoundary by remember { mutableStateOf(false) }
 
     val freeBytes by produceState<Long?>(null, refreshStorage, runtime) {
         value = withContext(Dispatchers.IO) {
@@ -312,17 +263,15 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                 color = TextPrimaryDark
                             )
                             Text(
-                                text = stringResource(R.string.settings_network_bypass_desc),
+                                text = stringResource(R.string.execution_network_missing),
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                                 color = TextSecondaryDark
                             )
                         }
                         Switch(
-                            checked = bypassCellular,
-                            onCheckedChange = { checked ->
-                                bypassCellular = checked
-                                sharedPrefs.edit().putBoolean("bypass_cellular_turbo", checked).apply()
-                            },
+                            checked = false,
+                            onCheckedChange = null,
+                            enabled = false,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = MutedIceCyan,
@@ -446,7 +395,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                                     color = TextPrimaryDark
                                 )
                                 Text(
-                                    text = stringResource(R.string.settings_db_backup_desc),
+                                    text = stringResource(R.string.execution_backup_missing),
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                                     color = TextSecondaryDark
                                 )
@@ -458,10 +407,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Button(
-                                onClick = {
-                                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                                    exportLauncher.launch("AutoGram_Backup_$timestamp.db")
-                                },
+                                onClick = { showBackupBoundary = true },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MutedIceCyan.copy(alpha = 0.2f),
@@ -475,9 +421,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                             }
 
                             OutlinedButton(
-                                onClick = {
-                                    restoreLauncher.launch(arrayOf("*/*"))
-                                },
+                                onClick = { showBackupBoundary = true },
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, SoftCoral.copy(alpha = 0.4f)),
                                 modifier = Modifier.weight(1f)
@@ -611,60 +555,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    if (showRestoreConfirmDialog && pendingRestoreUri != null) {
-        AlertDialog(
-            onDismissRequest = {
-                showRestoreConfirmDialog = false
-                pendingRestoreUri = null
-            },
-            title = { Text(stringResource(R.string.settings_db_restore_action)) },
-            text = { Text(stringResource(R.string.settings_db_restore_confirm)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val uri = pendingRestoreUri
-                        showRestoreConfirmDialog = false
-                        pendingRestoreUri = null
-                        if (uri != null) {
-                            coroutineScope.launch(Dispatchers.IO) {
-                                try {
-                                    val dbFile = File(context.filesDir, "telegram_migrator.db")
-                                    val walFile = File(context.filesDir, "telegram_migrator.db-wal")
-                                    val shmFile = File(context.filesDir, "telegram_migrator.db-shm")
-                                    if (walFile.exists()) walFile.delete()
-                                    if (shmFile.exists()) shmFile.delete()
-
-                                    context.contentResolver.openInputStream(uri)?.use { inStream ->
-                                        dbFile.outputStream().use { outStream ->
-                                            inStream.copyTo(outStream)
-                                        }
-                                    }
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, context.getString(R.string.settings_db_restore_success), Toast.LENGTH_LONG).show()
-                                        refreshStorage++
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Restore error: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ) {
-                    Text(stringResource(R.string.native_confirm), color = SoftCoral)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showRestoreConfirmDialog = false
-                    pendingRestoreUri = null
-                }) {
-                    Text(stringResource(R.string.drive_action_cancel))
-                }
-            }
-        )
-    }
+    if (showBackupBoundary) UnavailableOperationDialog(
+        onDismiss = { showBackupBoundary = false }, reason = R.string.execution_backup_missing)
 }
 
 @Composable

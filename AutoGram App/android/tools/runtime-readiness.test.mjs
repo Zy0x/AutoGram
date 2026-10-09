@@ -63,10 +63,15 @@ test('previously fabricated Android outputs cannot return to production surfaces
     ['ui/drive/DriveToolsModal.kt', /5\.1 MB|76\.4 MB|cleanSuccess/],
     ['ui/transfer/TransferScreen.kt', /contains\("Hero"|weight\(0\.40f\)|transfer_saved_messages/],
     ['ui/transfer/TransferDetailModal.kt', /12\.4 MB\/s|DC4 Production|4 Jalur Paralel/],
-    ['ui/settings/SettingsScreen.kt', /isOtpSent|actionToastMessage|berhasil/],
+    ['ui/settings/SettingsScreen.kt', /isOtpSent|actionToastMessage|berhasil|settings_db_(?:export|restore)_success|\.delete\(|\.outputStream\(|openOutputStream|openInputStream|putBoolean\("bypass_cellular_turbo"/],
     ['ui/settings/SettingsApiSetupModal.kt', /mutableStateOf\("[a-f0-9]{16,}/],
     ['ui/settings/SettingsDebugLogsModal.kt', /listOf\(/],
-    ['ui/studio/StudioScreen.kt', /toastMessage|berhasil/],
+    ['ui/studio/StudioScreen.kt', /toastMessage|berhasil|studio_(?:split_success|transcode_queued|album_success)|isSplitting\s*=\s*true/],
+    ['ui/forwarder/ForwarderScreen.kt', /ForwarderJobItem|forwarder_job_started|Toast|fwd_1/],
+    ['ui/jobs/JobsScreen.kt', /BackgroundJob|job_101|jobs_cleared_success|speedBps\s*=/],
+    ['ui/automation/AutomationScreen.kt', /AutomationRule\(|rule_1|lastTriggeredMs|automation_saved_success/],
+    ['ui/sync/SyncScreen.kt', /FolderSyncPair|pair_camera|sync_started_success|isFullSyncing/],
+    ['ui/profiles/ProfilesScreen.kt', /TransferProfilePreset|profiles_applied_success|streamsCount/],
   ];
   for (const [file, forbidden] of checks) {
     assert.doesNotMatch(readFileSync(resolve(app, 'app/src/main/java/com/autogram/app', file), 'utf8'), forbidden, file);

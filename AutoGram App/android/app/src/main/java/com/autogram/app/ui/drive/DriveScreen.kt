@@ -29,9 +29,8 @@ import java.util.Date
 import androidx.compose.ui.platform.testTag
 import com.autogram.app.features.cloud.cloudErrorLabel
 import com.autogram.app.features.cloudtransfer.DownloadPanel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.autogram.app.features.cloud.CloudScope
+import com.autogram.app.features.cloudtransfer.hooks.rememberBatchDownloadAction
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -42,8 +41,11 @@ fun DriveScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val state by viewModel.uiState.collectAsState()
+    val batchDownload = rememberBatchDownloadAction(CloudScope(state.sessionId, state.peerId, state.topicId),
+        onAllQueued = { queued ->
+            if (viewModel.uiState.value.selectedIds == queued) viewModel.clearSelection()
+        })
     val cloudState by viewModel.cloudState.collectAsState()
     val topicsState by viewModel.topicsState.collectAsState()
     val avatars by viewModel.avatarState.collectAsState()
@@ -125,30 +127,7 @@ fun DriveScreen(
         onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)) },
         onInvertSelection = { viewModel.invertSelection(galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)) },
         onDownloadZip = {
-            val selectedItems = state.items.filter { it.id in state.selectedIds }
-            if (selectedItems.isNotEmpty() && state.sessionId.isNotBlank()) {
-                val queue = com.autogram.app.features.cloudtransfer.services.NativeDownloadQueue
-                val presentation = com.autogram.app.features.cloudtransfer.DownloadPresentationStore(context)
-                coroutineScope.launch(Dispatchers.IO) {
-                    selectedItems.forEach { item ->
-                        if (item.cloudPeerId != null && item.cloudMessageId != null) {
-                            try {
-                                val op = queue.enqueue(state.sessionId, item.cloudPeerId, item.cloudMessageId)
-                                presentation.put(state.sessionId, op, item.name, item.mimeType)
-                            } catch (_: Exception) {}
-                        }
-                    }
-                    withContext(Dispatchers.Main) {
-                        queue.wake(context)
-                        android.widget.Toast.makeText(
-                            context,
-                            context.getString(R.string.drive_download_batch_started, selectedItems.size),
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                        viewModel.clearSelection()
-                    }
-                }
-            }
+            batchDownload(state.items.filter { it.id in state.selectedIds })
         },
         onCleanForward = { isDestinationModalOpen = true },
         onMoveFolder = { isMoveModalOpen = true },

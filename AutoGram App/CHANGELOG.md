@@ -1,5 +1,18 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Android Scoped Batch Download Reliability
+- Extracted batch-download execution from the Drive screen into an account/location-owned action and a typed validation policy. Each native enqueue preserves its forum topic, rejects foreign account/chat/topic records, and stops remaining work when navigation invalidates the request.
+- Batch feedback now reports acknowledged queued and failed counts. Failed batches retain their selection, and a rejected worker start is described as queued work awaiting execution instead of claiming that downloads started. Metadata errors do not retry or disguise an already persisted job.
+- Added Indonesian/English feedback and isolated unit/device regressions for partial failure, rejected requests, cancellation, topic propagation and stale account results. Native Telegram upload and other desktop-equivalence domains remain incomplete.
+
+### Android Real Execution Boundaries and Native Jobs Entry
+- Removed example jobs, rules, profiles and unconfirmed success actions from the Android Forwarder, Automation, Sync and Profiles pages. Their routes now describe the missing execution capability explicitly rather than suggesting that a local screen has performed a Telegram operation. These domains remain incomplete and block desktop-equivalence acceptance.
+- Connected Jobs to the existing account-scoped native cloud-download panel. Opening Jobs does not create, list or start work automatically; the explicit download-queue action exposes actual byte progress and existing pause, resume, cancel and verified-output controls. Account changes close the previous account's panel without dispatching new work.
+- Hardened the download panel against incorrectly scoped records and recoverable read failures. Successful queue reads remove stale read errors, and a rejected foreground-worker start is reported rather than implying that resume has started execution.
+- Removed unconfirmed split, transcode and album success feedback from Studio while retaining its collection and tool presentation. Account/location changes clear operation selections. Disabled the unconnected network-turbo preference and replaced unsafe direct database backup/restore with explicit capability guidance; no database, WAL or session data is changed by those controls.
+- Added an action/output acceptance gate alongside the native-contract diagnostic, with desktop baseline-drift detection and reviewed physical-device evidence tied to one APK identity. Source, manifest, dependencies, resources and build-input changes invalidate prior proof; a registered route or function cannot satisfy the gate. Release remains blocked while implementation or acceptance evidence is incomplete.
+- Added localized execution-boundary guidance, unit regressions and isolated queue/UI instrumentation fixtures, plus an optional signed instrumentation build in the canonical APK builder. Local tests and compilation do not constitute physical-device acceptance or full Android parity.
+
 ### Android Clean Preview and Deliberate Video Gestures
 - Removed the persistent photo transform toolbar and visible zoom buttons; pinch, focal double-tap and accessible actions remain available. Rotation, flips and reset now use the existing gallery overflow menu, with no duplicate overflow button inside a hosted viewer.
 - Split Android video playback into controller, rendering, menu and gesture-policy modules. Playback speed, repeat, aspect ratio, screen rotation, mute, gesture lock, available audio/subtitle tracks and real decoder information are accessible through the same overflow menu. Embedded subtitles are rendered by Media3, not represented as metadata-only options.

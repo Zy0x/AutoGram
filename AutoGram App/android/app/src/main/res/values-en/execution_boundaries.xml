@@ -1,0 +1,13 @@
+<resources>
+    <string name="execution_not_connected">This feature engine is not connected yet</string>
+    <string name="execution_no_simulated_records">No sample jobs, progress, or results are displayed as real activity. This page does not execute operations or change your data.</string>
+    <string name="execution_forwarder_boundary">Forwarder delivery, caption rules, albums, duplicate prevention, and recovery do not yet have a complete Android executor.</string>
+    <string name="execution_automation_boundary">Automation rules cannot yet run through a persistent Android scheduler. No sample rules are treated as active.</string>
+    <string name="execution_sync_boundary">Sync and mirroring are not connected to an Android executor yet. This page does not scan or change phone or Telegram folders.</string>
+    <string name="execution_profiles_boundary">Desktop transfer profiles cannot yet be fully saved and applied to Android executors. Sample presets are not treated as applied configuration.</string>
+    <string name="execution_jobs_boundary">Forwarder, automation, Studio, and sync jobs do not yet have complete Android executors. Old transfer records are not treated as executable jobs.</string>
+    <string name="execution_available_downloads">Cloud downloads have a separate native queue. Open it to inspect actual bytes and control download jobs for this account.</string>
+    <string name="execution_account_required">Select a verified account to open its cloud download queue.</string>
+    <string name="execution_backup_missing">Backup and restore are not available yet: consistent snapshots, integrity validation, and atomic commit are not connected. Your database, WAL, and sessions will not be changed.</string>
+    <string name="execution_network_missing">This turbo option is not connected to Android executor network policy yet. Old preferences are retained, but are not displayed as an active engine setting.</string>
+</resources>

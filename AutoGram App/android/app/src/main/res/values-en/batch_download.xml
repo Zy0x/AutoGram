@@ -1,0 +1,5 @@
+<resources>
+    <string name="cloud_download_batch_queued">%1$d files added to the download queue; %2$d failed. Open the queue to check progress.</string>
+    <string name="cloud_download_batch_waiting">%1$d files queued; %2$d failed. Background startup was not confirmed. Open the queue to check progress and retry.</string>
+    <string name="cloud_download_batch_failed">%1$d files could not be queued. Selection is retained; check the account, location, and connection.</string>
+</resources>

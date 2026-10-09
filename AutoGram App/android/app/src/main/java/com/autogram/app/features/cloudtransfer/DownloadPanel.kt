@@ -40,6 +40,7 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
     var visible by remember(accountId) { mutableStateOf(false) }
     var records by remember(accountId) { mutableStateOf(emptyList<NativeCloudDownload>()) }
     var error by remember(accountId) { mutableStateOf(false) }
+    var loadFailed by remember(accountId) { mutableStateOf(false) }
     var copying by remember(accountId) { mutableStateOf(false) }
     var copyJob by remember(accountId) { mutableStateOf<Job?>(null) }
     var feedback by remember(accountId) { mutableStateOf<Int?>(null) }
@@ -97,7 +98,7 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
                 // independently. Account disposal still cancels stale preflight work.
                 accountActions.launch {
                     try {
-                        val operation = queue.enqueue(accountId, item.cloudPeerId, item.cloudMessageId)
+                        val operation = queue.enqueueScoped(accountId, item.cloudPeerId, item.topicId, item.cloudMessageId)
                         if (!queue.wake(context)) error = true
                         withContext(Dispatchers.IO) { presentation.put(accountId, operation, item.name, item.mimeType) }
                     } catch (cancelled: CancellationException) { throw cancelled }
@@ -109,8 +110,15 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
     }
     LaunchedEffect(accountId, visible) {
         if (visible && accountId.isNotEmpty()) while (isActive) {
-            try { records = withContext(Dispatchers.IO) { queue.list(accountId) } }
-            catch (_: NativeDownloadException) { error = true }
+            try {
+                val loaded = withContext(Dispatchers.IO) { queue.list(accountId) }
+                // Never display/control a record belonging to another account, even
+                // if an adapter returns an incorrectly scoped result.
+                records = loaded.filter { it.accountId == accountId }
+                loadFailed = false
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { loadFailed = true }
+            catch (_: LinkageError) { loadFailed = true }
             delay(750)
         }
     }
@@ -123,7 +131,7 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
             Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.cloud_download_private_notice))
-                if (error) Text(stringResource(R.string.cloud_download_failed), color = MaterialTheme.colorScheme.error)
+                if (error || loadFailed) Text(stringResource(R.string.cloud_download_failed), color = MaterialTheme.colorScheme.error)
                 feedback?.let { Text(stringResource(it)) }
                 if (copying) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -138,9 +146,11 @@ fun DownloadPanel(accountId: String, selected: DriveFileItem?, onConsumed: () ->
                                 try {
                                     queue.control(record.accountId, record.operationId, action)
                                     if (action == "retry") withContext(Dispatchers.Main) {
-                                        queue.wake(context)
+                                        if (!queue.wake(context)) error = true
                                     }
-                                } catch (_: NativeDownloadException) { withContext(Dispatchers.Main) { error = true } }
+                                } catch (cancelled: CancellationException) { throw cancelled }
+                                catch (_: Exception) { withContext(Dispatchers.Main) { error = true } }
+                                catch (_: LinkageError) { withContext(Dispatchers.Main) { error = true } }
                             }
                         }, onSave = {
                             val info = presentation.get(record.accountId, record.operationId)

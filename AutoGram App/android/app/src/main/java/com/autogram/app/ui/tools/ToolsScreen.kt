@@ -59,12 +59,12 @@ private val moduleSpecs = listOf(
     NativeModuleSpec(Screen.Statistics, R.string.statistics_local_scope, true),
     NativeModuleSpec(Screen.Studio, R.string.capability_studio_gap, true),
     NativeModuleSpec(Screen.Settings, R.string.capability_settings_gap, true),
-    NativeModuleSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc, true),
+    NativeModuleSpec(Screen.Forwarder, R.string.ui2_quick_forwarder_desc),
     NativeModuleSpec(Screen.Accounts, R.string.auth_security, integrated = true),
-    NativeModuleSpec(Screen.Jobs, R.string.ui2_quick_jobs_desc, true),
-    NativeModuleSpec(Screen.Automation, R.string.ui2_quick_automation_desc, true),
-    NativeModuleSpec(Screen.Profiles, R.string.ui2_quick_profiles_desc, true),
-    NativeModuleSpec(Screen.Sync, R.string.ui2_quick_sync_desc, true),
+    NativeModuleSpec(Screen.Jobs, R.string.ui2_quick_jobs_desc),
+    NativeModuleSpec(Screen.Automation, R.string.ui2_quick_automation_desc),
+    NativeModuleSpec(Screen.Profiles, R.string.ui2_quick_profiles_desc),
+    NativeModuleSpec(Screen.Sync, R.string.ui2_quick_sync_desc),
     NativeModuleSpec(Screen.ApiSetup, R.string.auth_api_instructions, integrated = true)
 )
 

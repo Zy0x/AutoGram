@@ -170,7 +170,7 @@ credential or local file path. Clear playback history removes these positions on
 ## Cloud downloads
 
 Open a cloud media card and choose **More → Download**, then inspect **Cloud downloads**
-from the gallery overflow menu or the download icon in Transfers. New download jobs retain their original account, even when you switch
+from the gallery overflow menu, the download icon in Transfers, or **Tools → Jobs → Cloud downloads**. Opening Jobs alone does not start a transfer. New download jobs retain their original account, even when you switch
 accounts. The native engine verifies source identity, writes bounded chunks and checks
 actual file size and SHA-256. Pause, resume, cancel and retry act on these real jobs,
 not older metadata-only transfer records.
@@ -247,6 +247,26 @@ only the new cloud-download path performs the workflow above. Upload parity and
 real-account testing of the packaged app are still required. Crawler, Studio,
 Forwarder, automation and backup parity remain under development. Unsupported actions
 must not be interpreted as successful operations.
+
+Forwarder, Automation, Sync and Profiles currently show their execution limitations
+instead of example records or buttons that announce unconfirmed success. Jobs offers
+the real cloud-download queue; it is not yet a general executor for forwarding,
+automation, Studio or synchronization. A disabled action or an unavailable domain
+is a development boundary, not a completed desktop-equivalent feature. This APK
+remains a preview until each required workflow has been implemented and tested.
+
+Drive batch downloads retain the selected account, chat and forum topic. Feedback
+reports only files acknowledged by the queue, alongside failed requests. Failed
+requests retain the selection; changing accounts or locations cancels the remaining
+batch. A queued file is not a completed download. If background startup cannot be
+confirmed, open the download queue to check progress and retry.
+
+Studio retains its collection and tool layout, but split, transcode and album controls
+describe the missing executor instead of reporting an output that was never produced.
+Settings backup/restore do not copy or replace the active database. They remain
+unavailable until consistent snapshots, integrity checks and safe restore are connected.
+The unconnected network-turbo switch is disabled; previously stored preferences are
+not erased or represented as an active Android engine policy.
 
 Use a dedicated test account and destination for manual acceptance testing. The preview
 must not be relied on for unattended transfers or preservation of the only copy of data.

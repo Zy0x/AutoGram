@@ -213,7 +213,7 @@ fun AutoGramAppRoot(
                         AccountsScreen(viewModel = accountsViewModel, auth = authViewModel)
                     }
                     composable(Screen.Jobs.route) {
-                        JobsScreen()
+                        JobsScreen(accountId = driveState.sessionId)
                     }
                     composable(Screen.Automation.route) {
                         AutomationScreen()

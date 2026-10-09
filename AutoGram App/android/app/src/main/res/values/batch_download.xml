@@ -1,0 +1,5 @@
+<resources>
+    <string name="cloud_download_batch_queued">%1$d berkas masuk antrean unduhan; %2$d gagal. Buka antrean untuk melihat progres.</string>
+    <string name="cloud_download_batch_waiting">%1$d berkas masuk antrean; %2$d gagal. Mulainya proses latar belakang belum dikonfirmasi. Buka antrean untuk memeriksa progres dan mencoba kembali.</string>
+    <string name="cloud_download_batch_failed">%1$d berkas gagal masuk antrean. Pilihan dipertahankan; periksa akun, lokasi, dan koneksi.</string>
+</resources>

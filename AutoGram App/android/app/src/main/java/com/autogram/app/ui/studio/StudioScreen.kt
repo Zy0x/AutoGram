@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autogram.app.R
+import com.autogram.app.features.workspace.UnavailableOperationDialog
 import com.autogram.app.theme.*
 import com.autogram.app.ui.components.AutoGramGlassCard
 import com.autogram.app.ui.components.AutoGramSurface
@@ -46,19 +47,18 @@ fun StudioScreen(viewModel: DriveViewModel, modifier: Modifier = Modifier) {
     val images = remember(allMedia) { allMedia.filter { it.telegramCategory == "photo" || it.mimeType.startsWith("image/") } }
 
     // Video Splitter state
-    var selectedVideoForSplit by remember { mutableStateOf<DriveFileItem?>(null) }
+    var selectedVideoForSplit by remember(state.sessionId, state.peerId, state.topicId) { mutableStateOf<DriveFileItem?>(null) }
     var targetSegmentMb by remember { mutableIntStateOf(2000) } // 2000 MB Telegram cap
     var fastStreamCopy by remember { mutableStateOf(true) }
-    var isSplitting by remember { mutableStateOf(false) }
+    var showExecutionBoundary by remember(state.sessionId, state.peerId, state.topicId) { mutableStateOf(false) }
 
     // Transcoder state
     var selectedCodec by remember { mutableStateOf("H.264 (MP4)") }
     var selectedResolution by remember { mutableStateOf("1080p") }
     var audioNormalization by remember { mutableStateOf(true) }
-    var isTranscoding by remember { mutableStateOf(false) }
 
     // Visual Album & Collage state (TELEGRAM_ALBUM_MAX = 10)
-    val selectedAlbumItems = remember { mutableStateListOf<DriveFileItem>() }
+    val selectedAlbumItems = remember(state.sessionId, state.peerId, state.topicId) { mutableStateListOf<DriveFileItem>() }
     var albumCaption by remember { mutableStateOf("") }
 
     LaunchedEffect(state.sessionId, state.peerId, state.topicId) { preview = null }
@@ -160,19 +160,9 @@ fun StudioScreen(viewModel: DriveViewModel, modifier: Modifier = Modifier) {
                             onTargetMbChange = { targetSegmentMb = it },
                             fastStreamCopy = fastStreamCopy,
                             onFastStreamCopyChange = { fastStreamCopy = it },
-                            isSplitting = isSplitting,
+                            isSplitting = false,
                             onStartSplit = {
-                                val video = selectedVideoForSplit
-                                if (video != null) {
-                                    isSplitting = true
-                                    val estimatedSegments = maxOf(1, (video.size / (targetSegmentMb * 1024L * 1024L)).toInt() + 1)
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.studio_split_success, estimatedSegments),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                    isSplitting = false
-                                }
+                                if (selectedVideoForSplit != null) showExecutionBoundary = true
                             }
                         )
                     }
@@ -184,13 +174,9 @@ fun StudioScreen(viewModel: DriveViewModel, modifier: Modifier = Modifier) {
                             onResolutionChange = { selectedResolution = it },
                             audioNormalization = audioNormalization,
                             onAudioNormalizationChange = { audioNormalization = it },
-                            isTranscoding = isTranscoding,
+                            isTranscoding = false,
                             onStartTranscode = {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.studio_transcode_queued),
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                showExecutionBoundary = true
                             }
                         )
                     }
@@ -215,11 +201,7 @@ fun StudioScreen(viewModel: DriveViewModel, modifier: Modifier = Modifier) {
                             onCaptionChange = { albumCaption = it },
                             onBuildAlbum = {
                                 if (selectedAlbumItems.isNotEmpty()) {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.studio_album_success, selectedAlbumItems.size),
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                    showExecutionBoundary = true
                                 }
                             }
                         )
@@ -255,6 +237,8 @@ fun StudioScreen(viewModel: DriveViewModel, modifier: Modifier = Modifier) {
     }
 
     preview?.let { DrivePreviewModal(it, allMedia, { preview = null }, { next -> preview = next }) }
+    if (showExecutionBoundary) UnavailableOperationDialog(
+        onDismiss = { showExecutionBoundary = false }, reason = R.string.capability_studio_gap)
 }
 
 @Composable

@@ -2,10 +2,12 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Variant = "Debug",
     [switch]$SkipBootstrap,
-    [switch]$SkipNative
+    [switch]$SkipNative,
+    [switch]$BuildInstrumentation
 )
 
 $ErrorActionPreference = "Stop"
+if ($BuildInstrumentation -and $Variant -ne "Debug") { throw "Reviewed instrumentation fixtures require a Debug preview build" }
 
 # Debug APKs are explicitly previews. Do not ship a release APK as desktop-equivalent
 # while the requested native cloud workflows are still absent.
@@ -13,6 +15,12 @@ $readinessArgs = @((Join-Path $PSScriptRoot "tools/runtime-readiness.mjs"))
 if ($Variant -eq "Release") { $readinessArgs += "--require-cloud-ready" }
 & node @readinessArgs
 if ($LASTEXITCODE -ne 0) { throw "Android cloud acceptance is incomplete; only preview Debug builds are allowed" }
+
+# Contract declarations never replace per-action UI/engine/output evidence.
+$actionGateArgs = @((Join-Path $PSScriptRoot "tools/parity-acceptance.mjs"))
+if ($Variant -eq "Release") { $actionGateArgs += "--require-ready" }
+& node @actionGateArgs
+if ($LASTEXITCODE -ne 0) { throw "Android action/output acceptance is incomplete or invalid" }
 
 $androidRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $toolchainRoot = Join-Path $androidRoot ".toolchains"
@@ -114,11 +122,22 @@ try {
     & $gradleWrapper --no-daemon --no-configuration-cache --project-dir $PSScriptRoot --stacktrace $assembleTask
     if ($LASTEXITCODE -ne 0) { throw "Android APK assembly failed" }
 
+    if ($BuildInstrumentation) {
+        & $gradleWrapper --no-daemon --no-configuration-cache --project-dir $PSScriptRoot --stacktrace assembleDebugAndroidTest
+        if ($LASTEXITCODE -ne 0) { throw "Reviewed Android instrumentation assembly failed" }
+    }
+
     $apkFolder = Join-Path $PSScriptRoot "app\build\outputs\apk\$($Variant.ToLowerInvariant())"
     & (Join-Path $PSScriptRoot "tools\verify_native_apks.ps1") -ApkDirectory $apkFolder
     if ($LASTEXITCODE -ne 0) { throw 'Native APK verification failed' }
     $apksigner = Join-Path $sdkRoot 'build-tools/34.0.0/apksigner.bat'
-    Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk" | ForEach-Object {
+    $signedApks = @(Get-ChildItem -LiteralPath $apkFolder -Filter "*.apk")
+    if ($BuildInstrumentation) {
+        $testApk = Join-Path $PSScriptRoot 'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk'
+        if (-not (Test-Path -LiteralPath $testApk -PathType Leaf)) { throw 'Instrumentation APK missing' }
+        $signedApks += Get-Item -LiteralPath $testApk
+    }
+    $signedApks | ForEach-Object {
         $certificateOutput = & $apksigner verify --print-certs $_.FullName 2>&1
         if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed' }
         $certificateMatch = [regex]::Match(($certificateOutput -join "`n"), 'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]{64})')

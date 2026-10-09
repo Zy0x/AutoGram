@@ -1,0 +1,13 @@
+<resources>
+    <string name="execution_not_connected">Engine fitur ini belum tersambung</string>
+    <string name="execution_no_simulated_records">Tidak ada pekerjaan, progres, atau hasil contoh yang ditampilkan sebagai aktivitas nyata. Halaman ini tidak menjalankan operasi maupun mengubah data Anda.</string>
+    <string name="execution_forwarder_boundary">Pengiriman, aturan caption, album, deduplikasi, dan pemulihan Forwarder belum memiliki executor Android lengkap.</string>
+    <string name="execution_automation_boundary">Aturan otomasi belum dapat dijalankan oleh penjadwal persisten Android. Tidak ada aturan contoh yang dianggap aktif.</string>
+    <string name="execution_sync_boundary">Sinkronisasi dan mirror belum tersambung ke executor Android. Folder HP atau Telegram Anda tidak dipindai maupun diubah dari halaman ini.</string>
+    <string name="execution_profiles_boundary">Profil transfer desktop belum dapat disimpan dan diterapkan ke executor Android secara lengkap. Preset contoh tidak dianggap sebagai konfigurasi yang sudah diterapkan.</string>
+    <string name="execution_jobs_boundary">Pekerjaan Forwarder, otomasi, Studio, dan sinkronisasi belum memiliki pelaksana Android lengkap. Catatan transfer lama tidak dianggap pekerjaan yang bisa dijalankan.</string>
+    <string name="execution_available_downloads">Unduhan cloud memiliki antrean native terpisah. Buka antrean untuk melihat byte aktual serta mengendalikan pekerjaan unduhan akun ini.</string>
+    <string name="execution_account_required">Pilih akun yang sudah diverifikasi untuk membuka antrean unduhan cloud.</string>
+    <string name="execution_backup_missing">Cadangan dan pemulihan belum tersedia: snapshot konsisten, validasi integritas, dan commit atomik belum terhubung. Database, WAL, serta sesi Anda tidak akan diubah.</string>
+    <string name="execution_network_missing">Opsi turbo ini belum terhubung ke kebijakan jaringan executor Android. Preferensi lama tetap disimpan, tetapi tidak ditampilkan sebagai pengaturan engine yang aktif.</string>
+</resources>
