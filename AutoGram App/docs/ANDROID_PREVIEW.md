@@ -64,7 +64,9 @@ is unavailable until the complete binary content is actually hashed.
 
 This does not establish complete desktop preview parity. Office/eBook/notebook/font
 viewers, the full inspector workbench, encrypted/nested ZIP workflows, split comparison
-and advanced video gestures/PiP still require implementation and acceptance testing.
+and picture-in-picture still require implementation and acceptance testing. The
+video gestures described below have targeted physical-device coverage, not complete
+desktop feature coverage.
 
 After selecting a server-verified account, Cloud Drives can read Saved Messages or a
 chat/channel selected from **Choose chat or channel**. Search requests go to Telegram;
@@ -143,8 +145,12 @@ gesture lock/unlock, gesture help and actual stream information. Available embed
 audio and subtitle tracks can be selected there; unsupported tracks are disabled,
 and absent tracks are not invented. Embedded subtitles are displayed on the video.
 These controls do not add codecs unsupported by the phone, external subtitle-file
-import or picture-in-picture. Physical gesture acceptance remains pending for the
-latest revision; this is not a complete MX Player replacement.
+import or picture-in-picture. Targeted testing on a physical Infinix X698 passed
+21 preview cases, including real decoded video fixtures, image gestures, track
+selection, cancellation and byte-range playback. The image/video gesture cases
+also passed three repeat runs. Photo navigation and the shared photo menu were
+checked against an existing cloud gallery. These checks do not certify every cloud
+format, network condition or device; this is not a complete MX Player replacement.
 The progressive player separates a 200 ms startup threshold from its 15–50 second
 ongoing buffer window, and supplies the saved position before preparing the media.
 Failed reads can be retried. Transport setup and native byte conversion run separately
@@ -152,8 +158,10 @@ from the display thread. The exact-range reader reuses previously requested slic
 the video pipeline also fetches bounded chunks ahead and uses a temporary, per-stream disk cache. These
 speculative runway begins only after playback is confirmed, not while parsing the
 header or restoring a saved position. Paused/buffering playback stops speculation.
-These buffers are separate from the threshold for starting playback. Device testing is still
-required to verify start/resume performance on the current build.
+These buffers are separate from the threshold for starting playback. Controlled
+physical-device range tests passed for initial playback and a saved-position resume
+without fetching the full ongoing buffer first. Real-network start times remain
+dependent on the connection, container layout and decoder.
 
 **Settings → Remember cloud playback position** controls local resume history. Positions
 are separated by account and message, expire after 90 days and contain no media URL,
