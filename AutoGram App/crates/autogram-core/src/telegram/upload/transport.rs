@@ -13,9 +13,9 @@ use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
 
 pub struct TelegramUploadTransport<'a> {
-    auth: &'a AuthEngine,
-    scope: AccountScope,
-    cancel: CancellationToken,
+    pub(super) auth: &'a AuthEngine,
+    pub(super) scope: AccountScope,
+    pub(super) cancel: CancellationToken,
 }
 impl<'a> TelegramUploadTransport<'a> {
     pub async fn connect(
@@ -40,7 +40,7 @@ impl<'a> TelegramUploadTransport<'a> {
             cancel,
         })
     }
-    async fn peer(&self, destination: &UploadDestination) -> Result<PeerRef, UploadError> {
+    pub(super) async fn peer(&self, destination: &UploadDestination) -> Result<PeerRef, UploadError> {
         destination.validate()?;
         if destination.scope != self.scope {
             return Err(UploadError::WrongScope);
@@ -302,7 +302,7 @@ pub(super) fn upload_rpc(error: InvocationError) -> AuthError {
     }
     map_rpc(error)
 }
-fn upload_error(error: AuthError) -> UploadError {
+pub(super) fn upload_error(error: AuthError) -> UploadError {
     match error.code.as_str() {
         "flood_wait" => UploadError::FloodWait {
             retry_after_ms: u64::from(error.retry_after_seconds) * 1000,

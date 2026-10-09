@@ -45,7 +45,7 @@ pub(super) async fn read_confirmed_document(
     })
 }
 
-fn validate_receipt_scope(
+pub(super) fn validate_receipt_scope(
     destination: &UploadDestination,
     expected_peer: PeerId,
     actual_peer: PeerId,

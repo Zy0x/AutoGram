@@ -37,6 +37,13 @@ pub struct UploadStore {
     lock_root: PathBuf,
 }
 impl UploadStore {
+    /// A bounded read adapter keeps ledger consumers independent of queue mutations.
+    pub(crate) fn inspect_ledger<T>(
+        &self,
+        read: impl FnOnce(&Connection) -> Result<T, UploadError>,
+    ) -> Result<T, UploadError> {
+        read(&self.connection.lock())
+    }
     #[cfg(test)]
     pub(super) fn connection_for_fixture(&self) -> parking_lot::MutexGuard<'_, Connection> {
         self.connection.lock()

@@ -15,6 +15,7 @@ mod cloud_upload;
 mod cloud_upload_enqueue;
 mod transfer_profile_types;
 mod transfer_profiles;
+mod upload_duplicates;
 mod platform;
 #[cfg(test)]
 mod schema_tests;

@@ -26,7 +26,7 @@ impl From<SourceFailure> for NativeDownloadError {
     fn from(value: SourceFailure) -> Self { DownloadError::Source(value).into() }
 }
 
-fn store() -> Result<&'static DownloadStore, NativeDownloadError> {
+pub(super) fn store() -> Result<&'static DownloadStore, NativeDownloadError> {
     static STORE: OnceLock<DownloadStore> = OnceLock::new();
     if let Some(store) = STORE.get() { return Ok(store); }
     let path = crate::database_path().map_err(|_| error("runtime_not_initialized"))?;

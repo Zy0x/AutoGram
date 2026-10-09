@@ -6,6 +6,7 @@ pub mod uploader;
 pub mod transport;
 mod limits;
 mod receipt;
+mod duplicates;
 
 pub use chunk_manager::{calculate_chunk_allocation, ChunkAllocation};
 pub use resume::UploadResumeState;

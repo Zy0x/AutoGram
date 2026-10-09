@@ -86,6 +86,8 @@ To avoid wasting user bandwidth and Telegram storage quota, every file transfer 
 ```
 
 **Resolution Policies:**
+Android's native duplicate-inspection contract rechecks known documents against Telegram, using completed-download identity, binary hash or canonical filename and exact size. Filename/size remains a probable match. Inspection covers known local upload records and explicit source provenance; it does not scan every destination message. Android policy execution and its upload screen still require integration and device acceptance.
+
 - **Skip**: Immediately marks the item as resolved, referencing the existing cloud message pointer.
 - **Replace**: Automatically deletes the obsolete cloud message and uploads the fresh asset.
 - **Keep Both**: Renames the new asset with a collision suffix (e.g. `document (1).pdf`).
