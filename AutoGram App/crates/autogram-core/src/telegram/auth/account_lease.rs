@@ -5,6 +5,22 @@ use std::{sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
 
 impl AuthEngine {
+    pub fn selected_job_revision(&self) -> u64 { self.cloud_revision() }
+    /// Linearize an interactive durable enqueue with account selection/revocation.
+    /// Callback is synchronous persistence only and must not reenter auth.
+    pub fn commit_selected_job<T,E>(&self, id: &AccountId, expected_revision: u64,
+        operation: impl FnOnce() -> Result<T,E>) -> Result<T,E>
+    where E: From<AuthError> {
+        let accounts = self.accounts.lock();
+        let selected = self.selected.lock();
+        if selected.as_ref() != Some(id) || self.cloud_revision() != expected_revision {
+            return Err(AuthError::new("account_scope_changed").into());
+        }
+        if !accounts.get(&id.0).is_some_and(|connection| !connection.revoked.is_cancelled()) {
+            return Err(AuthError::new("not_authorized").into());
+        }
+        operation()
+    }
     pub async fn validate_selected_account(&self, id: &AccountId) -> Result<(), AuthError> {
         self.cloud_request(id, |_| async { Ok(()) }).await
     }

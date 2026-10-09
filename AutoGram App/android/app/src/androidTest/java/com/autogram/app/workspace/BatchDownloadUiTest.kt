@@ -1,6 +1,7 @@
 package com.autogram.app.workspace
 
 import android.content.Context
+import android.os.Looper
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -41,7 +42,10 @@ class BatchDownloadUiTest {
     @Test fun topicScopeReachesTheAdapterAndOnlyAcknowledgedBatchClearsSelection() {
         val queue = FixtureQueue()
         val cleared = CopyOnWriteArrayList<Set<String>>()
-        compose.setContent { Harness(original, queue) { cleared.add(it) } }
+        compose.setContent { Harness(original, queue) {
+            assertSame(Looper.getMainLooper(), Looper.myLooper())
+            cleared.add(it)
+        } }
         compose.onNodeWithTag("fixture-batch").performClick()
         compose.waitUntil(5_000) { cleared.isNotEmpty() }
         assertEquals(setOf("1", "2"), cleared.single())
@@ -90,6 +94,10 @@ class BatchDownloadUiTest {
         }
         override fun list(account: String): List<NativeCloudDownload> = error("batch does not list")
         override fun control(account: String, operation: String, action: String) = error("batch does not control")
-        override fun wake(context: Context): Boolean { wakes.incrementAndGet(); return true }
+        override fun wake(context: Context): Boolean {
+            assertSame(Looper.getMainLooper(), Looper.myLooper())
+            wakes.incrementAndGet()
+            return true
+        }
     }
 }

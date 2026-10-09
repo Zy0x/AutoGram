@@ -98,6 +98,8 @@ feedback distinguishes acknowledged queue entries from failed requests and uncon
 background startup. Failed batches retain their selection; leaving the original
 account/location stops remaining requests. Upload and full desktop parity remain
 in development, as described in the Android preview guide.
+Batch notifications and selection updates are handled on the Android UI thread;
+targeted physical-phone regressions cover these flows and media preview controls.
 
 - **Stream Range Proxy**: Bypasses WebView2 CORS and Referer restrictions by proxying signed streaming URLs locally through Rust.
 - **Subtitle Transformer**: Converts embedded captions into standardized `.SRT` and `.VTT` subtitle tracks.

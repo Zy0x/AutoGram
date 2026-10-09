@@ -37,6 +37,20 @@ async fn work_stays_pinned_when_ui_selects_another_account() {
 }
 
 #[tokio::test]
+async fn durable_enqueue_rejects_changed_revision_before_running_persistence() {
+    let (engine,id) = fixture();
+    let revision = engine.cloud_revision();
+    let result: Result<i32,AuthError> = engine.commit_selected_job(&id,revision,|| Ok(17));
+    assert_eq!(result.unwrap(),17);
+    engine.scope_revision.send_modify(|value| *value += 1);
+    let result: Result<i32,AuthError> = engine.commit_selected_job(&id,revision,|| panic!("stale enqueue must not run"));
+    assert_eq!(result.unwrap_err().code,"account_scope_changed");
+    engine.invalidate_account(&id);
+    let result: Result<i32,AuthError> = engine.commit_selected_job(&id,engine.cloud_revision(),|| panic!("revoked enqueue must not run"));
+    assert!(result.is_err());
+}
+
+#[tokio::test]
 async fn revocation_cancels_the_inflight_account_request() {
     let (engine, id) = fixture();
     let started = Arc::new(tokio::sync::Notify::new());

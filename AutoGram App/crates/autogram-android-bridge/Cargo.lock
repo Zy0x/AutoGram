@@ -181,6 +181,7 @@ name = "autogram-android-bridge"
 version = "0.1.0"
 dependencies = [
  "autogram-core",
+ "grammers-session",
  "log",
  "parking_lot",
  "rusqlite",
@@ -208,6 +209,7 @@ dependencies = [
  "hex",
  "libc",
  "log",
+ "md5",
  "parking_lot",
  "rand",
  "rusqlite",

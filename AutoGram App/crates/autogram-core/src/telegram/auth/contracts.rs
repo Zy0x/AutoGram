@@ -112,12 +112,13 @@ impl AuthError {
 
 /// Separate RPC budgets; file-download throttling must not block forum navigation.
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum RpcDomain { Dialogs, History, Search, Topics, Messages, Files }
+pub(crate) enum RpcDomain { Dialogs, History, Search, Topics, Messages, Files, UploadParts, SendMessages }
 impl RpcDomain {
     pub(super) fn key(self) -> &'static str {
         match self {
             Self::Dialogs => "dialogs", Self::History => "history", Self::Search => "search",
             Self::Topics => "topics", Self::Messages => "messages", Self::Files => "files",
+            Self::UploadParts => "upload_parts", Self::SendMessages => "send_messages",
         }
     }
 }

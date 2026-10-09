@@ -40,6 +40,32 @@ class VideoPlayerGestureTest {
     private fun source(closed: () -> Unit = {}) = CloudRangeSource(bytes.size.toLong(), { offset, length ->
         bytes.copyOfRange(offset.toInt(), offset.toInt() + length)
     }, closed)
+    private fun SemanticsNodeInteraction.touchWhenResumed(
+        activityWindow: Boolean = true,
+        action: TouchInjectionScope.() -> Unit,
+    ) {
+        // Surface readiness doesn't imply that Android restored window focus after
+        // a popup/lifecycle transition. Wait without reopening or resetting fixtures.
+        val activity = compose.activity
+        try {
+            compose.waitUntil(5000) {
+                var focused = false
+                InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                    // Dialog previews own a separate focused window. Their mounted
+                    // semantic root is required, not focus on the parent Activity.
+                    focused = (!activityWindow || activity.hasWindowFocus()) && !activity.isFinishing && !activity.isDestroyed
+                }
+                if (!focused) false else try {
+                    compose.onAllNodesWithTag("preview-video-gestures").fetchSemanticsNodes().isNotEmpty()
+                } catch (failure: IllegalStateException) {
+                    if (failure.message?.startsWith("No compose hierarchies found") == true) false else throw failure
+                }
+            }
+        } catch (failure: ComposeTimeoutException) {
+            throw AssertionError("video fixture unavailable: finishing=${activity.isFinishing}, destroyed=${activity.isDestroyed}, focused=${activity.hasWindowFocus()}", failure)
+        }
+        performTouchInput(action)
+    }
     private fun setup() {
         val source = source()
         compose.setContent { AutoGramTheme {
@@ -58,7 +84,7 @@ class VideoPlayerGestureTest {
         setup()
         var commits = 0
         compose.runOnIdle { commits = controller.seekCommits }
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput {
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed {
             swipe(start = Offset(width * .45f, height * .45f), end = Offset(width * .75f, height * .45f), durationMillis = 500)
         }
         compose.runOnIdle {
@@ -71,27 +97,27 @@ class VideoPlayerGestureTest {
         setup()
         compose.runOnIdle { controller.selectSpeed(1.5f) }
         val gestures = compose.onNodeWithTag("preview-video-gestures")
-        gestures.performTouchInput { down(center) }
+        gestures.touchWhenResumed { down(center) }
         compose.waitUntil(3000) { controller.boosted }
         compose.runOnIdle { assertEquals(3f, controller.player.playbackParameters.speed, 0f) }
-        gestures.performTouchInput { up() }
+        gestures.touchWhenResumed { up() }
         compose.runOnIdle {
             assertFalse(controller.boosted); assertEquals(1.5f, controller.player.playbackParameters.speed, 0f)
             assertFalse(controller.player.playWhenReady); assertTrue(navigations.isEmpty())
         }
-        gestures.performTouchInput { down(center) }
+        gestures.touchWhenResumed { down(center) }
         compose.waitUntil(3000) { controller.boosted }
-        gestures.performTouchInput { cancel() }
+        gestures.touchWhenResumed { cancel() }
         compose.runOnIdle { assertFalse(controller.boosted); assertFalse(controller.player.playWhenReady) }
     }
     @Test fun backgroundCancelsHoldAndDoesNotResumeAPausedVideo() {
         setup()
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput { down(center) }
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed { down(center) }
         compose.waitUntil(3000) { controller.boosted }
         compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.STARTED)
         compose.runOnIdle { assertFalse(controller.boosted); assertFalse(controller.player.playWhenReady) }
         compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput { cancel() }
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed { cancel() }
         compose.runOnIdle { assertFalse(controller.player.playWhenReady); assertTrue(navigations.isEmpty()) }
     }
     @Test fun brightnessAndVolumeStayLocalAndWindowSettingsAreRestored() {
@@ -111,12 +137,12 @@ class VideoPlayerGestureTest {
     @Test fun deliberateGallerySwipeWorksButShortAndDiagonalDoNot() {
         setup()
         val gestures = compose.onNodeWithTag("preview-video-gestures")
-        gestures.performTouchInput { swipe(Offset(width * .93f, height * .45f), Offset(width * .8f, height * .45f), 300) }
-        gestures.performTouchInput { swipe(Offset(width * .93f, height * .4f), Offset(width * .55f, height * .8f), 300) }
+        gestures.touchWhenResumed { swipe(Offset(width * .93f, height * .45f), Offset(width * .8f, height * .45f), 300) }
+        gestures.touchWhenResumed { swipe(Offset(width * .93f, height * .4f), Offset(width * .55f, height * .8f), 300) }
         compose.runOnIdle { assertTrue(navigations.isEmpty()) }
-        gestures.performTouchInput { swipe(Offset(width * .93f, height * .45f), Offset(width * .3f, height * .45f), 500) }
+        gestures.touchWhenResumed { swipe(Offset(width * .93f, height * .45f), Offset(width * .3f, height * .45f), 500) }
         compose.runOnIdle { assertEquals(listOf(1), navigations) }
-        gestures.performTouchInput {
+        gestures.touchWhenResumed {
             down(0, Offset(width * .3f, height * .45f)); down(1, Offset(width * .3f, height * .55f))
             repeat(10) { index ->
                 val x = width * (.3f + (index + 1) * .05f)
@@ -130,13 +156,13 @@ class VideoPlayerGestureTest {
         setup()
         var commits = 0
         compose.runOnIdle { commits = controller.seekCommits }
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput { doubleClick(Offset(width * .75f, height * .4f)) }
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed { doubleClick(Offset(width * .75f, height * .4f)) }
         compose.runOnIdle { assertEquals(commits + 1, controller.seekCommits); assertTrue(navigations.isEmpty()) }
-        compose.onNodeWithTag("preview-seek").performTouchInput { swipeLeft() }
+        compose.onNodeWithTag("preview-seek").touchWhenResumed { swipeLeft() }
         compose.runOnIdle { assertEquals(commits + 2, controller.seekCommits); assertTrue(navigations.isEmpty()) }
         compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
         compose.onNodeWithText(text(R.string.player_lock)).performClick()
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput { swipeLeft(); doubleClick() }
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed { swipeLeft(); doubleClick() }
         compose.runOnIdle { assertTrue(controller.locked); assertEquals(commits + 2, controller.seekCommits); assertTrue(navigations.isEmpty()) }
         compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
         compose.onNodeWithText(text(R.string.player_unlock)).performClick()
@@ -188,7 +214,7 @@ class VideoPlayerGestureTest {
         } }
         compose.waitUntil(10000) { ::controller.isInitialized && controller.rendered && controller.ready }
         compose.onAllNodesWithContentDescription(text(R.string.clean_gallery_actions)).assertCountEquals(1)
-        compose.onNodeWithTag("preview-video-gestures").performTouchInput {
+        compose.onNodeWithTag("preview-video-gestures").touchWhenResumed(activityWindow = false) {
             swipe(Offset(width * .93f, height * .45f), Offset(width * .3f, height * .45f), 500)
         }
         compose.waitUntil(5000) { selected.id == "2" && owners == setOf("2") }

@@ -273,3 +273,26 @@ The active desktop runtime applies the additive Forwarder bridge migrations `020
 # Local-only remote downloads
 
 The local HTTP download panel keeps active jobs in process memory and does not modify the SQLite schema. Its Pause/Resume state is session-scoped; `remote_transfer_jobs` continues to describe the separate remote transfer recovery engine.
+
+## Native cloud upload checkpoints (migration 026)
+
+`native_cloud_uploads` extends `transfer_runs` and `transfer_items_v4` with durable
+original-document execution. Its operation ID references the existing v4 run. The
+immutable `request_json` binds the verified account/user, destination peer/topic,
+source size/SHA-256/MD5/part digests, filename, caption and frozen transfer profile.
+
+- `random_id`: immutable MTProto message deduplication identity across retries.
+- `file_id`: temporary MTProto part allocation; may restart after confirmed expiry.
+- `acknowledged_parts` / `uploaded_bytes`: contiguous server-acknowledged progress.
+- `epoch`: worker generation guarding checkpoint and completion writes.
+- `control`: a pending pause/cancel decision before commit admission.
+- `retry_not_before_ms`: persisted deadline; UI retries cannot erase server waits.
+- `state`: queued, running, paused, retry_wait, committing, review_required,
+  completed, failed or cancelled. An interrupted commit requires review.
+- `receipt_json`: confirmed scoped message/document receipt, required for completion.
+
+The executor atomically records completion in the v4 run/item and `upload_ledger`.
+Session keys, peer access hashes and file references are not stored in these rows.
+Opening the store applies migrations 015 and 026 without executing legacy metadata
+tasks. Connections use WAL, NORMAL synchronous mode, foreign keys and a 5-second
+busy timeout. This schema does not itself establish Android runtime acceptance.

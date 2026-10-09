@@ -37,6 +37,18 @@ test('readiness and parity share the real export inventory; callbacks are not ca
   assert.ok(buildReadinessReport(callbacksOnly).workflows[0].missingExports.includes('begin_phone_login'));
 });
 
+test('native upload declarations retain packaged-output and policy acceptance blockers', () => {
+  const report = buildReadinessReport();
+  const upload = report.workflows.find(item => item.id === 'upload_download');
+  for (const name of ['enqueue_cloud_upload', 'start_cloud_upload', 'control_cloud_upload', 'recover_cloud_upload']) {
+    assert.ok(upload.requiredExports.includes(name));
+    assert.ok(upload.presentExports.some(item => item.name === name));
+  }
+  assert.equal(upload.acceptanceStatus, 'unverified');
+  assert.ok(upload.blockers.some(blocker => /duplicate decisions and album/.test(blocker)));
+  assert.equal(report.fullCloudTestingReady, false);
+});
+
 test('even all native declarations cannot satisfy missing real-device acceptance evidence', () => {
   const required = [...new Set(buildReadinessReport({ functions: [] }).workflows.flatMap(item => item.requiredExports))];
   const source = required.map(name => `#[uniffi::export(async_runtime = "tokio")]\npub async fn ${name}() {}`).join('\n');

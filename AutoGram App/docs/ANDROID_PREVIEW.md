@@ -260,6 +260,10 @@ reports only files acknowledged by the queue, alongside failed requests. Failed
 requests retain the selection; changing accounts or locations cancels the remaining
 batch. A queued file is not a completed download. If background startup cannot be
 confirmed, open the download queue to check progress and retry.
+Batch feedback and selection updates are delivered on the UI thread. Targeted
+physical-phone checks cover successful and failed queue requests, account changes,
+image navigation, video gestures and range playback; this does not establish full
+Telegram upload or desktop-equivalence acceptance.
 
 Studio retains its collection and tool layout, but split, transcode and album controls
 describe the missing executor instead of reporting an output that was never produced.

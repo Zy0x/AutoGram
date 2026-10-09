@@ -45,8 +45,11 @@ fun rememberBatchDownloadAction(
                             presentation = { item, op -> presentation.put(sourceScope.accountId, op, item.name, item.mime) },
                             isCurrent = { latestScope == sourceScope })
                     }
-                    ensureActive()
-                    if (latestScope == sourceScope) {
+                    // A caller/test interceptor may resume the continuation on an IO
+                    // worker. Android feedback and selection mutations require Main.
+                    withContext(Dispatchers.Main.immediate) {
+                        ensureActive()
+                        if (latestScope != sourceScope) return@withContext
                         val started = if (result.queued.isEmpty()) false else try { queue.wake(context) }
                             catch (cancelled: CancellationException) { throw cancelled }
                             catch (_: Exception) { false } catch (_: LinkageError) { false }
@@ -58,7 +61,9 @@ fun rememberBatchDownloadAction(
                         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                         if (result.failed.isEmpty()) latestAllQueued(result.queued)
                     }
-                } finally { busy = false }
+                } finally {
+                    withContext(NonCancellable + Dispatchers.Main.immediate) { busy = false }
+                }
             }
         }
     }

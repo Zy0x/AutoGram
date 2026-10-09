@@ -3,6 +3,20 @@ use rusqlite::Connection;
 const MIGRATION: &str = include_str!("../../../database/migrations/024_android_local_records.sql");
 const MASTER: &str = include_str!("../../../database/schema.sql");
 
+#[test]
+fn native_upload_checkpoint_schema_is_repeatable_and_matches_master() {
+    let runtime = Connection::open_in_memory().unwrap();
+    runtime.execute_batch(include_str!("../../../database/migrations/015_transfer_control_plane_v4.sql")).unwrap();
+    let upload = include_str!("../../../database/migrations/026_native_cloud_uploads.sql");
+    runtime.execute_batch(upload).unwrap();
+    runtime.execute_batch(upload).unwrap();
+    let master = Connection::open_in_memory().unwrap();
+    master.execute_batch(MASTER).unwrap();
+    assert_eq!(columns(&runtime,"native_cloud_uploads"),columns(&master,"native_cloud_uploads"));
+    let count: i64 = runtime.query_row("SELECT count(*) FROM native_cloud_uploads",[],|row| row.get(0)).unwrap();
+    assert_eq!(count,0);
+}
+
 fn columns(connection: &Connection, table: &str) -> Vec<(String, String, i64, Option<String>, i64)> {
     connection.prepare(&format!("PRAGMA table_info({table})")).unwrap()
         .query_map([], |row| Ok((row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)))

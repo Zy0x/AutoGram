@@ -81,6 +81,7 @@ dependencies = [
  "hex",
  "libc",
  "log",
+ "md5",
  "parking_lot",
  "rand",
  "rusqlite",
