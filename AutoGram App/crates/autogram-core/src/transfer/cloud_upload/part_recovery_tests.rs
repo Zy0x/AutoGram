@@ -203,7 +203,7 @@ async fn obsolete_generation_cannot_ack_complete_or_repeat_reallocation() {
         UploadError::InvalidState
     );
     let receipt = Transport::new(&fixture.request)
-        .commit_document(&fixture.request, old.file_id)
+        .reconcile_document(&fixture.request, 57)
         .await
         .unwrap();
     assert_eq!(

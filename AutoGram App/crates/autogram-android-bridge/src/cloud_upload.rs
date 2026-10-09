@@ -247,6 +247,21 @@ pub fn recover_cloud_upload(
 pub fn pending_cloud_uploads() -> Result<Vec<NativeCloudUpload>, NativeUploadError> {
     Ok(store()?.pending(100)?.into_iter().map(record).collect())
 }
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn reconcile_cloud_upload(account_id: String, operation_id: String) -> Result<NativeCloudUpload, NativeUploadError> {
+    let scope = scope(account_id)?;
+    let saved = store()?.get(&operation_id, &scope)?;
+    if saved.state == UploadState::Completed { return Ok(record(saved)); }
+    if saved.state == UploadState::Committing { store()?.review_interrupted_commit(&operation_id, &scope)?; }
+    store()?.reconciliation_target(&operation_id, &scope)?;
+    let auth = engine().map_err(|_| error("auth_not_initialized"))?;
+    let cancel = CancellationToken::new();
+    let _cancel_on_drop = cancel.clone().drop_guard();
+    let transport = TelegramUploadTransport::connect(auth, scope.clone(), cancel.clone()).await?;
+    // Recovery reads a server-mapped message; it does not require the staged source
+    // to remain available and cannot enqueue another send.
+    Ok(record(UploadExecutor::new(store()?.clone()).reconcile(&operation_id, &scope, &transport, &cancel).await?))
+}
 #[uniffi::export]
 pub fn has_recoverable_cloud_uploads() -> Result<bool, NativeUploadError> {
     Ok(store()?.has_recoverable()?)

@@ -1,7 +1,9 @@
 //! Durable original-document uploads. Albums/processing use their own delivery plans.
 mod contracts;
+mod completion;
 mod executor;
 mod part_recovery;
+mod send_mapping;
 mod source;
 mod store;
 #[cfg(test)]

@@ -242,6 +242,11 @@ pub enum UploadError {
 
 /// A transport must verify server account identity and retain encrypted peer capabilities.
 /// Acknowledgement means the server accepted this exact part, not that it was dispatched.
+pub trait UploadCommitJournal: Send + Sync {
+    /// Only an exact server UpdateMessageId mapping for this request may be recorded.
+    fn record_message_id(&self, message_id: i32) -> Result<(), UploadError>;
+}
+
 #[async_trait]
 pub trait CloudUploadTransport: Send + Sync {
     fn scope(&self) -> &AccountScope;
@@ -261,6 +266,13 @@ pub trait CloudUploadTransport: Send + Sync {
         &self,
         request: &UploadRequest,
         file_id: i64,
+        journal: &dyn UploadCommitJournal,
+    ) -> Result<UploadReceipt, UploadError>;
+    /// Reads the exact journaled message. This method must never send or search history.
+    async fn reconcile_document(
+        &self,
+        request: &UploadRequest,
+        message_id: i32,
     ) -> Result<UploadReceipt, UploadError>;
 }
 

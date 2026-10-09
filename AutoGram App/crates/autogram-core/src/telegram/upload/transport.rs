@@ -153,6 +153,7 @@ impl CloudUploadTransport for TelegramUploadTransport<'_> {
         &self,
         request: &UploadRequest,
         file_id: i64,
+        journal: &dyn UploadCommitJournal,
     ) -> Result<UploadReceipt, UploadError> {
         request.validate()?;
         if file_id == 0 {
@@ -239,52 +240,24 @@ impl CloudUploadTransport for TelegramUploadTransport<'_> {
                         .map_err(|e| upload_rpc(e).for_rpc(RpcDomain::SendMessages))?;
                     let message_id = confirmed_message_id(updates, request.random_id)
                         .ok_or_else(|| AuthError::new("commit_unconfirmed"))?;
-                    // Resolve the actual message after the server's random_id mapping.
-                    // Unrelated updates/filename history matches are never receipts.
-                    let message = client
-                        .get_messages_by_id(peer, &[message_id])
-                        .await
-                        .map_err(|e| upload_rpc(e).for_rpc(RpcDomain::SendMessages))?
-                        .pop()
-                        .flatten()
-                        .ok_or_else(|| AuthError::new("commit_unconfirmed"))?;
-                    if message.peer_id() != peer.id {
-                        return Err(AuthError::new("receipt_mismatch"));
-                    }
-                    let thread = match message.reply_header() {
-                        Some(tl::enums::MessageReplyHeader::Header(header)) => {
-                            header.reply_to_top_id.or(header.reply_to_msg_id)
-                        }
-                        _ => None,
-                    };
-                    if request
-                        .destination
-                        .topic_id
-                        .is_some_and(|topic| thread != Some(topic))
-                    {
-                        return Err(AuthError::new("receipt_mismatch"));
-                    }
-                    let Some(grammers_client::media::Media::Document(document)) = message.media()
-                    else {
-                        return Err(AuthError::new("receipt_mismatch"));
-                    };
-                    if document.name() != Some(request.filename.as_str())
-                        || document.size().map(|v| v as u64) != Some(request.source.size)
-                    {
-                        return Err(AuthError::new("receipt_mismatch"));
-                    }
-                    Ok(UploadReceipt {
-                        destination: request.destination.clone(),
-                        random_id: request.random_id,
-                        message_id,
-                        document_id: document.id(),
-                        size: request.source.size,
-                        filename: request.filename.clone(),
-                    })
+                    // Persist the exact mapping before a receipt fetch can fail or
+                    // the process can stop. A journal failure never becomes success.
+                    journal.record_message_id(message_id)
+                        .map_err(|_| AuthError::new("commit_unconfirmed"))?;
+                    super::receipt::read_confirmed_document(&client, peer, request, message_id).await
                 },
             )
             .await
             .map_err(upload_error)
+    }
+    async fn reconcile_document(&self, request: &UploadRequest, message_id: i32) -> Result<UploadReceipt, UploadError> {
+        request.validate()?;
+        if message_id <= 0 { return Err(UploadError::InvalidRequest); }
+        let peer = self.peer(&request.destination).await?;
+        self.auth.account_request_scoped(&AccountId(self.scope.account_id().into()),
+            &[RpcDomain::Messages], &self.cancel, |client| async move {
+                super::receipt::read_confirmed_document(&client, peer, request, message_id).await
+            }).await.map_err(upload_error)
     }
 }
 fn confirmed_message_id(updates: tl::enums::Updates, random_id: i64) -> Option<i32> {
@@ -318,7 +291,7 @@ fn original_document_mime<'a>(filename: &str, mime: &'a str) -> &'a str {
         mime
     }
 }
-fn upload_rpc(error: InvocationError) -> AuthError {
+pub(super) fn upload_rpc(error: InvocationError) -> AuthError {
     if let InvocationError::Rpc(rpc) = &error {
         if rpc.name == "WORKER_BUSY_TOO_LONG_RETRY" || rpc.code >= 500 {
             return AuthError::new("network_error");

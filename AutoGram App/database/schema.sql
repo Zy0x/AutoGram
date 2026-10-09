@@ -938,3 +938,15 @@ CREATE TABLE IF NOT EXISTS native_cloud_upload_recovery (
     part_restarts INTEGER NOT NULL DEFAULT 0 CHECK(part_restarts BETWEEN 0 AND 3),
     updated_ms INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS native_cloud_upload_send_mapping (
+    operation_id TEXT PRIMARY KEY REFERENCES native_cloud_uploads(operation_id),
+    random_id INTEGER NOT NULL CHECK(random_id != 0),
+    message_id INTEGER NOT NULL CHECK(message_id > 0),
+    epoch INTEGER NOT NULL CHECK(epoch >= 0),
+    created_ms INTEGER NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS native_cloud_upload_send_mapping_immutable
+BEFORE UPDATE ON native_cloud_upload_send_mapping BEGIN
+    SELECT RAISE(ABORT, 'native_cloud_upload_send_mapping_immutable');
+END;

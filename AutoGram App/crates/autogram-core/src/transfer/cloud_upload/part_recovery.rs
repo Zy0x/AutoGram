@@ -32,7 +32,8 @@ impl UploadStore {
             tx.execute(
                 "UPDATE native_cloud_uploads SET state='failed',control=NULL,
                 error_code='upload_parts_expired',retry_not_before_ms=NULL,updated_ms=?2
-                WHERE operation_id=?1 AND epoch=?3 AND file_id=?4 AND state='committing'",
+                WHERE operation_id=?1 AND epoch=?3 AND file_id=?4 AND state='committing'
+                AND NOT EXISTS(SELECT 1 FROM native_cloud_upload_send_mapping WHERE operation_id=?1)",
                 params![
                     record.request.operation_id,
                     now,
@@ -51,7 +52,8 @@ impl UploadStore {
                 "UPDATE native_cloud_uploads SET state='retry_wait',file_id=?2,
                 acknowledged_parts=0,uploaded_bytes=0,epoch=epoch+1,control=NULL,
                 error_code='upload_parts_expired',retry_not_before_ms=?3,updated_ms=?4
-                WHERE operation_id=?1 AND epoch=?5 AND file_id=?6 AND state='committing'",
+                WHERE operation_id=?1 AND epoch=?5 AND file_id=?6 AND state='committing'
+                AND NOT EXISTS(SELECT 1 FROM native_cloud_upload_send_mapping WHERE operation_id=?1)",
                 params![
                     record.request.operation_id,
                     file_id,

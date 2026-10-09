@@ -304,6 +304,15 @@ persists a 30/60/90-second retry deadline. Later callbacks from the obsolete all
 cannot complete the job. Exhaustion becomes failed; an ambiguous earlier send attempt
 or process interruption still requires review and never enters this recovery path.
 
-Opening the store applies migrations 015, 026 and 027 without executing legacy metadata
+`native_cloud_upload_send_mapping` (migration 028) journals the exact server
+`UpdateMessageId` result before fetching the actual document. Its immutable
+`operation_id`, `random_id`, `message_id` and `epoch` bind read-only reconciliation to
+the original send. An existing mapping prevents temporary-allocation replacement.
+Reconciliation reads only that message, verifies account/peer/topic/document name and
+size, and atomically completes the receipt, v4 records and ledger. Missing or conflicting
+mappings/messages never trigger a history search or resend. Network/FloodWait deadlines
+remain persisted while the operation stays under review.
+
+Opening the store applies migrations 015, 026, 027 and 028 without executing legacy metadata
 tasks. Connections use WAL, NORMAL synchronous mode, foreign keys and a 5-second
 busy timeout. This schema does not itself establish Android runtime acceptance.

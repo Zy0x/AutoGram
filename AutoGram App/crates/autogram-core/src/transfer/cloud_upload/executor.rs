@@ -4,7 +4,7 @@ use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 pub struct UploadExecutor {
-    store: UploadStore,
+    pub(super) store: UploadStore,
 }
 impl UploadExecutor {
     pub fn new(store: UploadStore) -> Self {
@@ -149,22 +149,23 @@ impl UploadExecutor {
         }
         // Three attempts retain the same persisted random_id and file_id. A lost
         // receipt never starts another unrelated send or chooses a history guess.
+        let journal = super::send_mapping::CommitJournal { store: &self.store, record };
         for attempt in 0..3u64 {
             let result = tokio::select! {
                 biased;
                 _ = cancel.cancelled() => return Err(UploadError::Cancelled),
-                result = transport.commit_document(&record.request, record.file_id) => result,
+                result = transport.commit_document(&record.request, record.file_id, &journal) => result,
             };
             match result {
                 Ok(receipt) => {
                     self.store.complete(record, receipt)?;
                     return Ok(());
                 }
-                Err(UploadError::PartsExpired) if attempt == 0 => {
+                Err(UploadError::PartsExpired) if attempt == 0 && self.store.mapped_message_id(record)?.is_none() => {
                     self.store.restart_expired_parts(record)?;
                     return Ok(());
                 }
-                Err(UploadError::Network) if attempt < 2 => {
+                Err(UploadError::Network) if attempt < 2 && self.store.mapped_message_id(record)?.is_none() => {
                     tokio::select! {
                         _ = cancel.cancelled() => return Err(UploadError::Cancelled),
                         _ = tokio::time::sleep(Duration::from_millis(400 * (attempt + 1))) => {}

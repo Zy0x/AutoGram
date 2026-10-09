@@ -13,6 +13,8 @@ use tokio_util::sync::CancellationToken;
 
 #[path = "part_recovery_tests.rs"]
 mod part_recovery;
+#[path = "send_mapping_tests.rs"]
+mod send_mapping;
 
 struct Fixture {
     root: PathBuf,
@@ -70,6 +72,10 @@ struct Transport {
     failures: AtomicUsize,
     part_failure: Option<UploadError>,
     commit_failure: Option<UploadError>,
+    journal_before_failure: bool,
+    reconcile_failure: Option<UploadError>,
+    wrong_message_id: Option<i32>,
+    reads: Mutex<Vec<i32>>,
     wrong_receipt: bool,
     pause_after_part: Option<(UploadStore, String)>,
 }
@@ -83,6 +89,10 @@ impl Transport {
             failures: AtomicUsize::new(0),
             part_failure: None,
             commit_failure: None,
+            journal_before_failure: false,
+            reconcile_failure: None,
+            wrong_message_id: None,
+            reads: Mutex::new(vec![]),
             wrong_receipt: false,
             pause_after_part: None,
         }
@@ -128,6 +138,7 @@ impl CloudUploadTransport for Transport {
         &self,
         request: &UploadRequest,
         file_id: i64,
+        journal: &dyn UploadCommitJournal,
     ) -> Result<UploadReceipt, UploadError> {
         self.commits.lock().push((file_id, request.random_id));
         if self
@@ -138,8 +149,15 @@ impl CloudUploadTransport for Transport {
             return Err(UploadError::Network);
         }
         if let Some(error) = &self.commit_failure {
+            if self.journal_before_failure { journal.record_message_id(57)?; }
             return Err(error.clone());
         }
+        journal.record_message_id(57)?;
+        self.reconcile_document(request, 57).await
+    }
+    async fn reconcile_document(&self, request: &UploadRequest, message_id: i32) -> Result<UploadReceipt, UploadError> {
+        self.reads.lock().push(message_id);
+        if let Some(error) = &self.reconcile_failure { return Err(error.clone()); }
         let mut destination = self.destination.clone();
         if self.wrong_receipt {
             destination.topic_id = Some(18);
@@ -147,7 +165,7 @@ impl CloudUploadTransport for Transport {
         Ok(UploadReceipt {
             destination,
             random_id: request.random_id,
-            message_id: 57,
+            message_id: self.wrong_message_id.unwrap_or(message_id),
             document_id: 891,
             size: request.source.size,
             filename: request.filename.clone(),
