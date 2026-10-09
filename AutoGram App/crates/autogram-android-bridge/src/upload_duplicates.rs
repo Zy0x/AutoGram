@@ -99,12 +99,12 @@ fn to_native(query: &DuplicateQuery, inspection: DuplicateInspection) -> NativeD
             .matches
             .into_iter()
             .map(|item| NativeUploadDuplicate {
-                message_id: item.document.message_id,
-                document_id: item.document.document_id,
-                filename: item.document.filename,
-                size: item.document.size,
-                exact_content: item.level.exact_content(),
-                level: match item.level {
+                message_id: item.document().message_id,
+                document_id: item.document().document_id,
+                filename: item.document().filename.clone(),
+                size: item.document().size,
+                exact_content: item.level().exact_content(),
+                level: match item.level() {
                     DuplicateLevel::MessageId => NativeDuplicateLevel::MessageId,
                     DuplicateLevel::DocumentId => NativeDuplicateLevel::DocumentId,
                     DuplicateLevel::Sha256 => NativeDuplicateLevel::Sha256,

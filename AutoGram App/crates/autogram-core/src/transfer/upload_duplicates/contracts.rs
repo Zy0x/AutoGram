@@ -3,6 +3,7 @@ use crate::transfer::{
     cloud_upload::{UploadDestination, UploadError, UploadFileSnapshot},
 };
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
 pub const MAX_DUPLICATE_CANDIDATES: usize = 1000;
 
@@ -65,7 +66,8 @@ impl DuplicateQuery {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DuplicateLevel {
     MessageId,
     DocumentId,
@@ -88,7 +90,7 @@ pub struct DuplicateCandidate {
 }
 
 /// Metadata from an exact Telegram read. No request random_id or invented receipt.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExistingCloudDocument {
     pub destination: UploadDestination,
     pub message_id: i32,
@@ -108,8 +110,21 @@ pub trait DuplicateDocumentSource: Send + Sync {
 
 #[derive(Debug, Clone)]
 pub struct VerifiedDuplicate {
-    pub document: ExistingCloudDocument,
-    pub level: DuplicateLevel,
+    pub(super) document: ExistingCloudDocument,
+    pub(super) level: DuplicateLevel,
+    pub(super) source_sha256: String,
+    pub(super) source_size: u64,
+}
+impl VerifiedDuplicate {
+    pub fn document(&self) -> &ExistingCloudDocument {
+        &self.document
+    }
+    pub fn level(&self) -> DuplicateLevel {
+        self.level
+    }
+    pub fn validates_source(&self, source: &UploadFileSnapshot) -> bool {
+        self.source_sha256 == source.sha256 && self.source_size == source.size
+    }
 }
 #[derive(Debug, Clone)]
 pub struct DuplicateInspection {

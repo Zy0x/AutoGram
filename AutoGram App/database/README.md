@@ -330,3 +330,23 @@ remain persisted while the operation stays under review.
 Opening the store applies migrations 015, 026, 027 and 028 without executing legacy metadata
 tasks. Connections use WAL, NORMAL synchronous mode, foreign keys and a 5-second
 busy timeout. This schema does not itself establish Android runtime acceptance.
+
+## Verified duplicate reuse decisions (migration 030)
+
+`native_cloud_upload_reuses` stores an immutable operation/account/user binding, the
+frozen request JSON, the verified existing document JSON, a strong match level
+(`message_id`, `document_id`, `sha256`) and admission time. The corresponding v4 run
+and item use `SKIPPED` with the existing Telegram message pointer. No transmitted-byte
+progress or new Telegram receipt is invented. Filename/size alone cannot auto-reuse.
+Operation IDs are mutually exclusive with `native_cloud_uploads`; insertion guards and
+immutable rows preserve the first decision across retries and process recreation.
+Queue admission for skip-identical also checks in-flight same-hash work under the same
+SQLite write transaction. Other accounts, destinations and topics remain independent.
+
+`native_upload_duplicate_revisions` records a monotonically increasing revision per
+account/destination/topic. Insert/update/delete triggers on the shared upload ledger
+advance it in the writer's transaction, including writes by desktop. Skip admission
+captures this revision before inspection and checks it again inside its enqueue write
+transaction; newly confirmed duplicates or changed evidence force reinspection instead
+of allowing a stale no-match result to upload. Applying the migration again preserves
+existing counters and ledger rows.

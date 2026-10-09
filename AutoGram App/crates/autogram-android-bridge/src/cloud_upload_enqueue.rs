@@ -39,6 +39,23 @@ pub(super) async fn enqueue(
     input: NativeUploadInput,
     choice: ProfileChoice,
 ) -> Result<NativeCloudUpload, NativeUploadError> {
+    let prepared = prepare(input, choice).await?;
+    let auth = engine().map_err(|_| cloud_upload::error("auth_not_initialized"))?;
+    auth.commit_selected_job(&prepared.account, prepared.selected_revision, || {
+        Ok(cloud_upload::record(
+            cloud_upload::store()?.enqueue(prepared.request)?,
+        ))
+    })
+}
+pub(super) struct PreparedUpload {
+    pub request: UploadRequest,
+    pub selected_revision: u64,
+    pub account: AccountId,
+}
+pub(super) async fn prepare(
+    input: NativeUploadInput,
+    choice: ProfileChoice,
+) -> Result<PreparedUpload, NativeUploadError> {
     let cancel = CancellationToken::new();
     let _cancel_on_drop = cancel.clone().drop_guard();
     let auth = engine().map_err(|_| cloud_upload::error("auth_not_initialized"))?;
@@ -51,24 +68,25 @@ pub(super) async fn enqueue(
         input.topic_id,
     )?;
     let existing = match cloud_upload::store()?.get(&input.operation_id, &destination.scope) {
-        Ok(value) => Some(value),
-        Err(UploadError::NotFound) => None,
+        Ok(value) => Some(value.request),
+        Err(UploadError::NotFound) => cloud_upload::store()?
+            .get_reuse(&input.operation_id, &destination.scope)?
+            .map(|value| value.request),
         Err(error) => return Err(error.into()),
     };
-    let (profile, profile_binding) =
-        resolve_profile(existing.as_ref().map(|r| &r.request), choice, |id| {
-            let store = crate::transfer_profiles::store()
-                .map_err(|_| cloud_upload::error("profile_database"))?;
-            match id {
-                Some(id) => store
-                    .get(&destination.scope, id)
-                    .map_err(|e| cloud_upload::error(&e.to_string())),
-                None => store
-                    .active(&destination.scope)
-                    .map_err(|e| cloud_upload::error(&e.to_string()))?
-                    .ok_or_else(|| cloud_upload::error("profile_not_selected")),
-            }
-        })?;
+    let (profile, profile_binding) = resolve_profile(existing.as_ref(), choice, |id| {
+        let store = crate::transfer_profiles::store()
+            .map_err(|_| cloud_upload::error("profile_database"))?;
+        match id {
+            Some(id) => store
+                .get(&destination.scope, id)
+                .map_err(|e| cloud_upload::error(&e.to_string())),
+            None => store
+                .active(&destination.scope)
+                .map_err(|e| cloud_upload::error(&e.to_string()))?
+                .ok_or_else(|| cloud_upload::error("profile_not_selected")),
+        }
+    })?;
     validate_document_profile(&profile)?;
     let path = cloud_upload::staging_source(
         &cloud_upload::staging_root()?,
@@ -79,15 +97,13 @@ pub(super) async fn enqueue(
         tokio::task::spawn_blocking(move || snapshot_upload_file_cancellable(&path, &hash_cancel))
             .await
             .map_err(|_| cloud_upload::error("io"))??;
-    let random_id = existing
-        .map(|r| r.request.random_id)
-        .unwrap_or_else(|| loop {
-            let bytes = *uuid::Uuid::new_v4().as_bytes();
-            let value = i64::from_le_bytes(bytes[..8].try_into().unwrap());
-            if value != 0 {
-                break value;
-            }
-        });
+    let random_id = existing.map(|r| r.random_id).unwrap_or_else(|| loop {
+        let bytes = *uuid::Uuid::new_v4().as_bytes();
+        let value = i64::from_le_bytes(bytes[..8].try_into().unwrap());
+        if value != 0 {
+            break value;
+        }
+    });
     let request = UploadRequest {
         operation_id: input.operation_id,
         destination,
@@ -108,10 +124,10 @@ pub(super) async fn enqueue(
     if cancel.is_cancelled() {
         return Err(UploadError::Cancelled.into());
     }
-    auth.commit_selected_job(&account, selected_revision, || {
-        Ok(cloud_upload::record(
-            cloud_upload::store()?.enqueue(request)?,
-        ))
+    Ok(PreparedUpload {
+        request,
+        selected_revision,
+        account,
     })
 }
 fn resolve_profile(

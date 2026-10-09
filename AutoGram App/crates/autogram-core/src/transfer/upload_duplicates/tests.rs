@@ -12,6 +12,9 @@ use rusqlite::params;
 use std::{collections::HashMap, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
+#[path = "admission_tests.rs"]
+mod admission;
+
 struct Fixture {
     root: PathBuf,
     store: Option<UploadStore>,

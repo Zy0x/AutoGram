@@ -6,19 +6,20 @@ use rusqlite::{params, Connection};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-mod session_inventory;
 mod auth;
 mod cloud;
-mod cloud_topics;
 mod cloud_download;
+mod cloud_topics;
 mod cloud_upload;
+mod cloud_upload_admission;
 mod cloud_upload_enqueue;
-mod transfer_profile_types;
-mod transfer_profiles;
-mod upload_duplicates;
 mod platform;
 #[cfg(test)]
 mod schema_tests;
+mod session_inventory;
+mod transfer_profile_types;
+mod transfer_profiles;
+mod upload_duplicates;
 
 uniffi::setup_scaffolding!();
 
@@ -150,31 +151,68 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
         .map_err(|error| AutoGramBridgeError::DatabaseError {
             msg: error.to_string(),
         })?;
-    conn.execute_batch(include_str!("../../../database/migrations/024_android_local_records.sql"))
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/024_android_local_records.sql"
+    ))
     .map_err(|error| AutoGramBridgeError::DatabaseError {
         msg: error.to_string(),
     })?;
-    conn.execute_batch(include_str!("../../../database/migrations/025_native_cloud_downloads.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_download_schema_failed".into() })?;
-    conn.execute_batch(include_str!("../../../database/migrations/015_transfer_control_plane_v4.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "transfer_schema_failed".into() })?;
-    conn.execute_batch(include_str!("../../../database/migrations/026_native_cloud_uploads.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_schema_failed".into() })?;
-    conn.execute_batch(include_str!("../../../database/migrations/027_native_upload_part_recovery.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_recovery_schema_failed".into() })?;
-    conn.execute_batch(include_str!("../../../database/migrations/028_native_upload_send_mapping.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_mapping_schema_failed".into() })?;
-    conn.execute_batch(include_str!("../../../database/migrations/029_native_transfer_profile_bindings.sql"))
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "transfer_profile_schema_failed".into() })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/025_native_cloud_downloads.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_download_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/015_transfer_control_plane_v4.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "transfer_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/026_native_cloud_uploads.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_upload_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/027_native_upload_part_recovery.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_upload_recovery_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/028_native_upload_send_mapping.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_upload_mapping_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/029_native_transfer_profile_bindings.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "transfer_profile_schema_failed".into(),
+    })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/030_native_cloud_upload_reuses.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_upload_reuse_schema_failed".into(),
+    })?;
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
-    let has_category = conn.prepare("PRAGMA table_info(android_drive_items)")
+    let has_category = conn
+        .prepare("PRAGMA table_info(android_drive_items)")
         .and_then(|mut statement| {
-            statement.query_map([], |row| row.get::<_, String>(1))?
+            statement
+                .query_map([], |row| row.get::<_, String>(1))?
                 .collect::<Result<Vec<_>, _>>()
         })
-        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "android_schema_inspection_failed".into() })?
-        .iter().any(|column| column == "telegram_category");
+        .map_err(|_| AutoGramBridgeError::DatabaseError {
+            msg: "android_schema_inspection_failed".into(),
+        })?
+        .iter()
+        .any(|column| column == "telegram_category");
     if !has_category {
         conn.execute("ALTER TABLE android_drive_items ADD COLUMN telegram_category TEXT NOT NULL DEFAULT 'file'", [])
             .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "android_schema_upgrade_failed".into() })?;
@@ -497,7 +535,9 @@ pub fn emit_bridge_event(event_type: String, payload_json: String) {
 
 #[uniffi::export]
 pub fn get_account_scores() -> Result<Vec<AccountScoreResult>, AutoGramBridgeError> {
-    Err(AutoGramBridgeError::InternalError { msg: "account_health_probe_unavailable".into() })
+    Err(AutoGramBridgeError::InternalError {
+        msg: "account_health_probe_unavailable".into(),
+    })
 }
 
 #[uniffi::export]
@@ -522,7 +562,9 @@ pub fn run_container_repair(
 pub fn get_hardware_profiles() -> Result<HardwareProfileSummary, AutoGramBridgeError> {
     // A policy preference is not a probe. Kotlin MediaCodec adapter still needs
     // per-codec encode/output evidence before it can expose an executable profile.
-    Err(AutoGramBridgeError::MediaError { msg: "android_encoder_probe_unavailable".into() })
+    Err(AutoGramBridgeError::MediaError {
+        msg: "android_encoder_probe_unavailable".into(),
+    })
 }
 
 #[uniffi::export]
@@ -580,9 +622,13 @@ mod tests {
         let mut other_account = item.clone();
         other_account.session_id = "session-b".into();
         other_account.name = "private-b.jpg".into();
-        assert_eq!(upsert_drive_items(vec![item, other_account]).expect("upsert items"), 2);
+        assert_eq!(
+            upsert_drive_items(vec![item, other_account]).expect("upsert items"),
+            2
+        );
         assert!(delete_drive_items(vec!["message-42".into()]).is_err());
-        let account_b = list_drive_items("session-b".into(), "peer-a".into(), Some(7), "/".into()).unwrap();
+        let account_b =
+            list_drive_items("session-b".into(), "peer-a".into(), Some(7), "/".into()).unwrap();
         assert_eq!(account_b.len(), 1);
         assert_eq!(account_b[0].name, "private-b.jpg");
         let items = list_drive_items("session-a".into(), "peer-a".into(), Some(7), "/".into())
@@ -624,17 +670,22 @@ mod tests {
             upsert_transfer_task(finished.clone()).unwrap();
             assert!(!set_transfer_paused(finished.id.clone(), true).unwrap());
             assert!(!set_transfer_paused(finished.id.clone(), false).unwrap());
-            let stored = list_transfer_tasks().unwrap().into_iter().find(|row| row.id == finished.id).unwrap();
+            let stored = list_transfer_tasks()
+                .unwrap()
+                .into_iter()
+                .find(|row| row.id == finished.id)
+                .unwrap();
             assert_eq!(stored.status, terminal);
             assert!(!stored.paused);
         }
         assert!(get_account_scores().is_err());
         assert!(get_hardware_profiles().is_err());
         let bytes = platform::get_available_storage_bytes().unwrap();
-        let direct = autogram_core::platform::storage_space::available_storage_bytes(root.to_str().unwrap()).unwrap();
+        let direct =
+            autogram_core::platform::storage_space::available_storage_bytes(root.to_str().unwrap())
+                .unwrap();
         assert!(bytes.abs_diff(direct) < 256 * 1024 * 1024);
 
         std::fs::remove_dir_all(&root).expect("remove isolated test directory");
     }
-
 }

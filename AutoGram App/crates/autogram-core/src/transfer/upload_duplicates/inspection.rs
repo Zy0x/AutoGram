@@ -45,6 +45,8 @@ pub async fn inspect_duplicates(
         matches.push(VerifiedDuplicate {
             document,
             level: candidate.level,
+            source_sha256: query.source.sha256.clone(),
+            source_size: query.source.size,
         });
     }
     if cancel.is_cancelled() {

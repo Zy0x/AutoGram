@@ -40,7 +40,9 @@ test('readiness and parity share the real export inventory; callbacks are not ca
 test('native upload declarations retain packaged-output and policy acceptance blockers', () => {
   const report = buildReadinessReport();
   const upload = report.workflows.find(item => item.id === 'upload_download');
-  for (const name of ['enqueue_cloud_upload', 'start_cloud_upload', 'control_cloud_upload', 'recover_cloud_upload']) {
+  for (const name of ['enqueue_cloud_upload', 'start_cloud_upload', 'control_cloud_upload', 'recover_cloud_upload',
+    'enqueue_cloud_upload_skipping_identical', 'get_reused_cloud_upload', 'inspect_cloud_upload_duplicates',
+    'save_transfer_profile', 'select_transfer_profile']) {
     assert.ok(upload.requiredExports.includes(name));
     assert.ok(upload.presentExports.some(item => item.name === name));
   }

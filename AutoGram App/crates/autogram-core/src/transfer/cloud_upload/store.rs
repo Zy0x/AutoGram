@@ -60,6 +60,8 @@ impl UploadStore {
             .map_err(|_| UploadError::Database)?;
         conn.execute_batch(super::send_mapping::SCHEMA)
             .map_err(|_| UploadError::Database)?;
+        conn.execute_batch(super::reuse_store::SCHEMA)
+            .map_err(|_| UploadError::Database)?;
         let lock_root = path
             .parent()
             .ok_or(UploadError::InvalidRequest)?
@@ -73,6 +75,21 @@ impl UploadStore {
     }
 
     pub fn enqueue(&self, request: UploadRequest) -> Result<UploadRecord, UploadError> {
+        self.enqueue_guarded(request, false, None)
+    }
+    pub(crate) fn enqueue_skipping_identical(
+        &self,
+        request: UploadRequest,
+        inspected_revision: Option<i64>,
+    ) -> Result<UploadRecord, UploadError> {
+        self.enqueue_guarded(request, true, inspected_revision)
+    }
+    fn enqueue_guarded(
+        &self,
+        request: UploadRequest,
+        skip_pending_identical: bool,
+        inspected_revision: Option<i64>,
+    ) -> Result<UploadRecord, UploadError> {
         request.validate()?;
         let json = serde_json::to_string(&request).map_err(|_| UploadError::InvalidRequest)?;
         let mut conn = self.connection.lock();
@@ -92,6 +109,10 @@ impl UploadStore {
                 return Err(UploadError::Conflict);
             }
         } else {
+            if skip_pending_identical {
+                let revision = inspected_revision.ok_or(UploadError::InvalidState)?;
+                super::reuse_store::check_duplicate_admission(&tx, &request, revision)?;
+            }
             let now = now_ms();
             tx.execute("INSERT INTO transfer_runs(transfer_id,profile_snapshot_json,state,created_at,updated_at)
                 VALUES (?1,?2,'QUEUED',?3,?3)", params![request.operation_id,
