@@ -11,6 +11,9 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
+#[path = "part_recovery_tests.rs"]
+mod part_recovery;
+
 struct Fixture {
     root: PathBuf,
     store: UploadStore,

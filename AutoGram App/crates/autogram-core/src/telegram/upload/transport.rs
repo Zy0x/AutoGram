@@ -323,7 +323,7 @@ fn upload_rpc(error: InvocationError) -> AuthError {
         if rpc.name == "WORKER_BUSY_TOO_LONG_RETRY" || rpc.code >= 500 {
             return AuthError::new("network_error");
         }
-        if rpc.name.starts_with("FILE_PART") && rpc.name.ends_with("MISSING") {
+        if rpc.code == 400 && rpc.name == "FILE_PART_MISSING" && rpc.value.is_some() {
             return AuthError::new("upload_parts_expired");
         }
     }
@@ -388,5 +388,19 @@ mod tests {
             original_document_mime("photo.png", "image/png"),
             "image/png"
         );
+    }
+
+    #[test]
+    fn part_recovery_requires_exact_normalized_missing_part_rejection() {
+        let mapped = |code, name: &str| {
+            upload_error(upload_rpc(InvocationError::Rpc(tl::types::RpcError {
+                error_code: code, error_message: name.into(),
+            }.into())))
+        };
+        assert_eq!(mapped(400, "FILE_PART_2_MISSING"), UploadError::PartsExpired);
+        for name in ["FILE_PARTS_MISSING", "FILE_PART_MISSING", "FILE_PART_2_MISSING_EXTRA", "FILE_PARTS_INVALID"] {
+            assert_ne!(mapped(400, name), UploadError::PartsExpired);
+        }
+        assert_eq!(mapped(500, "FILE_PART_2_MISSING"), UploadError::Network);
     }
 }

@@ -5,6 +5,10 @@ An exhaustive technical breakdown of the features, algorithms, and engineering c
 ## Android preview: current availability
 
 Android remains a development preview, not a feature-complete desktop replacement.
+The document-upload engine is still undergoing integration and device acceptance.
+Its recovery logic preserves message identity when temporary uploaded parts are
+rejected, limits repeated retries, and holds unconfirmed sends for review. These
+engine safeguards do not establish upload availability in an installed APK.
 The native engine is packaged for arm64-v8a, armeabi-v7a, x86_64, and x86; choose the
 matching APK, or the larger universal APK. Local engine readiness does not mean
 that a Telegram account is signed in.

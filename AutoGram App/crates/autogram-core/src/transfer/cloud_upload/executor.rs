@@ -160,6 +160,10 @@ impl UploadExecutor {
                     self.store.complete(record, receipt)?;
                     return Ok(());
                 }
+                Err(UploadError::PartsExpired) if attempt == 0 => {
+                    self.store.restart_expired_parts(record)?;
+                    return Ok(());
+                }
                 Err(UploadError::Network) if attempt < 2 => {
                     tokio::select! {
                         _ = cancel.cancelled() => return Err(UploadError::Cancelled),

@@ -10,9 +10,13 @@ fn native_upload_checkpoint_schema_is_repeatable_and_matches_master() {
     let upload = include_str!("../../../database/migrations/026_native_cloud_uploads.sql");
     runtime.execute_batch(upload).unwrap();
     runtime.execute_batch(upload).unwrap();
+    let recovery = include_str!("../../../database/migrations/027_native_upload_part_recovery.sql");
+    runtime.execute_batch(recovery).unwrap();
+    runtime.execute_batch(recovery).unwrap();
     let master = Connection::open_in_memory().unwrap();
     master.execute_batch(MASTER).unwrap();
     assert_eq!(columns(&runtime,"native_cloud_uploads"),columns(&master,"native_cloud_uploads"));
+    assert_eq!(columns(&runtime,"native_cloud_upload_recovery"),columns(&master,"native_cloud_upload_recovery"));
     let count: i64 = runtime.query_row("SELECT count(*) FROM native_cloud_uploads",[],|row| row.get(0)).unwrap();
     assert_eq!(count,0);
 }

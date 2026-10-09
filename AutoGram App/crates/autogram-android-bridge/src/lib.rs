@@ -156,6 +156,8 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
         .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "transfer_schema_failed".into() })?;
     conn.execute_batch(include_str!("../../../database/migrations/026_native_cloud_uploads.sql"))
         .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_schema_failed".into() })?;
+    conn.execute_batch(include_str!("../../../database/migrations/027_native_upload_part_recovery.sql"))
+        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_recovery_schema_failed".into() })?;
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
     let has_category = conn.prepare("PRAGMA table_info(android_drive_items)")

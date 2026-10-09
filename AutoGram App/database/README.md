@@ -283,7 +283,8 @@ source size/SHA-256/MD5/part digests, filename, caption and frozen transfer prof
 
 - `random_id`: immutable MTProto message deduplication identity across retries.
 - `file_id`: temporary MTProto part allocation retained during resume/retry;
-  reallocation after confirmed expiry still requires a separate recovery adapter.
+  a definite missing-part rejection on the first commit attempt can allocate a new
+  ID while preserving the immutable message `random_id`.
 - `acknowledged_parts` / `uploaded_bytes`: contiguous server-acknowledged progress.
 - `epoch`: worker generation guarding checkpoint and completion writes.
 - `control`: a pending pause/cancel decision before commit admission.
@@ -296,6 +297,13 @@ The executor atomically records completion in the v4 run/item and `upload_ledger
 For a later confirmed upload with the same scoped prepared hash, the ledger pointer,
 filename, byte size and payload class follow the latest verified receipt together.
 Session keys, peer access hashes and file references are not stored in these rows.
-Opening the store applies migrations 015 and 026 without executing legacy metadata
+`native_cloud_upload_recovery` (migration 027) tracks `part_restarts` per operation,
+bounded to three across process restarts. A recovery atomically clears acknowledged
+progress, changes the temporary file allocation, increments the worker epoch and
+persists a 30/60/90-second retry deadline. Later callbacks from the obsolete allocation
+cannot complete the job. Exhaustion becomes failed; an ambiguous earlier send attempt
+or process interruption still requires review and never enters this recovery path.
+
+Opening the store applies migrations 015, 026 and 027 without executing legacy metadata
 tasks. Connections use WAL, NORMAL synchronous mode, foreign keys and a 5-second
 busy timeout. This schema does not itself establish Android runtime acceptance.

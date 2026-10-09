@@ -33,7 +33,7 @@ pub(super) fn random_nonzero() -> i64 {
 
 #[derive(Clone)]
 pub struct UploadStore {
-    connection: Arc<Mutex<Connection>>,
+    pub(super) connection: Arc<Mutex<Connection>>,
     lock_root: PathBuf,
 }
 impl UploadStore {
@@ -48,6 +48,8 @@ impl UploadStore {
         let conn = Connection::open(path).map_err(|_| UploadError::Database)?;
         conn.execute_batch(V4).map_err(|_| UploadError::Database)?;
         conn.execute_batch(SCHEMA)
+            .map_err(|_| UploadError::Database)?;
+        conn.execute_batch(super::part_recovery::SCHEMA)
             .map_err(|_| UploadError::Database)?;
         let lock_root = path
             .parent()
@@ -436,7 +438,7 @@ impl UploadStore {
     }
 }
 
-fn sync_run(tx: &Transaction<'_>, id: &str) -> Result<(), UploadError> {
+pub(super) fn sync_run(tx: &Transaction<'_>, id: &str) -> Result<(), UploadError> {
     tx.execute("UPDATE transfer_runs SET state=(SELECT upper(state) FROM native_cloud_uploads WHERE operation_id=?1),
         updated_at=?2 WHERE transfer_id=?1", params![id,now_ms()]).map_err(|_| UploadError::Database)?;
     tx.execute("UPDATE transfer_items_v4 SET state=(SELECT upper(state) FROM native_cloud_uploads WHERE operation_id=?1),
