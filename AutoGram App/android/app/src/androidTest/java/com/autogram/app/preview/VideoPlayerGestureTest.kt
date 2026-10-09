@@ -40,6 +40,19 @@ class VideoPlayerGestureTest {
     private fun source(closed: () -> Unit = {}) = CloudRangeSource(bytes.size.toLong(), { offset, length ->
         bytes.copyOfRange(offset.toInt(), offset.toInt() + length)
     }, closed)
+    private fun waitForPlayback() {
+        val activity = compose.activity
+        try {
+            compose.waitUntil(10000) { ::controller.isInitialized && controller.rendered && controller.ready }
+        } catch (failure: ComposeTimeoutException) {
+            var diagnostic = "controller_uninitialized"
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                diagnostic = "lifecycle=${activity.lifecycle.currentState}, finishing=${activity.isFinishing}, destroyed=${activity.isDestroyed}, focused=${activity.hasWindowFocus()}"
+                if (::controller.isInitialized) diagnostic += ", ready=${controller.ready}, rendered=${controller.rendered}, buffering=${controller.buffering}, error=${controller.error}, playerState=${controller.player.playbackState}, playerError=${controller.player.playerError?.errorCodeName}, video=${controller.width}x${controller.height}"
+            }
+            throw AssertionError("video fixture preparation failed: $diagnostic", failure)
+        }
+    }
     private fun SemanticsNodeInteraction.touchWhenResumed(
         activityWindow: Boolean = true,
         action: TouchInjectionScope.() -> Unit,
@@ -76,7 +89,7 @@ class VideoPlayerGestureTest {
                 CloudPlaybackView(c, bytes.size.toLong(), Modifier.fillMaxSize(), false, {})
             }
         } }
-        compose.waitUntil(10000) { ::controller.isInitialized && controller.rendered && controller.ready }
+        waitForPlayback()
         compose.runOnIdle { controller.player.pause(); controller.seek(30000) }
     }
 
@@ -212,7 +225,7 @@ class VideoPlayerGestureTest {
                 CloudPlaybackView(c, bytes.size.toLong(), Modifier.fillMaxSize(), false, {})
             })
         } }
-        compose.waitUntil(10000) { ::controller.isInitialized && controller.rendered && controller.ready }
+        waitForPlayback()
         compose.onAllNodesWithContentDescription(text(R.string.clean_gallery_actions)).assertCountEquals(1)
         compose.onNodeWithTag("preview-video-gestures").touchWhenResumed(activityWindow = false) {
             swipe(Offset(width * .93f, height * .45f), Offset(width * .3f, height * .45f), 500)

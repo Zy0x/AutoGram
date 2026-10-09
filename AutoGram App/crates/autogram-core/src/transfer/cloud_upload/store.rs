@@ -424,7 +424,8 @@ impl UploadStore {
             telegram_unique_id,prepared_sha256,filename,file_size,payload_class,created_at,updated_at)
             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'original_document',?9,?9)
             ON CONFLICT(account_id,destination_id,topic_id,prepared_sha256) DO UPDATE SET
-            telegram_message_id=excluded.telegram_message_id,telegram_unique_id=excluded.telegram_unique_id,updated_at=excluded.updated_at",
+            telegram_message_id=excluded.telegram_message_id,telegram_unique_id=excluded.telegram_unique_id,
+            filename=excluded.filename,file_size=excluded.file_size,payload_class=excluded.payload_class,updated_at=excluded.updated_at",
             params![record.request.destination.scope.account_id(),record.request.destination.dialog_id(),record.request.destination.topic_id.unwrap_or(0),
             receipt.message_id,receipt.document_id.to_string(),record.request.source.sha256,record.request.filename,record.request.source.size as i64,now_ms()])
             .map_err(|_| UploadError::Database)?;

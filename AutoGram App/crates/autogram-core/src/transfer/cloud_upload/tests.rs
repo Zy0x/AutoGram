@@ -245,6 +245,35 @@ async fn verified_receipt_atomically_completes_run_item_and_ledger() {
     );
 }
 #[tokio::test]
+async fn repeated_payload_receipt_refreshes_filename_instead_of_leaving_stale_ledger_metadata() {
+    let fixture = Fixture::new(b"fixture");
+    let mut renamed = fixture.request.clone();
+    renamed.operation_id = "fixture-renamed-operation".into();
+    renamed.random_id += 1;
+    renamed.filename = "renamed-fixture.txt".into();
+    for request in [&fixture.request, &renamed] {
+        fixture.store.enqueue(request.clone()).unwrap();
+        let result = UploadExecutor::new(fixture.store.clone())
+            .run(
+                &request.operation_id,
+                &request.destination.scope,
+                &Transport::new(request),
+                &CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.state, UploadState::Completed);
+    }
+    let conn = fixture.store.connection_for_fixture();
+    let (name, size, class, count): (String, i64, String, i64) = conn.query_row(
+        "SELECT filename,file_size,payload_class,(SELECT count(*) FROM upload_ledger) FROM upload_ledger",
+        [], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).unwrap();
+    assert_eq!(name, renamed.filename);
+    assert_eq!(size, renamed.source.size as i64);
+    assert_eq!(class, "original_document");
+    assert_eq!(count, 1);
+}
+#[tokio::test]
 async fn worker_retries_commit_with_identical_persisted_ids() {
     let fixture = Fixture::new(b"fixture");
     fixture.store.enqueue(fixture.request.clone()).unwrap();

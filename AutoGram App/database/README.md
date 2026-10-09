@@ -282,7 +282,8 @@ immutable `request_json` binds the verified account/user, destination peer/topic
 source size/SHA-256/MD5/part digests, filename, caption and frozen transfer profile.
 
 - `random_id`: immutable MTProto message deduplication identity across retries.
-- `file_id`: temporary MTProto part allocation; may restart after confirmed expiry.
+- `file_id`: temporary MTProto part allocation retained during resume/retry;
+  reallocation after confirmed expiry still requires a separate recovery adapter.
 - `acknowledged_parts` / `uploaded_bytes`: contiguous server-acknowledged progress.
 - `epoch`: worker generation guarding checkpoint and completion writes.
 - `control`: a pending pause/cancel decision before commit admission.
@@ -292,6 +293,8 @@ source size/SHA-256/MD5/part digests, filename, caption and frozen transfer prof
 - `receipt_json`: confirmed scoped message/document receipt, required for completion.
 
 The executor atomically records completion in the v4 run/item and `upload_ledger`.
+For a later confirmed upload with the same scoped prepared hash, the ledger pointer,
+filename, byte size and payload class follow the latest verified receipt together.
 Session keys, peer access hashes and file references are not stored in these rows.
 Opening the store applies migrations 015 and 026 without executing legacy metadata
 tasks. Connections use WAL, NORMAL synchronous mode, foreign keys and a 5-second

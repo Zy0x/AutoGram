@@ -3,11 +3,12 @@
 ### Android Batch Download UI Thread Recovery
 - Fixed the batch-download action's return from background work so worker-start feedback, Android notifications and selection updates always execute on the UI thread. Physical-phone regression testing exposed a thread violation that could interrupt feedback after a job had already been queued.
 - Retained lifecycle cancellation and account/location checks before publishing results, and added explicit device-test assertions for the thread used by worker dispatch and selection callbacks.
-- Strengthened physical video-preview fixtures to wait for their mounted test window after lifecycle/menu transitions while preserving gesture, lock, seek and playback assertions. A missing window remains a bounded test failure rather than triggering fixture resets.
+- Strengthened physical video-preview fixtures to wait for their mounted test window after lifecycle/menu transitions while preserving gesture, lock, seek and playback assertions. Missing windows and preparation timeouts remain bounded failures with lifecycle/decoder-state diagnostics, without fixture resets or private media details.
 
 ### Native Original-Document Upload Foundation
 - Added an account-pinned Grammers upload transport and a durable original-document executor. Source SHA-256/MD5 and per-part digests bind transmitted bytes; confirmed part progress survives interruption, and commit retries retain their persisted message identity.
 - Added scoped upload checkpoints through migration 026 while reusing v4 transfer runs/items and the upload ledger. Completion requires a matching server message/document receipt; an interrupted or unconfirmed commit is held for review rather than reported as successful or automatically sent again.
+- Kept the upload ledger's filename, size and delivery class aligned with its newest confirmed message when identical bytes are uploaded under a different filename, preventing stale metadata from contaminating later duplicate decisions.
 - Added UniFFI queue, control and inspection contracts restricted to app-owned staging files. The Android upload UI, four-ABI packaging, album/duplicate policies and real-Telegram device acceptance remain pending; these host-tested foundations do not unlock Release or claim full upload parity.
 - Added a bounded Android staging importer with cancellation, source-size validation and reserved free space for both staging copies. Publication exclusively creates its target, refuses existing files and flushes the output before enqueue can proceed, including on devices that prohibit hard links. Temporary-file fixtures cover import, collisions and publication cancellation.
 
