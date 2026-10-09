@@ -12,6 +12,9 @@ mod cloud;
 mod cloud_topics;
 mod cloud_download;
 mod cloud_upload;
+mod cloud_upload_enqueue;
+mod transfer_profile_types;
+mod transfer_profiles;
 mod platform;
 #[cfg(test)]
 mod schema_tests;
@@ -160,6 +163,8 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
         .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_recovery_schema_failed".into() })?;
     conn.execute_batch(include_str!("../../../database/migrations/028_native_upload_send_mapping.sql"))
         .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "cloud_upload_mapping_schema_failed".into() })?;
+    conn.execute_batch(include_str!("../../../database/migrations/029_native_transfer_profile_bindings.sql"))
+        .map_err(|_| AutoGramBridgeError::DatabaseError { msg: "transfer_profile_schema_failed".into() })?;
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
     let has_category = conn.prepare("PRAGMA table_info(android_drive_items)")

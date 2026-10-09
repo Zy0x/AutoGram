@@ -2,13 +2,12 @@
 use crate::auth::engine;
 use autogram_core::{
     telegram::{
-        auth::{AccountId, AuthError},
+        auth::AuthError,
         upload::transport::TelegramUploadTransport,
     },
     transfer::{
         cloud_download::{AccountScope, PeerKind},
         cloud_upload::*,
-        FrozenTransferProfile, PresentationOverride,
     },
 };
 use grammers_session::types::PeerId;
@@ -23,7 +22,7 @@ pub enum NativeUploadError {
     #[error("{code}")]
     RequestFailed { code: String, retry_after_ms: u64 },
 }
-fn error(code: &str) -> NativeUploadError {
+pub(super) fn error(code: &str) -> NativeUploadError {
     NativeUploadError::RequestFailed {
         code: code.into(),
         retry_after_ms: 0,
@@ -49,7 +48,7 @@ impl From<AuthError> for NativeUploadError {
         }
     }
 }
-fn scope(account: String) -> Result<AccountScope, NativeUploadError> {
+pub(super) fn scope(account: String) -> Result<AccountScope, NativeUploadError> {
     let user = account
         .strip_prefix("tg_")
         .and_then(|v| v.parse::<i64>().ok())
@@ -57,7 +56,7 @@ fn scope(account: String) -> Result<AccountScope, NativeUploadError> {
         .ok_or_else(|| error("wrong_scope"))?;
     AccountScope::new(account, user).map_err(|_| error("wrong_scope"))
 }
-fn store() -> Result<&'static UploadStore, NativeUploadError> {
+pub(super) fn store() -> Result<&'static UploadStore, NativeUploadError> {
     static STORE: OnceLock<UploadStore> = OnceLock::new();
     if let Some(value) = STORE.get() {
         return Ok(value);
@@ -67,7 +66,7 @@ fn store() -> Result<&'static UploadStore, NativeUploadError> {
     let _ = STORE.set(candidate);
     STORE.get().ok_or_else(|| error("database"))
 }
-fn staging_root() -> Result<PathBuf, NativeUploadError> {
+pub(super) fn staging_root() -> Result<PathBuf, NativeUploadError> {
     let root = crate::STORAGE_DIR
         .read()
         .clone()
@@ -77,7 +76,7 @@ fn staging_root() -> Result<PathBuf, NativeUploadError> {
     std::fs::create_dir_all(&root).map_err(|_| error("io"))?;
     std::fs::canonicalize(root).map_err(|_| error("io"))
 }
-fn staging_source(root: &Path, path: &Path) -> Result<PathBuf, NativeUploadError> {
+pub(super) fn staging_source(root: &Path, path: &Path) -> Result<PathBuf, NativeUploadError> {
     let resolved = std::fs::canonicalize(path).map_err(|_| error("io"))?;
     if path != resolved
         || resolved.parent() != Some(root)
@@ -87,7 +86,7 @@ fn staging_source(root: &Path, path: &Path) -> Result<PathBuf, NativeUploadError
     }
     Ok(resolved)
 }
-fn destination(
+pub(super) fn destination(
     scope: AccountScope,
     dialog: &str,
     topic_id: Option<i32>,
@@ -126,7 +125,7 @@ pub struct NativeCloudUpload {
     pub error_code: Option<String>,
     pub retry_not_before_ms: Option<i64>,
 }
-fn record(value: UploadRecord) -> NativeCloudUpload {
+pub(super) fn record(value: UploadRecord) -> NativeCloudUpload {
     NativeCloudUpload {
         operation_id: value.request.operation_id.clone(),
         account_id: value.request.destination.scope.account_id().into(),
@@ -158,65 +157,9 @@ pub async fn enqueue_cloud_upload(
     silent: bool,
     spoiler: bool,
 ) -> Result<NativeCloudUpload, NativeUploadError> {
-    let cancel = CancellationToken::new();
-    let _cancel_on_drop = cancel.clone().drop_guard();
-    let auth = engine().map_err(|_| error("auth_not_initialized"))?;
-    let account = AccountId(account_id.clone());
-    auth.validate_selected_account(&account)
-        .await
-        .map_err(|e| error(&e.code))?;
-    let selected_revision = auth.selected_job_revision();
-    let destination = destination(scope(account_id)?, &peer_id, topic_id)?;
-    let path = staging_source(&staging_root()?, Path::new(&staged_path))?;
-    let hash_cancel = cancel.clone();
-    let source =
-        tokio::task::spawn_blocking(move || snapshot_upload_file_cancellable(&path, &hash_cancel))
-            .await
-            .map_err(|_| error("io"))??;
-    let existing = match store()?.get(&operation_id, &destination.scope) {
-        Ok(record) => Some(record),
-        Err(UploadError::NotFound) => None,
-        Err(error) => return Err(error.into()),
-    };
-    let mut profile = FrozenTransferProfile::default();
-    profile.presentation_override = PresentationOverride::ForceDocument;
-    profile.group_as_album = false;
-    profile.group_documents = false;
-    profile.silent = silent;
-    profile.spoiler = spoiler;
-    let random_id = existing.map(|r| r.request.random_id).unwrap_or_else(|| {
-        // UUID bytes are independent of names, paths and private account material.
-        loop {
-            let bytes = *uuid::Uuid::new_v4().as_bytes();
-            let value = i64::from_le_bytes(bytes[..8].try_into().unwrap());
-            if value != 0 {
-                break value;
-            }
-        }
-    });
-    let request = UploadRequest {
-        operation_id,
-        destination,
-        source,
-        filename,
-        mime_type,
-        caption,
-        profile,
-        random_id,
-    };
-    request.validate()?;
-    let transport =
-        TelegramUploadTransport::connect(auth, request.destination.scope.clone(), cancel.clone())
-            .await?;
-    transport.limits().await?.validate(&request)?;
-    transport.validate_destination(&request.destination).await?;
-    if cancel.is_cancelled() {
-        return Err(UploadError::Cancelled.into());
-    }
-    // Source hashing and preflight may take time; a stale selected account cannot enqueue.
-    auth.commit_selected_job(&account, selected_revision, || {
-        Ok(record(store()?.enqueue(request)?))
-    })
+    crate::cloud_upload_enqueue::enqueue(crate::cloud_upload_enqueue::NativeUploadInput {
+        operation_id,account_id,peer_id,topic_id,staged_path,filename,mime_type,caption,
+    },crate::cloud_upload_enqueue::ProfileChoice::LegacyDocument {silent,spoiler}).await
 }
 #[uniffi::export]
 pub fn list_cloud_uploads(account_id: String) -> Result<Vec<NativeCloudUpload>, NativeUploadError> {

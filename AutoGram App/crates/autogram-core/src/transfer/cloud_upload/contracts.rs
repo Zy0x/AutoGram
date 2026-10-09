@@ -72,6 +72,12 @@ fn digest(value: &str, size: usize) -> bool {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UploadProfileBinding {
+    pub profile_id: String,
+    pub revision: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UploadRequest {
     pub operation_id: String,
     pub destination: UploadDestination,
@@ -80,6 +86,8 @@ pub struct UploadRequest {
     pub mime_type: String,
     pub caption: String,
     pub profile: FrozenTransferProfile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_binding: Option<UploadProfileBinding>,
     /// MTProto send deduplication ID: immutable through retry/recovery.
     pub random_id: i64,
 }
@@ -87,6 +95,11 @@ impl UploadRequest {
     pub fn validate(&self) -> Result<(), UploadError> {
         self.destination.validate()?;
         self.source.validate()?;
+        if self.profile_binding.as_ref().is_some_and(|binding| binding.revision <= 0
+            || binding.profile_id.is_empty() || binding.profile_id.len() > 128
+            || !binding.profile_id.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))) {
+            return Err(UploadError::InvalidRequest);
+        }
         if self.operation_id.is_empty()
             || self.operation_id.len() > 128
             || !self
@@ -107,15 +120,15 @@ impl UploadRequest {
             return Err(UploadError::InvalidRequest);
         }
         // Never silently reinterpret SMART/native/album profiles as document uploads.
-        if self.profile.schema_version != 1
-            || self.profile.presentation_override != PresentationOverride::ForceDocument
-            || self.profile.group_as_album
-            || self.profile.group_documents
-        {
-            return Err(UploadError::UnsupportedProfile);
-        }
-        Ok(())
+        validate_document_profile(&self.profile)
     }
+}
+pub fn validate_document_profile(profile: &FrozenTransferProfile) -> Result<(), UploadError> {
+    if profile.schema_version != 1 || profile.presentation_override != PresentationOverride::ForceDocument
+        || profile.group_as_album || profile.group_documents {
+        return Err(UploadError::UnsupportedProfile);
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

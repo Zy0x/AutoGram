@@ -11,6 +11,9 @@ rejected, limits repeated retries, and holds unconfirmed sends for review. These
 engine safeguards do not establish upload availability in an installed APK. Interrupted
 confirmations can be checked against an exact stored server message ID; uncertain
 results remain under review rather than triggering another send.
+The engine also stores transfer profiles per account and freezes their configuration
+for queued work. Changes to a saved profile affect subsequent jobs. Android Profiles
+screen integration and device acceptance are still pending.
 The native engine is packaged for arm64-v8a, armeabi-v7a, x86_64, and x86; choose the
 matching APK, or the larger universal APK. Local engine readiness does not mean
 that a Telegram account is signed in.

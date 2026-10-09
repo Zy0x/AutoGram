@@ -16,11 +16,15 @@ fn native_upload_checkpoint_schema_is_repeatable_and_matches_master() {
     let mapping = include_str!("../../../database/migrations/028_native_upload_send_mapping.sql");
     runtime.execute_batch(mapping).unwrap();
     runtime.execute_batch(mapping).unwrap();
+    let profiles = include_str!("../../../database/migrations/029_native_transfer_profile_bindings.sql");
+    runtime.execute_batch(profiles).unwrap();
+    runtime.execute_batch(profiles).unwrap();
     let master = Connection::open_in_memory().unwrap();
     master.execute_batch(MASTER).unwrap();
     assert_eq!(columns(&runtime,"native_cloud_uploads"),columns(&master,"native_cloud_uploads"));
     assert_eq!(columns(&runtime,"native_cloud_upload_recovery"),columns(&master,"native_cloud_upload_recovery"));
     assert_eq!(columns(&runtime,"native_cloud_upload_send_mapping"),columns(&master,"native_cloud_upload_send_mapping"));
+    assert_eq!(columns(&runtime,"native_transfer_profile_bindings"),columns(&master,"native_transfer_profile_bindings"));
     let count: i64 = runtime.query_row("SELECT count(*) FROM native_cloud_uploads",[],|row| row.get(0)).unwrap();
     assert_eq!(count,0);
 }

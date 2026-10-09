@@ -47,6 +47,7 @@ impl Fixture {
             mime_type: "text/plain".into(),
             caption: "fixture".into(),
             profile,
+            profile_binding: None,
             random_id: 919,
         };
         Self {

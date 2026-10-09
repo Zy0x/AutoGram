@@ -274,12 +274,26 @@ The active desktop runtime applies the additive Forwarder bridge migrations `020
 
 The local HTTP download panel keeps active jobs in process memory and does not modify the SQLite schema. Its Pause/Resume state is session-scoped; `remote_transfer_jobs` continues to describe the separate remote transfer recovery engine.
 
+## Account-scoped transfer profiles (migration 029)
+
+`native_transfer_profile_bindings` assigns existing v4 `transfer_profiles` definitions
+to an exact account/user and local profile ID. `profile_key` is an internal unique
+foreign key with delete cascade; ownership is immutable. `revision` provides optimistic
+concurrency for edits, selection and deletion. A partial unique index permits only one
+`selected` profile per account/user. Profile edits and selections are transactional;
+invalid settings or stale revisions do not replace existing state. Removing a profile
+does not alter queue snapshots, which remain independent JSON in `transfer_runs` and
+the immutable upload request. An empty profile list is returned as empty, never as demo data.
+
 ## Native cloud upload checkpoints (migration 026)
 
 `native_cloud_uploads` extends `transfer_runs` and `transfer_items_v4` with durable
 original-document execution. Its operation ID references the existing v4 run. The
 immutable `request_json` binds the verified account/user, destination peer/topic,
 source size/SHA-256/MD5/part digests, filename, caption and frozen transfer profile.
+Profile-aware requests also carry the local `profile_binding` ID and revision inside
+that immutable JSON. Older requests omit this optional member and remain readable;
+retry keeps its original snapshot even if the profile was changed, switched or deleted.
 
 - `random_id`: immutable MTProto message deduplication identity across retries.
 - `file_id`: temporary MTProto part allocation retained during resume/retry;

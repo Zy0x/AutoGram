@@ -15,6 +15,7 @@ pub mod feature_flags;
 pub mod oversize;
 pub mod preflight;
 pub mod profile;
+pub mod scoped_profiles;
 pub mod quality;
 pub mod store;
 
