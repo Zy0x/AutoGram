@@ -609,12 +609,13 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
             "API ID atau API hash belum dikonfigurasi",
         ));
     }
-    let identity = TelegramIdentity {
-        session: req.session.clone(),
-        api_id: req.api_id,
-        api_hash: req.api_hash.clone(),
-    };
-    let phone = req.phone.trim().to_string();
+    let raw_phone = req.phone.trim();
+    let phone: String = raw_phone
+        .chars()
+        .enumerate()
+        .filter(|(i, c)| c.is_ascii_digit() || (*i == 0 && *c == '+'))
+        .map(|(_, c)| c)
+        .collect();
     let has_password = req
         .password
         .as_deref()
@@ -623,6 +624,25 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
     if phone.is_empty() && !has_password {
         return Err(TgError::new(TgErrorCode::Auth, "phone required"));
     }
+    let session_name = if req.session.trim().is_empty() {
+        if !phone.is_empty() {
+            let digits = phone.trim_start_matches('+');
+            format!("tg_{digits}")
+        } else {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            format!("session_{now}")
+        }
+    } else {
+        req.session.trim().to_string()
+    };
+    let identity = TelegramIdentity {
+        session: session_name,
+        api_id: req.api_id,
+        api_hash: req.api_hash.clone(),
+    };
     let rt = runtime()?;
     rt.block_on(async {
         let operation_lock = session_operation_lock(&identity.session);

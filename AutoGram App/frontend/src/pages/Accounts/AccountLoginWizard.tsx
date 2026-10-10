@@ -51,7 +51,7 @@ export function AccountLoginWizard({
   countrySelectComponent,
   phone,
   setPhone,
-  sessionName,
+  sessionName: _sessionName,
   handleSendCode,
   stringSessionInput,
   setStringSessionInput,
@@ -338,8 +338,7 @@ export function AccountLoginWizard({
                           onChange={setPhone}
                           onKeyDown={(e: any) => { 
                             if (e.key === 'Enter') {
-                              if (sessionName && phone && !isProcessing) handleSendCode();
-                              else if (!sessionName) document.getElementById('session-name-input')?.focus();
+                              if (phone && !isProcessing) handleSendCode();
                             }
                           }}
                           autoComplete="off"

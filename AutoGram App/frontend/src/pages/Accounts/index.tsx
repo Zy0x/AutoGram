@@ -811,23 +811,23 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       return;
     }
 
+    const sanitizedPhone = phone.replace(/[^\d+]/g, '');
     let targetSession = sessionName.trim();
     if (!targetSession) {
-      const cleanPhone = phone.replace(/\D/g, '');
-      targetSession = cleanPhone ? `tg_${cleanPhone}` : `session_${Math.floor(Date.now() / 1000)}`;
+      const cleanDigits = sanitizedPhone.replace(/\D/g, '');
+      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
       setSessionName(targetSession);
     }
 
     if (!(await checkApiCredentials())) return;
 
-    const finalPhone = phone;
     setIsProcessing(true);
     setErrorMsg('');
     try {
       const { apiId, apiHash } = await getApiCredentials();
       const result = await tgLogin({
-        session: sessionName,
-        phone: finalPhone || '',
+        session: targetSession,
+        phone: sanitizedPhone,
         apiId: Number(apiId),
         apiHash,
       });
@@ -836,9 +836,9 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       if (!result?.ok || !data) {
         handleError({ error: result?.userMessage || result?.error?.message || result?.error?.code || 'Gagal mengirim kode login.' });
       } else if (data.status === 'already_authorized' || data.status === 'authorized') {
-        await finishAuthorization(sessionName);
+        await finishAuthorization(targetSession);
       } else if (data.status === 'code_sent') {
-        setPhone(finalPhone);
+        setPhone(sanitizedPhone);
         setStep(2);
       }
     } catch (e: any) {
@@ -851,14 +851,22 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   const handleSignIn = async () => {
     if (!code) return;
 
+    const sanitizedPhone = phone ? phone.replace(/[^\d+]/g, '') : '';
+    let targetSession = sessionName.trim();
+    if (!targetSession) {
+      const cleanDigits = sanitizedPhone.replace(/\D/g, '');
+      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
+      setSessionName(targetSession);
+    }
+
     setIsProcessing(true);
     setErrorMsg('');
 
     try {
       const { apiId, apiHash } = await getApiCredentials();
       const result = await tgLogin({
-        session: sessionName,
-        phone: phone || '',
+        session: targetSession,
+        phone: sanitizedPhone,
         code,
         apiId: Number(apiId),
         apiHash,
@@ -871,7 +879,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
         setPasswordHint(data.passwordHint || '');
         setStep(3);
       } else if (data.status === 'authorized') {
-        await finishAuthorization(sessionName);
+        await finishAuthorization(targetSession);
       }
     } catch (e) {
       setErrorMsg(String(e));
@@ -883,13 +891,20 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   const handleSignIn2FA = async () => {
     if (!password) return;
 
+    let targetSession = sessionName.trim();
+    if (!targetSession && phone) {
+      const cleanDigits = phone.replace(/\D/g, '');
+      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
+      setSessionName(targetSession);
+    }
+
     setIsProcessing(true);
     setErrorMsg('');
 
     try {
       const { apiId, apiHash } = await getApiCredentials();
       const result = await tgLogin({
-        session: sessionName,
+        session: targetSession || sessionName,
         password,
         apiId: Number(apiId),
         apiHash,
@@ -899,7 +914,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       if (!result?.ok || !data) {
         handleError({ error: result?.userMessage || result?.error?.message || result?.error?.code || 'Password 2FA ditolak.' });
       } else if (data.status === 'authorized') {
-        await finishAuthorization(sessionName);
+        await finishAuthorization(targetSession || sessionName);
       }
     } catch (e) {
       setErrorMsg(String(e));
@@ -1421,8 +1436,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                             onChange={setPhone}
                             onKeyDown={(e: any) => { 
                               if (e.key === 'Enter') {
-                                if (sessionName && phone && !isProcessing) handleSendCode();
-                                else if (!sessionName) document.getElementById('session-name-input')?.focus();
+                                if (phone && !isProcessing) handleSendCode();
                               }
                             }}
                             autoComplete="off"
