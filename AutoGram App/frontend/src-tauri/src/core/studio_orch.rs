@@ -1232,6 +1232,12 @@ fn run_orchestrated_grammers(
                         result.message_id,
                         None,
                     );
+                    let _ = super::autogram_core::transfer::update_transfer_item_result(
+                        &tid,
+                        item.index,
+                        "DONE",
+                        result.message_id,
+                    );
                     if let Some(app) = app {
                         use tauri::Emitter;
                         let _ = app.emit(
@@ -1255,6 +1261,12 @@ fn run_orchestrated_grammers(
                         ItemState::Failed,
                         None,
                         Some(message.clone()),
+                    );
+                    let _ = super::autogram_core::transfer::update_transfer_item_result(
+                        &tid,
+                        item.index,
+                        "FAILED",
+                        None,
                     );
                     if let Some(app) = app {
                         use tauri::Emitter;
@@ -1669,6 +1681,12 @@ fn run_orchestrated_grammers(
                     r.message_id,
                     r.error.clone(),
                 );
+                let _ = super::autogram_core::transfer::update_transfer_item_result(
+                    &tid,
+                    item.index,
+                    if st == ItemState::Done { "DONE" } else if st == ItemState::Skipped { "SKIPPED" } else { "FAILED" },
+                    r.message_id,
+                );
                 if matches!(st, ItemState::Done) {
                     persist_upload_ledger_binding(
                         &rec,
@@ -1713,6 +1731,12 @@ fn run_orchestrated_grammers(
                     ItemState::Failed,
                     None,
                     Some(msg.clone()),
+                );
+                let _ = super::autogram_core::transfer::update_transfer_item_result(
+                    &tid,
+                    item.index,
+                    "FAILED",
+                    None,
                 );
                 if let Some(app) = app {
                     use tauri::Emitter;

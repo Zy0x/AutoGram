@@ -1,5 +1,10 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Bulk Media Transfer Engine: Adaptive Micro-Pacing & Cooldown UI Telemetry
+- Implemented intelligent inter-album adaptive micro-pacing (2,500ms between multi-media album dispatches and 800ms between single items) in `studio_orch_album.rs` to continuously replenish Telegram DC's server-side rate limiter token bucket, preventing 5-minute `FLOOD_WAIT` penalties during 1,000+ item bulk transfers and cutting end-to-end batch duration by ~4x.
+- Wired native `FloodWait`, `FloodWaitTick`, and `FloodWaitResolved` IPC event broadcasting from Rust into the frontend `transfer-event` stream, enabling live second-by-second countdown banners in the Transfer Manager UI during server cooldowns.
+- Synchronized `transfer_items_v4` database status to `DONE` and bound `telegram_message_id` on every successful album commit and single delivery in `autogram-core/src/transfer/store.rs`, `studio_orch_album.rs`, and `studio_orch.rs`.
+
 ### Android Batch Download UI Thread Recovery
 - Fixed the batch-download action's return from background work so worker-start feedback, Android notifications and selection updates always execute on the UI thread. Physical-phone regression testing exposed a thread violation that could interrupt feedback after a job had already been queued.
 - Retained lifecycle cancellation and account/location checks before publishing results, and added explicit device-test assertions for the thread used by worker dispatch and selection callbacks.

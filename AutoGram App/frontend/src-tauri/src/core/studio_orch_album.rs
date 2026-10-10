@@ -82,10 +82,70 @@ fn format_telegram_log_message(
     )
 }
 
-fn wait_retry_with_cancel(tid: &str, seconds: u32) -> bool {
+fn wait_retry_with_cancel(app: Option<&tauri::AppHandle>, tid: &str, seconds: u32) -> bool {
+    use tauri::Emitter;
+    if let Some(app) = app {
+        let _ = app.emit(
+            "transfer-event",
+            serde_json::json!({
+                "type": "FloodWait",
+                "seconds": seconds,
+                "job_id": tid,
+            }),
+        );
+    }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(seconds as u64);
+    let mut last_tick = seconds;
     while std::time::Instant::now() < deadline {
         if job_queue::is_transfer_cancelled(tid) {
+            if let Some(app) = app {
+                let _ = app.emit(
+                    "transfer-event",
+                    serde_json::json!({
+                        "type": "FloodWaitResolved",
+                        "job_id": tid,
+                    }),
+                );
+            }
+            return false;
+        }
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        let rem_secs = remaining.as_secs() as u32;
+        if rem_secs < last_tick {
+            last_tick = rem_secs;
+            if let Some(app) = app {
+                let _ = app.emit(
+                    "transfer-event",
+                    serde_json::json!({
+                        "type": "FloodWaitTick",
+                        "remaining": rem_secs,
+                        "job_id": tid,
+                    }),
+                );
+            }
+        }
+        std::thread::sleep(remaining.min(std::time::Duration::from_millis(200)));
+    }
+    let is_cancelled = job_queue::is_transfer_cancelled(tid);
+    if let Some(app) = app {
+        let _ = app.emit(
+            "transfer-event",
+            serde_json::json!({
+                "type": "FloodWaitResolved",
+                "job_id": tid,
+            }),
+        );
+    }
+    !is_cancelled
+}
+
+fn sleep_inter_batch_pacing(tid: &str, millis: u64) -> bool {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(millis);
+    while std::time::Instant::now() < deadline {
+        if job_queue::is_transfer_cancelled(tid) {
+            return false;
+        }
+        if let Err(_) = job_queue::wait_while_transfer_paused(tid) {
             return false;
         }
         let remaining = deadline.saturating_duration_since(std::time::Instant::now());
@@ -261,7 +321,7 @@ fn execute_album_plan_chunk(
                             format!("{retry_msg} (internal error: {})", err.user_message()),
                         );
                         persist_transfer_log(tid, "warn", "album_upload_network_retry", &retry_msg);
-                        if !wait_retry_with_cancel(tid, wait_secs) {
+                        if !wait_retry_with_cancel(app, tid, wait_secs) {
                             break Err(crate::core::tg_error::TgError::new(
                                 crate::core::tg_error::TgErrorCode::Cancelled,
                                 "transfer cancelled by user",
@@ -311,6 +371,12 @@ fn execute_album_plan_chunk(
                         state.clone(),
                         result.message_id,
                         result.error.clone(),
+                    );
+                    let _ = super::autogram_core::transfer::update_transfer_item_result(
+                        tid,
+                        result.index,
+                        if matches!(state, ItemState::Done) { "DONE" } else { "FAILED" },
+                        result.message_id,
                     );
                     emit_album_item_result(
                         app,
@@ -453,6 +519,12 @@ fn execute_album_plan_chunk(
                     let state = ItemState::Done;
                     let _ =
                         job_queue::update_item(tid, *index, state.clone(), Some(*message_id), None);
+                    let _ = super::autogram_core::transfer::update_transfer_item_result(
+                        tid,
+                        *index,
+                        "DONE",
+                        Some(*message_id),
+                    );
                     emit_album_item_result(app, *index, &state, Some(*message_id), None);
                     if let Some(ledger_identity) = ledger_identities.get(index) {
                         persist_upload_ledger_binding(
@@ -571,7 +643,7 @@ fn execute_album_plan_chunk(
                                             &format!("Percobaan {single_attempts}/3. Menjeda {wait_secs}s sebelum mencoba kembali."),
                                         ),
                                     );
-                                    if !wait_retry_with_cancel(tid, wait_secs) {
+                                    if !wait_retry_with_cancel(app, tid, wait_secs) {
                                         break Err(crate::core::tg_error::TgError::new(
                                             crate::core::tg_error::TgErrorCode::Cancelled,
                                             "transfer cancelled by user",
@@ -599,6 +671,12 @@ fn execute_album_plan_chunk(
                                 state.clone(),
                                 result.message_id,
                                 result.error.clone(),
+                            );
+                            let _ = super::autogram_core::transfer::update_transfer_item_result(
+                                tid,
+                                item.index,
+                                if matches!(state, ItemState::Done) { "DONE" } else { "FAILED" },
+                                result.message_id,
                             );
                             emit_album_item_result(
                                 app,
@@ -721,6 +799,11 @@ fn execute_album_plan_chunk(
                 artifact.cleanup();
             }
         }
+        // Adaptive micro-pacing: recharge Telegram's token bucket between album dispatches
+        // to prevent FLOOD_WAIT penalties on bulk media batches.
+        if !sleep_inter_batch_pacing(tid, 2500) {
+            return Err("Transfer cancelled by user".into());
+        }
     }
 
     for item in plan.singles {
@@ -791,7 +874,7 @@ fn execute_album_plan_chunk(
                             ),
                         );
                         grammers_ops::disconnect_cached_session(&delivery_identity.session);
-                        if !wait_retry_with_cancel(tid, wait_secs) {
+                        if !wait_retry_with_cancel(app, tid, wait_secs) {
                             break Err(crate::core::tg_error::TgError::new(
                                 crate::core::tg_error::TgErrorCode::Cancelled,
                                 "transfer cancelled by user",
@@ -818,6 +901,12 @@ fn execute_album_plan_chunk(
                     state.clone(),
                     result.message_id,
                     result.error.clone(),
+                );
+                let _ = super::autogram_core::transfer::update_transfer_item_result(
+                    tid,
+                    item.index,
+                    if matches!(state, ItemState::Done) { "DONE" } else { "FAILED" },
+                    result.message_id,
                 );
                 emit_album_item_result(app, item.index, &state, result.message_id, result.error);
                 if matches!(state, ItemState::Done) {
@@ -897,6 +986,10 @@ fn execute_album_plan_chunk(
         }
         if let Some(artifact) = artifacts.remove(&item.index) {
             artifact.cleanup();
+        }
+        // Gentle micro-pacing between single items
+        if !sleep_inter_batch_pacing(tid, 800) {
+            return Err("Transfer cancelled by user".into());
         }
     }
     Ok(())

@@ -203,6 +203,23 @@ pub fn record_transfer_item_decision(
     Ok(())
 }
 
+pub fn update_transfer_item_result(
+    transfer_id: &str,
+    item_index: usize,
+    state: &str,
+    telegram_message_id: Option<i64>,
+) -> Result<(), String> {
+    open()?
+        .execute(
+            "UPDATE transfer_items_v4
+             SET state = ?1, telegram_message_id = COALESCE(?2, telegram_message_id), updated_at = ?3
+             WHERE transfer_id = ?4 AND item_index = ?5",
+            params![state, telegram_message_id, now_ms(), transfer_id, item_index as i64],
+        )
+        .map_err(|error| format!("update transfer item result: {error}"))?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UploadLedgerMatch {
     pub telegram_message_id: Option<i64>,
