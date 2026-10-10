@@ -233,35 +233,7 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                               );
                             }
 
-                            // NON-PREMIUM (DEFAULT FOR FREE ACCOUNTS) -> Render Standard 2GB
-                            if (!isPremium) {
-                              return (
-                                <div
-                                  key={sess.name}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    background: 'var(--bg-secondary, rgba(255,255,255,0.02))',
-                                    border: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-                                    color: 'var(--text-secondary, #94a3b8)',
-                                    padding: '6px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
-                                    cursor: 'not-allowed',
-                                    opacity: 0.65,
-                                  }}
-                                  title={t('ui.generated.akun_standar_gratis_hanya_mendukung_batas_2_gb_h_f0cf918')}
-                                >
-                                  <span>⚪</span>
-                                  <span>{cleanLabel}</span>
-                                  <span style={{ fontSize: '9px', background: 'var(--bg-card, rgba(255,255,255,0.05))', color: 'var(--text-muted, #64748b)', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
-                                    {t('ui.generated.standar_2gb_non_premium_806fe3e')}
-                                  </span>
-                                </div>
-                              );
-                            }
-
+                            // Clickable Account Chip (Premium 4GB or Standard 2GB)
                             return (
                               <button
                                 key={sess.name}
@@ -287,12 +259,21 @@ export function LimitsRecoverySettingsSection({ activeTab, ctx }: { activeTab: s
                                   transition: 'all 0.15s ease',
                                 }}
                               >
-                                <span>💎</span>
+                                <span>{isPremium ? '💎' : '⚪'}</span>
                                 <strong style={{ color: isSelected ? 'var(--accent-primary, #38bdf8)' : 'var(--text-primary, #0f172a)' }}>
                                   {cleanLabel}
                                 </strong>
-                                <span style={{ fontSize: '10px', background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)', color: 'var(--accent-primary, #38bdf8)', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
-                                  {t('ui.generated.premium_4gb_9f5be98')}
+                                <span style={{
+                                  fontSize: '10px',
+                                  background: isPremium
+                                    ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 15%, transparent)'
+                                    : 'var(--bg-card, rgba(255,255,255,0.05))',
+                                  color: isPremium ? 'var(--accent-primary, #38bdf8)' : 'var(--text-muted, #64748b)',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  marginLeft: '4px'
+                                }}>
+                                  {isPremium ? t('ui.generated.premium_4gb_9f5be98') : t('ui.generated.standar_2gb_non_premium_806fe3e')}
                                 </span>
                               </button>
                             );

@@ -8,6 +8,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::core::album_account_pool::AlbumAccountPool;
 use super::autogram_core::transfer::{
     apply_album_caption_policy, build_album_plan, classify_prepared_delivery, normalize_caption,
     AlbumCompatibilityKey, AlbumFailurePolicy, AlbumPackingPolicy, AlbumPlan, AlbumPlanOptions,
@@ -161,8 +162,7 @@ fn execute_album_plan_chunk(
     rec: &TransferRecord,
     tid: &str,
     sessions: &Path,
-    delivery_identity: &TelegramIdentity,
-    whole_album_identity: Option<&TelegramIdentity>,
+    pool: &mut AlbumAccountPool,
     topic_id: Option<i64>,
     silent: bool,
     plan: AlbumPlan,
@@ -170,9 +170,8 @@ fn execute_album_plan_chunk(
     artifacts: &mut HashMap<usize, media_prep::PreparedUploadArtifact>,
     any_ok: &mut bool,
     first_error: &mut Option<String>,
-    albums_sent: &mut usize,
-    had_album_floodwait: &mut bool,
 ) -> Result<(), String> {
+    let primary_identity = pool.primary_identity();
     for group in plan.groups {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
             for (_, artifact) in artifacts.drain() {
@@ -212,12 +211,13 @@ fn execute_album_plan_chunk(
                 spoiler: item.spoiler,
             })
             .collect();
+        let mut delivery_identity = pool.pick_sender_for_album(tid, app)?;
         let mut album_attempts = 0usize;
         let album_exec_res = loop {
             album_attempts += 1;
             let res = grammers_ops::upload_prepared_album_blocking_with_app(
                 sessions,
-                delivery_identity,
+                &delivery_identity,
                 &rec.chat_id,
                 &upload_files,
                 group.as_document,
@@ -231,7 +231,10 @@ fn execute_album_plan_chunk(
                 Some(commit_id.clone()),
             );
             match res {
-                Ok(ok_res) => break Ok(ok_res),
+                Ok(ok_res) => {
+                    pool.record_album_success(&delivery_identity.session, group.items.len(), tid);
+                    break Ok(ok_res);
+                }
                 Err(err) => {
                     if job_queue::is_transfer_cancelled(tid) {
                         persist_transfer_log(
@@ -256,7 +259,17 @@ fn execute_album_plan_chunk(
                     .any(|needle| rpc_text.contains(needle));
                     let is_flood_wait = matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
                     if is_flood_wait {
-                        *had_album_floodwait = true;
+                        let wait_secs = err.flood_wait_secs().unwrap_or(30);
+                        if let Some(alt_identity) = pool.record_album_floodwait(
+                            &delivery_identity.session,
+                            wait_secs,
+                            tid,
+                            app,
+                        ) {
+                            delivery_identity = alt_identity;
+                            album_attempts = 0;
+                            continue;
+                        }
                     }
                     let is_retryable = !permanent_album_error
                         && (is_flood_wait
@@ -392,7 +405,7 @@ fn execute_album_plan_chunk(
                             );
                         }
                     }
-                    if whole_album_identity.is_some() && matches!(state, ItemState::Done) {
+                    if (pool.is_multi_account() || delivery_identity.session != primary_identity.session) && matches!(state, ItemState::Done) {
                         if let Err(error) =
                             super::autogram_core::transfer::record_alternate_upload(
                                 tid,
@@ -584,7 +597,7 @@ fn execute_album_plan_chunk(
                         single_attempts += 1;
                         let res = grammers_ops::upload_file_blocking_topic_with_delivery(
                             sessions,
-                            delivery_identity,
+                            &delivery_identity,
                             &rec.chat_id,
                             &item.path,
                             &effective_caption,
@@ -695,7 +708,7 @@ fn execute_album_plan_chunk(
                                     );
                                 }
                             }
-                            if whole_album_identity.is_some() && matches!(state, ItemState::Done) {
+                            if (pool.is_multi_account() || delivery_identity.session != primary_identity.session) && matches!(state, ItemState::Done) {
                                 if let Err(error) =
                                     super::autogram_core::transfer::record_alternate_upload(
                                         tid,
@@ -797,30 +810,7 @@ fn execute_album_plan_chunk(
                 artifact.cleanup();
             }
         }
-        // Adaptive micro-pacing & cooling breather between album dispatches
-        // to maintain Telegram attachment rate limits and prevent 5-minute FLOOD_WAIT penalties.
-        *albums_sent += 1;
-        let (pacing_ok, breather) = job_queue::pace_album_message(
-            tid,
-            *albums_sent,
-            group.items.len(),
-            *had_album_floodwait,
-        );
-        if let Some(breather_ms) = breather {
-            persist_transfer_log(
-                tid,
-                "info",
-                "album_breather_pacing",
-                format!(
-                    "Jeda pendinginan laju media Telegram ({}s) setelah {} album untuk mencegah penalti FloodWait.",
-                    breather_ms / 1000,
-                    *albums_sent
-                ),
-            );
-        }
-        if !pacing_ok {
-            return Err("Transfer cancelled by user".into());
-        }
+        // Per-account micro-pacing and breathers are governed within AlbumAccountPool.
     }
     let total_singles = plan.singles.len();
     let mut singles_sent = 0usize;
@@ -851,7 +841,7 @@ fn execute_album_plan_chunk(
             single_attempts += 1;
             let res = grammers_ops::upload_file_blocking_topic_with_delivery(
                 sessions,
-                delivery_identity,
+                &primary_identity,
                 &rec.chat_id,
                 &item.path,
                 &effective_caption,
@@ -897,7 +887,7 @@ fn execute_album_plan_chunk(
                                 single_attempts, err.code(), err.user_message(), wait_secs
                             ),
                         );
-                        grammers_ops::disconnect_cached_session(&delivery_identity.session);
+                        grammers_ops::disconnect_cached_session(&primary_identity.session);
                         if !wait_retry_with_cancel(app, tid, wait_secs) {
                             break Err(crate::core::tg_error::TgError::new(
                                 crate::core::tg_error::TgErrorCode::Cancelled,
@@ -938,18 +928,18 @@ fn execute_album_plan_chunk(
                         persist_upload_ledger_binding(
                             rec,
                             topic_id,
-                            &delivery_identity.session,
+                            &primary_identity.session,
                             result.message_id,
                             item.index,
                             ledger_identity,
                         );
                     }
                 }
-                if whole_album_identity.is_some() && matches!(state, ItemState::Done) {
+                if pool.is_multi_account() && matches!(state, ItemState::Done) {
                     if let Err(error) = super::autogram_core::transfer::record_alternate_upload(
                         tid,
                         item.index,
-                        &delivery_identity.session,
+                        &primary_identity.session,
                         result.message_id,
                     ) {
                         tg_log::warn(
@@ -1130,8 +1120,7 @@ pub(super) fn run_intelligent_album(
     let mut any_ok = false;
     let mut first_error = None;
     let mut preparation_failed = false;
-    let mut albums_sent = 0usize;
-    let mut had_album_floodwait = false;
+    let mut album_pool = AlbumAccountPool::new(sessions, identity, rec, &rec.chat_id);
     let schedule_at = rec
         .options
         .get("schedule_at")
@@ -1753,8 +1742,7 @@ pub(super) fn run_intelligent_album(
                 rec,
                 tid,
                 sessions,
-                identity,
-                None,
+                &mut album_pool,
                 topic_id,
                 silent,
                 chunk_plan,
@@ -1762,8 +1750,6 @@ pub(super) fn run_intelligent_album(
                 &mut artifacts,
                 &mut any_ok,
                 &mut first_error,
-                &mut albums_sent,
-                &mut had_album_floodwait,
             )?;
         }
     }
@@ -1791,7 +1777,6 @@ pub(super) fn run_intelligent_album(
         .map(|item| item.size)
         .max()
         .unwrap_or(0);
-    let mut whole_album_identity: Option<TelegramIdentity> = None;
     if whole_album_alternate_requested && largest_prepared_item > primary_limit {
         let alternate_result = if !failure_policy.permits_structural_replan() {
             Err(format!(
@@ -1827,7 +1812,7 @@ pub(super) fn run_intelligent_album(
                         prepared_items.len()
                     ),
                 );
-                whole_album_identity = Some(alternate);
+                album_pool = AlbumAccountPool::new(sessions, &alternate, rec, &rec.chat_id);
             }
             Err(error) => {
                 let message = format!("album_whole_alternate_preflight_failed: {error}");
@@ -1853,7 +1838,6 @@ pub(super) fn run_intelligent_album(
     }
 
     if !prepared_items.is_empty() {
-        let delivery_identity = whole_album_identity.as_ref().unwrap_or(identity);
         let caption_assignment = apply_album_caption_policy(
             &mut prepared_items,
             if album_summary_consumed {
@@ -1922,8 +1906,7 @@ pub(super) fn run_intelligent_album(
             rec,
             tid,
             sessions,
-            delivery_identity,
-            whole_album_identity.as_ref(),
+            &mut album_pool,
             topic_id,
             silent,
             plan,
@@ -1931,8 +1914,6 @@ pub(super) fn run_intelligent_album(
             &mut artifacts,
             &mut any_ok,
             &mut first_error,
-            &mut albums_sent,
-            &mut had_album_floodwait,
         )?;
     }
 

@@ -76,3 +76,4 @@ pub mod remote_crawl;
 pub mod zip_local;
 pub mod ytdlp_plugin;
 pub mod universal_thumbnail;
+pub mod album_account_pool;

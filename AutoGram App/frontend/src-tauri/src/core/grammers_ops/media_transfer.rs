@@ -456,7 +456,7 @@ async fn try_recover_single_file_from_history(
     None
 }
 
-fn is_real_photo(path: &Path, ext: &str) -> bool {
+pub(super) fn is_real_photo(path: &Path, ext: &str) -> bool {
     let ext_lower = ext.to_ascii_lowercase();
     // Telegram native photo endpoint (InputMediaUploadedPhoto) only supports genuine JPEG.
     // Non-standard formats (.webp, .heic, .png, .avif, etc.) must never be sent as UploadedPhoto
@@ -477,7 +477,7 @@ fn is_real_photo(path: &Path, ext: &str) -> bool {
     false
 }
 
-fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
+pub(super) fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
     match ext {
         "jpg" | "jpeg" | "jfif" => "image/jpeg",
         "png" => "image/png",
@@ -545,7 +545,7 @@ fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
 /// caller sets `force_file`. Raw/lossless WebP delivery therefore uses a
 /// neutral MIME while retaining the original `.webp` filename and bytes. The
 /// media reader restores the user-facing MIME from the filename/magic bytes.
-fn document_mime_type(ext: &str, inferred: &'static str, as_document: bool) -> &'static str {
+pub(super) fn document_mime_type(ext: &str, inferred: &'static str, as_document: bool) -> &'static str {
     if as_document && matches!(ext, "webp" | "tgs") {
         "application/octet-stream"
     } else {
@@ -553,11 +553,11 @@ fn document_mime_type(ext: &str, inferred: &'static str, as_document: bool) -> &
     }
 }
 
-fn upload_thumbnail_path(path: &str) -> Option<PathBuf> {
+pub(super) fn upload_thumbnail_path(path: &str) -> Option<PathBuf> {
     crate::core::universal_thumbnail::resolve_or_generate_upload_thumbnail(Path::new(path))
 }
 
-fn safe_remove_temp_thumbnail(path: &Path) {
+pub(super) fn safe_remove_temp_thumbnail(path: &Path) {
     let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
     if (filename.ends_with(".thumb.jpg") || filename.ends_with(".thumb.png"))
         && !path.starts_with(std::env::temp_dir())
@@ -740,212 +740,18 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                     None => (0..items.len()).map(|_| rand::random()).collect(),
                 };
-                let mut raw_medias: Vec<tl::enums::InputMedia> = Vec::with_capacity(items.len());
-
-                for (position, item) in items.iter().enumerate() {
-                    if let Some(tid) = transfer_id.as_deref() {
-                        if crate::core::job_queue::is_transfer_cancelled(tid) {
-                            return Err(TgError::new(
-                                TgErrorCode::Cancelled,
-                                "transfer cancelled by user",
-                            ));
-                        }
-                    }
-                    let path = PathBuf::from(&item.path);
-                    let size = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
-                    let filename = path
-                        .file_name()
-                        .and_then(|value| value.to_str())
-                        .unwrap_or("file.dat")
-                        .to_string();
-                    if let Some(app) = &app_handle {
-                        use tauri::Emitter;
-                        let _ = app.emit(
-                            "transfer-event",
-                            serde_json::json!({
-                                "type": "StudioProgress",
-                                "index": item.index,
-                                "percent": 0.0,
-                                "transferred": 0,
-                                "total": size,
-                                "item_total": size,
-                                "phase": "upload"
-                            }),
-                        );
-                    }
-
-                    let ext = path
-                        .extension()
-                        .and_then(|value| value.to_str())
-                        .unwrap_or("")
-                        .to_ascii_lowercase();
-                    let is_video = matches!(
-                        ext.as_str(),
-                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "3gpp" | "ts" | "flv" | "wmv" | "m2ts" | "vob"
-                    );
-
-                    // Ensure video MP4/MOV has MOOV atom at the front (FastStart) to eliminate Telegram DC 60s indexing timeouts
-                    let (effective_upload_path, is_temp_faststart) = if !as_document && is_video {
-                        ensure_faststart_video(&path)
-                    } else {
-                        (path.clone(), false)
-                    };
-
-                    let upload_size = tokio::fs::metadata(&effective_upload_path)
-                        .await
-                        .map(|m| m.len())
-                        .unwrap_or(size);
-
-                    let uploaded = super::uploader::upload_file_resilient(
-                        client,
-                        &effective_upload_path,
-                        filename.clone(),
-                        "upload",
-                        item.index,
-                        transfer_id.as_deref(),
-                        app_handle.as_ref(),
-                    )
-                    .await?;
-
-                    if is_temp_faststart {
-                        let _ = std::fs::remove_file(&effective_upload_path);
-                    }
-
-                    let is_audio = matches!(
-                        ext.as_str(),
-                        "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
-                    );
-                    let is_photo = is_real_photo(&path, &ext);
-                    let is_image = is_photo
-                        || matches!(
-                            ext.as_str(),
-                            "jpg"
-                                | "jpeg"
-                                | "png"
-                                | "webp"
-                                | "gif"
-                                | "bmp"
-                                | "jfif"
-                                | "svg"
-                                | "heic"
-                                | "heif"
-                                | "avif"
-                                | "tiff"
-                                | "tif"
-                                | "ico"
-                                | "psd"
-                                | "raw"
-                                | "dng"
-                                | "cr2"
-                                | "nef"
-                                | "arw"
-                        );
-                    let mime = infer_mime_type(&ext, is_image, is_video);
-                    let path_str = path.to_str().unwrap_or("");
-
-                    let raw_media = if !as_document && is_photo {
-                        tl::enums::InputMedia::UploadedPhoto(tl::types::InputMediaUploadedPhoto {
-                            file: uploaded.raw,
-                            stickers: None,
-                            ttl_seconds: None,
-                            live_photo: false,
-                            video: None,
-                            spoiler: item.spoiler,
-                        })
-                    } else if !as_document && is_video {
-                        let (width, height, duration) = probe_video_metadata(path_str);
-                        let safe_w = if width > 0 { width as i32 } else { 1280 };
-                        let safe_h = if height > 0 { height as i32 } else { 720 };
-                        let safe_dur = if duration > 0.0 { duration } else { 1.0 };
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        let mut thumb_raw = None;
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        let is_nosound = {
-                            let analysis = crate::core::autogram_core::transfer::analyze_media(Path::new(path_str));
-                            analysis.probe_available && analysis.audio_codecs().is_empty()
-                        };
-                        tl::enums::InputMedia::UploadedDocument(tl::types::InputMediaUploadedDocument {
-                            nosound_video: is_nosound,
-                            force_file: false,
-                            spoiler: item.spoiler,
-                            file: uploaded.raw,
-                            thumb: thumb_raw,
-                            mime_type: "video/mp4".to_string(),
-                            attributes: vec![
-                                Attribute::Video {
-                                    round_message: false,
-                                    supports_streaming: true,
-                                    duration: std::time::Duration::from_secs_f64(safe_dur),
-                                    w: safe_w,
-                                    h: safe_h,
-                                }
-                                .into()
-                            ],
-                            stickers: None,
-                            video_cover: None,
-                            video_timestamp: None,
-                            ttl_seconds: None,
-                        })
-                    } else if !as_document && is_audio {
-                        let (duration, title, artist) = probe_audio_metadata(path_str);
-                        tl::enums::InputMedia::UploadedDocument(tl::types::InputMediaUploadedDocument {
-                            nosound_video: false,
-                            force_file: false,
-                            spoiler: item.spoiler,
-                            file: uploaded.raw,
-                            thumb: None,
-                            mime_type: mime.to_string(),
-                            attributes: vec![
-                                Attribute::Audio {
-                                    duration: std::time::Duration::from_secs_f64(duration.max(0.0)),
-                                    title,
-                                    performer: artist,
-                                }
-                                .into()
-                            ],
-                            stickers: None,
-                            video_cover: None,
-                            video_timestamp: None,
-                            ttl_seconds: None,
-                        })
-                    } else {
-                        let mut thumb_raw = None;
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        tl::enums::InputMedia::UploadedDocument(tl::types::InputMediaUploadedDocument {
-                            nosound_video: false,
-                            force_file: true,
-                            spoiler: item.spoiler,
-                            file: uploaded.raw,
-                            thumb: thumb_raw,
-                            mime_type: document_mime_type(&ext, mime, as_document).to_string(),
-                            attributes: vec![
-                                Attribute::FileName(filename.clone()).into()
-                            ],
-                            stickers: None,
-                            video_cover: None,
-                            video_timestamp: None,
-                            ttl_seconds: None,
-                        })
-                    };
-                    raw_medias.push(raw_media);
-
-                    tg_log::info(
-                        BACKEND,
-                        "album_upload_part",
-                        format!("index={} file={filename} spoiler={}", item.index, item.spoiler),
-                    );
-                }
+                let parallel_limit = super::album_parallel_prep::album_parallel_limit();
+                let upload_phase_start = Instant::now();
+                let raw_medias = super::album_parallel_prep::prepare_album_items_parallel(
+                    client,
+                    &items,
+                    as_document,
+                    transfer_id.clone(),
+                    app_handle.clone(),
+                    parallel_limit,
+                )
+                .await?;
+                let upload_elapsed_ms = upload_phase_start.elapsed().as_millis();
 
                 if let Some(app) = &app_handle {
                     use tauri::Emitter;
@@ -974,84 +780,23 @@ pub fn upload_prepared_album_blocking_with_app(
                     }
                 }
 
-                // Pre-register each media item via messages.UploadMedia so that
+                // Pre-register each media item concurrently via messages.UploadMedia so that
                 // SendMultiMedia receives valid server-side InputPhoto / InputDocument
+                let reg_phase_start = Instant::now();
+                let server_medias = super::album_parallel_prep::register_album_media_parallel(
+                    client,
+                    peer,
+                    raw_medias,
+                    transfer_id.clone(),
+                    parallel_limit,
+                )
+                .await?;
+                let reg_elapsed_ms = reg_phase_start.elapsed().as_millis();
+                let commit_phase_start = Instant::now();
+
                 let mut multi_media = Vec::with_capacity(items.len());
-                for (position, raw_media) in raw_medias.into_iter().enumerate() {
+                for (position, server_input_media) in server_medias.into_iter().enumerate() {
                     let random_id = random_ids[position];
-                    let server_input_media = match raw_media {
-                        tl::enums::InputMedia::UploadedPhoto(_)
-                        | tl::enums::InputMedia::PhotoExternal(_)
-                        | tl::enums::InputMedia::UploadedDocument(_)
-                        | tl::enums::InputMedia::DocumentExternal(_) => {
-                            let mut upload_media_attempts = 0;
-                            let mut last_err = None;
-                            let mut converted_media = None;
-
-                            while upload_media_attempts < 3 {
-                                upload_media_attempts += 1;
-                                match client
-                                    .invoke(&tl::functions::messages::UploadMedia {
-                                        business_connection_id: None,
-                                        peer: peer.into(),
-                                        media: raw_media.clone(),
-                                    })
-                                    .await
-                                {
-                                    Ok(uploaded) => {
-                                        if let Some(m) = Media::from_raw(uploaded).and_then(|m| m.to_raw_input_media()) {
-                                            converted_media = Some(m);
-                                            break;
-                                        } else {
-                                            last_err = Some(TgError::new(
-                                                TgErrorCode::Internal,
-                                                "failed to convert uploaded media to InputMedia",
-                                            ));
-                                            break;
-                                        }
-                                    }
-                                    Err(e) => {
-                                        let mapped = map_invocation(&e);
-                                        match mapped.code() {
-                                            TgErrorCode::FloodWait => {
-                                                let wait = mapped.flood_wait_secs().unwrap_or(5);
-                                                tg_log::warn(
-                                                    BACKEND,
-                                                    "upload_media_flood_wait",
-                                                    format!("UploadMedia rate limited, waiting {wait}s..."),
-                                                );
-                                                tokio::time::sleep(Duration::from_secs(wait.min(60) as u64)).await;
-                                            }
-                                            TgErrorCode::Timeout => {
-                                                tg_log::warn(
-                                                    BACKEND,
-                                                    "upload_media_timeout_retry",
-                                                    format!("UploadMedia server timeout on attempt {upload_media_attempts}, retrying in 3s..."),
-                                                );
-                                                tokio::time::sleep(Duration::from_secs(3)).await;
-                                            }
-                                            _ => {
-                                                last_err = Some(mapped);
-                                                break;
-                                            }
-                                        }
-                                        last_err = Some(mapped);
-                                    }
-                                }
-                            }
-
-                            converted_media.ok_or_else(|| {
-                                last_err.unwrap_or_else(|| {
-                                    TgError::new(
-                                        TgErrorCode::Internal,
-                                        "failed to register media on Telegram server",
-                                    )
-                                })
-                            })?
-                        }
-                        other => other,
-                    };
-
                     let item_caption = if !as_document {
                         if position == 0 {
                             items[position].caption.clone()
@@ -1358,6 +1103,21 @@ pub fn upload_prepared_album_blocking_with_app(
                         }
                     }
                 }
+                let commit_elapsed_ms = commit_phase_start.elapsed().as_millis();
+                let total_elapsed_ms = upload_phase_start.elapsed().as_millis();
+                tg_log::info(
+                    BACKEND,
+                    "album_phase_timing",
+                    format!(
+                        "n={} parallel_limit={} upload_ms={} reg_ms={} commit_ms={} total_ms={}",
+                        out.len(),
+                        parallel_limit,
+                        upload_elapsed_ms,
+                        reg_elapsed_ms,
+                        commit_elapsed_ms,
+                        total_elapsed_ms
+                    ),
+                );
                 tg_log::info(BACKEND, "album_ok", format!("n={} chat={chat}", out.len()));
                 if let Some(tid) = transfer_id.as_deref() {
                     let anchor = out
@@ -1369,398 +1129,30 @@ pub fn upload_prepared_album_blocking_with_app(
                         tid,
                         "info",
                         "album_committed",
-                        format!("Kolase album ({} berkas) berhasil diposting", out.len()),
+                        format!(
+                            "Kolase album ({} berkas) berhasil diposting (upload: {}ms, reg: {}ms, commit: {}ms)",
+                            out.len(),
+                            upload_elapsed_ms,
+                            reg_elapsed_ms,
+                            commit_elapsed_ms
+                        ),
+                    );
+                    crate::core::transfer_journal::TransferJournal::new(tid).append(
+                        "album_phase_timing",
+                        serde_json::json!({
+                            "items": out.len(),
+                            "parallel_limit": parallel_limit,
+                            "upload_ms": upload_elapsed_ms,
+                            "reg_ms": reg_elapsed_ms,
+                            "commit_ms": commit_elapsed_ms,
+                            "total_ms": total_elapsed_ms,
+                            "anchor_message_id": anchor,
+                        }),
                     );
                 }
                 Ok(out)
             })
         })
-        })
-        .await
-    })
-}
-
-#[allow(dead_code)]
-fn upload_prepared_album_blocking_with_app_legacy(
-    sessions_dir: &Path,
-    identity: &TelegramIdentity,
-    chat_id: &str,
-    files: &[AlbumUploadFile],
-    as_document: bool,
-    silent: bool,
-    topic_id: Option<i64>,
-    app_handle: Option<tauri::AppHandle>,
-    transfer_id: Option<String>,
-) -> Result<Vec<UploadStepResult>, TgError> {
-    if files.len() < 2 {
-        return Err(TgError::new(
-            TgErrorCode::Internal,
-            "album requires at least 2 files",
-        ));
-    }
-    if files.len() > 10 {
-        return Err(TgError::new(
-            TgErrorCode::Internal,
-            "album max 10 files per chunk",
-        ));
-    }
-    for file in files {
-        path_policy::assert_safe_transfer_path(&file.path)
-            .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
-        let pbuf = PathBuf::from(&file.path);
-        if !pbuf.is_file() {
-            return Err(TgError::new(
-                TgErrorCode::Io,
-                format!("file not found: {}", file.path),
-            ));
-        }
-        let size = std::fs::metadata(&pbuf).map(|m| m.len()).unwrap_or(0);
-        if size == 0 {
-            return Err(TgError::new(
-                TgErrorCode::Io,
-                format!("file is empty (0 bytes): {}", file.path),
-            ));
-        }
-    }
-    let rt = runtime()?;
-    let chat = chat_id.to_string();
-    let items: Vec<(usize, PathBuf, String)> = files
-        .iter()
-        .map(|file| (file.index, PathBuf::from(&file.path), file.caption.clone()))
-        .collect();
-    let reply_to = topic_id.filter(|t| *t > 0).map(|t| t as i32);
-
-    rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            let app_handle_outer = app_handle.clone();
-            let tid_outer = transfer_id.clone();
-            Box::pin(async move {
-                if !client
-                    .is_authorized()
-                    .await
-                    .map_err(|e| map_invocation(&e))?
-                {
-                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
-                }
-                let peer = resolve_peer(client, &chat).await?;
-                let expected_indices: Vec<usize> = items.iter().map(|item| item.0).collect();
-                let mut medias = Vec::with_capacity(items.len());
-                for (i, (item_index, path_buf, cap)) in items.iter().enumerate() {
-                    let item_index = *item_index;
-                    let size = std::fs::metadata(path_buf).map(|m| m.len()).unwrap_or(0);
-                    let filename = path_buf
-                        .file_name()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("file.dat")
-                        .to_string();
-
-                    let app_handle_inner = app_handle_outer.clone();
-                    let tid_inner = tid_outer.clone();
-
-                    if let Some(app) = &app_handle_outer {
-                        use tauri::Emitter;
-                        let _ = app.emit(
-                            "transfer-event",
-                            serde_json::json!({
-                                "type": "StudioProgress",
-                                "index": item_index,
-                                "percent": 0.0,
-                                "transferred": 0,
-                                "total": size,
-                                "item_total": size,
-                                "phase": "upload"
-                            }),
-                        );
-                    }
-
-                    let uploaded = super::uploader::upload_file_resilient(
-                        client,
-                        path_buf,
-                        filename.clone(),
-                        "upload",
-                        item_index,
-                        tid_inner.as_deref(),
-                        app_handle_inner.as_ref(),
-                    )
-                    .await?;
-                    let ext = path_buf
-                        .extension()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("")
-                        .to_ascii_lowercase();
-                    let is_video = matches!(
-                        ext.as_str(),
-                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
-                    );
-                    let is_audio = matches!(
-                        ext.as_str(),
-                        "mp3" | "m4a" | "aac" | "ogg" | "opus" | "flac" | "wav" | "wma"
-                    );
-                    let is_photo = is_real_photo(path_buf, &ext);
-                    let is_image = is_photo
-                        || matches!(
-                            ext.as_str(),
-                            "jpg"
-                                | "jpeg"
-                                | "png"
-                                | "webp"
-                                | "gif"
-                                | "bmp"
-                                | "jfif"
-                                | "svg"
-                                | "heic"
-                                | "heif"
-                                | "avif"
-                                | "tiff"
-                                | "tif"
-                                | "ico"
-                                | "psd"
-                                | "raw"
-                                | "dng"
-                                | "cr2"
-                                | "nef"
-                                | "arw"
-                        );
-                    let mime = infer_mime_type(&ext, is_image, is_video);
-                    let path_str = path_buf.to_str().unwrap_or("");
-                    let im = InputMedia::new().caption(cap.clone());
-                    // Forum topic: attach reply_to on all media items so Telegram routes every file to topic
-                    let im = im.reply_to(reply_to);
-                    let final_media = if as_document {
-                        let mut thumb_raw = None;
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                                tg_log::info(
-                                    BACKEND,
-                                    "album_doc_thumb_attached",
-                                    format!("i={} thumb={}", i, tp.display()),
-                                );
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        im.media(tl::types::InputMediaUploadedDocument {
-                            nosound_video: false,
-                            force_file: true,
-                            spoiler: false,
-                            file: uploaded.raw,
-                            thumb: thumb_raw,
-                            mime_type: document_mime_type(&ext, mime, true).to_string(),
-                            attributes: vec![(tl::types::DocumentAttributeFilename {
-                                file_name: filename.to_string(),
-                            })
-                            .into()],
-                            stickers: None,
-                            video_cover: None,
-                            video_timestamp: None,
-                            ttl_seconds: None,
-                        })
-                    } else if is_photo {
-                        im.photo(uploaded)
-                    } else if is_video {
-                        // Video: send as document with thumbnail + video attributes for Telegram preview
-                        let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
-                        let mut video_im = im.mime_type("video/mp4").document(uploaded);
-                        // Add DocumentAttributeVideo for Telegram to show as video (not generic doc)
-                        video_im = video_im.attribute(Attribute::Video {
-                            round_message: false,
-                            supports_streaming: true,
-                            duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
-                            w: vid_w as i32,
-                            h: vid_h as i32,
-                        });
-                        // Upload & attach thumbnail if available
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                video_im = video_im.thumbnail(thumb_uploaded);
-                                tg_log::info(
-                                    BACKEND,
-                                    "album_thumb_attached",
-                                    format!("i={} thumb={}", i, tp.display()),
-                                );
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        video_im
-                    } else if is_audio {
-                        let (aud_dur, aud_title, aud_artist) = probe_audio_metadata(path_str);
-                        let mut audio_im = im.mime_type(mime).document(uploaded);
-                        audio_im = audio_im.attribute(Attribute::Audio {
-                            duration: std::time::Duration::from_secs_f64(aud_dur.max(0.0)),
-                            title: aud_title,
-                            performer: aud_artist,
-                        });
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                audio_im = audio_im.thumbnail(thumb_uploaded);
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        audio_im
-                    } else {
-                        let mut thumb_raw = None;
-                        let thumb_path = upload_thumbnail_path(path_str);
-                        if let Some(ref tp) = thumb_path {
-                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
-                                thumb_raw = Some(thumb_uploaded.raw);
-                            }
-                            safe_remove_temp_thumbnail(tp);
-                        }
-                        im.media(tl::types::InputMediaUploadedDocument {
-                            nosound_video: false,
-                            force_file: true,
-                            spoiler: false,
-                            file: uploaded.raw,
-                            thumb: thumb_raw,
-                            mime_type: document_mime_type(&ext, mime, true).to_string(),
-                            attributes: vec![(tl::types::DocumentAttributeFilename {
-                                file_name: filename.to_string(),
-                            })
-                            .into()],
-                            stickers: None,
-                            video_cover: None,
-                            video_timestamp: None,
-                            ttl_seconds: None,
-                        })
-                    };
-                    let _ = silent;
-                    medias.push(final_media);
-                    tg_log::info(
-                        BACKEND,
-                        "album_upload_part",
-                        format!(
-                            "i={} file={}",
-                            item_index,
-                            path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")
-                        ),
-                    );
-                }
-
-                if let Some(app) = &app_handle_outer {
-                    use tauri::Emitter;
-                    for i in 0..items.len() {
-                        let _ = app.emit(
-                            "transfer-event",
-                            serde_json::json!({
-                                "type": "StudioItemPhase",
-                            "index": items[i].0,
-                                "phase": "committing"
-                            }),
-                        );
-                    }
-                }
-
-                let batch_start_ts = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs() as i64;
-                let sent_res = client.send_album(peer, medias).await;
-                let sent = match sent_res {
-                    Ok(s) => s,
-                    Err(e) => {
-                        let mapped = map_invocation(&e);
-                        tg_log::warn(
-                            BACKEND,
-                            "album_send_rpc_error",
-                            format!(
-                                "send_album RPC hit error: {}. Checking chat history...",
-                                mapped.user_message()
-                            ),
-                        );
-                        if let Some(recovered) = try_recover_album_from_history(
-                            client,
-                            peer,
-                            &chat,
-                            topic_id,
-                            &expected_indices,
-                            batch_start_ts,
-                        )
-                        .await
-                        {
-                            if recovered.len() == expected_indices.len()
-                                && recovered.iter().all(|item| item.message_id.is_some())
-                            {
-                                return Ok(recovered);
-                            }
-                            tg_log::warn(
-                                BACKEND,
-                                "album_partial_recovery_rejected",
-                                format!(
-                                    "recovered={} expected={} action=return_error",
-                                    recovered.iter().filter(|item| item.message_id.is_some()).count(),
-                                    expected_indices.len()
-                                ),
-                            );
-                        }
-                        return Err(mapped);
-                    }
-                };
-
-                let mut out = Vec::new();
-                let mut missing_mids = false;
-                for (i, msg) in sent.into_iter().enumerate() {
-                    let mid = msg.as_ref().map(|m| m.id() as i64);
-                    if mid.is_none() {
-                        missing_mids = true;
-                    }
-                    out.push(UploadStepResult {
-                        status: if mid.is_some() {
-                            "done".into()
-                        } else {
-                            "failed".into()
-                        },
-                        message_id: mid,
-                        error: if mid.is_none() {
-                            Some("album item missing".into())
-                        } else {
-                            None
-                        },
-                        index: items[i].0,
-                        backend: Some(BACKEND.into()),
-                    });
-                }
-
-                if missing_mids {
-                    tg_log::warn(
-                        BACKEND,
-                        "album_send_missing_mids",
-                        format!(
-                            "send_album returned missing message IDs. Checking grouped history..."
-                        ),
-                    );
-                    if let Some(recovered) = try_recover_album_from_history(
-                        client,
-                        peer,
-                        &chat,
-                        topic_id,
-                        &expected_indices,
-                        batch_start_ts,
-                    )
-                    .await
-                    {
-                        if recovered.len() == expected_indices.len()
-                            && recovered.iter().all(|item| item.message_id.is_some())
-                        {
-                            return Ok(recovered);
-                        }
-                        tg_log::warn(
-                            BACKEND,
-                            "album_partial_recovery_rejected",
-                            format!(
-                                "recovered={} expected={} action=return_error",
-                                recovered.iter().filter(|item| item.message_id.is_some()).count(),
-                                expected_indices.len()
-                            ),
-                        );
-                    }
-                }
-
-                tg_log::info(BACKEND, "album_ok", format!("n={} chat={chat}", out.len()));
-                Ok(out)
-            })
         })
         .await
     })
