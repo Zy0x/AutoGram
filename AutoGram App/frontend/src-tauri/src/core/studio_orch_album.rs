@@ -171,6 +171,9 @@ fn execute_album_plan_chunk(
     any_ok: &mut bool,
     first_error: &mut Option<String>,
 ) -> Result<(), String> {
+    let mut albums_sent = 0usize;
+    let mut had_album_floodwait = false;
+
     for group in plan.groups {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
             for (_, artifact) in artifacts.drain() {
@@ -252,14 +255,18 @@ fn execute_album_plan_chunk(
                     ]
                     .iter()
                     .any(|needle| rpc_text.contains(needle));
+                    let is_flood_wait = matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
+                    if is_flood_wait {
+                        had_album_floodwait = true;
+                    }
                     let is_retryable = !permanent_album_error
-                        && matches!(
-                            err.code(),
-                            crate::core::tg_error::TgErrorCode::FloodWait
-                                | crate::core::tg_error::TgErrorCode::Timeout
-                                | crate::core::tg_error::TgErrorCode::Network
-                                | crate::core::tg_error::TgErrorCode::Io
-                        );
+                        && (is_flood_wait
+                            || matches!(
+                                err.code(),
+                                crate::core::tg_error::TgErrorCode::Timeout
+                                    | crate::core::tg_error::TgErrorCode::Network
+                                    | crate::core::tg_error::TgErrorCode::Io
+                            ));
                     let item_names = group
                         .items
                         .iter()
@@ -791,9 +798,28 @@ fn execute_album_plan_chunk(
                 artifact.cleanup();
             }
         }
-        // Adaptive micro-pacing: recharge Telegram's token bucket between album dispatches
-        // to prevent FLOOD_WAIT penalties on bulk media batches.
-        if !sleep_inter_batch_pacing(tid, 2500) {
+        // Adaptive micro-pacing & cooling breather between album dispatches
+        // to maintain Telegram attachment rate limits and prevent 5-minute FLOOD_WAIT penalties.
+        albums_sent += 1;
+        let (pacing_ok, breather) = job_queue::pace_album_message(
+            tid,
+            albums_sent,
+            group.items.len(),
+            had_album_floodwait,
+        );
+        if let Some(breather_ms) = breather {
+            persist_transfer_log(
+                tid,
+                "info",
+                "album_breather_pacing",
+                format!(
+                    "Jeda pendinginan laju media Telegram ({}s) setelah {} album untuk mencegah penalti FloodWait.",
+                    breather_ms / 1000,
+                    albums_sent
+                ),
+            );
+        }
+        if !pacing_ok {
             return Err("Transfer cancelled by user".into());
         }
     }

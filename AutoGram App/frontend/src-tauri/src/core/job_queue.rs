@@ -495,9 +495,54 @@ pub fn pace_single_message(transfer_id: &str, sent_in_run: usize, total_in_plan:
     sleep_inter_batch_pacing(transfer_id, millis)
 }
 
+pub fn calculate_album_pacing_ms(
+    albums_sent: usize,
+    album_items_count: usize,
+    had_floodwait: bool,
+) -> (u64, bool) {
+    // Every 7th album (e.g. 7, 14, 21...), insert a preventive cooling breather
+    // because Telegram enforces a rolling quota of ~75-80 media attachments per 5 minutes.
+    if albums_sent > 0 && albums_sent % 7 == 0 {
+        let breather_ms = if had_floodwait { 25_000 } else { 18_000 };
+        return (breather_ms, true);
+    }
+
+    let pacing_ms = if had_floodwait {
+        4_500
+    } else if album_items_count >= 8 {
+        3_500
+    } else {
+        2_500
+    };
+    (pacing_ms, false)
+}
+
+pub fn pace_album_message(
+    transfer_id: &str,
+    albums_sent: usize,
+    album_items_count: usize,
+    had_floodwait: bool,
+) -> (bool, Option<u64>) {
+    let (pacing_ms, is_breather) = calculate_album_pacing_ms(albums_sent, album_items_count, had_floodwait);
+    let ok = sleep_inter_batch_pacing(transfer_id, pacing_ms);
+    (ok, if is_breather { Some(pacing_ms) } else { None })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn album_message_governor_pacing_and_breather() {
+        assert_eq!(calculate_album_pacing_ms(1, 10, false), (3500, false));
+        assert_eq!(calculate_album_pacing_ms(6, 10, false), (3500, false));
+        assert_eq!(calculate_album_pacing_ms(7, 10, false), (18000, true));
+        assert_eq!(calculate_album_pacing_ms(8, 10, false), (3500, false));
+        assert_eq!(calculate_album_pacing_ms(14, 10, false), (18000, true));
+        assert_eq!(calculate_album_pacing_ms(1, 5, false), (2500, false));
+        assert_eq!(calculate_album_pacing_ms(1, 10, true), (4500, false));
+        assert_eq!(calculate_album_pacing_ms(7, 10, true), (25000, true));
+    }
 
     #[test]
     fn single_message_governor_pacing_ramp() {
