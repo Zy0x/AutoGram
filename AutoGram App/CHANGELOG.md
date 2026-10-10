@@ -7,6 +7,7 @@
 - Added dedicated 2,750ms inter-item micro-pacing to the album fallback upload loop in `studio_orch_album.rs`, preventing burst flooding when recovering from server-side album timeouts or worker busy errors.
 - Wired native `FloodWait`, `FloodWaitTick`, and `FloodWaitResolved` IPC event broadcasting from Rust into the frontend `transfer-event` stream, enabling live second-by-second countdown banners in the Transfer Manager UI during server cooldowns.
 - Synchronized `transfer_items_v4` database status to `DONE` and bound `telegram_message_id` on every successful album commit and single delivery in `autogram-core/src/transfer/store.rs`, `studio_orch_album.rs`, and `studio_orch.rs`.
+- Added automated Comparative Batch Benchmark & Telemetry Tracker (`frontend/tools/batch_benchmark_tracker.py`) to persistently audit and compare bulk transfer configurations across wall-clock duration, active upload speed, `FloodWait` stall penalties, time efficiency, and 1,000-item projections.
 
 ### Android Batch Download UI Thread Recovery
 - Fixed the batch-download action's return from background work so worker-start feedback, Android notifications and selection updates always execute on the UI thread. Physical-phone regression testing exposed a thread violation that could interrupt feedback after a job had already been queued.
