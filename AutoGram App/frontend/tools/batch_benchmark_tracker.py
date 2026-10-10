@@ -145,6 +145,7 @@ def print_telemetry_report():
         ("upload_1791603537365_78uyods", "Batch 1 (Baseline Single Docs)", "Single Document + 1.5s-3.2s Adaptive Governor"),
         ("upload_1791611211425_s0et3dm", "Batch 2 (Album Burst 1.5s)", "Album 10-Grid + 1.5s Fixed Pacing (No Breather)"),
         ("upload_1791622515520_tb7gos5", "Batch 3 (Album 3.5s Pacing)", "Album 10-Grid + 3.5s Pacing (Chunk-Scoped Counter)"),
+        ("upload_1791633708573_p6ec5qd", "Batch 4 (Calibrated 6-Breather)", "Album 10-Grid + 8.5s Pacing + 35s Breather/6-Album"),
     ]
     
     print("\n" + "=" * 105)
