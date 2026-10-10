@@ -1191,13 +1191,20 @@ pub fn qr_cancel_flags() -> &'static Mutex<HashMap<String, Arc<std::sync::atomic
 }
 
 pub fn cancel_qr_login(session_name: &str) -> bool {
-    let _ = delete_grammers_session_files(session_name);
-    if let Some(flag) = qr_cancel_flags().lock().remove(session_name) {
+    let flag_opt = qr_cancel_flags().lock().remove(session_name);
+    let cancelled = if let Some(flag) = flag_opt {
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
         true
     } else {
         false
-    }
+    };
+    let s_name = session_name.to_string();
+    std::thread::spawn(move || {
+        // Sleep briefly to let grammers_qr_login observe the cancel flag, disconnect, and drop the write lock
+        std::thread::sleep(Duration::from_millis(150));
+        let _ = delete_grammers_session_files(&s_name);
+    });
+    cancelled
 }
 
 pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> {

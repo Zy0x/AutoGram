@@ -12,6 +12,7 @@ export interface AccountLoginWizardProps {
   errorMsg: string;
   loginMethod: 'qr' | 'phone' | 'string_session';
   setLoginMethod: Dispatch<SetStateAction<'qr' | 'phone' | 'string_session'>>;
+  onSelectMethod?: (method: 'qr' | 'phone' | 'string_session') => void | Promise<void>;
   qrDataUrl: string | null;
   qrExpiresIn: number;
   handleStartQrLogin: (forceNew?: boolean) => void | Promise<void>;
@@ -45,6 +46,7 @@ export function AccountLoginWizard({
   errorMsg,
   loginMethod,
   setLoginMethod,
+  onSelectMethod,
   qrDataUrl,
   qrExpiresIn,
   handleStartQrLogin,
@@ -68,6 +70,13 @@ export function AccountLoginWizard({
   handleSignIn2FA,
   setIsForgotPasswordOpen,
 }: AccountLoginWizardProps) {
+  const switchMethod = (method: 'qr' | 'phone' | 'string_session') => {
+    if (onSelectMethod) {
+      onSelectMethod(method);
+    } else {
+      setLoginMethod(method);
+    }
+  };
   return (
       <div className="modal-overlay" onClick={closeWizard}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -138,7 +147,7 @@ export function AccountLoginWizard({
                 <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-surface-secondary, rgba(255, 255, 255, 0.04))', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))' }}>
                   <button
                     type="button"
-                    onClick={() => { setLoginMethod('qr'); }}
+                    onClick={() => { switchMethod('qr'); }}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -161,7 +170,7 @@ export function AccountLoginWizard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setLoginMethod('phone'); }}
+                    onClick={() => { switchMethod('phone'); }}
                     style={{
                       flex: 1,
                       padding: '8px 10px',
@@ -184,7 +193,7 @@ export function AccountLoginWizard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setLoginMethod('string_session'); }}
+                    onClick={() => { switchMethod('string_session'); }}
                     style={{
                       flex: 1,
                       padding: '8px 10px',

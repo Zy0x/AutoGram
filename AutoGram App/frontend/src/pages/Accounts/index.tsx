@@ -218,7 +218,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   } | null>(null);
   const lastQrRequestTimeRef = useRef<number>(0);
 
-  const stopQrTimers = async (forceCancel = false) => {
+  const stopQrTimers = async (forceCancel = false, targetSession?: string) => {
     if (unlistenQrRef.current) {
       unlistenQrRef.current();
       unlistenQrRef.current = null;
@@ -228,12 +228,28 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       qrCountdownTimerRef.current = null;
     }
     if (forceCancel) {
-      if (sessionName) {
+      const sessToCancel = targetSession || sessionName || pendingQrSessionRef.current?.sessionName;
+      if (sessToCancel) {
         try {
-          await invoke('cancel_rust_qr_login', { session: sessionName });
+          await invoke('cancel_rust_qr_login', { session: sessToCancel });
         } catch {}
       }
       pendingQrSessionRef.current = null;
+    }
+  };
+
+  const handleSwitchMethod = async (method: 'qr' | 'phone' | 'string_session') => {
+    if (loginMethod === method) return;
+    setErrorMsg('');
+    setIsProcessing(false);
+    if (method !== 'qr') {
+      await stopQrTimers(true);
+      setSessionName('');
+      setQrDataUrl(null);
+    }
+    setLoginMethod(method);
+    if (method === 'qr') {
+      await handleStartQrLogin();
     }
   };
 
@@ -524,6 +540,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     setIsForgotPasswordOpen(false);
     setErrorMsg("");
     setAuthNotice("");
+    setIsProcessing(false);
     setIsWizardOpen(true);
   };
 
@@ -812,36 +829,54 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     }
 
     const sanitizedPhone = phone.replace(/[^\d+]/g, '');
+    const cleanDigits = sanitizedPhone.replace(/\D/g, '');
+    if (!cleanDigits) {
+      setErrorMsg(t('accounts.error_fields_required'));
+      return;
+    }
+
+    // Always stop and cancel any active QR login when sending phone code to release background locks
+    await stopQrTimers(true);
+
     let targetSession = sessionName.trim();
-    if (!targetSession) {
-      const cleanDigits = sanitizedPhone.replace(/\D/g, '');
-      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
+    if (!targetSession || targetSession.startsWith('session_')) {
+      targetSession = `tg_${cleanDigits}`;
       setSessionName(targetSession);
     }
 
-    if (!(await checkApiCredentials())) return;
+    console.log('[handleSendCode:start]', { phone, sanitizedPhone, targetSession });
+    if (!(await checkApiCredentials())) {
+      console.log('[handleSendCode:checkApiCredentials failed]');
+      return;
+    }
 
     setIsProcessing(true);
     setErrorMsg('');
     try {
       const { apiId, apiHash } = await getApiCredentials();
+      console.log('[handleSendCode:calling tgLogin]', { targetSession, sanitizedPhone, hasApiId: !!apiId, hasApiHash: !!apiHash });
       const result = await tgLogin({
         session: targetSession,
         phone: sanitizedPhone,
         apiId: Number(apiId),
         apiHash,
       });
+      console.log('[handleSendCode:result]', JSON.stringify(result));
       const data = result?.data;
 
       if (!result?.ok || !data) {
+        console.log('[handleSendCode:error branch]', result);
         handleError({ error: result?.userMessage || result?.error?.message || result?.error?.code || 'Gagal mengirim kode login.' });
       } else if (data.status === 'already_authorized' || data.status === 'authorized') {
+        console.log('[handleSendCode:authorized]');
         await finishAuthorization(targetSession);
       } else if (data.status === 'code_sent') {
+        console.log('[handleSendCode:code_sent moving to step 2]');
         setPhone(sanitizedPhone);
         setStep(2);
       }
     } catch (e: any) {
+      console.error('[handleSendCode:catch]', e);
       setErrorMsg(String(e));
     } finally {
       setIsProcessing(false);
@@ -852,10 +887,10 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     if (!code) return;
 
     const sanitizedPhone = phone ? phone.replace(/[^\d+]/g, '') : '';
+    const cleanDigits = sanitizedPhone.replace(/\D/g, '');
     let targetSession = sessionName.trim();
-    if (!targetSession) {
-      const cleanDigits = sanitizedPhone.replace(/\D/g, '');
-      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
+    if (!targetSession || targetSession.startsWith('session_')) {
+      targetSession = cleanDigits ? `tg_${cleanDigits}` : `tg_${Date.now()}`;
       setSessionName(targetSession);
     }
 
@@ -892,9 +927,9 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     if (!password) return;
 
     let targetSession = sessionName.trim();
-    if (!targetSession && phone) {
-      const cleanDigits = phone.replace(/\D/g, '');
-      targetSession = cleanDigits ? `tg_${cleanDigits}` : `session_${Math.floor(Date.now() / 1000)}`;
+    if (!targetSession || targetSession.startsWith('session_')) {
+      const cleanDigits = phone ? phone.replace(/[^\d+]/g, '') : '';
+      targetSession = cleanDigits ? `tg_${cleanDigits}` : `tg_${Date.now()}`;
       setSessionName(targetSession);
     }
 
@@ -934,6 +969,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
         errorMsg={errorMsg}
         loginMethod={loginMethod}
         setLoginMethod={setLoginMethod}
+        onSelectMethod={handleSwitchMethod}
         qrDataUrl={qrDataUrl}
         qrExpiresIn={qrExpiresIn}
         handleStartQrLogin={handleStartQrLogin}
@@ -1236,7 +1272,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                   <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-surface-secondary, rgba(255, 255, 255, 0.04))', padding: '5px', borderRadius: '12px', border: '1px solid var(--border-default, rgba(255, 255, 255, 0.08))' }}>
                     <button
                       type="button"
-                      onClick={() => { setLoginMethod('qr'); }}
+                      onClick={() => { handleSwitchMethod('qr'); }}
                       style={{
                         flex: 1,
                         padding: '10px 12px',
@@ -1259,7 +1295,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setLoginMethod('phone'); }}
+                      onClick={() => { handleSwitchMethod('phone'); }}
                       style={{
                         flex: 1,
                         padding: '10px 12px',
@@ -1282,7 +1318,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setLoginMethod('string_session'); }}
+                      onClick={() => { handleSwitchMethod('string_session'); }}
                       style={{
                         flex: 1,
                         padding: '10px 12px',
