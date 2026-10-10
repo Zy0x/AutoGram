@@ -228,7 +228,8 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       qrCountdownTimerRef.current = null;
     }
     if (forceCancel) {
-      const sessToCancel = targetSession || sessionName || pendingQrSessionRef.current?.sessionName;
+      const candidate = targetSession || pendingQrSessionRef.current?.sessionName || sessionName;
+      const sessToCancel = candidate && !candidate.startsWith('tg_') ? candidate : '';
       if (sessToCancel) {
         try {
           await invoke('cancel_rust_qr_login', { session: sessToCancel });

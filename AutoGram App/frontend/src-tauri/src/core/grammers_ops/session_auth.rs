@@ -934,16 +934,32 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
                 Err(TgError::new(TgErrorCode::Auth, "invalid_otp"))
             }
             Err(e) => {
-                client.disconnect();
                 let msg = e.to_string();
+                let msg_upper = msg.to_ascii_uppercase();
+                if msg_upper.contains("PHONE_CODE_EXPIRED") || msg_upper.contains("CODE_EXPIRED") {
+                    client.disconnect();
+                    return Err(TgError::new(TgErrorCode::Auth, "code_expired"));
+                }
                 if msg.to_ascii_lowercase().contains("sign up")
                     || msg.to_ascii_lowercase().contains("signup")
                 {
+                    client.disconnect();
                     return Err(TgError::new(
                         TgErrorCode::Auth,
                         "Sign-up required — complete registration in official Telegram first",
                     ));
                 }
+                store_login_token(&identity.session, token);
+                persist_login_transport_best_effort(&session, &g_path);
+                store_pending_login_transport(
+                    &identity.session,
+                    PendingLoginTransport {
+                        client,
+                        session,
+                        runner: _runner,
+                        created_at: Instant::now(),
+                    },
+                );
                 Err(TgError::new(TgErrorCode::Auth, format!("sign_in: {e}")))
             }
         }
@@ -975,7 +991,16 @@ pub fn store_pending_login_transport(session: &str, transport: PendingLoginTrans
 }
 
 pub fn take_pending_login_transport(session: &str) -> Option<PendingLoginTransport> {
-    let transport = pending_login_transports().lock().remove(session)?;
+    let mut guard = pending_login_transports().lock();
+    let transport = if let Some(t) = guard.remove(session) {
+        t
+    } else if guard.len() == 1 {
+        let only_key = guard.keys().next()?.clone();
+        guard.remove(&only_key)?
+    } else {
+        return None;
+    };
+    drop(guard);
     if transport.created_at.elapsed() > Duration::from_secs(10 * 60) {
         transport.client.disconnect();
         transport.runner.abort();
@@ -1002,7 +1027,15 @@ pub fn store_login_token(session: &str, token: grammers_client::client::LoginTok
 }
 
 pub fn take_login_token(session: &str) -> Option<grammers_client::client::LoginToken> {
-    login_tokens().lock().remove(session)
+    let mut guard = login_tokens().lock();
+    if let Some(tok) = guard.remove(session) {
+        return Some(tok);
+    }
+    if guard.len() == 1 {
+        let only_key = guard.keys().next()?.clone();
+        return guard.remove(&only_key);
+    }
+    None
 }
 
 pub fn password_tokens() -> &'static Mutex<HashMap<String, PasswordToken>> {
@@ -1340,12 +1373,14 @@ pub fn cancel_qr_login(session_name: &str) -> bool {
     } else {
         false
     };
-    let s_name = session_name.to_string();
-    std::thread::spawn(move || {
-        // Sleep briefly to let grammers_qr_login observe the cancel flag, disconnect, and drop the write lock
-        std::thread::sleep(Duration::from_millis(150));
-        let _ = delete_grammers_session_files(&s_name);
-    });
+    if cancelled && !session_name.trim().starts_with("tg_") {
+        let s_name = session_name.to_string();
+        std::thread::spawn(move || {
+            // Sleep briefly to let grammers_qr_login observe the cancel flag, disconnect, and drop the write lock
+            std::thread::sleep(Duration::from_millis(150));
+            let _ = delete_grammers_session_files(&s_name);
+        });
+    }
     cancelled
 }
 
