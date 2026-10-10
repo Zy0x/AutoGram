@@ -9,6 +9,7 @@ pub mod media_transfer;
 pub mod peer_resolver;
 pub mod session_auth;
 pub mod uploader;
+pub mod album_concurrent_trial;
 
 pub use account_capability::*;
 pub use channel_updates::*;
@@ -19,3 +20,4 @@ pub use media_transfer::*;
 pub use peer_resolver::*;
 pub use session_auth::*;
 pub use uploader::*;
+pub use album_concurrent_trial::*;
