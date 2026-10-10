@@ -844,9 +844,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       setSessionName(targetSession);
     }
 
-    console.log('[handleSendCode:start]', { phone, sanitizedPhone, targetSession });
     if (!(await checkApiCredentials())) {
-      console.log('[handleSendCode:checkApiCredentials failed]');
       return;
     }
 
@@ -854,29 +852,23 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
     setErrorMsg('');
     try {
       const { apiId, apiHash } = await getApiCredentials();
-      console.log('[handleSendCode:calling tgLogin]', { targetSession, sanitizedPhone, hasApiId: !!apiId, hasApiHash: !!apiHash });
       const result = await tgLogin({
         session: targetSession,
         phone: sanitizedPhone,
         apiId: Number(apiId),
         apiHash,
       });
-      console.log('[handleSendCode:result]', JSON.stringify(result));
       const data = result?.data;
 
       if (!result?.ok || !data) {
-        console.log('[handleSendCode:error branch]', result);
         handleError({ error: result?.userMessage || result?.error?.message || result?.error?.code || 'Gagal mengirim kode login.' });
       } else if (data.status === 'already_authorized' || data.status === 'authorized') {
-        console.log('[handleSendCode:authorized]');
         await finishAuthorization(targetSession);
       } else if (data.status === 'code_sent') {
-        console.log('[handleSendCode:code_sent moving to step 2]');
         setPhone(sanitizedPhone);
         setStep(2);
       }
     } catch (e: any) {
-      console.error('[handleSendCode:catch]', e);
       setErrorMsg(String(e));
     } finally {
       setIsProcessing(false);
@@ -884,7 +876,8 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   };
 
   const handleSignIn = async () => {
-    if (!code) return;
+    const cleanCode = code.replace(/\D/g, '').trim() || code.trim();
+    if (!cleanCode) return;
 
     const sanitizedPhone = phone ? phone.replace(/[^\d+]/g, '') : '';
     const cleanDigits = sanitizedPhone.replace(/\D/g, '');
@@ -902,7 +895,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       const result = await tgLogin({
         session: targetSession,
         phone: sanitizedPhone,
-        code,
+        code: cleanCode,
         apiId: Number(apiId),
         apiHash,
       });
@@ -926,9 +919,10 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
   const handleSignIn2FA = async () => {
     if (!password) return;
 
+    const sanitizedPhone = phone ? phone.replace(/[^\d+]/g, '') : '';
     let targetSession = sessionName.trim();
     if (!targetSession || targetSession.startsWith('session_')) {
-      const cleanDigits = phone ? phone.replace(/[^\d+]/g, '') : '';
+      const cleanDigits = sanitizedPhone.replace(/\D/g, '');
       targetSession = cleanDigits ? `tg_${cleanDigits}` : `tg_${Date.now()}`;
       setSessionName(targetSession);
     }
@@ -940,6 +934,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
       const { apiId, apiHash } = await getApiCredentials();
       const result = await tgLogin({
         session: targetSession || sessionName,
+        phone: sanitizedPhone,
         password,
         apiId: Number(apiId),
         apiHash,

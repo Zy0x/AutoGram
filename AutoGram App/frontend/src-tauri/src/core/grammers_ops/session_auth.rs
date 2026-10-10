@@ -643,6 +643,19 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
         api_id: req.api_id,
         api_hash: req.api_hash.clone(),
     };
+    let clean_code: Option<String> = req
+        .code
+        .as_deref()
+        .map(|raw| {
+            let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+            if !digits.is_empty() {
+                digits
+            } else {
+                raw.chars().filter(|c| !c.is_whitespace()).collect()
+            }
+        })
+        .filter(|s| !s.is_empty());
+
     let rt = runtime()?;
     rt.block_on(async {
         let operation_lock = session_operation_lock(&identity.session);
@@ -653,19 +666,56 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
         if let Some(parent) = g_path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let session = open_memory_session(&g_path)?;
-        let SenderPool { runner, handle, .. } =
-            SenderPool::new(Arc::clone(&session), identity.api_id as i32);
-        let client = Client::new(handle);
-        let _runner = tokio::spawn(async move {
-            runner.run().await;
-        });
-        tokio::time::sleep(Duration::from_millis(100)).await;
 
-        if client
-            .is_authorized()
-            .await
-            .map_err(|e| map_invocation(&e))?
+        let is_initial_code_request = clean_code.is_none() && !has_password;
+        if is_initial_code_request {
+            clear_pending_login_transport(&identity.session);
+        }
+
+        let (mut client, session, mut _runner, mut reused_transport) =
+            if !is_initial_code_request {
+                if let Some(pending) = take_pending_login_transport(&identity.session) {
+                    if !pending.runner.is_finished() {
+                        (pending.client, pending.session, pending.runner, true)
+                    } else {
+                        let session = pending.session;
+                        let SenderPool { runner, handle, .. } =
+                            SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+                        let client = Client::new(handle);
+                        let runner_handle = tokio::spawn(async move {
+                            runner.run().await;
+                        });
+                        tokio::time::sleep(Duration::from_millis(80)).await;
+                        (client, session, runner_handle, false)
+                    }
+                } else {
+                    let session = open_memory_session(&g_path)?;
+                    let SenderPool { runner, handle, .. } =
+                        SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+                    let client = Client::new(handle);
+                    let runner_handle = tokio::spawn(async move {
+                        runner.run().await;
+                    });
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    (client, session, runner_handle, false)
+                }
+            } else {
+                let session = open_memory_session(&g_path)?;
+                let SenderPool { runner, handle, .. } =
+                    SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+                let client = Client::new(handle);
+                let runner_handle = tokio::spawn(async move {
+                    runner.run().await;
+                });
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                (client, session, runner_handle, false)
+            };
+
+        if is_initial_code_request
+            && client
+                .is_authorized()
+                .await
+                .map_err(|e| map_invocation(&e))?
         {
             let u = client.get_me().await.map_err(|e| map_invocation(&e))?;
             persist_authorized_session(&client, &session, &g_path).await?;
@@ -690,13 +740,7 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
             .map(str::trim)
             .filter(|s| !s.is_empty())
         {
-            if req
-                .code
-                .as_deref()
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-                .is_none()
-            {
+            if clean_code.is_none() {
                 let pw_token = if let Some(token) = take_password_token(&identity.session) {
                     token
                 } else {
@@ -724,8 +768,17 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
                         });
                     }
                     Err(SignInError::InvalidPassword(next_token)) => {
+                        persist_login_transport_best_effort(&session, &g_path);
                         store_password_token(&identity.session, next_token);
-                        client.disconnect();
+                        store_pending_login_transport(
+                            &identity.session,
+                            PendingLoginTransport {
+                                client,
+                                session,
+                                runner: _runner,
+                                created_at: Instant::now(),
+                            },
+                        );
                         return Err(TgError::new(TgErrorCode::Auth, "invalid_password"));
                     }
                     Err(e) => {
@@ -736,15 +789,23 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
             }
         }
 
-        let code = req.code.as_deref().map(str::trim).filter(|s| !s.is_empty());
-        if code.is_none() {
+        if clean_code.is_none() {
             // Request code only
             match client.request_login_code(&phone, &identity.api_hash).await {
                 Ok(_token) => {
-                    // Token cannot be persisted easily across process calls without storing it.
-                    // Document: second call must happen soon; we store token in static map.
+                    // Persist negotiated DC + auth_key and keep live transport in memory
+                    // so Step 2 (sign_in) executes on the exact same MTProto session and auth key.
+                    persist_login_transport_best_effort(&session, &g_path);
                     store_login_token(&identity.session, _token);
-                    client.disconnect();
+                    store_pending_login_transport(
+                        &identity.session,
+                        PendingLoginTransport {
+                            client,
+                            session,
+                            runner: _runner,
+                            created_at: Instant::now(),
+                        },
+                    );
                     tg_log::info(BACKEND, "login_code_sent", "phone_ok=1");
                     return Ok(LoginResult {
                         status: "code_sent".into(),
@@ -764,13 +825,39 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
         }
 
         let token = take_login_token(&identity.session).ok_or_else(|| {
+            client.disconnect();
             TgError::new(
                 TgErrorCode::Auth,
                 "login token missing — request code again",
             )
         })?;
-        let code = code.unwrap();
-        match client.sign_in(&token, code).await {
+        let code = clean_code.as_deref().unwrap();
+
+        let mut sign_in_res = client.sign_in(&token, code).await;
+        if reused_transport {
+            if let Err(SignInError::Other(ref inv_err)) = sign_in_res {
+                if !matches!(inv_err, grammers_mtsender::InvocationError::Rpc(_)) {
+                    tg_log::warn(
+                        BACKEND,
+                        "login_transport_reconnect",
+                        format!("reconnecting pending login pool after transport err: {inv_err}"),
+                    );
+                    client.disconnect();
+                    _runner.abort();
+                    let SenderPool { runner, handle, .. } =
+                        SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+                    client = Client::new(handle);
+                    _runner = tokio::spawn(async move {
+                        runner.run().await;
+                    });
+                    tokio::time::sleep(Duration::from_millis(80)).await;
+                    let _ = reused_transport;
+                    sign_in_res = client.sign_in(&token, code).await;
+                }
+            }
+        }
+
+        match sign_in_res {
             Ok(u) => {
                 let prof = user_profile_from(&u);
                 persist_authorized_session(&client, &session, &g_path).await?;
@@ -812,7 +899,15 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
                 } else {
                     persist_login_transport_best_effort(&session, &g_path);
                     store_password_token(&identity.session, pw_token);
-                    client.disconnect();
+                    store_pending_login_transport(
+                        &identity.session,
+                        PendingLoginTransport {
+                            client,
+                            session,
+                            runner: _runner,
+                            created_at: Instant::now(),
+                        },
+                    );
                     Ok(LoginResult {
                         status: "password_required".into(),
                         needs_code: false,
@@ -827,7 +922,15 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
             Err(SignInError::InvalidCode) => {
                 store_login_token(&identity.session, token);
                 persist_login_transport_best_effort(&session, &g_path);
-                client.disconnect();
+                store_pending_login_transport(
+                    &identity.session,
+                    PendingLoginTransport {
+                        client,
+                        session,
+                        runner: _runner,
+                        created_at: Instant::now(),
+                    },
+                );
                 Err(TgError::new(TgErrorCode::Auth, "invalid_otp"))
             }
             Err(e) => {
@@ -847,7 +950,46 @@ pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginRe
     })
 }
 
-// --- Login token stash (single pending per session name) ---
+// --- Login token & active transport stash (single pending per session name) ---
+
+pub struct PendingLoginTransport {
+    pub client: Client,
+    pub session: Arc<MemorySession>,
+    pub runner: tokio::task::JoinHandle<()>,
+    pub created_at: Instant,
+}
+
+pub fn pending_login_transports() -> &'static Mutex<HashMap<String, PendingLoginTransport>> {
+    static MAP: OnceLock<Mutex<HashMap<String, PendingLoginTransport>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn store_pending_login_transport(session: &str, transport: PendingLoginTransport) {
+    if let Some(prev) = pending_login_transports()
+        .lock()
+        .insert(session.to_string(), transport)
+    {
+        prev.client.disconnect();
+        prev.runner.abort();
+    }
+}
+
+pub fn take_pending_login_transport(session: &str) -> Option<PendingLoginTransport> {
+    let transport = pending_login_transports().lock().remove(session)?;
+    if transport.created_at.elapsed() > Duration::from_secs(10 * 60) {
+        transport.client.disconnect();
+        transport.runner.abort();
+        return None;
+    }
+    Some(transport)
+}
+
+pub fn clear_pending_login_transport(session: &str) {
+    if let Some(prev) = pending_login_transports().lock().remove(session) {
+        prev.client.disconnect();
+        prev.runner.abort();
+    }
+}
 
 pub fn login_tokens() -> &'static Mutex<HashMap<String, grammers_client::client::LoginToken>> {
     static MAP: OnceLock<Mutex<HashMap<String, grammers_client::client::LoginToken>>> =
@@ -1212,6 +1354,9 @@ pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> 
     runtime()?.block_on(async move {
         let operation_lock = session_operation_lock(&session_name);
         let _operation_guard = operation_lock.write().await;
+        clear_pending_login_transport(&session_name);
+        let _ = take_login_token(&session_name);
+        let _ = take_password_token(&session_name);
         disconnect_cached_session(&session_name);
         let sessions_dir = resolve_sessions_dir(None);
         let s_name = session_name.trim().trim_end_matches(".session");
