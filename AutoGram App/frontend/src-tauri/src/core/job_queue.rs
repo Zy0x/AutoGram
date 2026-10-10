@@ -500,19 +500,19 @@ pub fn calculate_album_pacing_ms(
     album_items_count: usize,
     had_floodwait: bool,
 ) -> (u64, bool) {
-    // Every 7th album (e.g. 7, 14, 21...), insert a preventive cooling breather
-    // because Telegram enforces a rolling quota of ~75-80 media attachments per 5 minutes.
-    if albums_sent > 0 && albums_sent % 7 == 0 {
-        let breather_ms = if had_floodwait { 25_000 } else { 18_000 };
+    // Every 6th album (60 items), insert a preventive cooling breather (35s)
+    // to strictly preserve Telegram's 80-media attachment burst quota and eliminate 5-minute FLOOD_WAIT penalties.
+    if albums_sent > 0 && albums_sent % 6 == 0 {
+        let breather_ms = if had_floodwait { 45_000 } else { 35_000 };
         return (breather_ms, true);
     }
 
     let pacing_ms = if had_floodwait {
-        4_500
+        10_000
     } else if album_items_count >= 8 {
-        3_500
+        8_500
     } else {
-        2_500
+        4_500
     };
     (pacing_ms, false)
 }
@@ -534,14 +534,14 @@ mod tests {
 
     #[test]
     fn album_message_governor_pacing_and_breather() {
-        assert_eq!(calculate_album_pacing_ms(1, 10, false), (3500, false));
-        assert_eq!(calculate_album_pacing_ms(6, 10, false), (3500, false));
-        assert_eq!(calculate_album_pacing_ms(7, 10, false), (18000, true));
-        assert_eq!(calculate_album_pacing_ms(8, 10, false), (3500, false));
-        assert_eq!(calculate_album_pacing_ms(14, 10, false), (18000, true));
-        assert_eq!(calculate_album_pacing_ms(1, 5, false), (2500, false));
-        assert_eq!(calculate_album_pacing_ms(1, 10, true), (4500, false));
-        assert_eq!(calculate_album_pacing_ms(7, 10, true), (25000, true));
+        assert_eq!(calculate_album_pacing_ms(1, 10, false), (8500, false));
+        assert_eq!(calculate_album_pacing_ms(5, 10, false), (8500, false));
+        assert_eq!(calculate_album_pacing_ms(6, 10, false), (35000, true));
+        assert_eq!(calculate_album_pacing_ms(7, 10, false), (8500, false));
+        assert_eq!(calculate_album_pacing_ms(12, 10, false), (35000, true));
+        assert_eq!(calculate_album_pacing_ms(1, 5, false), (4500, false));
+        assert_eq!(calculate_album_pacing_ms(1, 10, true), (10000, false));
+        assert_eq!(calculate_album_pacing_ms(6, 10, true), (45000, true));
     }
 
     #[test]

@@ -170,10 +170,9 @@ fn execute_album_plan_chunk(
     artifacts: &mut HashMap<usize, media_prep::PreparedUploadArtifact>,
     any_ok: &mut bool,
     first_error: &mut Option<String>,
+    albums_sent: &mut usize,
+    had_album_floodwait: &mut bool,
 ) -> Result<(), String> {
-    let mut albums_sent = 0usize;
-    let mut had_album_floodwait = false;
-
     for group in plan.groups {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
             for (_, artifact) in artifacts.drain() {
@@ -257,7 +256,7 @@ fn execute_album_plan_chunk(
                     .any(|needle| rpc_text.contains(needle));
                     let is_flood_wait = matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
                     if is_flood_wait {
-                        had_album_floodwait = true;
+                        *had_album_floodwait = true;
                     }
                     let is_retryable = !permanent_album_error
                         && (is_flood_wait
@@ -800,12 +799,12 @@ fn execute_album_plan_chunk(
         }
         // Adaptive micro-pacing & cooling breather between album dispatches
         // to maintain Telegram attachment rate limits and prevent 5-minute FLOOD_WAIT penalties.
-        albums_sent += 1;
+        *albums_sent += 1;
         let (pacing_ok, breather) = job_queue::pace_album_message(
             tid,
-            albums_sent,
+            *albums_sent,
             group.items.len(),
-            had_album_floodwait,
+            *had_album_floodwait,
         );
         if let Some(breather_ms) = breather {
             persist_transfer_log(
@@ -815,7 +814,7 @@ fn execute_album_plan_chunk(
                 format!(
                     "Jeda pendinginan laju media Telegram ({}s) setelah {} album untuk mencegah penalti FloodWait.",
                     breather_ms / 1000,
-                    albums_sent
+                    *albums_sent
                 ),
             );
         }
@@ -1131,6 +1130,8 @@ pub(super) fn run_intelligent_album(
     let mut any_ok = false;
     let mut first_error = None;
     let mut preparation_failed = false;
+    let mut albums_sent = 0usize;
+    let mut had_album_floodwait = false;
     let schedule_at = rec
         .options
         .get("schedule_at")
@@ -1761,6 +1762,8 @@ pub(super) fn run_intelligent_album(
                 &mut artifacts,
                 &mut any_ok,
                 &mut first_error,
+                &mut albums_sent,
+                &mut had_album_floodwait,
             )?;
         }
     }
@@ -1928,6 +1931,8 @@ pub(super) fn run_intelligent_album(
             &mut artifacts,
             &mut any_ok,
             &mut first_error,
+            &mut albums_sent,
+            &mut had_album_floodwait,
         )?;
     }
 
