@@ -1130,6 +1130,9 @@ fn run_orchestrated_grammers(
 
     let mut any_ok = false;
     let mut first_fatal: Option<String> = None;
+    let total_items = rec.items.len();
+    let mut singles_sent = 0usize;
+    let mut had_floodwait = false;
 
     for item in &rec.items {
         let item_caption = normalized_captions
@@ -1285,6 +1288,10 @@ fn run_orchestrated_grammers(
                         first_fatal = Some(message);
                     }
                 }
+            }
+            singles_sent += 1;
+            if !job_queue::pace_single_message(&tid, singles_sent, total_items, had_floodwait) {
+                return Err("Transfer cancelled by user".to_string());
             }
             continue;
         }
@@ -1723,6 +1730,9 @@ fn run_orchestrated_grammers(
                 }
             }
             Err(e) => {
+                if matches!(e.code(), super::tg_error::TgErrorCode::FloodWait) {
+                    had_floodwait = true;
+                }
                 let msg = e.user_message();
                 tg_log::warn("studio_orch", "grammers_item_fail", &msg);
                 let _ = job_queue::update_item(
@@ -1783,6 +1793,10 @@ fn run_orchestrated_grammers(
             }
         }
         prepared_artifact.cleanup();
+        singles_sent += 1;
+        if !job_queue::pace_single_message(&tid, singles_sent, total_items, had_floodwait) {
+            return Err("Transfer cancelled by user".to_string());
+        }
     }
 
     if !any_ok {

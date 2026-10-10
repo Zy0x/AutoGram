@@ -1,7 +1,9 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
 ### Bulk Media Transfer Engine: Adaptive Micro-Pacing & Cooldown UI Telemetry
-- Implemented intelligent inter-album adaptive micro-pacing (2,500ms between multi-media album dispatches and 800ms between single items) in `studio_orch_album.rs` to continuously replenish Telegram DC's server-side rate limiter token bucket, preventing 5-minute `FLOOD_WAIT` penalties during 1,000+ item bulk transfers and cutting end-to-end batch duration by ~4x.
+- Implemented intelligent inter-album adaptive micro-pacing (2,500ms between multi-media album dispatches) and an Adaptive Sliding-Window Governor for Single Messages (`calculate_single_pacing_ms`, `pace_single_message`) across `job_queue.rs`, `studio_orch_album.rs`, and `studio_orch.rs`. For bulk transfers exceeding 10 items (such as large PNG batches or non-album documents), dispatches initiate at 800ms for items 0–11, ramp smoothly through 800–2,600ms for items 12–23, and lock into a sustained safe rate of 2,750ms (~21.8 msgs/min) for items 24+, continuously replenishing Telegram DC's leaky token bucket without hitting 5-minute `FLOOD_WAIT` penalties.
+- Added automatic 2,800ms token-refill locking whenever a `FloodWait` error is encountered, guaranteeing that subsequent items in the batch run safely at the refill ceiling.
+- Added dedicated 2,750ms inter-item micro-pacing to the album fallback upload loop in `studio_orch_album.rs`, preventing burst flooding when recovering from server-side album timeouts or worker busy errors.
 - Wired native `FloodWait`, `FloodWaitTick`, and `FloodWaitResolved` IPC event broadcasting from Rust into the frontend `transfer-event` stream, enabling live second-by-second countdown banners in the Transfer Manager UI during server cooldowns.
 - Synchronized `transfer_items_v4` database status to `DONE` and bound `telegram_message_id` on every successful album commit and single delivery in `autogram-core/src/transfer/store.rs`, `studio_orch_album.rs`, and `studio_orch.rs`.
 

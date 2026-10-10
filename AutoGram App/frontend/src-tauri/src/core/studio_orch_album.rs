@@ -140,18 +140,7 @@ fn wait_retry_with_cancel(app: Option<&tauri::AppHandle>, tid: &str, seconds: u3
 }
 
 fn sleep_inter_batch_pacing(tid: &str, millis: u64) -> bool {
-    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(millis);
-    while std::time::Instant::now() < deadline {
-        if job_queue::is_transfer_cancelled(tid) {
-            return false;
-        }
-        if let Err(_) = job_queue::wait_while_transfer_paused(tid) {
-            return false;
-        }
-        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-        std::thread::sleep(remaining.min(std::time::Duration::from_millis(100)));
-    }
-    !job_queue::is_transfer_cancelled(tid)
+    job_queue::sleep_inter_batch_pacing(tid, millis)
 }
 
 fn is_video_extension(path: &str) -> bool {
@@ -777,6 +766,9 @@ fn execute_album_plan_chunk(
                             }
                         }
                     }
+                    if !sleep_inter_batch_pacing(tid, 2750) {
+                        return Err("Transfer cancelled by user".into());
+                    }
                 }
                 let _ = super::autogram_core::transfer::update_album_commit(
                     &commit_id,
@@ -805,6 +797,9 @@ fn execute_album_plan_chunk(
             return Err("Transfer cancelled by user".into());
         }
     }
+    let total_singles = plan.singles.len();
+    let mut singles_sent = 0usize;
+    let mut had_floodwait = false;
 
     for item in plan.singles {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
@@ -854,13 +849,17 @@ fn execute_album_plan_chunk(
                             "transfer cancelled by user",
                         ));
                     }
-                    let is_network = matches!(
-                        err.code(),
-                        crate::core::tg_error::TgErrorCode::FloodWait
-                            | crate::core::tg_error::TgErrorCode::Network
-                            | crate::core::tg_error::TgErrorCode::Io
-                            | crate::core::tg_error::TgErrorCode::Timeout
-                    );
+                    let is_flood_wait = matches!(err.code(), crate::core::tg_error::TgErrorCode::FloodWait);
+                    if is_flood_wait {
+                        had_floodwait = true;
+                    }
+                    let is_network = is_flood_wait
+                        || matches!(
+                            err.code(),
+                            crate::core::tg_error::TgErrorCode::Network
+                                | crate::core::tg_error::TgErrorCode::Io
+                                | crate::core::tg_error::TgErrorCode::Timeout
+                        );
                     if is_network && single_attempts <= 3 {
                         let wait_secs = err
                             .flood_wait_secs()
@@ -987,8 +986,9 @@ fn execute_album_plan_chunk(
         if let Some(artifact) = artifacts.remove(&item.index) {
             artifact.cleanup();
         }
-        // Gentle micro-pacing between single items
-        if !sleep_inter_batch_pacing(tid, 800) {
+        // Adaptive single message governor micro-pacing
+        singles_sent += 1;
+        if !job_queue::pace_single_message(tid, singles_sent, total_singles, had_floodwait) {
             return Err("Transfer cancelled by user".into());
         }
     }

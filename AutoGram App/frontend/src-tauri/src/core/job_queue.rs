@@ -456,9 +456,61 @@ pub fn wait_while_transfer_paused(transfer_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn sleep_inter_batch_pacing(transfer_id: &str, millis: u64) -> bool {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(millis);
+    while std::time::Instant::now() < deadline {
+        if is_transfer_cancelled(transfer_id) {
+            return false;
+        }
+        if let Err(_) = wait_while_transfer_paused(transfer_id) {
+            return false;
+        }
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        std::thread::sleep(remaining.min(std::time::Duration::from_millis(100)));
+    }
+    !is_transfer_cancelled(transfer_id)
+}
+
+pub fn calculate_single_pacing_ms(sent_in_run: usize, total_in_plan: usize, had_floodwait: bool) -> u64 {
+    if had_floodwait {
+        // After encountering floodwait, stay at the Telegram supergroup token bucket refill rate
+        return 2800;
+    }
+    if total_in_plan <= 10 {
+        // Small batches easily fit within Telegram's 20-30 burst capacity
+        return 800;
+    }
+    if sent_in_run < 12 {
+        800
+    } else if sent_in_run < 24 {
+        800 + ((sent_in_run - 12) as u64) * 150
+    } else {
+        // Sustained safe governor rate: 2,750ms (~21.8 messages/min), keeping Telegram rate limits green
+        2750
+    }
+}
+
+pub fn pace_single_message(transfer_id: &str, sent_in_run: usize, total_in_plan: usize, had_floodwait: bool) -> bool {
+    let millis = calculate_single_pacing_ms(sent_in_run, total_in_plan, had_floodwait);
+    sleep_inter_batch_pacing(transfer_id, millis)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn single_message_governor_pacing_ramp() {
+        assert_eq!(calculate_single_pacing_ms(0, 5, false), 800);
+        assert_eq!(calculate_single_pacing_ms(5, 5, false), 800);
+        assert_eq!(calculate_single_pacing_ms(0, 50, false), 800);
+        assert_eq!(calculate_single_pacing_ms(11, 50, false), 800);
+        assert_eq!(calculate_single_pacing_ms(12, 50, false), 800);
+        assert_eq!(calculate_single_pacing_ms(16, 50, false), 1400);
+        assert_eq!(calculate_single_pacing_ms(24, 50, false), 2750);
+        assert_eq!(calculate_single_pacing_ms(100, 50, false), 2750);
+        assert_eq!(calculate_single_pacing_ms(2, 50, true), 2800);
+    }
 
     #[test]
     fn create_and_update_item() {
