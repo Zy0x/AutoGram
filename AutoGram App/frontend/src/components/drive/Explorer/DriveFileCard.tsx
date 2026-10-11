@@ -477,33 +477,6 @@ function DriveFileCardInner({
             <span>{t('drive.clipboard_copy_tag')}</span>
           </span>
         )}
-        {file.is_pinned && (
-          <span
-            className="td-tag-badge td-pin-fav-badge"
-            title={t('drive.badge_pinned_favorite')}
-            aria-label={t('drive.badge_pinned_favorite')}
-            style={{
-              position: 'absolute',
-              top: 6,
-              left: 6,
-              zIndex: 4,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              background: 'rgba(245, 158, 11, 0.25)',
-              border: '1px solid rgba(245, 158, 11, 0.5)',
-              color: '#fbbf24',
-              borderRadius: 4,
-              padding: '2px 5px',
-              fontSize: '10px',
-              fontWeight: 600,
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            <Star size={10} fill="currentColor" />
-            <span>{t('drive.badge_favorite_short')}</span>
-          </span>
-        )}
         {(() => {
           const tgCat = (file.telegram_category || (file.as_document ? 'file' : file.icon_type === 'image' || file.icon_type === 'video' ? 'media' : file.icon_type || 'file')).toLowerCase();
           return (
@@ -511,6 +484,16 @@ function DriveFileCardInner({
               <span className={`td-tag-badge tg-${tgCat}`}>
                 {tgCat.toUpperCase()}
               </span>
+              {file.is_pinned && (
+                <span
+                  className="td-tag-badge tg-fav"
+                  title={t('drive.badge_pinned_favorite')}
+                  aria-label={t('drive.badge_pinned_favorite')}
+                >
+                  <Star size={9} fill="currentColor" strokeWidth={1} />
+                  <span>{t('drive.badge_favorite_short')}</span>
+                </span>
+              )}
             </div>
           );
         })()}
@@ -681,7 +664,7 @@ function DriveFileCardInner({
           {onToggleFavorite && (
             <button
               type="button"
-              className={`td-file-act ${file.is_pinned ? 'favorite-active text-amber-400' : ''}`}
+              className={`td-file-act fav ${file.is_pinned ? 'favorite-active is-fav' : ''}`}
               title={file.is_pinned ? t('drive.action_unfavorite') : t('drive.action_favorite')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -690,7 +673,12 @@ function DriveFileCardInner({
               }}
               aria-label={file.is_pinned ? t('drive.action_unfavorite') : t('drive.action_favorite')}
             >
-              <Star size={12} fill={file.is_pinned ? 'currentColor' : 'none'} className={file.is_pinned ? 'text-amber-400' : ''} />
+              <Star
+                size={13}
+                strokeWidth={file.is_pinned ? 1 : 1.75}
+                fill={file.is_pinned ? '#fbbf24' : 'none'}
+                color={file.is_pinned ? '#fbbf24' : 'currentColor'}
+              />
             </button>
           )}
           {onPreview && (

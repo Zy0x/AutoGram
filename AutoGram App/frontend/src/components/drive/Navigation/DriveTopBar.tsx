@@ -33,7 +33,6 @@ import {
   Search,
   Pause,
   Play,
-  Star,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -1147,7 +1146,7 @@ export function DriveTopBar({
                     aria-label={`${t("drive.topbar_label_filter")}: ${tip}`}
                     aria-pressed={mediaFilter === id}
                   >
-                    <span className="td-pill-label">{id === 'favorites' && <Star size={11} className="inline mr-1 -mt-0.5 fill-amber-400 text-amber-400" />}{label}</span>
+                    <span className="td-pill-label">{label}</span>
                     {categoryCounts && categoryCounts[id] != null && (
                       <span className="td-filter-count" aria-hidden>
                         {categoryCounts[id].toLocaleString()}

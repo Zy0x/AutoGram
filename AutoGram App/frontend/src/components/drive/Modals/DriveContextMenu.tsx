@@ -522,7 +522,12 @@ export function DriveContextMenu({
                 onMouseEnter={() => scheduleCloseSubmenu(80)}
                 onClick={() => run(onToggleFavorite)}
               >
-                <Star size={14} className={file.is_pinned ? "text-amber-400 fill-amber-400" : ""} />
+                <Star
+                  size={14}
+                  strokeWidth={file.is_pinned ? 1 : 1.5}
+                  fill={file.is_pinned ? "#fbbf24" : "none"}
+                  color={file.is_pinned ? "#fbbf24" : "currentColor"}
+                />
                 {file.is_pinned ? t('drive.ctx_menu_unfavorite') : t('drive.ctx_menu_favorite')}
               </button>
             )}

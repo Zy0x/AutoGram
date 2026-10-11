@@ -227,8 +227,8 @@ function DriveFileListItemInner({
           </span>
         )}
         {file.is_pinned && (
-          <span className="td-list-fav-badge text-amber-400 inline-flex items-center mr-1" title={t('drive.badge_pinned_favorite')}>
-            <Star size={12} fill="currentColor" />
+          <span className="td-list-fav-badge text-amber-400 inline-flex items-center mr-1.5" title={t('drive.badge_pinned_favorite')}>
+            <Star size={12} fill="#fbbf24" stroke="#fbbf24" strokeWidth={1} />
           </span>
         )}
         <span>{displayName}</span>
