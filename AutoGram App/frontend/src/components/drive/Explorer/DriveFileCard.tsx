@@ -681,20 +681,7 @@ function DriveFileCardInner({
               />
             </button>
           )}
-          {onPreview && (
-            <button
-              type="button"
-              className="td-file-act"
-              title={t('drive.topbar_preview')}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                onPreview();
-              }}
-            >
-              <Eye size={12} />
-            </button>
-          )}
+
           {onDownload && (
             <button
               type="button"
