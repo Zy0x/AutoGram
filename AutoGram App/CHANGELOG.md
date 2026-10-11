@@ -1,5 +1,14 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Twitter-Style Scroll Anchor Retention & Instant Floating Pill Thumbnail Engine
+- Implemented Sub-Pixel Scroll Anchor Retention Engine (`useScrollAnchorRetention.ts`) in `DriveExplorer`: eliminates jarring scroll jumps, layout jitter, and unexpected viewport displacement when newly uploaded or synced files arrive while the user is actively viewing scrolled content (`scrollTop > 80`).
+- Replaced previous naive row-ceiling jump calculation (`Math.ceil(newAbove / cols) * rowHeight`) with exact item-anchored sub-pixel row offset tracking in `useLayoutEffect`. In a 4-column grid, prepending a single photo no longer adds a spurious 200px jump; visible items stay frozen at the exact same screen coordinates prior to browser paint.
+- Seamlessly coordinates DOM `scrollTop` with TanStack Virtualizer (`virtualizer.scrollToOffset(targetScrollTop)`), updating `lastStableScrollTopRef` to prevent browser refresh clobbering.
+- Implemented Instant Proactive Thumbnail Resolver (`usePillPreviewThumbs.ts`) for the Twitter-like top floating pill banner ("↑ X media baru"): checks instant 0ms sources (inline stripped mini-thumbnails `thumb_data_url`, local asset paths via `convertFileSrc`, and memory LRU thumb cache).
+- Proactively enqueues missing thumbnails with highest `priority: 'visible'` via `requestThumb` instead of relying on viewport intersection (which excluded off-screen items at the top of the feed), and subscribes in real time to `autogram-thumb-ready` and `autogram-transfer-batch-done` events to instantly pop circular avatar thumbnails without delay.
+- Added memoized `PillThumbAvatar` component in `NewMediaFloatingPill.tsx` with async decoding, eager loading, and graceful error fallback to eliminate stuck placeholder sparkles and image flickering.
+- Added comprehensive unit tests in `useScrollAnchorRetention.test.ts` and `usePillPreviewThumbs.test.ts` with 100% pass rate.
+
 ### Telegram Phone Authentication & Session Resolution Fix
 - Fixed asynchronous React state race in `Accounts/index.tsx` where `setSessionName(targetSession)` was called but `sessionName` (`""`) was passed immediately into `tgLogin`, causing login tokens to be registered under empty session identifiers and breaking multi-step phone OTP authorization.
 - Eliminated critical deadlock in Rust `session_auth.rs` between `cancel_qr_login` and `grammers_qr_login`: `cancel_qr_login` previously attempted to execute `delete_grammers_session_files` (which requests exclusive write access to `session_operation_lock`) before triggering `flag.store(true)`. Because `grammers_qr_login` holds the write lock throughout its QR polling loop and only yields upon observing the cancel flag, invoking cancellation deadlocked indefinitely. Switched to immediate atomic cancel flag signaling followed by asynchronous background file deletion.

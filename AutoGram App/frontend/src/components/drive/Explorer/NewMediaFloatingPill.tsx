@@ -16,6 +16,26 @@ export type NewMediaFloatingPillProps = {
   onDismiss: () => void;
 };
 
+const PillThumbAvatar: React.FC<{ item: PreviewThumbItem }> = memo(({ item }) => {
+  const [loadError, setLoadError] = React.useState(false);
+
+  if (item.url && !loadError) {
+    return (
+      <img
+        src={item.url}
+        alt=""
+        className="td-floating-top-thumb-img"
+        loading="eager"
+        decoding="async"
+        onError={() => setLoadError(true)}
+      />
+    );
+  }
+
+  return <Sparkles className="td-floating-top-thumb-icon" />;
+});
+PillThumbAvatar.displayName = 'PillThumbAvatar';
+
 export const NewMediaFloatingPill: React.FC<NewMediaFloatingPillProps> = memo(({
   kind,
   count,
@@ -53,16 +73,7 @@ export const NewMediaFloatingPill: React.FC<NewMediaFloatingPillProps> = memo(({
                 className="td-floating-top-thumb-item"
                 title={item.name || undefined}
               >
-                {item.url ? (
-                  <img
-                    src={item.url}
-                    alt=""
-                    className="td-floating-top-thumb-img"
-                    loading="eager"
-                  />
-                ) : (
-                  <Sparkles className="td-floating-top-thumb-icon" />
-                )}
+                <PillThumbAvatar item={item} />
               </div>
             ))}
           </div>

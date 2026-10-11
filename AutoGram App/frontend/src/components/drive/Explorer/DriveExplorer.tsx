@@ -14,7 +14,6 @@ import {
   type DriveViewMode,
   type ViewPerspective,
   formatDriveBytes,
-  canShowDriveThumb,
 } from '../../../lib/telegram/driveTypes';
 import {
   filterAndSortDriveFilesPower,
@@ -28,8 +27,6 @@ import {
   requestVisibleThumbs,
   switchThumbContext,
   getLastCacheClearTimestamp,
-  getCachedThumb,
-  getCachedSaverThumb,
 } from '../../../lib/media/thumbBatcher';
 import {
   applyLiveMarquee,
@@ -45,11 +42,14 @@ import { DriveFileCard } from './DriveFileCard';
 import { DriveFileListItem } from './DriveFileListItem';
 import {
   NewMediaFloatingPill,
-  type PreviewThumbItem,
   calculateVisibleStartIndex,
   calculateRemainingNewCount,
-  accumulateNewMediaCount,
 } from './NewMediaFloatingPill';
+import {
+  useScrollAnchorRetention,
+  type ContentNotice,
+} from './useScrollAnchorRetention';
+import { usePillPreviewThumbs } from './usePillPreviewThumbs';
 
 type Props = {
   files: DriveFile[];
@@ -475,8 +475,7 @@ export function DriveExplorer({
   const rowHeight = layout.rowHeight;
   const rowCount = Math.ceil(displayed.length / cols) || 0;
 
-  // Floating top update indicator and anchor scroll retention
-  type ContentNotice = { kind: 'added' | 'updated' | 'removed' | 'reordered'; count: number; targetId: number | null };
+  // Floating top update indicator state
   const [contentNotice, setContentNotice] = useState<ContentNotice | null>(null);
   const totalNewItemsRef = useRef<number>(0);
   const [highlightedNewFileIds, setHighlightedNewFileIds] = useState<Set<number>>(new Set());
@@ -490,95 +489,6 @@ export function DriveExplorer({
   }, []);
 
   useEffect(() => () => clearHighlightTimer(), [clearHighlightTimer]);
-  const snapshotOf = useCallback((items: DriveFile[]) => new Map(
-    items.map((item) => [
-      item.id,
-      `${String(item.name || '')}|${Number(item.size || 0)}|${String(item.mime_type || '')}|${String(item.created_at || '')}`,
-    ])
-  ), []);
-  const prevDisplayedRef = useRef<DriveFile[]>(displayed);
-  const prevSnapshotRef = useRef<Map<number, string>>(snapshotOf(displayed));
-  const prevLocationKeyRef = useRef<string>(activeScrollKey);
-
-  // Clear pill when switching locations
-  useEffect(() => {
-    if (prevLocationKeyRef.current !== activeScrollKey) {
-      prevLocationKeyRef.current = activeScrollKey;
-      setContentNotice(null);
-      totalNewItemsRef.current = 0;
-      prevDisplayedRef.current = displayed;
-      prevSnapshotRef.current = snapshotOf(displayed);
-    }
-  }, [activeScrollKey, displayed, snapshotOf]);
-
-  // Track insertion above current viewport anchor & preserve scroll stability without full dataset Set allocation
-  useEffect(() => {
-    const previous = prevDisplayedRef.current;
-    const previousSnapshot = prevSnapshotRef.current;
-    const prevCount = previous.length;
-    const currentCount = displayed.length;
-    const prevFirstId = previous[0]?.id ?? null;
-    const currentFirstId = displayed[0]?.id ?? null;
-
-    prevDisplayedRef.current = displayed;
-    const currentSnapshot = snapshotOf(displayed);
-    prevSnapshotRef.current = currentSnapshot;
-
-    if (prevLocationKeyRef.current !== activeScrollKey || prevCount === 0) return;
-    const el = parentRef.current;
-    const scrollTop = el ? el.scrollTop : 0;
-    if (scrollTop <= 80) {
-      setContentNotice(null);
-      totalNewItemsRef.current = 0;
-      return;
-    }
-
-    if (prevCount > 0 && currentCount > prevCount && prevFirstId !== currentFirstId) {
-      const visibleStartIndex = calculateVisibleStartIndex(
-        scrollTop,
-        viewMode,
-        rowHeight || 180,
-        cols || 1,
-        LIST_ROW_H
-      );
-
-      const sliceAbove = displayed.slice(0, visibleStartIndex);
-      const prevFirstIndex = sliceAbove.findIndex((f: any) => f.id === prevFirstId);
-      const newAbove = prevFirstIndex >= 0 ? prevFirstIndex : (currentCount - prevCount);
-
-      if (newAbove > 0) {
-        if (el) {
-          const shiftPx =
-            viewMode === 'list'
-              ? newAbove * LIST_ROW_H
-              : Math.ceil(newAbove / (cols || 1)) * (rowHeight || 180);
-          el.scrollTop += shiftPx;
-        }
-        const accumulatedTotal = accumulateNewMediaCount(totalNewItemsRef.current, newAbove);
-        totalNewItemsRef.current = accumulatedTotal;
-        setContentNotice({ kind: 'added', count: accumulatedTotal, targetId: currentFirstId });
-        return;
-      }
-    }
-
-    const removed = previous.filter((item) => !currentSnapshot.has(item.id));
-    if (removed.length > 0) {
-      const nearestId = displayed.find((item) => item.id < removed[0].id)?.id ?? displayed[0]?.id ?? null;
-      setContentNotice({ kind: 'removed', count: removed.length, targetId: nearestId });
-      return;
-    }
-    const updated = displayed.filter((item) => {
-      const oldSignature = previousSnapshot.get(item.id);
-      return oldSignature != null && oldSignature !== currentSnapshot.get(item.id);
-    });
-    if (updated.length > 0) {
-      setContentNotice({ kind: 'updated', count: updated.length, targetId: updated[0].id });
-      return;
-    }
-    if (prevFirstId !== currentFirstId && currentCount === prevCount) {
-      setContentNotice({ kind: 'reordered', count: currentCount, targetId: currentFirstId });
-    }
-  }, [activeScrollKey, displayed, viewMode, cols, rowHeight, snapshotOf]);
 
   const handleContentNotice = useCallback(() => {
     const el = parentRef.current;
@@ -600,22 +510,16 @@ export function DriveExplorer({
     setContentNotice(null);
   }, [clearHighlightTimer, contentNotice, displayed]);
 
-  const previewThumbs: PreviewThumbItem[] = useMemo(() => {
-    if (!contentNotice || contentNotice.kind !== 'added') return [];
-    const count = Math.min(3, contentNotice.count);
-    const newItems = displayed.slice(0, count);
-    return newItems.map((file) => {
-      const inline = file.thumb_data_url || file.thumbDataUrl;
-      const thumbLocator = { peerId: file.peer_id, topicId: file.topic_id };
-      const cached = canShowDriveThumb(file) ? getCachedThumb(folderId, file.id, thumbLocator) : undefined;
-      const saver = (thumbQuality === 'saver' || !cached) ? getCachedSaverThumb(folderId, file.id, creds?.session, thumbLocator) : undefined;
-      return {
-        id: file.id,
-        url: inline || cached || saver || null,
-        name: file.name,
-      };
-    });
-  }, [contentNotice, displayed, folderId, creds?.session, thumbQuality]);
+  // High-performance proactive thumbnail resolver for floating pill
+  const previewThumbs = usePillPreviewThumbs({
+    contentNotice,
+    displayed,
+    folderId,
+    creds,
+    thumbQuality,
+    locationType,
+    topicId,
+  });
 
   useEffect(() => {
     console.debug('[GRID_DIAG] Explorer Mount', {
@@ -683,6 +587,27 @@ export function DriveExplorer({
 
   const gridItems = gridVirtualizer.getVirtualItems();
   const listItems = listVirtualizer.getVirtualItems();
+
+  // Twitter-like scroll anchor retention: freezes visible content in place before paint
+  useScrollAnchorRetention({
+    displayed,
+    parentRef,
+    viewMode,
+    cols,
+    rowHeight,
+    listRowHeight: LIST_ROW_H,
+    activeScrollKey,
+    totalNewItemsRef,
+    lastStableScrollTopRef,
+    setContentNotice,
+    onVirtualizerScroll: (targetTop) => {
+      if (viewMode === 'grid') {
+        gridVirtualizer.scrollToOffset(targetTop);
+      } else {
+        listVirtualizer.scrollToOffset(targetTop);
+      }
+    },
+  });
 
   // Apply once when a location becomes renderable. New locations have top=0;
   // revisited locations restore their own saved offset.
