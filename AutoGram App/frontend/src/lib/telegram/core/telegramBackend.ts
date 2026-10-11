@@ -225,6 +225,7 @@ export type TgMediaFileRow = {
   hasThumb?: boolean;
   asDocument?: boolean;
   backend?: string;
+  isPinned?: boolean | null;
 };
 
 export type TgSearchScope = {
@@ -873,6 +874,27 @@ export async function tgDeleteMessages(args: {
     ...identity(args),
     chatId: args.chatId,
     messageIds: args.messageIds,
+  });
+}
+
+export async function tgTogglePinMedia(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: string;
+  messageId: number;
+  unpin?: boolean;
+}) {
+  return tgInvoke<{
+    status: string;
+    chatId: string;
+    messageId: number;
+    isPinned: boolean;
+  }>('tg_toggle_pin_media', {
+    ...identity(args),
+    chatId: args.chatId,
+    messageId: args.messageId,
+    unpin: Boolean(args.unpin),
   });
 }
 

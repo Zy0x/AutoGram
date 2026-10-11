@@ -2045,6 +2045,17 @@ async fn tg_delete_messages(
 }
 
 #[tauri::command]
+async fn tg_toggle_pin_media(
+    app: AppHandle,
+    request: core::telegram_ops::TogglePinMediaRequest,
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::TogglePinMediaResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_toggle_pin_media(request))
+        .await
+        .map_err(|e| format!("toggle_pin_media task failed: {e}"))
+}
+
+#[tauri::command]
 async fn tg_create_folder(
     app: AppHandle,
     request: core::telegram_ops::CreateFolderRequest,
@@ -3242,6 +3253,7 @@ pub fn run() {
             tg_stop_stream,
             tg_seek_stream,
             tg_delete_messages,
+            tg_toggle_pin_media,
             tg_create_folder,
             drive_engine_status,
             drive_engine_create_drive,

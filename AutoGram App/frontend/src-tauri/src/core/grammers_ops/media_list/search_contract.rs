@@ -44,7 +44,10 @@ pub struct MediaFileRow {
     pub drive_format: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_pinned: Option<bool>,
 }
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

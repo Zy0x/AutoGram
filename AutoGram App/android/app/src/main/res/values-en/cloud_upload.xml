@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_upload_title">Telegram uploads</string>
+    <string name="cloud_upload_profile_document">Android original files</string>
+    <string name="cloud_upload_notification">Processing the upload queue. Android may defer background work.</string>
+    <string name="cloud_upload_destination">Destination: %1$s</string>
+    <string name="cloud_upload_document_notice">Send one original file without conversion. Photo/video albums are not available yet. Verified identical files are reused.</string>
+    <string name="cloud_upload_caption">File caption</string>
+    <string name="cloud_upload_choose_topic">Select a forum topic before sending a file.</string>
+    <string name="cloud_upload_choose">Choose and send original file</string>
+    <string name="cloud_upload_importing">Preparing the file in app storage…</string>
+    <string name="cloud_upload_running">Uploading file parts…</string>
+    <string name="cloud_upload_verifying">Checking Telegram confirmation…</string>
+    <string name="cloud_upload_completed">Sent and verified on Telegram</string>
+    <string name="cloud_upload_queued">File queued. Progress reflects acknowledged delivery.</string>
+    <string name="cloud_upload_waiting">The queue is waiting for connectivity, Telegram limits, or Android execution.</string>
+    <string name="cloud_upload_review">Delivery confirmation needs review. The file is not automatically resent.</string>
+    <string name="cloud_upload_check_receipt">Check confirmation</string>
+    <string name="cloud_upload_reused">An identical file is already verified at this destination; it was not resent.</string>
+    <string name="cloud_upload_duplicate_review">A duplicate candidate or pending upload needs review before sending again.</string>
+    <string name="cloud_upload_storage">There is not enough free space to prepare the file.</string>
+    <string name="cloud_upload_failed">The upload could not be processed. Check connectivity, account, file access, and the queue.</string>
+    <string name="cloud_upload_scope_changed">The account or destination changed. Choose the file again from the correct destination.</string>
+    <string name="cloud_upload_empty">There are no uploads at this destination.</string>
+</resources>

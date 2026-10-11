@@ -1183,6 +1183,35 @@ pub fn tg_delete_messages(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TogglePinMediaRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub chat_id: String,
+    pub message_id: i64,
+    pub unpin: bool,
+}
+
+pub fn tg_toggle_pin_media(
+    req: TogglePinMediaRequest,
+) -> OpResult<super::grammers_ops::TogglePinMediaResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::grammers_ops::toggle_pin_media_blocking(
+        &dir,
+        &identity,
+        &req.chat_id,
+        req.message_id,
+        req.unpin,
+    ) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
+#[serde(rename_all = "camelCase")]
 pub struct CreateFolderRequest {
     pub session: String,
     pub api_id: i64,

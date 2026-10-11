@@ -52,9 +52,14 @@ pub fn media_to_row(
     let caption = msg.text().trim();
     let caption_opt = (!caption.is_empty()).then(|| caption.to_string());
     let caption_urls = extract_http_urls(caption);
+    let is_pinned = match &msg.raw {
+        grammers_client::tl::enums::Message::Message(m) => m.pinned,
+        _ => false,
+    };
     let Some(media) = msg.media() else {
         return None;
     };
+
 
     let mut size = media.size().unwrap_or(0) as u64;
     if size == 0 {
@@ -138,7 +143,9 @@ pub fn media_to_row(
                     caption_urls.join("\n")
                 }),
                 caption: caption_opt,
+                is_pinned: Some(is_pinned),
             };
+
             crate::core::tg_log::info(
                 BACKEND,
                 "media_row_created",
@@ -303,6 +310,7 @@ pub fn media_to_row(
                     caption_urls.join("\n")
                 }),
                 caption: caption_opt,
+                is_pinned: Some(is_pinned),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -353,9 +361,11 @@ pub fn media_to_row(
                 drive_category: Some(cls.drive_category),
                 drive_format: Some(cls.drive_format),
                 caption: caption_opt,
+                is_pinned: Some(is_pinned),
             })
         }
         _ => None,
+
     }
 }
 fn truncate_first_line(caption: &str, max_chars: usize) -> String {
@@ -377,6 +387,7 @@ pub fn tl_message_to_row(
     };
 
     let id = m.id as i64;
+    let is_pinned = m.pinned;
     let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
     let caption = m.message.trim();
     let caption_opt = (!caption.is_empty()).then(|| caption.to_string());
@@ -454,8 +465,10 @@ pub fn tl_message_to_row(
                         message_urls.join("\n")
                     }),
                     caption: caption_opt,
+                    is_pinned: Some(is_pinned),
                 })
             }
+
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
                 let doc = match &doc_media.document {
                     Some(grammers_client::tl::enums::Document::Document(d)) => d,
@@ -586,8 +599,10 @@ pub fn tl_message_to_row(
                         message_urls.join("\n")
                     }),
                     caption: caption_opt,
+                    is_pinned: Some(is_pinned),
                 })
             }
+
             grammers_client::tl::enums::MessageMedia::WebPage(ref wp) => {
                 // Telegram may attach a WebPage-shaped media object to service
                 // text and mentions. Only expose it in the media catalogue when
@@ -666,6 +681,7 @@ pub fn tl_message_to_row(
                     drive_category: Some(cls.drive_category),
                     drive_format: Some(message_urls.join("\n")),
                     caption: caption_opt,
+                    is_pinned: Some(is_pinned),
                 })
             }
             _ => {
@@ -712,6 +728,7 @@ pub fn tl_message_to_row(
                         drive_category: Some(cls.drive_category),
                         drive_format: Some(message_urls.join("\n")),
                         caption: caption_opt,
+                        is_pinned: Some(is_pinned),
                     })
                 } else {
                     None
@@ -760,11 +777,13 @@ pub fn tl_message_to_row(
             drive_category: Some(cls.drive_category),
             drive_format: Some(message_urls.join("\n")),
             caption: caption_opt,
+            is_pinned: Some(is_pinned),
         })
     } else {
         None
     }
 }
+
 
 /// Forward messages source → dest (no delete). Returns count forwarded.
 pub fn forward_messages_blocking(
@@ -958,7 +977,9 @@ pub(super) fn tl_link_to_row(
         // message IDs.
         drive_format: Some(urls.join("\n")),
         caption: (!caption.is_empty()).then(|| caption.to_string()),
+        is_pinned: Some(m.pinned),
     })
+
 }
 
 /// List media messages in a chat (newest first). Optional forum `topic_id` filter.

@@ -33,6 +33,7 @@ import {
   Search,
   Pause,
   Play,
+  Star,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -1119,6 +1120,7 @@ export function DriveTopBar({
                   viewPerspective === 'telegram'
                     ? [
                         ['all', t("drive.filter_all"), t("drive.filter_all_tip")],
+                        ['favorites', t("drive.tab_favorites"), t("drive.tab_favorites_tip")],
                         ['media', t("drive.tab_telegram_media"), t("drive.tab_telegram_media")],
                         ['files', t("drive.tab_telegram_files"), t("drive.tab_telegram_files")],
                         ['links', t("drive.tab_telegram_links"), t("drive.tab_telegram_links")],
@@ -1128,6 +1130,7 @@ export function DriveTopBar({
                       ]
                     : [
                         ['all', t("drive.filter_all"), t("drive.filter_all_tip")],
+                        ['favorites', t("drive.tab_favorites"), t("drive.tab_favorites_tip")],
                         ['images', t("drive.tab_drive_images"), t("drive.tab_drive_images")],
                         ['videos', t("drive.tab_drive_videos"), t("drive.tab_drive_videos")],
                         ['audio', t("drive.tab_drive_audio"), t("drive.tab_drive_audio")],
@@ -1144,7 +1147,7 @@ export function DriveTopBar({
                     aria-label={`${t("drive.topbar_label_filter")}: ${tip}`}
                     aria-pressed={mediaFilter === id}
                   >
-                    <span className="td-pill-label">{label}</span>
+                    <span className="td-pill-label">{id === 'favorites' && <Star size={11} className="inline mr-1 -mt-0.5 fill-amber-400 text-amber-400" />}{label}</span>
                     {categoryCounts && categoryCounts[id] != null && (
                       <span className="td-filter-count" aria-hidden>
                         {categoryCounts[id].toLocaleString()}

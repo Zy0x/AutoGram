@@ -31,6 +31,7 @@ import com.autogram.app.features.cloud.cloudErrorLabel
 import com.autogram.app.features.cloudtransfer.DownloadPanel
 import com.autogram.app.features.cloud.CloudScope
 import com.autogram.app.features.cloudtransfer.hooks.rememberBatchDownloadAction
+import com.autogram.app.features.cloudtransfer.upload.UploadPanel
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -65,6 +66,7 @@ fun DriveScreen(
     var isTopicHubOpen by remember { mutableStateOf(false) }
     var unsupported by remember { mutableStateOf(false) }
     var isDownloadsOpen by remember(state.sessionId) { mutableStateOf(false) }
+    var isUploadsOpen by remember { mutableStateOf(false) }
     var downloadItem by remember { mutableStateOf<DriveFileItem?>(null) }
     LaunchedEffect(previewItem != null || zipArchiveItem != null) {
         viewModel.setPreviewActive(previewItem != null || zipArchiveItem != null)
@@ -82,6 +84,7 @@ fun DriveScreen(
         isTopicHubOpen = false
         isDriveToolsOpen = false
         isRemoteUploadOpen = false
+        isUploadsOpen = false
         isDedupCleanerOpen = false
         isDestinationModalOpen = false
         isTagModalOpen = false
@@ -121,7 +124,7 @@ fun DriveScreen(
         onGridAspectRatioChange = viewModel::setGridAspectRatio,
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
-        onUpload = { unsupported = true },
+        onUpload = { isUploadsOpen = true },
         onRemoteUpload = { isRemoteUploadOpen = true },
         onClearSelection = viewModel::clearSelection,
         onSelectAll = { viewModel.selectAll(galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)) },
@@ -186,6 +189,12 @@ fun DriveScreen(
     )
 
     // Modals
+    if (isUploadsOpen) key(state.sessionId, state.peerId, state.topicId) {
+        UploadPanel(CloudScope(state.sessionId, state.peerId, state.topicId),
+            listOfNotNull(state.activeLocationTitle,
+                state.topics.firstOrNull { it.id == state.topicId }?.title).filter { it.isNotBlank() }.joinToString(" / "),
+            onDismiss = { isUploadsOpen = false }, allowSelection = !state.isForum || state.topicId != null)
+    }
     val currentPreview = previewItem
     if (currentPreview != null) {
         DrivePreviewModal(

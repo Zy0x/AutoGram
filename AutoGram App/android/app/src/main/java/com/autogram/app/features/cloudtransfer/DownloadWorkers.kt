@@ -51,8 +51,10 @@ internal object DownloadDispatch {
 object DownloadScheduling {
     private const val JOB_ID = 0x415547
     /** Register before launch so process death retains a real queue recovery trigger. */
-    fun schedule(context: Context): Boolean {
+    @Synchronized fun schedule(context: Context): Boolean {
         val scheduler = context.getSystemService(JobScheduler::class.java)
+        // Re-registration must not cancel an executing checkpoint/publication.
+        if (scheduler.getPendingJob(JOB_ID) != null) return true
         val job = JobInfo.Builder(JOB_ID, ComponentName(context, DownloadRecoveryJob::class.java))
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
             .setPersisted(true)

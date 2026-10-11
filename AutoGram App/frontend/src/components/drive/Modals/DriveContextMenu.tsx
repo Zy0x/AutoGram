@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Send,
   Info,
+  Star,
 } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
 import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
@@ -88,6 +89,7 @@ type Props = {
   deleteFolderLabel?: string;
   onTogglePin?: () => void;
   isPinned?: boolean;
+  onToggleFavorite?: () => void;
   onOpenTelegramLink?: (url: string) => void;
   onBrowseTelegramDrive?: (url: string) => void;
   onJoinTelegramChat?: (url: string) => void;
@@ -216,6 +218,7 @@ export function DriveContextMenu({
   deleteFolderLabel,
   onTogglePin,
   isPinned = false,
+  onToggleFavorite,
   onOpenTelegramLink,
   onBrowseTelegramDrive,
   onJoinTelegramChat,
@@ -510,6 +513,17 @@ export function DriveContextMenu({
                 onClick={() => run(onInfo)}
               >
                 <Info size={14} /> {t('drive.ctx_menu_info')}
+              </button>
+            )}
+            {onToggleFavorite && (
+              <button
+                type="button"
+                role="menuitem"
+                onMouseEnter={() => scheduleCloseSubmenu(80)}
+                onClick={() => run(onToggleFavorite)}
+              >
+                <Star size={14} className={file.is_pinned ? "text-amber-400 fill-amber-400" : ""} />
+                {file.is_pinned ? t('drive.ctx_menu_unfavorite') : t('drive.ctx_menu_favorite')}
               </button>
             )}
             {telegramMenu}

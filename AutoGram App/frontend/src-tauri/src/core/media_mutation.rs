@@ -77,7 +77,9 @@ mod tests {
             drive_category: None,
             drive_format: None,
             caption: None,
+            is_pinned: None,
         };
+
 
         let upsert = MediaMutation::upsert("-100123456", 12345, Some(17), row);
         let json = serde_json::to_string(&upsert).unwrap();

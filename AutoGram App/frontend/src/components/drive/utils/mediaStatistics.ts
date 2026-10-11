@@ -53,8 +53,8 @@ export function countPerspectiveMedia(
   perspective: ViewPerspective
 ): PerspectiveMediaCounts {
   const filters = perspective === 'telegram'
-    ? ['all', 'media', 'files', 'links', 'gifs', 'audio', 'stickers']
-    : ['all', 'images', 'videos', 'audio', 'documents', 'archives'];
+    ? ['all', 'favorites', 'media', 'files', 'links', 'gifs', 'audio', 'stickers']
+    : ['all', 'favorites', 'images', 'videos', 'audio', 'documents', 'archives'];
   const result: PerspectiveMediaCounts = {
     all: files.reduce(
       (total, file) => total + (matchesMediaFilter(file, 'all', perspective) ? 1 : 0),

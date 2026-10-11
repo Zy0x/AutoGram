@@ -2693,5 +2693,16 @@
   "jupyter_output_plot": "Output Plot",
   "preflight_scanning_banner": "Checking file sizes, format compatibility, and detecting duplicates across {{count}} items...",
   "preflight_analyzing_btn": "Scanning {{count}} items...",
-  "preflight_analyzing_item_badge": "Scanning..."
+  "preflight_analyzing_item_badge": "Scanning...",
+  "tab_favorites": "Favorites",
+  "tab_favorites_tip": "Show favorite / pinned files",
+  "action_favorite": "Add to Favorites",
+  "action_unfavorite": "Remove from Favorites",
+  "badge_pinned_favorite": "Favorite (Pinned on Telegram)",
+  "badge_favorite_short": "FAVORITE",
+  "ctx_menu_favorite": "Add to Favorites",
+  "ctx_menu_unfavorite": "Remove from Favorites",
+  "toast_favorite_added": "Added to Favorites",
+  "toast_favorite_removed": "Removed from Favorites",
+  "toast_favorite_error": "Failed to update favorite status"
 }

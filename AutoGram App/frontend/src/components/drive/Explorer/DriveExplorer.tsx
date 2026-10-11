@@ -125,6 +125,7 @@ type Props = {
   hideRestrictedMedia?: boolean;
   /** Drive-only nested folders are rendered by the parent above this media lane. */
   hasFolderChildren?: boolean;
+  onToggleFavorite?: (file: DriveFile) => void;
 };
 
 const GRID_GAP = 10;
@@ -202,6 +203,7 @@ export function DriveExplorer({
   unavailableNotice = null,
   hideRestrictedMedia = true,
   hasFolderChildren = false,
+  onToggleFavorite,
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -1740,6 +1742,7 @@ export function DriveExplorer({
                   onDragEndFile={onDragEndFile}
                   onWarmPreview={warmFile}
                   onMediaDragPrime={onMediaDragPrime}
+                  onToggleFavorite={onToggleFavorite}
                 />
               </div>
             );
@@ -1774,6 +1777,7 @@ type DriveGridRowProps = {
   onDragEndFile?: (e: React.DragEvent) => void;
   onWarmPreview: (file: DriveFile) => void;
   onMediaDragPrime?: (file: DriveFile, e: React.PointerEvent) => void;
+  onToggleFavorite?: (file: DriveFile) => void;
 };
 
 const DriveGridRow = memo(function DriveGridRow({
@@ -1798,6 +1802,7 @@ const DriveGridRow = memo(function DriveGridRow({
   onDragEndFile,
   onWarmPreview,
   onMediaDragPrime,
+  onToggleFavorite,
 }: DriveGridRowProps) {
   return (
     <>
@@ -1820,6 +1825,7 @@ const DriveGridRow = memo(function DriveGridRow({
           onDragEndFile={onDragEndFile}
           onWarmPreview={() => onWarmPreview(f)}
           onMediaDragPrime={onMediaDragPrime}
+          onToggleFavorite={onToggleFavorite}
           creds={creds}
           folderId={folderId}
           contextTopicId={topicId}
@@ -1839,6 +1845,7 @@ const DriveGridRow = memo(function DriveGridRow({
     const pf = prev.rowFiles[i];
     const nf = next.rowFiles[i];
     if (pf.id !== nf.id) return false;
+    if (Boolean(pf.is_pinned) !== Boolean(nf.is_pinned)) return false;
     if (prev.selectedSet.has(pf.id) !== next.selectedSet.has(nf.id)) return false;
     if (prev.draggingSet.has(pf.id) !== next.draggingSet.has(nf.id)) return false;
     if (Boolean(prev.highlightedSet?.has(pf.id)) !== Boolean(next.highlightedSet?.has(nf.id))) return false;

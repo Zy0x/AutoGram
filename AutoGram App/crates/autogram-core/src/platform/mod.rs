@@ -6,6 +6,7 @@ pub mod network_provider;
 pub mod resource_provider;
 pub mod storage_provider;
 pub mod storage_space;
+pub mod file_lock;
 pub(crate) mod media_process;
 
 pub use encoder_provider::{

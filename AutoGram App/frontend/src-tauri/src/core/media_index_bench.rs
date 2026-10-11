@@ -96,8 +96,10 @@ fn make_synthetic_row(id: i64, kind: &str) -> MediaFileRow {
         drive_category: None,
         drive_format: None,
         caption: None,
+        is_pinned: None,
     }
 }
+
 
 /// Executes an end-to-end synthetic scale benchmark across dual-lane pagination and k-way merge.
 pub fn run_synthetic_index_benchmark(tier: IndexBenchTier) -> IndexBenchReport {

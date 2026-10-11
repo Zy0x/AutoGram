@@ -2693,5 +2693,16 @@
   "jupyter_output_plot": "Plot keluaran",
   "preflight_scanning_banner": "Memeriksa ukuran berkas, kecocokan format, dan mendeteksi duplikasi pada {{count}} item...",
   "preflight_analyzing_btn": "Memindai {{count}} berkas...",
-  "preflight_analyzing_item_badge": "Memindai..."
+  "preflight_analyzing_item_badge": "Memindai...",
+  "tab_favorites": "Favorit",
+  "tab_favorites_tip": "Tampilkan berkas favorit / disematkan",
+  "action_favorite": "Favoritkan",
+  "action_unfavorite": "Hapus dari Favorit",
+  "badge_pinned_favorite": "Favorit (Disematkan di Telegram)",
+  "badge_favorite_short": "FAVORIT",
+  "ctx_menu_favorite": "Favoritkan",
+  "ctx_menu_unfavorite": "Hapus dari Favorit",
+  "toast_favorite_added": "Ditambahkan ke Favorit",
+  "toast_favorite_removed": "Dihapus dari Favorit",
+  "toast_favorite_error": "Gagal memperbarui status favorit"
 }

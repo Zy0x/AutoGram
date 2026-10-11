@@ -50,6 +50,20 @@ fails, that account is no longer treated as active. Other accounts are not logge
 
 ## Cloud Drives and preview
 
+Cloud Drives **Upload** accepts one selected file as an original Telegram document.
+Choose the destination first; a forum requires an explicit topic. The picker button
+selects and queues that file with the entered caption. This path does not create a
+photo/video album or convert media. Those features remain under development.
+
+The upload queue shows acknowledged bytes and offers pause, cancel and retry when
+the native operation permits them. Each saved operation keeps its account, destination
+and document settings across navigation and restart. A confirmed identical file can
+reuse its existing message without another send. Uncertain matches require review;
+replacement, rename and keep-both policies are not yet available in this panel.
+An interrupted final send may require **Check confirmation**; missing proof is not
+reported as completion. Android can defer background work because of network or
+system restrictions, so queued work is not a promise of immediate execution.
+
 Photo preview supports left/right gallery swipes at normal scale, previous/next
 buttons, pinch/pan, focal-point double-tap zoom, 25–800% scaling, rotation and flips.
 When zoomed in, one-finger dragging pans the image rather than switching files;

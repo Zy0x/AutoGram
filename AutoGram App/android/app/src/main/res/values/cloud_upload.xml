@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_upload_title">Unggahan Telegram</string>
+    <string name="cloud_upload_profile_document">Berkas asli Android</string>
+    <string name="cloud_upload_notification">Memproses antrean unggahan. Android dapat menunda pekerjaan latar belakang.</string>
+    <string name="cloud_upload_destination">Tujuan: %1$s</string>
+    <string name="cloud_upload_document_notice">Kirim satu berkas asli tanpa konversi. Album foto/video belum tersedia. Berkas identik yang sudah terverifikasi akan digunakan kembali.</string>
+    <string name="cloud_upload_caption">Keterangan berkas</string>
+    <string name="cloud_upload_choose_topic">Pilih satu topik forum sebelum mengirim berkas.</string>
+    <string name="cloud_upload_choose">Pilih dan kirim berkas asli</string>
+    <string name="cloud_upload_importing">Menyiapkan berkas di penyimpanan aplikasi…</string>
+    <string name="cloud_upload_running">Mengunggah bagian berkas…</string>
+    <string name="cloud_upload_verifying">Memeriksa konfirmasi Telegram…</string>
+    <string name="cloud_upload_completed">Terkirim dan terverifikasi di Telegram</string>
+    <string name="cloud_upload_queued">Berkas masuk antrean. Progres menunjukkan hasil pengiriman yang dikonfirmasi.</string>
+    <string name="cloud_upload_waiting">Antrean menunggu jaringan, batas Telegram, atau izin eksekusi Android.</string>
+    <string name="cloud_upload_review">Konfirmasi pengiriman perlu diperiksa. Berkas tidak dikirim ulang secara otomatis.</string>
+    <string name="cloud_upload_check_receipt">Periksa konfirmasi</string>
+    <string name="cloud_upload_reused">Berkas identik sudah terverifikasi di tujuan ini; tidak dikirim ulang.</string>
+    <string name="cloud_upload_duplicate_review">Ada kandidat duplikat atau unggahan yang masih berjalan. Tinjau sebelum mengirim lagi.</string>
+    <string name="cloud_upload_storage">Ruang kosong tidak cukup untuk menyiapkan berkas.</string>
+    <string name="cloud_upload_failed">Unggahan tidak dapat diproses. Periksa jaringan, akun, izin berkas, dan antrean.</string>
+    <string name="cloud_upload_scope_changed">Lokasi atau akun berubah. Pilih kembali berkas dari tujuan yang benar.</string>
+    <string name="cloud_upload_empty">Belum ada unggahan di tujuan ini.</string>
+</resources>

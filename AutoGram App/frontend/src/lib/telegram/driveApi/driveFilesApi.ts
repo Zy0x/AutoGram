@@ -853,3 +853,25 @@ export async function driveGetMediaStats(
     return null;
   }
 }
+
+/**
+ * Toggles Telegram native pinned status for a media item.
+ * Unified in AutoGram as "Pin adalah Favorit" (100% cloud sync across Desktop & Android).
+ */
+export async function driveTogglePinMedia(
+  creds: DriveCredentials,
+  chatId: string,
+  messageId: number,
+  unpin: boolean
+) {
+  if (!detectTauriRuntime()) return null;
+  const { tgTogglePinMedia } = await import('../core/telegramBackend');
+  return tgTogglePinMedia({
+    session: creds.session,
+    apiId: Number(creds.apiId) || 0,
+    apiHash: creds.apiHash,
+    chatId,
+    messageId,
+    unpin,
+  });
+}

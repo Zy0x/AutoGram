@@ -1974,8 +1974,10 @@ mod tests {
             drive_category: None,
             drive_format: None,
             caption: None,
+            is_pinned: None,
         }
     }
+
 
     #[tokio::test]
     async fn test_duplicate_ack_idempotency_already_acked() {

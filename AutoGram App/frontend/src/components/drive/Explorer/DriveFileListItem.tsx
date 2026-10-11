@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Scissors, Copy } from 'lucide-react';
+import { Scissors, Copy, Star } from 'lucide-react';
 import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../../lib/telegram/driveTypes';
 import { usePointerDragPrime, useDriveClipboard } from '../../../lib/telegram';
 import { FileTypeIcon } from './FileTypeIcon';
@@ -226,6 +226,11 @@ function DriveFileListItemInner({
             <span>{t('drive.clipboard_copy_tag')}</span>
           </span>
         )}
+        {file.is_pinned && (
+          <span className="td-list-fav-badge text-amber-400 inline-flex items-center mr-1" title={t('drive.badge_pinned_favorite')}>
+            <Star size={12} fill="currentColor" />
+          </span>
+        )}
         <span>{displayName}</span>
       </div>
       <div className="td-list-date">{date}</div>
@@ -243,6 +248,7 @@ export const DriveFileListItem = memo(DriveFileListItemInner, (prev, next) => {
     prev.file.icon_type === next.file.icon_type &&
     prev.file.mime_type === next.file.mime_type &&
     prev.file.file_ext === next.file.file_ext &&
+    prev.file.is_pinned === next.file.is_pinned &&
     prev.selected === next.selected &&
     prev.isDragSource === next.isDragSource
   );

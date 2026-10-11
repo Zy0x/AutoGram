@@ -119,6 +119,9 @@ export type DriveFile = {
   link_urls?: string[];
   /** Optional caption on media */
   caption?: string | null;
+  /** Pinned message in Telegram cloud (unified with Favorit across Desktop & Android) */
+  is_pinned?: boolean | null;
+  isPinned?: boolean | null;
   /** Restricted / inaccessible media flags */
   is_restricted?: boolean | null;
   restriction_reason?: string | null;
@@ -667,6 +670,7 @@ export function toLeanDriveFile(f: any): DriveFile {
     drive_format: f.drive_format ?? f.driveFormat ?? null,
     link_urls: Array.isArray(f.link_urls ?? f.linkUrls) ? [...(f.link_urls ?? f.linkUrls)] : undefined,
     caption: f.caption ?? null,
+    is_pinned: f.is_pinned ?? f.isPinned ?? null,
     is_restricted: f.is_restricted ?? f.isRestricted ?? null,
     restriction_reason: f.restriction_reason ?? f.restrictionReason ?? null,
     restriction_code: f.restriction_code ?? f.restrictionCode ?? null,
@@ -675,6 +679,8 @@ export function toLeanDriveFile(f: any): DriveFile {
 
 export type DriveMediaFilter =
   | 'all'
+  | 'favorites'
+  | 'pinned'
   | 'media'
   | 'files'
   | 'links'
@@ -713,6 +719,10 @@ export function matchesMediaFilter(
     // them out of All prevents sticker inventory from inflating the normal
     // media/file catalog while ordinary WebP documents remain visible.
     return perspective !== 'telegram' || tgCat !== 'sticker';
+  }
+
+  if (filter === 'favorites' || filter === 'pinned') {
+    return Boolean(f.is_pinned ?? f.isPinned);
   }
 
   if (perspective === 'telegram') {

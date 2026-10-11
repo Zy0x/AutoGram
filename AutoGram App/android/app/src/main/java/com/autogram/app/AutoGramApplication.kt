@@ -25,6 +25,7 @@ class AutoGramApplication : Application() {
                 }
             })
             NativeRuntime.ready()
+            com.autogram.app.features.cloudtransfer.upload.UploadScheduling.restore(this)
         } catch (_: LinkageError) {
             // An APK missing the ABI library must still open and report unavailable features.
             NativeRuntime.unavailable()

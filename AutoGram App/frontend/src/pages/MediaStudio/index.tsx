@@ -198,6 +198,7 @@ import {
   registerDriveEngineLocation,
   resolveDriveEngineLocation,
 } from '../../lib/telegram/driveApi/driveEngineApi';
+import { useDriveFavoriteToggle } from './hooks/useDriveFavoriteToggle';
 import {
   countExactMediaBreakdown,
   countPerspectiveMedia,
@@ -1276,6 +1277,16 @@ function MediaDriveDesktop({
     }),
     [peerId, topicFilter, locationKind]
   );
+  const { handleToggleFavorite } = useDriveFavoriteToggle({
+    creds,
+    peerId,
+    locationKind,
+    setFiles,
+    setFilteredFilesMap,
+    setPreviewFile,
+    liveFilesRef,
+    showToast: showPathJumpToast,
+  });
   const activePeerRef = useRef<number | null>(peerId);
   activePeerRef.current = peerId;
   const topicsRequestSeqRef = useRef(0);
@@ -11246,6 +11257,7 @@ function MediaDriveDesktop({
               }}
               onDownload={(f) => downloadOne(f)}
               onDelete={(f) => handleDeleteIds([f.id])}
+              onToggleFavorite={handleToggleFavorite}
               onUpload={handleUpload}
               onCreateFolder={handleCreateFolder}
               dragActive={dragActive}
@@ -11350,6 +11362,7 @@ function MediaDriveDesktop({
         handleSelectAllDisplayed={handleSelectAllDisplayed}
         clearSelection={clearSelection}
         selectedIds={selectedIds}
+        onToggleFavorite={handleToggleFavorite}
         isLocationPinned={isLocationPinned}
         onToggleLocationPin={toggleLocationPin}
         activeConfirm={activeConfirm}

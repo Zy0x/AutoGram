@@ -67,6 +67,7 @@ export interface MediaStudioModalsContainerProps {
   selectedIds: number[];
   isLocationPinned: (kind: 'saved' | 'drive' | 'chat', id: number | null) => boolean;
   onToggleLocationPin: (kind: 'saved' | 'drive' | 'chat', id: number | null, name: string) => void;
+  onToggleFavorite?: (file: DriveFile) => void;
 
   activeConfirm: any;
   closeDriveMoveConfirm: () => void;
@@ -157,6 +158,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   selectedIds,
   isLocationPinned,
   onToggleLocationPin,
+  onToggleFavorite,
 
   activeConfirm,
   closeDriveMoveConfirm,
@@ -301,6 +303,9 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           }
           onMove={
             contextMenu.kind === 'file' ? () => handleMove(contextMenu.file) : undefined
+          }
+          onToggleFavorite={
+            contextMenu.kind === 'file' ? () => onToggleFavorite?.(contextMenu.file) : undefined
           }
           onUpload={contextMenu.kind === 'canvas' ? handleUpload : undefined}
           onCreateFolder={

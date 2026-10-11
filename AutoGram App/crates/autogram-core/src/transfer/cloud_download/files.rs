@@ -73,10 +73,10 @@ impl OwnedFile {
                 .open(path)
                 .map_err(|e| DownloadError::io("open_owned_temp", e))?
         };
-        match file.try_lock() {
+        match crate::platform::file_lock::try_lock_exclusive(&file) {
             Ok(()) => {}
-            Err(std::fs::TryLockError::WouldBlock) => return Err(DownloadError::Busy),
-            Err(std::fs::TryLockError::Error(e)) => {
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => return Err(DownloadError::Busy),
+            Err(e) => {
                 return Err(DownloadError::io("lock_owned_temp", e))
             }
         }

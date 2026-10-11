@@ -1,5 +1,21 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Pin as Favorite (Pin = Favorit) & Native MTProto Cloud Persistence
+- Unified Pin and Favorite concepts across AutoGram: media items are marked and interacted with as "Favorit / Disematkan" (⭐ / 📌).
+- Directly leveraged native Telegram MTProto messages.updatePinnedMessage (silent: true) rather than fragile local SQLite storage, guaranteeing 100% cloud persistence and cross-platform synchronization between AutoGram Desktop, AutoGram Android, and official Telegram apps with zero state divergence.
+- Added is_pinned: Option<bool> to Rust Grammers MediaFileRow contract, dynamically extracting m.pinned flags across photo, document, video, sticker, webpage, and link message entries.
+- Implemented toggle_pin_media_blocking and tg_toggle_pin_media in Rust Tauri IPC (permissions/autogram-commands.toml) with full session isolation, rate protection, and peer resolution ("me", numeric IDs, usernames).
+- Implemented optimistic UI updates via useDriveFavoriteToggle hook with instant visual feedback on file cards, list items, and context menus, paired with automatic rollback and localized toast notifications on error.
+- Added dedicated "Favorit" filter tab ('favorites') in DriveTopBar with live badge count and star icon, matching media where is_pinned is true across both Telegram and Drive view perspectives.
+- Extracted all user-facing labels to src/locales/id/drive.json and src/locales/en/drive.json with 100% key parity and zero hardcoded strings.
+
+### Android Original-Document Upload Queue
+- Connected Cloud Drives upload to a Storage Access Framework picker, bounded staging importer and the native account/chat/topic-scoped document queue. Each accepted operation freezes its original-document profile and reuses a confirmed identical cloud file instead of transmitting it again; uncertain duplicate evidence requires review.
+- Added foreground upload dispatch and persisted Android recovery scheduling. Queue rows display native acknowledgements, pause/cancel/retry controls and read-only confirmation recovery. Navigation cancels stale UI work, while persisted operations retain their original destination and account.
+- Fixed the shared transfer file-lock adapter to use Android's native nonblocking OS lock. Upload no longer misreports an unsupported lock as another busy worker, and download uses the same process-safe adapter; genuine lock contention remains separate from storage failures.
+- Made upload/download recovery registration idempotent so opening a foreground transfer or restoring the app reuses an existing scheduled job instead of replacing it and interrupting an active commit.
+- Added Indonesian/English upload feedback and isolated queue, import and navigation regressions. Visual albums, media preparation, advanced duplicate policies and complete desktop upload parity remain separate unfinished features.
+
 ### Twitter-Style Scroll Anchor Retention & Instant Floating Pill Thumbnail Engine
 - Implemented Sub-Pixel Scroll Anchor Retention Engine (`useScrollAnchorRetention.ts`) in `DriveExplorer`: eliminates jarring scroll jumps, layout jitter, and unexpected viewport displacement when newly uploaded or synced files arrive while the user is actively viewing scrolled content (`scrollTop > 80`).
 - Replaced previous naive row-ceiling jump calculation (`Math.ceil(newAbove / cols) * rowHeight`) with exact item-anchored sub-pixel row offset tracking in `useLayoutEffect`. In a 4-column grid, prepending a single photo no longer adds a spurious 200px jump; visible items stay frozen at the exact same screen coordinates prior to browser paint.

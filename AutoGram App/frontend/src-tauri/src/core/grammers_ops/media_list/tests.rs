@@ -100,8 +100,10 @@ fn dummy_row(id: i64) -> MediaFileRow {
         drive_category: None,
         drive_format: None,
         caption: None,
+        is_pinned: None,
     }
 }
+
 
 #[test]
 fn test_normalize_search_cursor_scope_rejection_peer() {

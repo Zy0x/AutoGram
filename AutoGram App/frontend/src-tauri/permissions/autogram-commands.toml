@@ -132,6 +132,7 @@ allow = [
     "tg_stop_stream",
     "tg_seek_stream",
     "tg_delete_messages",
+    "tg_toggle_pin_media",
     "tg_create_folder",
     "drive_engine_status",
     "drive_engine_create_drive",

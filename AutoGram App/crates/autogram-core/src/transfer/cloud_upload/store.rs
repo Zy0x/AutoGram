@@ -308,7 +308,10 @@ impl UploadStore {
         if std::fs::canonicalize(&path).map_err(|_| UploadError::Io)? != path {
             return Err(UploadError::Io);
         }
-        file.try_lock().map_err(|_| UploadError::Busy)?;
+        crate::platform::file_lock::try_lock_exclusive(&file).map_err(|error| {
+            if error.kind() == std::io::ErrorKind::WouldBlock { UploadError::Busy }
+            else { UploadError::Io }
+        })?;
         Ok(file)
     }
     pub(super) fn claim(

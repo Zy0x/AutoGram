@@ -23,6 +23,10 @@
             android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name=".features.cloudtransfer.DownloadRecoveryJob"
             android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".features.cloudtransfer.upload.CloudUploadForegroundService"
+            android:exported="false" android:foregroundServiceType="dataSync" />
+        <service android:name=".features.cloudtransfer.upload.UploadRecoveryJob"
+            android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

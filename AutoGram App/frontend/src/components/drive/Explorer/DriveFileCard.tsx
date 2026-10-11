@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy, ImageOff } from 'lucide-react';
+import { Eye, Download, Trash2, Check, Loader2, Play, Scissors, Copy, ImageOff, Star } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { resolveDriveEngineLocation } from '../../../lib/telegram/driveApi';
 import {
@@ -50,6 +50,7 @@ type Props = {
   contextTopicId?: number | null;
   thumbQuality?: string;
   recentlyUploaded?: boolean;
+  onToggleFavorite?: (file: DriveFile) => void;
 };
 
 function DriveFileCardInner({
@@ -73,6 +74,7 @@ function DriveFileCardInner({
   contextTopicId = null,
   thumbQuality,
   recentlyUploaded: propRecentlyUploaded,
+  onToggleFavorite,
 }: Props) {
   const { t } = useTranslation();
   const canThumb = canShowDriveThumb(file);
@@ -475,6 +477,33 @@ function DriveFileCardInner({
             <span>{t('drive.clipboard_copy_tag')}</span>
           </span>
         )}
+        {file.is_pinned && (
+          <span
+            className="td-tag-badge td-pin-fav-badge"
+            title={t('drive.badge_pinned_favorite')}
+            aria-label={t('drive.badge_pinned_favorite')}
+            style={{
+              position: 'absolute',
+              top: 6,
+              left: 6,
+              zIndex: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              background: 'rgba(245, 158, 11, 0.25)',
+              border: '1px solid rgba(245, 158, 11, 0.5)',
+              color: '#fbbf24',
+              borderRadius: 4,
+              padding: '2px 5px',
+              fontSize: '10px',
+              fontWeight: 600,
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <Star size={10} fill="currentColor" />
+            <span>{t('drive.badge_favorite_short')}</span>
+          </span>
+        )}
         {(() => {
           const tgCat = (file.telegram_category || (file.as_document ? 'file' : file.icon_type === 'image' || file.icon_type === 'video' ? 'media' : file.icon_type || 'file')).toLowerCase();
           return (
@@ -649,6 +678,21 @@ function DriveFileCardInner({
         </div>
 
         <div className="td-file-card-actions">
+          {onToggleFavorite && (
+            <button
+              type="button"
+              className={`td-file-act ${file.is_pinned ? 'favorite-active text-amber-400' : ''}`}
+              title={file.is_pinned ? t('drive.action_unfavorite') : t('drive.action_favorite')}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(file);
+              }}
+              aria-label={file.is_pinned ? t('drive.action_unfavorite') : t('drive.action_favorite')}
+            >
+              <Star size={12} fill={file.is_pinned ? 'currentColor' : 'none'} className={file.is_pinned ? 'text-amber-400' : ''} />
+            </button>
+          )}
           {onPreview && (
             <button
               type="button"
@@ -721,6 +765,7 @@ export const DriveFileCard = memo(DriveFileCardInner, (prev, next) => {
     prev.file.size === next.file.size &&
     prev.file.name === next.file.name &&
     prev.file.icon_type === next.file.icon_type &&
+    prev.file.is_pinned === next.file.is_pinned &&
     prev.file.recently_uploaded_at === next.file.recently_uploaded_at &&
     prev.selected === next.selected &&
     prev.isDragSource === next.isDragSource &&
