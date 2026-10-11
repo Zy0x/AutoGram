@@ -116,7 +116,7 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       sectionId: 'section-albums-main',
       label: String(t('drive.album_orchestration_title')),
       description: String(t('drive.album_orchestration_desc')),
-      keywords: ['album', 'packing', 'group size', 'avoid single', 'group documents', 'group audio'],
+      keywords: ['album', 'packing', 'group size', 'avoid single', 'group documents', 'group audio', 'account pool', 'multi account', 'rotasi akun', '2 akun', 'multi akun'],
     },
     {
       id: 'upload-duplicates',
@@ -170,7 +170,7 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
       sectionId: 'section-limits-recovery',
       label: String(t('drive.tools_tab_oversize')),
       description: String(t('drive.tools_tab_oversize_desc')),
-      keywords: ['oversize', 'large file', 'split', 'alternate account', 'pool', 'retry'],
+      keywords: ['oversize', 'large file', 'split', 'alternate account', 'account pool', 'multi account', 'pool', 'retry', 'rotasi akun', '2 akun', 'multi akun'],
     },
     {
       id: 'advanced-settings',
@@ -226,11 +226,17 @@ export function searchSettingsRegistry(
 ): SearchableSettingItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
+  const words = q.split(/\s+/).filter(Boolean);
   return items.filter((item) => {
-    return (
-      item.label.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q) ||
-      item.keywords.some((k) => k.toLowerCase().includes(q))
-    );
+    const label = item.label.toLowerCase();
+    const desc = item.description.toLowerCase();
+    const kws = item.keywords.map((k) => k.toLowerCase());
+
+    // Direct phrase match
+    if (label.includes(q) || desc.includes(q) || kws.some((k) => k.includes(q) || (k.length > 2 && q.includes(k)))) {
+      return true;
+    }
+    // Multi-word query: all words match across item fields
+    return words.every((w) => label.includes(w) || desc.includes(w) || kws.some((k) => k.includes(w)));
   });
 }
