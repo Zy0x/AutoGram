@@ -16,6 +16,7 @@ build/
 ├── build_apk.ps1                  # Android APK build engine (PowerShell)
 ├── clean_build.bat                # 1-Click deep purge of all build caches & bloat
 ├── clean_build.ps1                # High-speed comprehensive purge engine (PowerShell)
+├── clean_build_safe.ps1           # Allowlisted cache cleanup with per-category confirmation
 ├── bootstrap_toolchains.bat       # Auto-download isolated Android SDK & JDK 17
 │
 ├── tools/                         # Build helper scripts & utilities
@@ -30,15 +31,16 @@ build/
 
 ---
 
-## 🧹 How to Deep Clean Build Caches & Free Disk Space
+## 🧹 How to Clean Caches Safely
 
-Whenever compilation targets accumulate or storage approaches 40 GB:
-Double-click `clean_build.bat` (or `Bersihkan_Sampah_AutoGram.bat` in root) or run:
+For manual, itemized cleanup, double-click `Bersihkan_Sampah_AutoGram.bat` in the workspace root. It shows each cache category and its size, then requires typing `HAPUS` before deleting. The quick option removes only the four known Rust `debug\incremental` folders. Other options remove full Rust targets, Android build/Gradle caches, derived worker preview caches, or Vite/coverage caches; those options require rebuilding or regenerating their outputs.
+
+The safe root script preserves source files, database files, Telegram sessions, signing material, toolchains, `node_modules`, generated APK/installer files under `build\output`, JNI libraries, and WebView2 user data. Close AutoGram, Android Studio, and active build processes before selecting a cache category.
+
+The separate `build\clean_build.bat` remains a broad legacy purge. It also removes generated distribution files and local WebView2 data; use it only when you intentionally want that deeper cleanup. To run it directly:
 ```cmd
 build\clean_build.bat
 ```
-* **Purges**: `build\target` (Cargo Desktop & Android), `src-tauri\target`, `worker\cache\preview`, `.gradle`, and Vite caches.
-* **Preserves (Whitelisted)**: User sessions (`worker\sessions`), SQLite database (`worker\database`), SDK toolchains (`.toolchains`), and source code.
 
 ---
 
