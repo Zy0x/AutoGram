@@ -34,8 +34,21 @@ describe('exact media statistics', () => {
     expect(telegram.files).toBe(2);
     expect(telegram.stickers).toBe(1);
     expect(telegram.all).toBe(5);
+    expect(telegram.favorites).toBe(0);
     expect(drive.all).toBe(6);
     expect(drive.videos).toBe(2);
     expect(drive.archives).toBe(1);
+    expect(drive.favorites).toBe(0);
+  });
+
+  it('correctly counts pinned files in favorites lane', () => {
+    const pinnedFiles = [
+      ...files,
+      file(7, { name: 'pinned_pic.jpg', icon_type: 'image', mime_type: 'image/jpeg', is_pinned: true }),
+    ];
+    const tg = countPerspectiveMedia(pinnedFiles, 'telegram');
+    const dr = countPerspectiveMedia(pinnedFiles, 'drive');
+    expect(tg.favorites).toBe(1);
+    expect(dr.favorites).toBe(1);
   });
 });

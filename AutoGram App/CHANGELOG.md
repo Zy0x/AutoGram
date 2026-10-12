@@ -12,6 +12,8 @@
 - Updated allFilterReconciliation.ts to include favorites in ALL_MERGE_FILTER_KEYS and TRACKED_MUTATION_FILTER_KEYS, filtering out stale non-pinned items and maintaining chronological order.
 - Updated filterCountPolicy.ts so favorites uses the loaded lower bound to avoid provisional zero counts.
 - Added dedicated "Favorit" filter tab ('favorites') in DriveTopBar with live badge count and star icon, matching media where is_pinned is true across both Telegram and Drive view perspectives.
+- Fixed Favorites filter count pill badge display in MediaStudio perspectiveCounts: accurately mapped favorites in both serverBreakdown (Telegram perspective) and localCounts (Drive perspective) so the count badge displays the exact number of pinned/favorited items.
+- Connected useDriveFavoriteToggle with setFilteredTotalCountMap to provide instant optimistic count increment/decrement when starring/unstarring items, complete with automated rollback on network failure.
 - Extracted all user-facing labels to src/locales/id/drive.json and src/locales/en/drive.json with 100% key parity and zero hardcoded strings.
 
 ### Android Original-Document Upload Queue

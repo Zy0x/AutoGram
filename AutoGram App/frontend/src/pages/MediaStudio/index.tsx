@@ -1283,6 +1283,7 @@ function MediaDriveDesktop({
     locationKind,
     setFiles,
     setFilteredFilesMap,
+    setFilteredTotalCountMap,
     setPreviewFile,
     liveFilesRef,
     showToast: showPathJumpToast,
@@ -2071,6 +2072,10 @@ function MediaDriveDesktop({
             localCounts?.all || 0,
             serverTotal
           ),
+          favorites: Math.max(
+            filteredTotalCountMap['favorites'] ?? 0,
+            localCounts?.favorites ?? 0
+          ),
           media: filteredTotalCountMap['media'] ?? (serverMedia > 0 ? serverMedia : (localCounts?.media || 0)),
           files: filteredTotalCountMap['files'] ?? (serverFiles > 0 ? serverFiles : (localCounts?.files || 0)),
           links: filteredTotalCountMap['links'] ?? (cachedMediaBreakdown.linkCount ?? localCounts?.links ?? 0),
@@ -2088,6 +2093,10 @@ function MediaDriveDesktop({
         all: Math.max(
           Math.max(0, (totalFileCount ?? 0) - (localCounts.stickers || 0)),
           localCounts.all || 0
+        ),
+        favorites: Math.max(
+          filteredTotalCountMap['favorites'] ?? 0,
+          localCounts.favorites ?? 0
         ),
         files: filteredTotalCountMap['files'] ?? localCounts.files ?? 0,
         media: filteredTotalCountMap['media'] ?? localCounts.media ?? 0,

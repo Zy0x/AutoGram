@@ -10,6 +10,7 @@ interface UseDriveFavoriteToggleParams {
   locationKind: 'saved' | 'drive' | 'chat';
   setFiles: React.Dispatch<React.SetStateAction<DriveFile[]>>;
   setFilteredFilesMap: React.Dispatch<React.SetStateAction<Record<string, DriveFile[]>>>;
+  setFilteredTotalCountMap?: React.Dispatch<React.SetStateAction<Record<string, number | null>>>;
   setPreviewFile?: React.Dispatch<React.SetStateAction<DriveFile | null>>;
   liveFilesRef?: React.MutableRefObject<DriveFile[]>;
   showToast: (message: string, tone?: 'info' | 'warn' | 'error') => void;
@@ -21,6 +22,7 @@ export function useDriveFavoriteToggle({
   locationKind,
   setFiles,
   setFilteredFilesMap,
+  setFilteredTotalCountMap,
   setPreviewFile,
   liveFilesRef,
   showToast,
@@ -59,6 +61,15 @@ export function useDriveFavoriteToggle({
         }
         return nextMap;
       });
+      if (setFilteredTotalCountMap) {
+        setFilteredTotalCountMap((prev) => {
+          const cur = prev['favorites'] ?? 0;
+          return {
+            ...prev,
+            favorites: nextPinned ? cur + 1 : Math.max(0, cur - 1),
+          };
+        });
+      }
       if (liveFilesRef?.current) {
         liveFilesRef.current = updateList(liveFilesRef.current);
       }
@@ -82,6 +93,15 @@ export function useDriveFavoriteToggle({
           );
         } else {
           // Revert optimistic update
+          if (setFilteredTotalCountMap) {
+            setFilteredTotalCountMap((prev) => {
+              const cur = prev['favorites'] ?? 0;
+              return {
+                ...prev,
+                favorites: nextPinned ? Math.max(0, cur - 1) : cur + 1,
+              };
+            });
+          }
           const revertList = (arr: DriveFile[]) =>
             arr.map((f) => (f.id === targetId ? { ...f, is_pinned: !nextPinned } : f));
           setFiles((prev) => revertList(prev));
@@ -115,6 +135,15 @@ export function useDriveFavoriteToggle({
         }
       } catch (err: any) {
         // Revert optimistic update on exception
+        if (setFilteredTotalCountMap) {
+          setFilteredTotalCountMap((prev) => {
+            const cur = prev['favorites'] ?? 0;
+            return {
+              ...prev,
+              favorites: nextPinned ? Math.max(0, cur - 1) : cur + 1,
+            };
+          });
+        }
         const revertList = (arr: DriveFile[]) =>
           arr.map((f) => (f.id === targetId ? { ...f, is_pinned: !nextPinned } : f));
         setFiles((prev) => revertList(prev));
@@ -147,7 +176,7 @@ export function useDriveFavoriteToggle({
         showToast(err?.message || t('drive.toast_favorite_error'), 'error');
       }
     },
-    [creds, peerId, locationKind, setFiles, setFilteredFilesMap, setPreviewFile, liveFilesRef, showToast, t]
+    [creds, peerId, locationKind, setFiles, setFilteredFilesMap, setFilteredTotalCountMap, setPreviewFile, liveFilesRef, showToast, t]
   );
 
   return { handleToggleFavorite };
