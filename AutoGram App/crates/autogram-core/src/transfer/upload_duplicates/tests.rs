@@ -317,6 +317,30 @@ async fn edited_deleted_or_renamed_cloud_records_cannot_confirm_stale_hashes() {
 }
 
 #[tokio::test]
+async fn telegram_hyphen_filename_normalization_keeps_exact_duplicate_candidate_live() {
+    let f = Fixture::new();
+    f.row(
+        &f.query.destination,
+        44,
+        Some("944"),
+        &f.query.source.sha256,
+        "auto-gram-fixture.bin",
+        f.query.source.size,
+    );
+    let mut source = f.source();
+    source
+        .documents
+        .insert(44, f.document(44, 944, "auto_gram_fixture.bin"));
+
+    let result = inspect(&f, &source).await.unwrap();
+    assert_eq!(result.stale_candidates, 0);
+    assert!(result
+        .matches
+        .iter()
+        .any(|item| { item.document.message_id == 44 && item.level.exact_content() }));
+}
+
+#[tokio::test]
 async fn canonical_unicode_filename_fallback_requires_exact_size_and_never_equal_content() {
     let mut f = Fixture::new();
     f.query.filename = "résumé.txt".into();

@@ -37,6 +37,16 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
                 it.width, it.height, it.durationSeconds, it.thumbnailBytes, topic)
         }, page.nextOffset, topic)
     }
+    override suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>) = invoke {
+        if (scope.accountId.isBlank() || scope.peerId.isBlank() || scope.topicId?.let { it !in 1..Int.MAX_VALUE.toLong() } == true)
+            throw CloudFailure("invalid_cloud_delete")
+        val result = deleteCloudMedia(scope.accountId, scope.peerId, scope.topicId?.toInt(), messageIds)
+        CloudDeleteResult(
+            scope = scope,
+            deletedIds = result.deletedIds,
+            failed = result.failed.map { CloudDeleteFailure(it.messageId, it.code, it.retryAfterSeconds.toLong()) }
+        )
+    }
     override suspend fun topics(scope: CloudScope, cursor: com.autogram.app.features.cloud.topics.TopicCursor?) = invoke {
         com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()
         val page = listCloudTopics(scope.accountId, scope.peerId, cursor?.let {

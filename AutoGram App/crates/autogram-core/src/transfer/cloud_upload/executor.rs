@@ -49,10 +49,14 @@ impl UploadExecutor {
                 if current.state == UploadState::Committing {
                     // Dropping a modifying RPC can lose an acknowledgement. Never
                     // report cancellation/failure as proof that nothing was sent.
+                    let reason = match &error {
+                        UploadError::CommitUnconfirmedResponse(value) => value.as_str(),
+                        _ => "commit_unconfirmed",
+                    };
                     self.store.transition(
                         &current,
                         UploadState::ReviewRequired,
-                        Some("commit_unconfirmed"),
+                        Some(reason),
                         deadline(&error),
                     )?;
                 } else if error == UploadError::Cancelled {
@@ -149,7 +153,10 @@ impl UploadExecutor {
         }
         // Three attempts retain the same persisted random_id and file_id. A lost
         // receipt never starts another unrelated send or chooses a history guess.
-        let journal = super::send_mapping::CommitJournal { store: &self.store, record };
+        let journal = super::send_mapping::CommitJournal {
+            store: &self.store,
+            record,
+        };
         for attempt in 0..3u64 {
             let result = tokio::select! {
                 biased;
@@ -161,11 +168,15 @@ impl UploadExecutor {
                     self.store.complete(record, receipt)?;
                     return Ok(());
                 }
-                Err(UploadError::PartsExpired) if attempt == 0 && self.store.mapped_message_id(record)?.is_none() => {
+                Err(UploadError::PartsExpired)
+                    if attempt == 0 && self.store.mapped_message_id(record)?.is_none() =>
+                {
                     self.store.restart_expired_parts(record)?;
                     return Ok(());
                 }
-                Err(UploadError::Network) if attempt < 2 && self.store.mapped_message_id(record)?.is_none() => {
+                Err(UploadError::Network)
+                    if attempt < 2 && self.store.mapped_message_id(record)?.is_none() =>
+                {
                     tokio::select! {
                         _ = cancel.cancelled() => return Err(UploadError::Cancelled),
                         _ = tokio::time::sleep(Duration::from_millis(400 * (attempt + 1))) => {}
@@ -220,6 +231,14 @@ fn code(error: &UploadError) -> &'static str {
         UploadError::PartsExpired => "upload_parts_expired",
         UploadError::Io => "io",
         UploadError::ReceiptMismatch => "receipt_mismatch",
+        UploadError::ReceiptMessageIdMismatch => "receipt_message_id_mismatch",
+        UploadError::ReceiptPeerMismatch => "receipt_peer_mismatch",
+        UploadError::ReceiptTopicMismatch => "receipt_topic_mismatch",
+        UploadError::ReceiptContentMismatch => "receipt_content_mismatch",
+        UploadError::ReceiptMediaMismatch => "receipt_media_mismatch",
+        UploadError::ReceiptFilenameMismatch => "receipt_filename_mismatch",
+        UploadError::ReceiptSizeMismatch => "receipt_size_mismatch",
+        UploadError::CommitUnconfirmedResponse(_) => "commit_unconfirmed",
         UploadError::Rejected => "cloud_write_rejected",
         _ => "upload_failed",
     }

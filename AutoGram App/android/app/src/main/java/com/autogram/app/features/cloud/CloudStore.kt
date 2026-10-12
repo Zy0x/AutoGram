@@ -24,6 +24,36 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
     private fun mediaKey(scope: CloudScope, query: String) = scope.accountId to (scope.topicId != null || query.isNotBlank())
     fun invalidateThumbnails() { thumbnailRevision++ }
 
+    suspend fun deleteMedia(messageIds: List<Int>): CloudDeleteResult {
+        val request = mutable.value
+        val ids = messageIds.distinct()
+        if (request.scope.accountId.isBlank() || request.scope.peerId.isBlank() || ids.isEmpty() ||
+            ids.size != messageIds.size || ids.any { it <= 0 }) throw CloudFailure("invalid_cloud_delete")
+        val revision = ++mediaRevision
+        invalidateThumbnails()
+        // A delete supersedes an in-flight media read. Release its spinner now so a
+        // late completion cannot leave the current scope permanently loading.
+        mutable.update { current ->
+            if (current.scope == request.scope) current.copy(loading = false, error = null) else current
+        }
+        val result = service.deleteMedia(request.scope, ids)
+        if (revision != mediaRevision || mutable.value.scope != request.scope || result.scope != request.scope)
+            throw CloudFailure("account_changed")
+        val requested = ids.toSet()
+        val deleted = result.deletedIds.toSet()
+        val failed = result.failed.map { it.messageId }.toSet()
+        if (deleted.size != result.deletedIds.size || failed.size != result.failed.size ||
+            !requested.containsAll(deleted) || !requested.containsAll(failed) || deleted.intersect(failed).isNotEmpty() ||
+            deleted.size + failed.size != requested.size) throw CloudFailure("cloud_delete_result_invalid")
+        mutable.update { state ->
+            if (state.scope != request.scope) state else state.copy(items = state.items.filterNot { it.id in deleted })
+        }
+        // A deletion changes every cached query/page for this account and peer.
+        mediaCache.clear()
+        thumbnailCache.clear()
+        return result
+    }
+
     fun scope(scope: CloudScope) {
         invalidateThumbnails()
         mediaRevision++

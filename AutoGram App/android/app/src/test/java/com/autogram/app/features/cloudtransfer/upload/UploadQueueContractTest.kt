@@ -9,7 +9,7 @@ class UploadQueueContractTest {
     private val input = NativeUploadInput("fixture", "tg_123", "-1000000000456", 17,
         "/fixture.staged", "fixture.bin", "application/octet-stream", "")
     private fun record() = NativeCloudUpload("fixture", "tg_123", "-1000000000456", 17,
-        "fixture.bin", "queued", 100uL, 0uL, null, null, null)
+        "fixture.bin", "queued", 100uL, 0uL, null, null, null, null)
 
     @Test fun acknowledgedQueueMustRetainAccountDestinationTopicAndOperation() {
         validateAdmission(input, NativeUploadAdmission.Queued(record()))

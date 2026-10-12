@@ -76,6 +76,21 @@ pub struct NativeCloudStream {
     pub mime_type: String,
 }
 
+#[derive(Clone, uniffi::Record)]
+pub struct NativeCloudDeleteFailure {
+    pub message_id: i32,
+    pub code: String,
+    pub retry_after_seconds: u32,
+}
+#[derive(Clone, uniffi::Record)]
+pub struct NativeCloudDeleteResult {
+    pub account_id: String,
+    pub peer_id: String,
+    pub topic_id: Option<i32>,
+    pub deleted_ids: Vec<i32>,
+    pub failed: Vec<NativeCloudDeleteFailure>,
+}
+
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn list_cloud_dialogs(
     account_id: String,
@@ -101,9 +116,14 @@ pub async fn list_cloud_dialogs(
     })
 }
 #[uniffi::export(async_runtime = "tokio")]
-pub async fn fetch_cloud_avatar(account_id: String, peer_id: String,
-    photo_key: String) -> Result<Vec<u8>, NativeAuthError> {
-    Ok(workspace().fetch_avatar(engine()?, AccountId(account_id), peer_id, photo_key).await?)
+pub async fn fetch_cloud_avatar(
+    account_id: String,
+    peer_id: String,
+    photo_key: String,
+) -> Result<Vec<u8>, NativeAuthError> {
+    Ok(workspace()
+        .fetch_avatar(engine()?, AccountId(account_id), peer_id, photo_key)
+        .await?)
 }
 #[uniffi::export(async_runtime = "tokio")]
 pub async fn list_cloud_media(
@@ -163,6 +183,39 @@ pub fn close_cloud_media_stream(
     stream_id: String,
 ) -> Result<(), NativeAuthError> {
     Ok(workspace().close_stream(&AccountId(account_id), &stream_id)?)
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn delete_cloud_media(
+    account_id: String,
+    peer_id: String,
+    topic_id: Option<i32>,
+    message_ids: Vec<i32>,
+) -> Result<NativeCloudDeleteResult, NativeAuthError> {
+    let result = workspace()
+        .delete_media(
+            engine()?,
+            AccountId(account_id),
+            peer_id,
+            topic_id,
+            message_ids,
+        )
+        .await?;
+    Ok(NativeCloudDeleteResult {
+        account_id: result.account_id,
+        peer_id: result.peer_id,
+        topic_id: result.topic_id,
+        deleted_ids: result.deleted_ids,
+        failed: result
+            .failed
+            .into_iter()
+            .map(|item| NativeCloudDeleteFailure {
+                message_id: item.message_id,
+                code: item.code,
+                retry_after_seconds: item.retry_after_seconds,
+            })
+            .collect(),
+    })
 }
 
 #[uniffi::export(async_runtime = "tokio")]

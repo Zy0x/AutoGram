@@ -5,20 +5,39 @@ use crate::{
 };
 use grammers_client::{tl, Client};
 use grammers_session::types::{PeerId, PeerRef};
+use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 
 pub(super) async fn read_confirmed_document(
     client: &Client,
     peer: PeerRef,
     request: &UploadRequest,
     message_id: i32,
+    cancel: &CancellationToken,
 ) -> Result<UploadReceipt, AuthError> {
-    let message = client
-        .get_messages_by_id(peer, &[message_id])
-        .await
-        .map_err(|error| super::transport::upload_rpc(error).for_rpc(RpcDomain::Messages))?
-        .pop()
-        .flatten()
-        .ok_or_else(|| AuthError::new("commit_unconfirmed"))?;
+    let mut message = None;
+    let message_ids = [message_id];
+    for attempt in 0..4u32 {
+        let response = tokio::select! {
+            biased;
+            _ = cancel.cancelled() => return Err(AuthError::new("operation_cancelled")),
+            result = client.get_messages_by_id(peer, &message_ids) => result
+                .map_err(|error| super::transport::upload_rpc(error).for_rpc(RpcDomain::Messages))?,
+        };
+        message = response.into_iter().next().flatten();
+        if message.is_some() || attempt == 3 {
+            break;
+        }
+        // DC replicas can lag the successful send response. Retry only the exact
+        // server-mapped message read; this path never sends or searches history.
+        let delay = Duration::from_millis(300 * u64::from(attempt + 1));
+        tokio::select! {
+            biased;
+            _ = cancel.cancelled() => return Err(AuthError::new("operation_cancelled")),
+            _ = tokio::time::sleep(delay) => {}
+        }
+    }
+    let message = message.ok_or_else(|| AuthError::new("commit_unconfirmed"))?;
     validate_receipt_scope(
         &request.destination,
         peer.id,
@@ -28,12 +47,15 @@ pub(super) async fn read_confirmed_document(
         message.reply_header().as_ref(),
     )?;
     let Some(grammers_client::media::Media::Document(document)) = message.media() else {
-        return Err(AuthError::new("receipt_mismatch"));
+        return Err(AuthError::new("receipt_media_mismatch"));
     };
-    if document.name() != Some(request.filename.as_str())
-        || document.size().map(|size| size as u64) != Some(request.source.size)
-    {
-        return Err(AuthError::new("receipt_mismatch"));
+    if !document.name().is_some_and(|name| {
+        crate::transfer::cloud_upload::telegram_filename_matches(&request.filename, name)
+    }) {
+        return Err(AuthError::new("receipt_filename_mismatch"));
+    }
+    if document.size().map(|size| size as u64) != Some(request.source.size) {
+        return Err(AuthError::new("receipt_size_mismatch"));
     }
     Ok(UploadReceipt {
         destination: request.destination.clone(),
@@ -53,8 +75,11 @@ pub(super) fn validate_receipt_scope(
     actual_id: i32,
     header: Option<&tl::enums::MessageReplyHeader>,
 ) -> Result<(), AuthError> {
-    if expected_id <= 0 || actual_id != expected_id || actual_peer != expected_peer {
-        return Err(AuthError::new("receipt_mismatch"));
+    if expected_id <= 0 || actual_id != expected_id {
+        return Err(AuthError::new("receipt_message_id_mismatch"));
+    }
+    if actual_peer != expected_peer {
+        return Err(AuthError::new("receipt_peer_mismatch"));
     }
     let thread = match header {
         Some(tl::enums::MessageReplyHeader::Header(header)) => {
@@ -66,7 +91,7 @@ pub(super) fn validate_receipt_scope(
         .topic_id
         .is_some_and(|topic| thread != Some(topic))
     {
-        return Err(AuthError::new("receipt_mismatch"));
+        return Err(AuthError::new("receipt_topic_mismatch"));
     }
     Ok(())
 }
@@ -113,16 +138,25 @@ mod tests {
         assert!(
             validate_receipt_scope(&destination, peer, peer, 57, 57, Some(&wrong_thread)).is_err()
         );
-        assert!(validate_receipt_scope(&destination, peer, peer, 57, 58, Some(&matching)).is_err());
-        assert!(validate_receipt_scope(
-            &destination,
-            peer,
-            PeerId::channel(322).unwrap(),
-            57,
-            57,
-            Some(&matching)
-        )
-        .is_err());
+        assert_eq!(
+            validate_receipt_scope(&destination, peer, peer, 57, 58, Some(&matching))
+                .unwrap_err()
+                .code,
+            "receipt_message_id_mismatch"
+        );
+        assert_eq!(
+            validate_receipt_scope(
+                &destination,
+                peer,
+                PeerId::channel(322).unwrap(),
+                57,
+                57,
+                Some(&matching)
+            )
+            .unwrap_err()
+            .code,
+            "receipt_peer_mismatch"
+        );
         assert!(validate_receipt_scope(&destination, peer, peer, 57, 57, None).is_err());
         let topic_root = header(Some(17), None);
         assert!(
@@ -144,5 +178,21 @@ mod tests {
         )
         .is_ok());
         assert!(validate_receipt_scope(&destination, peer, peer, 0, 0, None).is_err());
+    }
+
+    #[test]
+    fn receipt_filename_accepts_only_observed_hyphen_normalization() {
+        assert!(crate::transfer::cloud_upload::telegram_filename_matches(
+            "autogram-device-fixture.bin",
+            "autogram_device_fixture.bin"
+        ));
+        assert!(!crate::transfer::cloud_upload::telegram_filename_matches(
+            "fixture-a.bin",
+            "fixture-b.bin"
+        ));
+        assert!(!crate::transfer::cloud_upload::telegram_filename_matches(
+            "fixture-a.bin",
+            "fixture_a.txt"
+        ));
     }
 }

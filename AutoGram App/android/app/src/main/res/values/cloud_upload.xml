@@ -4,10 +4,10 @@
     <string name="cloud_upload_profile_document">Berkas asli Android</string>
     <string name="cloud_upload_notification">Memproses antrean unggahan. Android dapat menunda pekerjaan latar belakang.</string>
     <string name="cloud_upload_destination">Tujuan: %1$s</string>
-    <string name="cloud_upload_document_notice">Kirim satu berkas asli tanpa konversi. Album foto/video belum tersedia. Berkas identik yang sudah terverifikasi akan digunakan kembali.</string>
+    <string name="cloud_upload_document_notice">Pilih beberapa berkas asli untuk diantrekan satu per satu tanpa konversi. Album foto/video belum tersedia. Berkas identik yang sudah terverifikasi akan digunakan kembali.</string>
     <string name="cloud_upload_caption">Keterangan berkas</string>
     <string name="cloud_upload_choose_topic">Pilih satu topik forum sebelum mengirim berkas.</string>
-    <string name="cloud_upload_choose">Pilih dan kirim berkas asli</string>
+    <string name="cloud_upload_choose">Pilih berkas untuk dikirim</string>
     <string name="cloud_upload_importing">Menyiapkan berkas di penyimpanan aplikasi…</string>
     <string name="cloud_upload_running">Mengunggah bagian berkas…</string>
     <string name="cloud_upload_verifying">Memeriksa konfirmasi Telegram…</string>
@@ -22,4 +22,8 @@
     <string name="cloud_upload_failed">Unggahan tidak dapat diproses. Periksa jaringan, akun, izin berkas, dan antrean.</string>
     <string name="cloud_upload_scope_changed">Lokasi atau akun berubah. Pilih kembali berkas dari tujuan yang benar.</string>
     <string name="cloud_upload_empty">Belum ada unggahan di tujuan ini.</string>
+    <string name="cloud_upload_batch_progress">Menyiapkan berkas %1$d dari %2$d…</string>
+    <string name="cloud_upload_batch_queued">%1$d berkas masuk antrean; %2$d berkas identik digunakan kembali.</string>
+    <string name="cloud_upload_batch_reused">%1$d berkas identik sudah terverifikasi di tujuan ini; tidak ada yang dikirim ulang.</string>
+    <string name="cloud_upload_batch_partial">%1$d dari %2$d berkas diterima. Berkas lainnya belum masuk antrean.</string>
 </resources>

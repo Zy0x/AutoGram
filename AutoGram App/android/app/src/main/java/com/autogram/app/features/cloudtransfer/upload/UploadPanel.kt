@@ -18,7 +18,7 @@ import com.autogram.app.features.cloud.CloudScope
 import kotlinx.coroutines.*
 import uniffi.autogram_android_bridge.*
 
-/** One explicit SAF selection sends one original document, never an inferred visual album. */
+/** Explicit SAF selections enqueue original documents; visual albums use a separate contract. */
 @Composable
 fun UploadPanel(scope: CloudScope, destinationTitle: String, onDismiss: () -> Unit,
     queueOverride: UploadQueue? = null, allowSelection: Boolean = true) {
@@ -34,6 +34,7 @@ private fun ScopedUploadPanel(scope: CloudScope, destinationTitle: String, onDis
     val actions = rememberCoroutineScope()
     var importJob by remember { mutableStateOf<Job?>(null) }
     var importing by remember { mutableStateOf(false) }
+    var importProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var caption by rememberSaveable { mutableStateOf("") }
     // Save picker ownership across recreation. A late result cannot use a newly
     // selected account/location, even if the launcher is registered again.
@@ -42,35 +43,62 @@ private fun ScopedUploadPanel(scope: CloudScope, destinationTitle: String, onDis
     var pickerTopic by rememberSaveable { mutableStateOf(0L) }
     var pickerCaption by rememberSaveable { mutableStateOf("") }
     var feedback by remember { mutableStateOf<Int?>(null) }
+    var feedbackArgs by remember { mutableStateOf(emptyList<Int>()) }
     var loadFailed by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var records by remember { mutableStateOf(emptyList<NativeCloudUpload>()) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val requested = CloudScope(pickerAccount, pickerPeer, pickerTopic.takeIf { it > 0 })
         pickerAccount = ""
-        if (uri != null && requested == scope && !importing && allowSelection) {
+        if (uris.isNotEmpty() && requested == scope && !importing && allowSelection) {
             importing = true
+            importProgress = null
             feedback = null
+            feedbackArgs = emptyList()
             val originalCaption = pickerCaption
             importJob = actions.launch {
                 try {
-                    val input = importUpload(context, uri, requested, originalCaption)
-                    val result = withContext(Dispatchers.IO) { queue.enqueue(input).also { validateAdmission(input, it) } }
-                    feedback = when (result) {
-                        is NativeUploadAdmission.Reused -> R.string.cloud_upload_reused
-                        is NativeUploadAdmission.Queued -> if (queue.wake(context)) R.string.cloud_upload_queued
-                            else R.string.cloud_upload_waiting
+                    val summary = enqueueUploadBatch(uris.size, admit = { index ->
+                        val input = importUpload(context, uris[index], requested, originalCaption)
+                        when (val result = withContext(Dispatchers.IO) {
+                            queue.enqueue(input).also { validateAdmission(input, it) }
+                        }) {
+                            is NativeUploadAdmission.Queued -> UploadAdmissionOutcome.QUEUED
+                            is NativeUploadAdmission.Reused -> UploadAdmissionOutcome.REUSED
+                        }
+                    }, onProgress = { current, total -> importProgress = current to total },
+                        onCancelled = { summary ->
+                            wakeAcceptedUploads(queue, context, summary.queued)
+                            feedback = R.string.cloud_upload_batch_partial
+                            feedbackArgs = listOf(summary.accepted, summary.total)
+                        })
+                    val woke = summary.queued == 0 || wakeUploadQueue(queue, context)
+                    feedback = when {
+                        summary.queued == 0 -> R.string.cloud_upload_batch_reused
+                        !woke -> R.string.cloud_upload_waiting
+                        else -> R.string.cloud_upload_batch_queued
                     }
+                    feedbackArgs = when {
+                        summary.queued == 0 -> listOf(summary.reused)
+                        !woke -> emptyList()
+                        else -> listOf(summary.queued, summary.reused)
+                    }
+                } catch (failure: PartialUploadBatchFailure) {
+                    wakeAcceptedUploads(queue, context, failure.summary.queued)
+                    feedback = R.string.cloud_upload_batch_partial
+                    feedbackArgs = listOf(failure.summary.accepted, failure.summary.total)
                 } catch (cancelled: CancellationException) { throw cancelled }
                 catch (failure: UploadSpoolFailure) {
+                    feedbackArgs = emptyList()
                     feedback = if (failure.code == "insufficient_storage") R.string.cloud_upload_storage else R.string.cloud_upload_failed
                 }
                 catch (failure: NativeUploadException.RequestFailed) {
+                    feedbackArgs = emptyList()
                     feedback = if (failure.code == "review_required" || failure.code == "busy")
                         R.string.cloud_upload_duplicate_review else R.string.cloud_upload_failed
                 }
-                catch (_: Exception) { feedback = R.string.cloud_upload_failed }
-                catch (_: LinkageError) { feedback = R.string.cloud_upload_failed }
+                catch (_: Exception) { feedbackArgs = emptyList(); feedback = R.string.cloud_upload_failed }
+                catch (_: LinkageError) { feedbackArgs = emptyList(); feedback = R.string.cloud_upload_failed }
                 finally {
                     // Cancellation may race a committed enqueue. Register recovery
                     // even when its coroutine didn't receive the native result.
@@ -80,9 +108,10 @@ private fun ScopedUploadPanel(scope: CloudScope, destinationTitle: String, onDis
                         catch (_: Exception) { /* Actual queue stays persisted; no execution promise. */ }
                     }
                     importing = false
+                    importProgress = null
                 }
             }
-        } else if (uri != null) feedback = R.string.cloud_upload_scope_changed
+        } else if (uris.isNotEmpty()) feedback = R.string.cloud_upload_scope_changed
     }
     LaunchedEffect(scope, queue) {
         while (isActive) {
@@ -116,10 +145,12 @@ private fun ScopedUploadPanel(scope: CloudScope, destinationTitle: String, onDis
                 }
                 if (importing) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text(stringResource(R.string.cloud_upload_importing))
+                    val progress = importProgress
+                    if (progress == null) Text(stringResource(R.string.cloud_upload_importing))
+                    else Text(stringResource(R.string.cloud_upload_batch_progress, progress.first, progress.second))
                     TextButton(onClick = { importJob?.cancel() }) { Text(stringResource(R.string.drive_action_cancel)) }
                 }
-                feedback?.let { Text(stringResource(it)) }
+                feedback?.let { Text(stringResource(it, *feedbackArgs.toTypedArray())) }
                 if (loadFailed) Text(stringResource(R.string.cloud_upload_failed), color = MaterialTheme.colorScheme.error)
                 else if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else if (records.isEmpty()) Text(stringResource(R.string.cloud_upload_empty))

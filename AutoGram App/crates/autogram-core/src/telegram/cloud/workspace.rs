@@ -149,7 +149,11 @@ impl CloudWorkspace {
             let mut peers = Vec::new();
             let mut photos = Vec::new();
             for _ in 0..PAGE_SIZE {
-                let Some(dialog) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(RpcDomain::Dialogs))? else {
+                let Some(dialog) = iter
+                    .next()
+                    .await
+                    .map_err(|e| map_rpc(e).for_rpc(RpcDomain::Dialogs))?
+                else {
                     break;
                 };
                 let id = dialog.peer_id().bot_api_dialog_id_unchecked().to_string();
@@ -175,7 +179,9 @@ impl CloudWorkspace {
                     photo_key: photo.as_ref().map(avatar::photo_key),
                     avatar_bytes: avatar::inline_photo(dialog.peer()),
                 });
-                if let Some(photo) = photo { photos.push(((account.0.clone(), id.clone()), photo)); }
+                if let Some(photo) = photo {
+                    photos.push(((account.0.clone(), id.clone()), photo));
+                }
                 peers.push(((account.0.clone(), id), dialog.peer_ref()));
             }
             let next_cursor = (items.len() == PAGE_SIZE).then(token);
@@ -223,7 +229,11 @@ impl CloudWorkspace {
         let revision = auth.cloud_revision();
         let peer = self.peer(&account, &peer_id, revision)?;
         let owner = account.clone();
-        let domain = if query.trim().is_empty() { RpcDomain::History } else { RpcDomain::Search };
+        let domain = if query.trim().is_empty() {
+            RpcDomain::History
+        } else {
+            RpcDomain::Search
+        };
         auth.cloud_request_scoped(&owner, &[domain], |client| async move {
             let mut items = Vec::new();
             let mut cached_media = Vec::new();
@@ -234,7 +244,9 @@ impl CloudWorkspace {
                     .iter_messages(peer)
                     .offset_id(before_message_id)
                     .limit(HISTORY_SCAN);
-                while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
+                while let Some(message) =
+                    iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))?
+                {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(media) = message.media() {
@@ -243,7 +255,8 @@ impl CloudWorkspace {
                             message.date().timestamp_millis(),
                             &media,
                         ) {
-                            cached_media.push(((account.0.clone(), peer_id.clone(), item.id), media));
+                            cached_media
+                                .push(((account.0.clone(), peer_id.clone(), item.id), media));
                             items.push(item);
                         }
                     }
@@ -254,7 +267,9 @@ impl CloudWorkspace {
                     .offset_id(before_message_id)
                     .query(query.trim())
                     .limit(HISTORY_SCAN);
-                while let Some(message) = iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))? {
+                while let Some(message) =
+                    iter.next().await.map_err(|e| map_rpc(e).for_rpc(domain))?
+                {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(media) = message.media() {
@@ -263,7 +278,8 @@ impl CloudWorkspace {
                             message.date().timestamp_millis(),
                             &media,
                         ) {
-                            cached_media.push(((account.0.clone(), peer_id.clone(), item.id), media));
+                            cached_media
+                                .push(((account.0.clone(), peer_id.clone(), item.id), media));
                             items.push(item);
                         }
                     }
@@ -377,6 +393,41 @@ impl CloudWorkspace {
             })
         })
         .await
+    }
+
+    pub async fn delete_media(
+        &self,
+        auth: &AuthEngine,
+        account: AccountId,
+        peer_id: String,
+        topic_id: Option<i32>,
+        message_ids: Vec<i32>,
+    ) -> Result<CloudDeleteResult, AuthError> {
+        let revision = auth.cloud_revision();
+        let peer = self.peer(&account, &peer_id, revision)?;
+        let result = super::delete::delete_media(
+            auth,
+            account.clone(),
+            peer_id.clone(),
+            peer,
+            topic_id,
+            message_ids,
+        )
+        .await?;
+        if !result.deleted_ids.is_empty() {
+            let removed: std::collections::HashSet<i32> =
+                result.deleted_ids.iter().copied().collect();
+            let mut state = self.state.lock();
+            state.refresh(revision)?;
+            state
+                .media
+                .retain(|(cached_account, cached_peer, message_id), _| {
+                    cached_account != &account.0
+                        || cached_peer != &peer_id
+                        || !removed.contains(message_id)
+                });
+        }
+        Ok(result)
     }
 
     pub async fn open_stream(
@@ -598,10 +649,8 @@ impl CloudWorkspace {
                 for maybe_msg in messages.into_iter().flatten() {
                     let msg_id = maybe_msg.id();
                     if let Some(media) = maybe_msg.media() {
-                        newly_cached.push((
-                            (account.0.clone(), peer_id.clone(), msg_id),
-                            media.clone(),
-                        ));
+                        newly_cached
+                            .push(((account.0.clone(), peer_id.clone(), msg_id), media.clone()));
                         resolved.push((msg_id, media));
                     }
                 }

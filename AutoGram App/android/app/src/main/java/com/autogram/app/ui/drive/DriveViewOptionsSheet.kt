@@ -23,6 +23,7 @@ import com.autogram.app.theme.*
 import com.autogram.app.viewmodel.DriveGridAspectRatio
 import com.autogram.app.viewmodel.DriveSortOrder
 import com.autogram.app.viewmodel.DriveThumbnailQuality
+import com.autogram.app.features.cloud.grid.DriveGridDensity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +32,8 @@ fun DriveViewOptionsSheet(
     onToggleViewMode: () -> Unit,
     gridAspectRatio: DriveGridAspectRatio,
     onGridAspectRatioChange: (DriveGridAspectRatio) -> Unit,
+    gridDensity: DriveGridDensity,
+    onGridDensityChange: (DriveGridDensity) -> Unit,
     thumbnailQuality: DriveThumbnailQuality,
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit,
     sortOrder: DriveSortOrder,
@@ -147,6 +150,33 @@ fun DriveViewOptionsSheet(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                }
+
+                ViewOptionSection(title = stringResource(R.string.drive_grid_density_section)) {
+                    val densityLabel = stringResource(
+                        when (gridDensity) {
+                            DriveGridDensity.EXTRA_SMALL -> R.string.drive_grid_density_xs
+                            DriveGridDensity.SMALL -> R.string.drive_grid_density_small
+                            DriveGridDensity.MEDIUM -> R.string.drive_grid_density_medium
+                            DriveGridDensity.LARGE -> R.string.drive_grid_density_large
+                            DriveGridDensity.EXTRA_LARGE -> R.string.drive_grid_density_xl
+                            DriveGridDensity.MAXIMUM -> R.string.drive_grid_density_max
+                        }
+                    )
+                    Text(
+                        text = stringResource(R.string.drive_grid_density_value, densityLabel),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimaryDark
+                    )
+                    Slider(
+                        value = gridDensity.ordinal.toFloat(),
+                        onValueChange = { value ->
+                            onGridDensityChange(DriveGridDensity.entries[value.toInt().coerceIn(0, 5)])
+                        },
+                        valueRange = 0f..5f,
+                        steps = 4,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 

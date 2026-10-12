@@ -34,10 +34,9 @@ pub async fn inspect_duplicates(
         }
         if document.document_id != candidate.document_id
             || document.size != candidate.size
-            || candidate
-                .filename
-                .as_ref()
-                .is_some_and(|name| *name != document.filename)
+            || candidate.filename.as_ref().is_some_and(|name| {
+                !crate::transfer::cloud_upload::telegram_filename_matches(name, &document.filename)
+            })
         {
             stale_candidates += 1;
             continue;

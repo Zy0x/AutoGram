@@ -26,7 +26,7 @@ fun DriveUnifiedHeader(
     searchQuery: String, onSearchChange: (String) -> Unit, onOpenViewOptions: () -> Unit,
     onRefresh: () -> Unit, onOpenTools: () -> Unit, onCustomizeIcon: () -> Unit,
     onClearSelection: () -> Unit, onSelectAll: () -> Unit, onInvertSelection: () -> Unit,
-    onDownloadZip: () -> Unit, onCopyLinks: () -> Unit, modifier: Modifier = Modifier,
+    onCopyLinks: () -> Unit, modifier: Modifier = Modifier,
     onOpenDownloads: () -> Unit = {}, compact: Boolean = false,
     locations: (@Composable () -> Unit)? = null
 ) {
@@ -78,16 +78,13 @@ fun DriveUnifiedHeader(
                             onClick = { menuOpen = false; onOpenTools() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_customize_icon_title)) },
                             onClick = { menuOpen = false; onCustomizeIcon() })
-                    }
-                    DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_select_all)) },
-                        onClick = { menuOpen = false; onSelectAll() })
-                    if (selectedCount > 0) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_select_all)) },
+                            onClick = { menuOpen = false; onSelectAll() })
+                    } else {
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_invert_selection)) },
                             onClick = { menuOpen = false; onInvertSelection() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_copy_links)) },
                             onClick = { menuOpen = false; onCopyLinks() })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_download_zip)) },
-                            onClick = { menuOpen = false; onDownloadZip() })
                     }
                 }
             }

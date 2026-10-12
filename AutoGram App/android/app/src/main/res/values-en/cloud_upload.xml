@@ -4,10 +4,10 @@
     <string name="cloud_upload_profile_document">Android original files</string>
     <string name="cloud_upload_notification">Processing the upload queue. Android may defer background work.</string>
     <string name="cloud_upload_destination">Destination: %1$s</string>
-    <string name="cloud_upload_document_notice">Send one original file without conversion. Photo/video albums are not available yet. Verified identical files are reused.</string>
+    <string name="cloud_upload_document_notice">Select multiple original files to queue individually without conversion. Photo/video albums are not available yet. Verified identical files are reused.</string>
     <string name="cloud_upload_caption">File caption</string>
     <string name="cloud_upload_choose_topic">Select a forum topic before sending a file.</string>
-    <string name="cloud_upload_choose">Choose and send original file</string>
+    <string name="cloud_upload_choose">Choose files to send</string>
     <string name="cloud_upload_importing">Preparing the file in app storage…</string>
     <string name="cloud_upload_running">Uploading file parts…</string>
     <string name="cloud_upload_verifying">Checking Telegram confirmation…</string>
@@ -22,4 +22,8 @@
     <string name="cloud_upload_failed">The upload could not be processed. Check connectivity, account, file access, and the queue.</string>
     <string name="cloud_upload_scope_changed">The account or destination changed. Choose the file again from the correct destination.</string>
     <string name="cloud_upload_empty">There are no uploads at this destination.</string>
+    <string name="cloud_upload_batch_progress">Preparing file %1$d of %2$d…</string>
+    <string name="cloud_upload_batch_queued">%1$d files queued; %2$d identical files reused.</string>
+    <string name="cloud_upload_batch_reused">%1$d identical files are already verified at this destination; none were resent.</string>
+    <string name="cloud_upload_batch_partial">Accepted %1$d of %2$d files. The remaining files were not queued.</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.autogram.app.ui.drive
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,13 +27,16 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import java.util.Date
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import com.autogram.app.features.cloud.cloudErrorLabel
 import com.autogram.app.features.cloudtransfer.DownloadPanel
 import com.autogram.app.features.cloud.CloudScope
 import com.autogram.app.features.cloudtransfer.hooks.rememberBatchDownloadAction
 import com.autogram.app.features.cloudtransfer.upload.UploadPanel
+import com.autogram.app.features.cloud.grid.computeDriveGridLayout
+import com.autogram.app.features.cloud.grid.DriveGridDensity
+import com.autogram.app.features.cloud.grid.driveGridDensityAfterPinch
 
 private fun childPath(base: String, name: String): String =
     if (base == "/" || base.isBlank()) "/$name" else "${base.trimEnd('/')}/$name"
@@ -43,6 +48,14 @@ fun DriveScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
+    val gridPreferences = remember(context) {
+        context.getSharedPreferences("autogram_drive_preferences", android.content.Context.MODE_PRIVATE)
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.setGridDensity(DriveGridDensity.entries[
+            gridPreferences.getInt("grid_zoom", DriveGridDensity.MEDIUM.ordinal).coerceIn(0, 5)
+        ])
+    }
     val batchDownload = rememberBatchDownloadAction(CloudScope(state.sessionId, state.peerId, state.topicId),
         onAllQueued = { queued ->
             if (viewModel.uiState.value.selectedIds == queued) viewModel.clearSelection()
@@ -122,6 +135,10 @@ fun DriveScreen(
         onSortOrderChange = viewModel::setSortOrder,
         onThumbnailQualityChange = viewModel::setThumbnailQuality,
         onGridAspectRatioChange = viewModel::setGridAspectRatio,
+        onGridDensityChange = { density ->
+            viewModel.setGridDensity(density)
+            gridPreferences.edit().putInt("grid_zoom", density.ordinal).apply()
+        },
         onToggleViewMode = viewModel::toggleViewMode,
         onRefresh = { viewModel.loadFolder(state.currentPath) },
         onUpload = { isUploadsOpen = true },
@@ -290,7 +307,7 @@ fun DriveScreen(
     if (isDeleteModalOpen) {
         DriveConfirmDeleteModal(
             selectedCount = state.selectedIds.size.coerceAtLeast(1),
-            onConfirm = { unsupported = true },
+            onConfirm = viewModel::deleteSelected,
             onDismiss = { isDeleteModalOpen = false }
         )
     }
@@ -314,6 +331,11 @@ fun DriveScreen(
             onToggleViewMode = viewModel::toggleViewMode,
             gridAspectRatio = state.gridAspectRatio,
             onGridAspectRatioChange = viewModel::setGridAspectRatio,
+            gridDensity = state.gridDensity,
+            onGridDensityChange = { density ->
+                viewModel.setGridDensity(density)
+                gridPreferences.edit().putInt("grid_zoom", density.ordinal).apply()
+            },
             thumbnailQuality = state.thumbnailQuality,
             onThumbnailQualityChange = viewModel::setThumbnailQuality,
             sortOrder = state.sortOrder,
@@ -352,6 +374,7 @@ fun DriveScreenContent(
     onSortOrderChange: (DriveSortOrder) -> Unit = {},
     onThumbnailQualityChange: (DriveThumbnailQuality) -> Unit = {},
     onGridAspectRatioChange: (DriveGridAspectRatio) -> Unit = {},
+    onGridDensityChange: (DriveGridDensity) -> Unit = {},
     onToggleViewMode: () -> Unit,
     onRefresh: () -> Unit,
     onUpload: () -> Unit,
@@ -382,10 +405,9 @@ fun DriveScreenContent(
     val filteredItems = remember(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId) {
         galleryItems(state.items, state.searchQuery, state.mediaFilter, state.activeTopicId)
     }
-    val sections = remember(filteredItems) { gallerySections(filteredItems) }
-    val context = LocalContext.current
     val gridState = rememberLazyGridState()
     val visibleCallback by rememberUpdatedState(onVisibleMedia)
+    val gridDensityCallback by rememberUpdatedState(onGridDensityChange)
     LaunchedEffect(gridState, state.sessionId, state.peerId, state.activeTopicId) {
         snapshotFlow {
             gridState.layoutInfo.visibleItemsInfo.mapNotNull { cell ->
@@ -428,7 +450,6 @@ fun DriveScreenContent(
                     onClearSelection = onClearSelection,
                     onSelectAll = onSelectAll,
                     onInvertSelection = onInvertSelection,
-                    onDownloadZip = onDownloadZip,
                     onCopyLinks = onCopyLinks,
                     onOpenDownloads = onOpenDownloads,
                     compact = collapsed,
@@ -448,20 +469,40 @@ fun DriveScreenContent(
                 }
 
                 // Gallery Grid
+                var gridWidthDp by remember { mutableFloatStateOf(0f) }
+                val density = LocalDensity.current
+                val gridColumns = if (state.isGridView) computeDriveGridLayout(
+                    gridWidthDp,
+                    state.gridDensity,
+                    portraitRatio = state.gridAspectRatio.ratio
+                ).columns else 1
                 LazyVerticalGrid(
-                    columns = if (state.isGridView) GridCells.Adaptive(104.dp) else GridCells.Fixed(1),
+                    columns = GridCells.Fixed(gridColumns),
                     state = gridState,
                     modifier = Modifier
                         .weight(1f)
+                        .pointerInput(state.isGridView, state.gridDensity) {
+                            if (!state.isGridView) return@pointerInput
+                            var accumulatedScale = 1f
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (kotlin.math.abs(zoom - 1f) < 0.015f) return@detectTransformGestures
+                                accumulatedScale *= zoom
+                                val next = driveGridDensityAfterPinch(state.gridDensity, accumulatedScale)
+                                    ?: return@detectTransformGestures
+                                accumulatedScale = 1f
+                                gridDensityCallback(next)
+                            }
+                        }
+                        .onSizeChanged { gridWidthDp = with(density) { it.width.toDp().value } }
                         .testTag("cloud-gallery"),
                     contentPadding = PaddingValues(
-                        start = 3.dp,
-                        end = 3.dp,
+                        start = 14.dp,
+                        end = 14.dp,
                         top = 4.dp,
                         bottom = if (state.selectedIds.isNotEmpty()) 16.dp else 80.dp
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (state.selectedIds.isEmpty()) {
                         item(key = "filters", span = { GridItemSpan(maxLineSpan) }) {
@@ -484,49 +525,21 @@ fun DriveScreenContent(
                         )
                     }
 
-                    sections.forEach { section ->
-                        item(key = "date:${section.key}", span = { GridItemSpan(maxLineSpan) }) {
-                            val dateLabel = section.timestampMs?.let { ts ->
-                                val now = java.util.Calendar.getInstance()
-                                val itemCal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
-                                if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
-                                    now.get(java.util.Calendar.DAY_OF_YEAR) == itemCal.get(java.util.Calendar.DAY_OF_YEAR)) {
-                                    stringResource(R.string.ui2_today)
-                                } else if (now.get(java.util.Calendar.YEAR) == itemCal.get(java.util.Calendar.YEAR) &&
-                                    now.get(java.util.Calendar.DAY_OF_YEAR) - itemCal.get(java.util.Calendar.DAY_OF_YEAR) == 1) {
-                                    stringResource(R.string.ui2_yesterday)
-                                } else {
-                                    android.text.format.DateFormat.getMediumDateFormat(context).format(Date(ts))
-                                }
-                            } ?: stringResource(R.string.clean_gallery_unknown_date)
-
-                            Text(
-                                text = dateLabel,
-                                modifier = Modifier.padding(start = 14.dp, top = 16.dp, bottom = 6.dp),
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    fontSize = 13.sp
-                                ),
-                                color = TextPrimaryDark
-                            )
-                        }
-
-                        items(section.items, key = { "media:${it.id}" }) { item ->
-                            if (state.isGridView) FileGridItem(
-                                item = item,
-                                isSelected = item.id in state.selectedIds,
-                                onClick = { onItemClick(item) },
-                                onLongClick = { onItemLongClick(item) },
-                                aspectRatio = state.gridAspectRatio.ratio
-                            )
-                            else FileListItem(
-                                item,
-                                item.id in state.selectedIds,
-                                { onItemClick(item) },
-                                { onItemLongClick(item) },
-                                Modifier.padding(horizontal = 12.dp, vertical = 3.dp)
-                            )
-                        }
+                    items(filteredItems, key = { "media:${it.id}" }) { item ->
+                        if (state.isGridView) FileGridItem(
+                            item = item,
+                            isSelected = item.id in state.selectedIds,
+                            onClick = { onItemClick(item) },
+                            onLongClick = { onItemLongClick(item) },
+                            aspectRatio = state.gridAspectRatio.ratio
+                        )
+                        else FileListItem(
+                            item,
+                            item.id in state.selectedIds,
+                            { onItemClick(item) },
+                            { onItemLongClick(item) },
+                            Modifier.padding(horizontal = 12.dp, vertical = 3.dp)
+                        )
                     }
 
                     item(key = "pagination", span = { GridItemSpan(maxLineSpan) }) {

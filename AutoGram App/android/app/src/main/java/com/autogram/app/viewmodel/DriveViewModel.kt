@@ -8,6 +8,7 @@ import com.autogram.app.features.cloud.reads.CloudAutomaticRetryBudget
 import com.autogram.app.features.cloud.topics.CloudTopic
 import com.autogram.app.features.cloud.topics.currentDriveLocation
 import com.autogram.app.features.cloud.topics.resolveDriveLocation
+import com.autogram.app.features.cloud.grid.DriveGridDensity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
@@ -75,6 +76,7 @@ data class DriveUiState(
     val mediaFilter: DriveMediaFilter = DriveMediaFilter.ALL,
     val thumbnailQuality: DriveThumbnailQuality = DriveThumbnailQuality.BALANCED,
     val gridAspectRatio: DriveGridAspectRatio = DriveGridAspectRatio.PORTRAIT,
+    val gridDensity: DriveGridDensity = DriveGridDensity.MEDIUM,
     val sortOrder: DriveSortOrder = DriveSortOrder.DATE_DESC,
     val isLoading: Boolean = false,
     val items: List<DriveFileItem> = emptyList(),
@@ -388,6 +390,11 @@ class DriveViewModel(
         _uiState.update { it.copy(gridAspectRatio = ratio) }
     }
 
+    fun setGridDensity(density: DriveGridDensity) {
+        if (_uiState.value.gridDensity == density) return
+        _uiState.update { it.copy(gridDensity = density) }
+    }
+
     fun toggleGridAspectRatio() {
         val next = if (_uiState.value.gridAspectRatio == DriveGridAspectRatio.PORTRAIT) {
             DriveGridAspectRatio.SQUARE
@@ -426,10 +433,51 @@ class DriveViewModel(
     }
 
     fun deleteSelected() {
-        // The existing bridge only removes local rows by unscoped ID, not Telegram files.
-        // Keep records intact until scoped cloud deletion is available.
-        if (_uiState.value.selectedIds.isNotEmpty()) {
-            _uiState.update { it.copy(errorCode = "drive_delete_unavailable") }
+        val snapshot = _uiState.value
+        if (snapshot.selectedIds.isEmpty()) return
+        val scope = CloudScope(snapshot.sessionId, snapshot.peerId, snapshot.topicId)
+        val selected = snapshot.items.filter { it.id in snapshot.selectedIds }
+        val ids = selected.mapNotNull { item ->
+            item.cloudMessageId?.takeIf {
+                item.cloudAccountId == scope.accountId && item.cloudPeerId == scope.peerId &&
+                    item.topicId == scope.topicId
+            }
+        }
+        if (ids.size != snapshot.selectedIds.size) {
+            _uiState.update { current ->
+                if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
+                    current.copy(errorCode = "cloud_delete_scope_mismatch") else current
+            }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val result = cloud.deleteMedia(ids)
+                val deleted = result.deletedIds.toSet()
+                _uiState.update { current ->
+                    if (current.sessionId != scope.accountId || current.peerId != scope.peerId || current.topicId != scope.topicId)
+                        current
+                    else current.copy(
+                        selectedIds = current.selectedIds - deleted.map(Int::toString).toSet(),
+                        errorCode = if (result.failed.isNotEmpty()) {
+                            result.failed.first().code.takeIf { result.deletedIds.isEmpty() } ?: "cloud_delete_partial"
+                        } else null
+                    )
+                }
+                if (deleted.isNotEmpty() && cloud.state.value.scope == scope) cloud.media(preferCache = false)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: CloudFailure) {
+                _uiState.update { current ->
+                    if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
+                        current.copy(errorCode = failure.code) else current
+                }
+            } catch (_: Exception) {
+                _uiState.update { current ->
+                    if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
+                        current.copy(errorCode = "cloud_read_failed") else current
+                }
+            }
         }
     }
 

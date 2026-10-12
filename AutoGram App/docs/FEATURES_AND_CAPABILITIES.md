@@ -5,12 +5,18 @@ An exhaustive technical breakdown of the features, algorithms, and engineering c
 ## Android preview: current availability
 
 Android remains a development preview, not a feature-complete desktop replacement.
-The document-upload engine is still undergoing integration and device acceptance.
-Its recovery logic preserves message identity when temporary uploaded parts are
-rejected, limits repeated retries, and holds unconfirmed sends for review. These
-engine safeguards do not establish upload availability in an installed APK. Interrupted
-confirmations can be checked against an exact stored server message ID; uncertain
-results remain under review rather than triggering another send.
+On the Infinix X698, a generated 1,048,713-byte document was admitted, sent to the
+approved `#Gudang/Tes` fixture destination, confirmed as Telegram message 58057, and
+read back by byte ranges with a SHA-256 match to the staged source. Reopening the same
+operation returned the same message, and duplicate inspection found exact-content
+evidence. A previously ambiguous operation was also reconciled by its persisted message
+ID without another send. Receipt and duplicate checks account for Telegram's observed
+hyphen-to-underscore filename normalization while still verifying scope, document type,
+size, and exact content where applicable. Multiple selected originals remain separate
+operations; Android visual album sending is still unimplemented.
+Visual album sending remains unimplemented.
+Android's gallery now uses the desktop's six grid density presets, responsive column sizing,
+flat card sequence, and touch zoom mapping; physical layout and gesture acceptance remain pending.
 The engine also stores transfer profiles per account and freezes their configuration
 for queued work. Changes to a saved profile affect subsequent jobs. Android Profiles
 screen integration and device acceptance are still pending.
@@ -37,9 +43,10 @@ chosen through Android's document picker. It reads the selected file itself; it 
 not Telegram cloud streaming. Text preview is limited to 256 KiB, with a truncation
 notice. Unsupported formats and unreadable files show an explicit error.
 
-Cloud preview currently shows metadata and any cached thumbnail only. Unimplemented
-archive, upload, album, settings and cloud actions no longer display sample content
-or simulated success. Transfer cards show stored measurements and distinguish failed,
+Cloud preview currently shows metadata and any cached thumbnail only. Cloud media deletion
+now uses a server-verified account/peer/topic/message scope and reports partial results. Original-file
+upload queues individual selections and reports accepted/reused counts, but album upload and its
+native build/device acceptance remain pending. Transfer cards show stored measurements and distinguish failed,
 skipped and cancelled records; changing a local pause flag does not start a worker.
 The canonical builder permits preview Debug APKs, but blocks Release packaging while
 the required cloud workflows and their real-device acceptance evidence are missing.

@@ -100,7 +100,7 @@ class UploadPanelDeviceTest {
         override fun list(account: String): List<NativeCloudUpload> {
             reads.incrementAndGet()
             val record = NativeCloudUpload("fixture-operation", "tg_123", "-1000000000456", 17,
-                "fixture.bin", state, 100uL, 17uL, null, null, null)
+                "fixture.bin", state, 100uL, 17uL, null, null, null, null)
             return if (!foreign) listOf(record) else listOf(record.copy(accountId = "tg_999"),
                 record.copy(peerId = "-1000000000789"), record.copy(topicId = 18))
         }

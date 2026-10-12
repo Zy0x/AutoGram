@@ -70,10 +70,7 @@ impl UploadStore {
         self.mapped_message_id(&record)?
             .ok_or(UploadError::ReviewRequired)
     }
-    pub(super) fn mapped_message_id(
-        &self,
-        record: &UploadRecord,
-    ) -> Result<Option<i32>, UploadError> {
+    pub fn mapped_message_id(&self, record: &UploadRecord) -> Result<Option<i32>, UploadError> {
         self.connection
             .lock()
             .query_row(

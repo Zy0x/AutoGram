@@ -20,10 +20,18 @@ data class CloudState(
     val locationsRetryAtMs: Long = 0, val thumbnailRetryAtMs: Long = 0
 )
 data class CloudThumbnail(val messageId: Int, val bytes: ByteArray)
+data class CloudDeleteFailure(val messageId: Int, val code: String, val retryAfterSeconds: Long)
+data class CloudDeleteResult(
+    val scope: CloudScope,
+    val deletedIds: List<Int>,
+    val failed: List<CloudDeleteFailure>
+)
 class CloudFailure(val code: String, val retryAfterSeconds: Long = 0) : Exception(code)
 interface CloudService {
     suspend fun locations(accountId: String, cursor: String?): CloudLocationsPage
     suspend fun media(scope: CloudScope, before: Int, query: String): CloudMediaPage
     suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String): List<CloudThumbnail>
+    suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>): CloudDeleteResult =
+        throw CloudFailure("cloud_delete_unavailable")
 }
 

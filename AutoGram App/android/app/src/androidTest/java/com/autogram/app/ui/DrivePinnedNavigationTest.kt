@@ -82,6 +82,15 @@ class DrivePinnedNavigationTest {
         compose.runOnIdle { assertTrue(options) }
     }
 
+    @Test fun selectionMenuKeepsBulkActionsInOnePlace() {
+        compose.setContent { AutoGramTheme { gallery(state.copy(selectedIds = setOf("1"))) } }
+        compose.onNodeWithContentDescription(text(R.string.clean_gallery_actions)).performClick()
+        compose.onNodeWithText(text(R.string.drive_action_invert_selection)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.drive_action_copy_links)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.drive_action_select_all)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.drive_action_download_zip)).assertDoesNotExist()
+    }
+
     @Test fun focusedSearchSurvivesCompactingAndTopicSelectionIsAccessible() {
         var query by mutableStateOf("")
         compose.setContent { AutoGramTheme { gallery(state.copy(searchQuery = query, activeTopicId = 7),

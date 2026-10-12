@@ -5,6 +5,60 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CloudStoreTest {
+    @Test fun confirmedDeleteRemovesOnlyServerConfirmedIdsAndPreservesPartialFailures() = runBlocking {
+        var deleted: CloudScope? = null
+        var requested = emptyList<Int>()
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(1), item(2), item(3)), null, s.topicId) },
+            deleteProvider = { s, ids ->
+                deleted = s; requested = ids
+                CloudDeleteResult(s, listOf(1, 2), listOf(CloudDeleteFailure(3, "flood_wait", 12)))
+            }
+        ))
+        store.scope(scope.copy(topicId = 17)); store.media()
+        val result = store.deleteMedia(listOf(1, 2, 3))
+        assertEquals(scope.copy(topicId = 17), deleted)
+        assertEquals(listOf(1, 2, 3), requested)
+        assertEquals(listOf(1, 2), result.deletedIds)
+        assertEquals(listOf(3), result.failed.map { it.messageId })
+        assertEquals(listOf(3), store.state.value.items.map { it.id })
+    }
+
+    @Test fun deleteResultFromAnotherScopeIsRejectedWithoutRemovingVisibleItems() = runBlocking {
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(1)), null, s.topicId) },
+            deleteProvider = { s, _ -> CloudDeleteResult(s.copy(peerId = "other"), listOf(1), emptyList()) }
+        ))
+        store.scope(scope); store.media()
+        try {
+            store.deleteMedia(listOf(1))
+            fail("A foreign delete receipt must be rejected")
+        } catch (failure: CloudFailure) {
+            assertEquals("account_changed", failure.code)
+        }
+        assertEquals(listOf(1), store.state.value.items.map { it.id })
+    }
+
+    @Test fun deleteSupersedesAnInFlightReadWithoutLeavingTheScopeLoading() = runBlocking {
+        val pending = CompletableDeferred<CloudMediaPage>()
+        val store = CloudStore(Service(
+            read = { s, _, _ -> pending.await().copy(accountId = s.accountId, peerId = s.peerId) },
+            deleteProvider = { s, _ -> CloudDeleteResult(s, listOf(1), emptyList()) }
+        ))
+        store.scope(scope)
+        val oldRead = launch(start = CoroutineStart.UNDISPATCHED) { store.media() }
+        assertTrue(store.state.value.loading)
+
+        store.deleteMedia(listOf(1))
+
+        assertFalse(store.state.value.loading)
+        assertTrue(store.state.value.items.isEmpty())
+        pending.complete(CloudMediaPage("A", "me", listOf(item(1)), null))
+        oldRead.join()
+        assertFalse(store.state.value.loading)
+        assertTrue(store.state.value.items.isEmpty())
+    }
+
     @Test fun topicSwitchKeepsServerCooldownVisibleAndDoesNotSendAnotherRead() = runBlocking {
         var calls = 0
         val store = CloudStore(Service({ _, _, _ -> calls++; throw CloudFailure("flood_wait", 5) }), { 1000 })
@@ -111,11 +165,13 @@ class CloudStoreTest {
     private class Service(
         val read: suspend (CloudScope, Int, String) -> CloudMediaPage,
         val dialogs: suspend (String, String?) -> CloudLocationsPage = { account, _ -> CloudLocationsPage(account, emptyList(), null) },
-        val thumbProvider: suspend (CloudScope, List<Int>, String) -> List<CloudThumbnail> = { _, _, _ -> emptyList() }
+        val thumbProvider: suspend (CloudScope, List<Int>, String) -> List<CloudThumbnail> = { _, _, _ -> emptyList() },
+        val deleteProvider: suspend (CloudScope, List<Int>) -> CloudDeleteResult = { s, _ -> CloudDeleteResult(s, emptyList(), emptyList()) }
     ) : CloudService {
         override suspend fun media(scope: CloudScope, before: Int, query: String) = read(scope, before, query)
         override suspend fun locations(accountId: String, cursor: String?) = dialogs(accountId, cursor)
         override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String) = thumbProvider(scope, messageIds, quality)
+        override suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>) = deleteProvider(scope, messageIds)
     }
 
     @Test fun accountABARejectsEarlierCompletionEvenWithoutTransportCancellation() = runBlocking {

@@ -39,3 +39,19 @@ pub struct CloudThumbnailItem {
     pub message_id: i32,
     pub thumbnail_bytes: Vec<u8>,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CloudDeleteFailure {
+    pub message_id: i32,
+    pub code: String,
+    pub retry_after_seconds: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CloudDeleteResult {
+    pub account_id: String,
+    pub peer_id: String,
+    pub topic_id: Option<i32>,
+    pub deleted_ids: Vec<i32>,
+    pub failed: Vec<CloudDeleteFailure>,
+}

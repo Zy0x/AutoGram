@@ -1,4 +1,6 @@
-## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
+## Unreleased
+
+### Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
 ### Pin as Favorite (Pin = Favorit) & Native MTProto Cloud Persistence
 - Unified Pin and Favorite concepts across AutoGram: media items are marked and interacted with as "Favorit / Disematkan" (⭐ / 📌).
@@ -21,7 +23,22 @@
 - Added foreground upload dispatch and persisted Android recovery scheduling. Queue rows display native acknowledgements, pause/cancel/retry controls and read-only confirmation recovery. Navigation cancels stale UI work, while persisted operations retain their original destination and account.
 - Fixed the shared transfer file-lock adapter to use Android's native nonblocking OS lock. Upload no longer misreports an unsupported lock as another busy worker, and download uses the same process-safe adapter; genuine lock contention remains separate from storage failures.
 - Made upload/download recovery registration idempotent so opening a foreground transfer or restoring the app reuses an existing scheduled job instead of replacing it and interrupting an active commit.
+- Split native receipt recovery diagnostics into message-ID, peer, destination-topic, media-type, filename, and size mismatches. This keeps uncertain sends in review while identifying which server-owned receipt invariant failed; reconciliation remains an exact-ID read and never sends again.
+- Exposed the exact persisted recovery message ID on the native upload row, allowing scoped diagnostics and read-only reconciliation to inspect the server-mapped message without searching or sending again.
+- Matched receipt filename comparison to Telegram's observed hyphen-to-underscore canonicalization while retaining exact mapping, destination, media-type, and size checks. Added a focused regression for this server normalization.
+- Applied the same narrow filename canonicalization when revalidating persisted duplicate candidates, so a confirmed identical upload is not discarded as stale solely because Telegram returned underscores.
+- Verified the native Android document path on Infinix X698: a generated fixture completed in `#Gudang/Tes`, exact ranged bytes matched the staged SHA-256, restarting the same operation retained its Telegram message ID, and exact-content duplicate evidence was found without a second send.
+- Matched Android Drive gallery density to the desktop's six target-width and column-cap presets, including narrow-phone sizing, 2:3/square card math, 10 dp gaps, 28 dp total side padding, and saved density preference. Pinch gestures now step through the same zoom levels with matching direction and bounded presets. Removed Android-only date separators so card rows follow the same flat sequence as desktop.
 - Added Indonesian/English upload feedback and isolated queue, import and navigation regressions. Visual albums, media preparation, advanced duplicate policies and complete desktop upload parity remain separate unfinished features.
+- Expanded the Android Storage Access Framework picker to admit multiple original files as independent persisted operations. Added per-file preparation progress and exact queued/reused counts; partial queue admission reports how many files were accepted. Visual album sending remains a separate native implementation and is not claimed as complete.
+- Added isolated admission tests for queued/reused aggregation, partial failure, empty selections, and cancellation propagation. The canonical signed four-ABI build, X698 installation, native smoke test, upload fixture verification, and isolated upload UI tests have since passed; visual album delivery and the broader Android parity gates remain open.
+- Tightened native upload correlation so only the exact persisted `random_id` mapping (or Telegram's dedicated one-message short-send response) can create a recovery target. Unrelated new-message updates in the same response cannot be mistaken for the uploaded file; scoped read-back still verifies peer, topic, media type, filename and size before completion.
+- Added bounded retries for the exact mapped-message read-back to tolerate Telegram data-center replication delay. Every retry reuses the persisted message ID and only performs a read; it cannot resend the upload.
+
+### Android Cloud Media Deletion
+- Added account-, peer-, topic-, and message-scoped Telegram media deletion through the shared Grammers core. The server re-reads every selected message before deletion, rejects cross-topic or non-media IDs, retries the exact batch on bounded transient failures, reports partial results, and treats already-removed stale selections as complete.
+- Connected the Android Drive confirmation flow to the native delete result. Only server-confirmed IDs leave the selection; failed IDs remain selected and FloodWait feedback is preserved. Physical fixture acceptance is still pending.
+- Simplified Android Drive selection actions: select-all appears before an item is selected, while inversion and link copying remain in the selected-item overflow menu; download is available only in the action bar, avoiding duplicate choices.
 
 ### Twitter-Style Scroll Anchor Retention & Instant Floating Pill Thumbnail Engine
 - Implemented Sub-Pixel Scroll Anchor Retention Engine (`useScrollAnchorRetention.ts`) in `DriveExplorer`: eliminates jarring scroll jumps, layout jitter, and unexpected viewport displacement when newly uploaded or synced files arrive while the user is actively viewing scrolled content (`scrollTop > 80`).
@@ -64,7 +81,7 @@
 
 ### Native Original-Document Upload Foundation
 - Added an explicit skip-identical admission contract and immutable reuse decisions through migration 030. A verified existing document creates a `SKIPPED` run with its original message pointer, without fabricated sent bytes or a new send receipt. Restart retains the first decision; source/account/topic mismatches and pending identical uploads cannot silently create another transfer.
-- Separated duplicate inspection from final queue admission so account changes and cancellation can reject late results before database writes. Weak filename/size matches and incomplete evidence require review. Strong-skip UI wiring, remaining duplicate policies and fresh native/device acceptance remain pending.
+- Separated duplicate inspection from final queue admission so account changes and cancellation can reject late results before database writes. Weak filename/size matches and incomplete evidence require review. The Android document queue now uses strong-skip admission, and physical exact-content evidence has been verified; replace/rename and the other desktop duplicate policies remain pending.
 - Added scoped ledger revisions that advance with each ledger write. If another transfer confirms a duplicate while inspection is in progress, queue admission requests reinspection instead of uploading against an outdated no-match result.
 - Added read-only four-level duplicate inspection with completed-download provenance and exact Telegram document revalidation. Message IDs stay scoped to their original peer/topic; edited, deleted or mismatched documents cannot confirm an old hash. Filename/size matches remain explicitly weaker than equal content.
 - Duplicate inspection reports its local-ledger coverage, truncated results and unverified legacy records. Network, FloodWait, cancellation and late account changes fail explicitly. Automatic skip/replace/rename decisions, Android UI integration and packaged-device proof remain pending.
@@ -75,7 +92,7 @@
 - Kept the upload ledger's filename, size and delivery class aligned with its newest confirmed message when identical bytes are uploaded under a different filename, preventing stale metadata from contaminating later duplicate decisions.
 - Added bounded recovery for a definite missing-part rejection on the first send attempt: temporary allocations and part progress restart, while the original message identity remains fixed. Retry deadlines and a three-restart budget survive process restarts; ambiguous sends remain held for review, and obsolete worker callbacks cannot complete the replacement allocation.
 - Journaled exact Telegram message mappings before receipt fetches and added read-only recovery for interrupted confirmations. Recovery verifies the mapped message's account, destination, topic and document metadata, then completes queue and ledger records atomically without uploading bytes or sending another message. Missing mappings or mismatched receipts remain under review, with server retry deadlines retained.
-- Added UniFFI queue, control and inspection contracts restricted to app-owned staging files. The Android upload UI, four-ABI packaging, album/duplicate policies and real-Telegram device acceptance remain pending; these host-tested foundations do not unlock Release or claim full upload parity.
+- Added UniFFI queue, control and inspection contracts restricted to app-owned staging files. Android document upload UI, four-ABI packaging, and real-Telegram device acceptance are now verified; visual albums and remaining duplicate policies are still incomplete, so this work does not claim full upload parity or unlock Release.
 - Added a bounded Android staging importer with cancellation, source-size validation and reserved free space for both staging copies. Publication exclusively creates its target, refuses existing files and flushes the output before enqueue can proceed, including on devices that prohibit hard links. Temporary-file fixtures cover import, collisions and publication cancellation.
 
 ### Android Scoped Batch Download Reliability

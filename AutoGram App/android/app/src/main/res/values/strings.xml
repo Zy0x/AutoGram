@@ -428,6 +428,7 @@
     <string name="cloud_refresh">Segarkan</string>
     <string name="cloud_account_required">Masuk dan pilih akun yang telah diverifikasi untuk membuka media cloud.</string>
     <string name="cloud_rate_limited">Telegram meminta jeda. Coba lagi setelah waktu tunggu berakhir.</string>
+    <string name="cloud_delete_partial">Sebagian berkas berhasil dihapus. Item yang gagal tetap dipilih.</string>
     <string name="cloud_refresh_required">Lokasi atau halaman telah kedaluwarsa. Segarkan daftar chat.</string>
     <string name="cloud_read_failed">Media cloud tidak dapat dibaca. Periksa koneksi dan coba lagi.</string>
     <string name="cloud_image_too_large">Gambar ini melebihi batas aman decoding atau ukuran pratinjau 256 MiB.</string>
@@ -918,6 +919,14 @@
     <string name="drive_view_aspect_section">RASIO ASPEK KISI</string>
     <string name="drive_aspect_poster_title">Poster Vertikal</string>
     <string name="drive_aspect_square_title">Kotak Simetris</string>
+    <string name="drive_grid_density_section">UKURAN PETAK</string>
+    <string name="drive_grid_density_value">Ukuran: %1$s</string>
+    <string name="drive_grid_density_xs">Sangat kecil</string>
+    <string name="drive_grid_density_small">Kecil</string>
+    <string name="drive_grid_density_medium">Sedang</string>
+    <string name="drive_grid_density_large">Besar</string>
+    <string name="drive_grid_density_xl">Lebih besar</string>
+    <string name="drive_grid_density_max">Maksimal</string>
     <string name="drive_view_quality_section">KUALITAS GAMBAR MINI</string>
     <string name="drive_thumb_quality_saver">Hemat Data</string>
     <string name="drive_thumb_quality_saver_desc">Cepat &amp; hemat</string>

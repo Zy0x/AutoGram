@@ -8,6 +8,13 @@ use std::path::PathBuf;
 
 pub const UPLOAD_PART_BYTES: usize = 512 * 1024;
 
+/// Telegram canonicalizes ASCII hyphens in uploaded document names to
+/// underscores. Keep all other filename characters exact when comparing a
+/// server-owned receipt with an upload contract.
+pub fn telegram_filename_matches(expected: &str, actual: &str) -> bool {
+    expected.replace('-', "_") == actual.replace('-', "_")
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UploadDestination {
     pub scope: AccountScope,
@@ -95,9 +102,15 @@ impl UploadRequest {
     pub fn validate(&self) -> Result<(), UploadError> {
         self.destination.validate()?;
         self.source.validate()?;
-        if self.profile_binding.as_ref().is_some_and(|binding| binding.revision <= 0
-            || binding.profile_id.is_empty() || binding.profile_id.len() > 128
-            || !binding.profile_id.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))) {
+        if self.profile_binding.as_ref().is_some_and(|binding| {
+            binding.revision <= 0
+                || binding.profile_id.is_empty()
+                || binding.profile_id.len() > 128
+                || !binding
+                    .profile_id
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
+        }) {
             return Err(UploadError::InvalidRequest);
         }
         if self.operation_id.is_empty()
@@ -124,8 +137,11 @@ impl UploadRequest {
     }
 }
 pub fn validate_document_profile(profile: &FrozenTransferProfile) -> Result<(), UploadError> {
-    if profile.schema_version != 1 || profile.presentation_override != PresentationOverride::ForceDocument
-        || profile.group_as_album || profile.group_documents {
+    if profile.schema_version != 1
+        || profile.presentation_override != PresentationOverride::ForceDocument
+        || profile.group_as_album
+        || profile.group_documents
+    {
         return Err(UploadError::UnsupportedProfile);
     }
     Ok(())
@@ -245,8 +261,24 @@ pub enum UploadError {
     PartsExpired,
     #[error("receipt_mismatch")]
     ReceiptMismatch,
+    #[error("receipt_message_id_mismatch")]
+    ReceiptMessageIdMismatch,
+    #[error("receipt_peer_mismatch")]
+    ReceiptPeerMismatch,
+    #[error("receipt_topic_mismatch")]
+    ReceiptTopicMismatch,
+    #[error("receipt_content_mismatch")]
+    ReceiptContentMismatch,
+    #[error("receipt_media_mismatch")]
+    ReceiptMediaMismatch,
+    #[error("receipt_filename_mismatch")]
+    ReceiptFilenameMismatch,
+    #[error("receipt_size_mismatch")]
+    ReceiptSizeMismatch,
     #[error("review_required")]
     ReviewRequired,
+    #[error("{0}")]
+    CommitUnconfirmedResponse(String),
     #[error("operation_cancelled")]
     Cancelled,
     #[error("cloud_write_rejected")]
@@ -256,7 +288,8 @@ pub enum UploadError {
 /// A transport must verify server account identity and retain encrypted peer capabilities.
 /// Acknowledgement means the server accepted this exact part, not that it was dispatched.
 pub trait UploadCommitJournal: Send + Sync {
-    /// Only an exact server UpdateMessageId mapping for this request may be recorded.
+    /// Only an unambiguous message ID from this exact send response may be recorded.
+    /// The transport re-reads and validates the scoped message before completion.
     fn record_message_id(&self, message_id: i32) -> Result<(), UploadError>;
 }
 

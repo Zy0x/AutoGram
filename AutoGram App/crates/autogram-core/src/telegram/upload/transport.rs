@@ -40,7 +40,10 @@ impl<'a> TelegramUploadTransport<'a> {
             cancel,
         })
     }
-    pub(super) async fn peer(&self, destination: &UploadDestination) -> Result<PeerRef, UploadError> {
+    pub(super) async fn peer(
+        &self,
+        destination: &UploadDestination,
+    ) -> Result<PeerRef, UploadError> {
         destination.validate()?;
         if destination.scope != self.scope {
             return Err(UploadError::WrongScope);
@@ -206,6 +209,7 @@ impl CloudUploadTransport for TelegramUploadTransport<'_> {
             }
             .into()
         });
+        let receipt_cancel = self.cancel.clone();
         self.auth
             .account_request_scoped(
                 &AccountId(self.scope.account_id().into()),
@@ -238,46 +242,160 @@ impl CloudUploadTransport for TelegramUploadTransport<'_> {
                         })
                         .await
                         .map_err(|e| upload_rpc(e).for_rpc(RpcDomain::SendMessages))?;
-                    let message_id = confirmed_message_id(updates, request.random_id)
-                        .ok_or_else(|| AuthError::new("commit_unconfirmed"))?;
+                    let message_id = confirmed_message_id(updates.clone(), request.random_id)
+                        .ok_or_else(|| {
+                            AuthError::new(&format!(
+                                "commit_unconfirmed_{}",
+                                update_response_summary(&updates)
+                            ))
+                        })?;
                     // Persist the exact mapping before a receipt fetch can fail or
                     // the process can stop. A journal failure never becomes success.
-                    journal.record_message_id(message_id)
-                        .map_err(|_| AuthError::new("commit_unconfirmed"))?;
-                    super::receipt::read_confirmed_document(&client, peer, request, message_id).await
+                    journal.record_message_id(message_id).map_err(|failure| {
+                        let reason = match failure {
+                            UploadError::InvalidState => "invalid_state",
+                            UploadError::Database => "database",
+                            UploadError::ReceiptMismatch => "receipt_mismatch",
+                            _ => "other",
+                        };
+                        AuthError::new(&format!("commit_mapping_{reason}"))
+                    })?;
+                    super::receipt::read_confirmed_document(
+                        &client,
+                        peer,
+                        request,
+                        message_id,
+                        &receipt_cancel,
+                    )
+                    .await
                 },
             )
             .await
             .map_err(upload_error)
     }
-    async fn reconcile_document(&self, request: &UploadRequest, message_id: i32) -> Result<UploadReceipt, UploadError> {
+    async fn reconcile_document(
+        &self,
+        request: &UploadRequest,
+        message_id: i32,
+    ) -> Result<UploadReceipt, UploadError> {
         request.validate()?;
-        if message_id <= 0 { return Err(UploadError::InvalidRequest); }
+        if message_id <= 0 {
+            return Err(UploadError::InvalidRequest);
+        }
         let peer = self.peer(&request.destination).await?;
-        self.auth.account_request_scoped(&AccountId(self.scope.account_id().into()),
-            &[RpcDomain::Messages], &self.cancel, |client| async move {
-                super::receipt::read_confirmed_document(&client, peer, request, message_id).await
-            }).await.map_err(upload_error)
+        let receipt_cancel = self.cancel.clone();
+        self.auth
+            .account_request_scoped(
+                &AccountId(self.scope.account_id().into()),
+                &[RpcDomain::Messages],
+                &self.cancel,
+                |client| async move {
+                    super::receipt::read_confirmed_document(
+                        &client,
+                        peer,
+                        request,
+                        message_id,
+                        &receipt_cancel,
+                    )
+                    .await
+                },
+            )
+            .await
+            .map_err(upload_error)
     }
 }
 fn confirmed_message_id(updates: tl::enums::Updates, random_id: i64) -> Option<i32> {
-    let updates = match updates {
-        tl::enums::Updates::Updates(value) => value.updates,
-        tl::enums::Updates::Combined(value) => value.updates,
+    let (updates, short_sent_id) = match updates {
+        tl::enums::Updates::Updates(value) => (value.updates, None),
+        tl::enums::Updates::Combined(value) => (value.updates, None),
+        // Telegram uses this response for a single outgoing contact message. The
+        // request itself is the correlation; receipt validation still re-reads
+        // this exact ID and verifies peer, topic, filename and size before success.
+        tl::enums::Updates::UpdateShortSentMessage(value) => (Vec::new(), Some(value.id)),
         _ => return None,
     };
-    let mut result = None;
+    let mut mapped_id = None;
+    let mut response_message_ids = Vec::new();
     for update in updates {
-        if let tl::enums::Update::MessageId(value) = update {
-            if value.random_id == random_id {
-                if value.id <= 0 || result.is_some_and(|old| old != value.id) {
+        match update {
+            tl::enums::Update::MessageId(value) if value.random_id == random_id => {
+                if value.id <= 0 || mapped_id.is_some_and(|old| old != value.id) {
                     return None;
                 }
-                result = Some(value.id);
+                mapped_id = Some(value.id);
             }
+            // New-message updates are not a correlation signal: a send response
+            // can also carry unrelated updates. Persist only exact random_id
+            // mappings (or the dedicated one-message short-send response).
+            tl::enums::Update::NewMessage(value) => {
+                let _ = value;
+            }
+            tl::enums::Update::NewChannelMessage(value) => {
+                let _ = value;
+            }
+            _ => {}
         }
     }
-    result
+    if let Some(id) = short_sent_id {
+        if id <= 0 {
+            return None;
+        }
+        response_message_ids.push(id);
+    }
+    resolve_mapping_and_response(mapped_id, &response_message_ids)
+}
+
+fn resolve_mapping_and_response(mapped_id: Option<i32>, response_ids: &[i32]) -> Option<i32> {
+    // UpdateMessageID is the protocol correlation keyed by the exact
+    // request random_id. Other new-message updates in the same container may
+    // be unrelated service traffic and must not override or invalidate it.
+    match mapped_id {
+        Some(mapped) if mapped > 0 => Some(mapped),
+        Some(_) => None,
+        None => unique_positive_id(response_ids)?,
+    }
+}
+
+fn unique_positive_id(ids: &[i32]) -> Option<Option<i32>> {
+    let mut valid = ids.iter().copied().filter(|id| *id > 0).collect::<Vec<_>>();
+    valid.sort_unstable();
+    valid.dedup();
+    match valid.as_slice() {
+        [] => Some(None),
+        [id] => Some(Some(*id)),
+        _ => None,
+    }
+}
+
+/// A safe, content-free response fingerprint for diagnosing unsupported Updates
+/// shapes. This is persisted only as an error code; no message text or peer data
+/// is logged or stored.
+fn update_response_summary(updates: &tl::enums::Updates) -> String {
+    let (kind, items) = match updates {
+        tl::enums::Updates::Updates(value) => ("updates", Some(value.updates.as_slice())),
+        tl::enums::Updates::Combined(value) => ("combined", Some(value.updates.as_slice())),
+        tl::enums::Updates::UpdateShortSentMessage(_) => ("short_sent", None),
+        tl::enums::Updates::UpdateShortMessage(_) => ("short_message", None),
+        tl::enums::Updates::UpdateShortChatMessage(_) => ("short_chat", None),
+        tl::enums::Updates::UpdateShort(_) => ("short_update", None),
+        tl::enums::Updates::TooLong => ("too_long", None),
+    };
+    let Some(items) = items else {
+        return kind.to_string();
+    };
+    let mut mapping = 0usize;
+    let mut new_message = 0usize;
+    let mut new_channel = 0usize;
+    let mut other = 0usize;
+    for item in items {
+        match item {
+            tl::enums::Update::MessageId(_) => mapping += 1,
+            tl::enums::Update::NewMessage(_) => new_message += 1,
+            tl::enums::Update::NewChannelMessage(_) => new_channel += 1,
+            _ => other += 1,
+        }
+    }
+    format!("{kind}_m{mapping}_n{new_message}_c{new_channel}_o{other}")
 }
 fn original_document_mime<'a>(filename: &str, mime: &'a str) -> &'a str {
     if filename
@@ -314,7 +432,20 @@ pub(super) fn upload_error(error: AuthError) -> UploadError {
         "upload_part_rejected" => UploadError::PartRejected,
         "upload_parts_expired" => UploadError::PartsExpired,
         "receipt_mismatch" => UploadError::ReceiptMismatch,
+        "receipt_message_id_mismatch" => UploadError::ReceiptMessageIdMismatch,
+        "receipt_peer_mismatch" => UploadError::ReceiptPeerMismatch,
+        "receipt_topic_mismatch" => UploadError::ReceiptTopicMismatch,
+        "receipt_content_mismatch" => UploadError::ReceiptContentMismatch,
+        "receipt_media_mismatch" => UploadError::ReceiptMediaMismatch,
+        "receipt_filename_mismatch" => UploadError::ReceiptFilenameMismatch,
+        "receipt_size_mismatch" => UploadError::ReceiptSizeMismatch,
         "commit_unconfirmed" => UploadError::ReviewRequired,
+        value if value.starts_with("commit_unconfirmed_") => {
+            UploadError::CommitUnconfirmedResponse(value.to_string())
+        }
+        value if value.starts_with("commit_mapping_") => {
+            UploadError::CommitUnconfirmedResponse(value.to_string())
+        }
         _ => UploadError::Rejected,
     }
 }
@@ -352,6 +483,31 @@ mod tests {
         assert_eq!(confirmed_message_id(updates(&[(9, -1)]), 9), None);
     }
     #[test]
+    fn exact_mapping_wins_and_short_response_fallback_must_be_unambiguous() {
+        assert_eq!(unique_positive_id(&[]), Some(None));
+        assert_eq!(unique_positive_id(&[18]), Some(Some(18)));
+        assert_eq!(unique_positive_id(&[18, 18]), Some(Some(18)));
+        assert_eq!(unique_positive_id(&[18, 19]), None);
+        assert_eq!(unique_positive_id(&[-1]), Some(None));
+        assert_eq!(resolve_mapping_and_response(Some(18), &[18]), Some(18));
+        assert_eq!(resolve_mapping_and_response(None, &[18]), Some(18));
+        assert_eq!(resolve_mapping_and_response(Some(18), &[19]), Some(18));
+        assert_eq!(resolve_mapping_and_response(Some(18), &[19, 20]), Some(18));
+        assert_eq!(resolve_mapping_and_response(None, &[18, 19]), None);
+        assert_eq!(resolve_mapping_and_response(None, &[]), None);
+    }
+    #[test]
+    fn response_summary_contains_only_update_shape_counts() {
+        assert_eq!(
+            update_response_summary(&updates(&[])),
+            "updates_m0_n0_c0_o0"
+        );
+        assert_eq!(
+            update_response_summary(&tl::enums::Updates::TooLong),
+            "too_long"
+        );
+    }
+    #[test]
     fn original_webp_is_sent_as_document_without_sticker_coercion() {
         assert_eq!(
             original_document_mime("photo.WEBP", "image/webp"),
@@ -364,14 +520,50 @@ mod tests {
     }
 
     #[test]
+    fn receipt_failures_keep_the_specific_server_invariant_code() {
+        for (code, expected) in [
+            (
+                "receipt_message_id_mismatch",
+                UploadError::ReceiptMessageIdMismatch,
+            ),
+            ("receipt_peer_mismatch", UploadError::ReceiptPeerMismatch),
+            ("receipt_topic_mismatch", UploadError::ReceiptTopicMismatch),
+            (
+                "receipt_content_mismatch",
+                UploadError::ReceiptContentMismatch,
+            ),
+            ("receipt_media_mismatch", UploadError::ReceiptMediaMismatch),
+            (
+                "receipt_filename_mismatch",
+                UploadError::ReceiptFilenameMismatch,
+            ),
+            ("receipt_size_mismatch", UploadError::ReceiptSizeMismatch),
+        ] {
+            assert_eq!(upload_error(AuthError::new(code)), expected);
+        }
+    }
+
+    #[test]
     fn part_recovery_requires_exact_normalized_missing_part_rejection() {
         let mapped = |code, name: &str| {
-            upload_error(upload_rpc(InvocationError::Rpc(tl::types::RpcError {
-                error_code: code, error_message: name.into(),
-            }.into())))
+            upload_error(upload_rpc(InvocationError::Rpc(
+                tl::types::RpcError {
+                    error_code: code,
+                    error_message: name.into(),
+                }
+                .into(),
+            )))
         };
-        assert_eq!(mapped(400, "FILE_PART_2_MISSING"), UploadError::PartsExpired);
-        for name in ["FILE_PARTS_MISSING", "FILE_PART_MISSING", "FILE_PART_2_MISSING_EXTRA", "FILE_PARTS_INVALID"] {
+        assert_eq!(
+            mapped(400, "FILE_PART_2_MISSING"),
+            UploadError::PartsExpired
+        );
+        for name in [
+            "FILE_PARTS_MISSING",
+            "FILE_PART_MISSING",
+            "FILE_PART_2_MISSING_EXTRA",
+            "FILE_PARTS_INVALID",
+        ] {
             assert_ne!(mapped(400, name), UploadError::PartsExpired);
         }
         assert_eq!(mapped(500, "FILE_PART_2_MISSING"), UploadError::Network);

@@ -30,6 +30,110 @@ class NativeDocumentUploadTest {
     private fun phase(value: String) = InstrumentationRegistry.getInstrumentation().sendStatus(0,
         android.os.Bundle().apply { putString("stream", "document fixture: $value\n") })
 
+    /** Verify a send that completed before a test interruption; this test never sends. */
+    @Test fun verifyCompletedDocumentFixtureWithoutResending() = runBlocking {
+        withTimeout(120_000) {
+            check(InstrumentationRegistry.getArguments().getString("autogramUploadFixture") == "GudangTes")
+            val pending = org.json.JSONObject(fixtureJournal("pending-document-fixture.json").readText())
+            val operation = pending.getString("operation")
+            val source = File(pending.getString("source")).canonicalFile
+            val root = File(cloudUploadStagingDirectory()).canonicalFile
+            assertEquals(root, source.parentFile)
+            assertEquals("$operation.staged", source.name)
+            assertTrue(source.isFile)
+            val destination = resolveUploadDestination()
+            assertEquals(pending.getString("account"), destination.account)
+            assertEquals(pending.getString("peer"), destination.peer)
+            assertEquals(pending.getInt("topic"), destination.topic)
+            val completed = getCloudUpload(destination.account, operation)
+            assertEquals("completed", completed.state)
+            assertEquals(source.length().toULong(), completed.uploadedBytes)
+            val message = completed.messageId ?: error("Completed operation has no message ID")
+            val stream = openCloudMediaStream(destination.account, destination.peer, message)
+            try {
+                assertEquals(source.length().toULong(), stream.size)
+                val sourceHash = MessageDigest.getInstance("SHA-256").digest(source.readBytes())
+                val cloudHash = MessageDigest.getInstance("SHA-256")
+                var offset = 0uL
+                while (offset < stream.size) {
+                    val count = minOf(65_536uL, stream.size - offset).toUInt()
+                    val chunk = readCloudMediaRange(destination.account, stream.id, offset, count)
+                    assertEquals(count.toInt(), chunk.size)
+                    cloudHash.update(chunk)
+                    offset += chunk.size.toULong()
+                }
+                assertArrayEquals("Previously completed fixture must match source bytes", sourceHash, cloudHash.digest())
+            } finally { closeCloudMediaStream(destination.account, stream.id) }
+            val replay = startCloudUpload(destination.account, operation)
+            assertEquals("completed", replay.state)
+            assertEquals(message, replay.messageId)
+            val inspection = inspectCloudUploadDuplicates(destination.account, destination.peer, destination.topic,
+                source.absolutePath, pending.getString("filename"), null)
+            assertTrue(inspection.matches.any { it.messageId == message && it.exactContent })
+            assertEquals(destination.account, lastSelectedAccount())
+            phase("previously completed message $message matched source SHA-256; retry was idempotent and exact duplicate evidence was found")
+        }
+    }
+
+    /** Reconcile only the exact server-mapped operation left by the previous test process. */
+    @Test fun reconcilePreviouslyMappedFixtureWithoutResending() = runBlocking {
+        withTimeout(120_000) {
+            check(InstrumentationRegistry.getArguments().getString("autogramUploadFixture") == "GudangTes")
+            val journal = fixtureJournal("pending-document-fixture.json")
+            check(journal.isFile) { "No pending generated fixture is recorded" }
+            val pending = org.json.JSONObject(journal.readText())
+            val operation = pending.getString("operation")
+            assertTrue(operation.startsWith("device-fixture-"))
+            val source = File(pending.getString("source")).canonicalFile
+            val stagingRoot = File(cloudUploadStagingDirectory()).canonicalFile
+            assertEquals(stagingRoot, source.parentFile)
+            assertEquals("$operation.staged", source.name)
+            assertTrue(source.isFile)
+            val sourceHash = MessageDigest.getInstance("SHA-256").digest(source.readBytes())
+            val destination = resolveUploadDestination()
+            assertEquals(pending.getString("account"), destination.account)
+            assertEquals(pending.getString("peer"), destination.peer)
+            assertEquals(pending.getInt("topic"), destination.topic)
+            val before = getCloudUpload(destination.account, operation)
+            phase("pending fixture state=${before.state}, error=${before.errorCode ?: "none"}, message=${before.messageId ?: "none"}, recovery=${before.recoveryMessageId ?: "none"}, bytes=${before.uploadedBytes}/${before.size}")
+            assertEquals("review_required", before.state)
+            val mappedMessage = before.recoveryMessageId ?: error("No exact persisted recovery message")
+            val listed = listCloudTopicMedia(destination.account, destination.peer, destination.topic, mappedMessage + 1, "")
+                .items.firstOrNull { it.id == mappedMessage }
+            phase("mapped expected=${before.filename}, server=${listed?.name ?: "not-listed"}, size=${listed?.size ?: 0}, category=${listed?.telegramCategory ?: "unknown"}")
+            val reconciled = try {
+                // This reads only the persisted exact message mapping. It never
+                // searches history or resends when the original outcome is unclear.
+                reconcileCloudUpload(destination.account, operation)
+            } catch (error: Throwable) {
+                val category = (error as? NativeUploadException.RequestFailed)?.code ?: error.javaClass.simpleName
+                phase("exact mapped receipt remains unconfirmed ($category)")
+                throw error
+            }
+            assertEquals("completed", reconciled.state)
+            assertNotNull(reconciled.messageId)
+            assertEquals(before.size, reconciled.uploadedBytes)
+            assertEquals("completed", getCloudUpload(destination.account, operation).state)
+            val message = reconciled.messageId ?: error("Missing exact receipt message")
+            val stream = openCloudMediaStream(destination.account, destination.peer, message)
+            try {
+                assertEquals(source.length().toULong(), stream.size)
+                val cloudHash = MessageDigest.getInstance("SHA-256")
+                var offset = 0uL
+                while (offset < stream.size) {
+                    val count = minOf(65_536uL, stream.size - offset).toUInt()
+                    val chunk = readCloudMediaRange(destination.account, stream.id, offset, count)
+                    assertEquals(count.toInt(), chunk.size)
+                    cloudHash.update(chunk)
+                    offset += chunk.size.toULong()
+                }
+                assertArrayEquals("Exact mapped Telegram bytes must match the generated source", sourceHash, cloudHash.digest())
+            } finally { closeCloudMediaStream(destination.account, stream.id) }
+            assertEquals(message, startCloudUpload(destination.account, operation).messageId)
+            phase("exact mapped message reconciled; generated cloud bytes matched without another send")
+        }
+    }
+
     @Test fun actualDocumentReceiptBytesRetryAndStrongDuplicateReuse() = runBlocking {
         withTimeout(180_000) {
             val destination = resolveUploadDestination()
@@ -61,7 +165,7 @@ class NativeDocumentUploadTest {
             assertEquals(destination.topic, queued.topicId)
             assertEquals(0uL, queued.uploadedBytes)
             val activity = ActivityScenario.launch(MainActivity::class.java)
-            val sent = try {
+            var sent = try {
                 activity.onActivity { check(UploadScheduling.startFromUi(it)) { "Worker start was deferred" } }
                 var actual = getCloudUpload(destination.account, operation)
                 var registrations = 0
@@ -71,9 +175,21 @@ class NativeDocumentUploadTest {
                     delay(250)
                     actual = getCloudUpload(destination.account, operation)
                 }
+                phase("upload stopped in state=${actual.state}, error=${actual.errorCode ?: "none"}, message=${actual.messageId ?: "none"}, bytes=${actual.uploadedBytes}/${actual.size}")
                 actual
             } finally { activity.close() }
             phase("production worker dispatch returned")
+            var readAttempt = 0
+            while (sent.state == "review_required" && readAttempt < 3) {
+                readAttempt += 1
+                try {
+                    sent = reconcileCloudUpload(destination.account, operation)
+                } catch (failure: NativeUploadException.RequestFailed) {
+                    phase("read-only exact receipt attempt $readAttempt remains unconfirmed (${failure.code})")
+                    if (failure.code != "review_required" || readAttempt == 3) throw failure
+                    delay(750L * readAttempt)
+                }
+            }
             assertEquals("Actual Telegram confirmation required", "completed", sent.state)
             assertEquals(bytes.size.toULong(), sent.uploadedBytes)
             val message = sent.messageId ?: error("Completed upload had no message receipt")

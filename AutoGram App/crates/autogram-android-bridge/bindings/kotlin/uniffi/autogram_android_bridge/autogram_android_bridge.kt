@@ -915,6 +915,8 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -957,6 +959,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_fn_func_control_cloud_upload(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,`action`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_create_login_attempt(`phone`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_delete_cloud_media(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`messageIds`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_delete_drive_items(`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Int
@@ -1204,6 +1208,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_create_login_attempt(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_delete_cloud_media(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_delete_drive_items(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_delete_transfer_profile(
@@ -1374,6 +1380,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_create_login_attempt() != 48584.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_delete_cloud_media() != 3325.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_delete_drive_items() != 37540.toShort()) {
@@ -2364,6 +2373,86 @@ public object FfiConverterTypeNativeAuthStep: FfiConverterRustBuffer<NativeAuthS
 
 
 
+data class NativeCloudDeleteFailure (
+    var `messageId`: kotlin.Int,
+    var `code`: kotlin.String,
+    var `retryAfterSeconds`: kotlin.UInt
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudDeleteFailure: FfiConverterRustBuffer<NativeCloudDeleteFailure> {
+    override fun read(buf: ByteBuffer): NativeCloudDeleteFailure {
+        return NativeCloudDeleteFailure(
+            FfiConverterInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudDeleteFailure) = (
+            FfiConverterInt.allocationSize(value.`messageId`) +
+            FfiConverterString.allocationSize(value.`code`) +
+            FfiConverterUInt.allocationSize(value.`retryAfterSeconds`)
+    )
+
+    override fun write(value: NativeCloudDeleteFailure, buf: ByteBuffer) {
+            FfiConverterInt.write(value.`messageId`, buf)
+            FfiConverterString.write(value.`code`, buf)
+            FfiConverterUInt.write(value.`retryAfterSeconds`, buf)
+    }
+}
+
+
+
+data class NativeCloudDeleteResult (
+    var `accountId`: kotlin.String,
+    var `peerId`: kotlin.String,
+    var `topicId`: kotlin.Int?,
+    var `deletedIds`: List<kotlin.Int>,
+    var `failed`: List<NativeCloudDeleteFailure>
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudDeleteResult: FfiConverterRustBuffer<NativeCloudDeleteResult> {
+    override fun read(buf: ByteBuffer): NativeCloudDeleteResult {
+        return NativeCloudDeleteResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterSequenceInt.read(buf),
+            FfiConverterSequenceTypeNativeCloudDeleteFailure.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudDeleteResult) = (
+            FfiConverterString.allocationSize(value.`accountId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterOptionalInt.allocationSize(value.`topicId`) +
+            FfiConverterSequenceInt.allocationSize(value.`deletedIds`) +
+            FfiConverterSequenceTypeNativeCloudDeleteFailure.allocationSize(value.`failed`)
+    )
+
+    override fun write(value: NativeCloudDeleteResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`accountId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterOptionalInt.write(value.`topicId`, buf)
+            FfiConverterSequenceInt.write(value.`deletedIds`, buf)
+            FfiConverterSequenceTypeNativeCloudDeleteFailure.write(value.`failed`, buf)
+    }
+}
+
+
+
 data class NativeCloudDialog (
     var `id`: kotlin.String,
     var `title`: kotlin.String,
@@ -2790,6 +2879,10 @@ data class NativeCloudUpload (
     var `size`: kotlin.ULong,
     var `uploadedBytes`: kotlin.ULong,
     var `messageId`: kotlin.Int?,
+    /**
+     * Server-mapped ID retained for read-only recovery of uncertain sends.
+     */
+    var `recoveryMessageId`: kotlin.Int?,
     var `errorCode`: kotlin.String?,
     var `retryNotBeforeMs`: kotlin.Long?
 ) {
@@ -2812,6 +2905,7 @@ public object FfiConverterTypeNativeCloudUpload: FfiConverterRustBuffer<NativeCl
             FfiConverterULong.read(buf),
             FfiConverterULong.read(buf),
             FfiConverterOptionalInt.read(buf),
+            FfiConverterOptionalInt.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalLong.read(buf),
         )
@@ -2827,6 +2921,7 @@ public object FfiConverterTypeNativeCloudUpload: FfiConverterRustBuffer<NativeCl
             FfiConverterULong.allocationSize(value.`size`) +
             FfiConverterULong.allocationSize(value.`uploadedBytes`) +
             FfiConverterOptionalInt.allocationSize(value.`messageId`) +
+            FfiConverterOptionalInt.allocationSize(value.`recoveryMessageId`) +
             FfiConverterOptionalString.allocationSize(value.`errorCode`) +
             FfiConverterOptionalLong.allocationSize(value.`retryNotBeforeMs`)
     )
@@ -2841,6 +2936,7 @@ public object FfiConverterTypeNativeCloudUpload: FfiConverterRustBuffer<NativeCl
             FfiConverterULong.write(value.`size`, buf)
             FfiConverterULong.write(value.`uploadedBytes`, buf)
             FfiConverterOptionalInt.write(value.`messageId`, buf)
+            FfiConverterOptionalInt.write(value.`recoveryMessageId`, buf)
             FfiConverterOptionalString.write(value.`errorCode`, buf)
             FfiConverterOptionalLong.write(value.`retryNotBeforeMs`, buf)
     }
@@ -4832,6 +4928,34 @@ public object FfiConverterSequenceTypeNativeAccount: FfiConverterRustBuffer<List
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeNativeCloudDeleteFailure: FfiConverterRustBuffer<List<NativeCloudDeleteFailure>> {
+    override fun read(buf: ByteBuffer): List<NativeCloudDeleteFailure> {
+        val len = buf.getInt()
+        return List<NativeCloudDeleteFailure>(len) {
+            FfiConverterTypeNativeCloudDeleteFailure.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NativeCloudDeleteFailure>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNativeCloudDeleteFailure.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NativeCloudDeleteFailure>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNativeCloudDeleteFailure.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeNativeCloudDialog: FfiConverterRustBuffer<List<NativeCloudDialog>> {
     override fun read(buf: ByteBuffer): List<NativeCloudDialog> {
         val len = buf.getInt()
@@ -5173,6 +5297,21 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
         { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
         // lift function
         { FfiConverterString.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `deleteCloudMedia`(`accountId`: kotlin.String, `peerId`: kotlin.String, `topicId`: kotlin.Int?, `messageIds`: List<kotlin.Int>) : NativeCloudDeleteResult {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_delete_cloud_media(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`peerId`),FfiConverterOptionalInt.lower(`topicId`),FfiConverterSequenceInt.lower(`messageIds`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudDeleteResult.lift(it) },
         // Error FFI converter
         NativeAuthException.ErrorHandler,
     )

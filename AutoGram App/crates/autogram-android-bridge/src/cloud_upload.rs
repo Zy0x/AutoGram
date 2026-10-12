@@ -1,10 +1,7 @@
 //! Original-document queue adapter. Only app-owned SAF spool files are accepted.
 use crate::auth::engine;
 use autogram_core::{
-    telegram::{
-        auth::AuthError,
-        upload::transport::TelegramUploadTransport,
-    },
+    telegram::{auth::AuthError, upload::transport::TelegramUploadTransport},
     transfer::{
         cloud_download::{AccountScope, PeerKind},
         cloud_upload::*,
@@ -122,10 +119,15 @@ pub struct NativeCloudUpload {
     pub size: u64,
     pub uploaded_bytes: u64,
     pub message_id: Option<i32>,
+    /// Server-mapped ID retained for read-only recovery of uncertain sends.
+    pub recovery_message_id: Option<i32>,
     pub error_code: Option<String>,
     pub retry_not_before_ms: Option<i64>,
 }
 pub(super) fn record(value: UploadRecord) -> NativeCloudUpload {
+    let recovery_message_id = store()
+        .ok()
+        .and_then(|store| store.mapped_message_id(&value).ok().flatten());
     NativeCloudUpload {
         operation_id: value.request.operation_id.clone(),
         account_id: value.request.destination.scope.account_id().into(),
@@ -136,6 +138,7 @@ pub(super) fn record(value: UploadRecord) -> NativeCloudUpload {
         size: value.request.source.size,
         uploaded_bytes: value.uploaded_bytes,
         message_id: value.receipt.map(|r| r.message_id),
+        recovery_message_id,
         error_code: value.error_code,
         retry_not_before_ms: value.retry_not_before_ms,
     }
@@ -157,9 +160,20 @@ pub async fn enqueue_cloud_upload(
     silent: bool,
     spoiler: bool,
 ) -> Result<NativeCloudUpload, NativeUploadError> {
-    crate::cloud_upload_enqueue::enqueue(crate::cloud_upload_enqueue::NativeUploadInput {
-        operation_id,account_id,peer_id,topic_id,staged_path,filename,mime_type,caption,
-    },crate::cloud_upload_enqueue::ProfileChoice::LegacyDocument {silent,spoiler}).await
+    crate::cloud_upload_enqueue::enqueue(
+        crate::cloud_upload_enqueue::NativeUploadInput {
+            operation_id,
+            account_id,
+            peer_id,
+            topic_id,
+            staged_path,
+            filename,
+            mime_type,
+            caption,
+        },
+        crate::cloud_upload_enqueue::ProfileChoice::LegacyDocument { silent, spoiler },
+    )
+    .await
 }
 #[uniffi::export]
 pub fn list_cloud_uploads(account_id: String) -> Result<Vec<NativeCloudUpload>, NativeUploadError> {
@@ -191,11 +205,18 @@ pub fn pending_cloud_uploads() -> Result<Vec<NativeCloudUpload>, NativeUploadErr
     Ok(store()?.pending(100)?.into_iter().map(record).collect())
 }
 #[uniffi::export(async_runtime = "tokio")]
-pub async fn reconcile_cloud_upload(account_id: String, operation_id: String) -> Result<NativeCloudUpload, NativeUploadError> {
+pub async fn reconcile_cloud_upload(
+    account_id: String,
+    operation_id: String,
+) -> Result<NativeCloudUpload, NativeUploadError> {
     let scope = scope(account_id)?;
     let saved = store()?.get(&operation_id, &scope)?;
-    if saved.state == UploadState::Completed { return Ok(record(saved)); }
-    if saved.state == UploadState::Committing { store()?.review_interrupted_commit(&operation_id, &scope)?; }
+    if saved.state == UploadState::Completed {
+        return Ok(record(saved));
+    }
+    if saved.state == UploadState::Committing {
+        store()?.review_interrupted_commit(&operation_id, &scope)?;
+    }
     store()?.reconciliation_target(&operation_id, &scope)?;
     let auth = engine().map_err(|_| error("auth_not_initialized"))?;
     let cancel = CancellationToken::new();
@@ -203,7 +224,11 @@ pub async fn reconcile_cloud_upload(account_id: String, operation_id: String) ->
     let transport = TelegramUploadTransport::connect(auth, scope.clone(), cancel.clone()).await?;
     // Recovery reads a server-mapped message; it does not require the staged source
     // to remain available and cannot enqueue another send.
-    Ok(record(UploadExecutor::new(store()?.clone()).reconcile(&operation_id, &scope, &transport, &cancel).await?))
+    Ok(record(
+        UploadExecutor::new(store()?.clone())
+            .reconcile(&operation_id, &scope, &transport, &cancel)
+            .await?,
+    ))
 }
 #[uniffi::export]
 pub fn has_recoverable_cloud_uploads() -> Result<bool, NativeUploadError> {

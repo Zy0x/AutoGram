@@ -426,6 +426,7 @@
     <string name="cloud_refresh">Refresh</string>
     <string name="cloud_account_required">Sign in and select a verified account to open cloud media.</string>
     <string name="cloud_rate_limited">Telegram requires a pause. Try again after the cooldown ends.</string>
+    <string name="cloud_delete_partial">Some files were deleted. Items that failed remain selected.</string>
     <string name="cloud_refresh_required">The location or page expired. Refresh the chat list.</string>
     <string name="cloud_read_failed">Cloud media could not be read. Check your connection and try again.</string>
     <string name="cloud_image_too_large">This image exceeds safe decoding limits or the 256 MiB preview size limit.</string>
@@ -915,6 +916,14 @@
     <string name="drive_view_aspect_section">GRID ASPECT RATIO</string>
     <string name="drive_aspect_poster_title">Vertical Poster</string>
     <string name="drive_aspect_square_title">Square</string>
+    <string name="drive_grid_density_section">TILE SIZE</string>
+    <string name="drive_grid_density_value">Size: %1$s</string>
+    <string name="drive_grid_density_xs">Extra small</string>
+    <string name="drive_grid_density_small">Small</string>
+    <string name="drive_grid_density_medium">Medium</string>
+    <string name="drive_grid_density_large">Large</string>
+    <string name="drive_grid_density_xl">Extra large</string>
+    <string name="drive_grid_density_max">Maximum</string>
     <string name="drive_view_quality_section">THUMBNAIL QUALITY</string>
     <string name="drive_thumb_quality_saver">Data Saver</string>
     <string name="drive_thumb_quality_saver_desc">Fast &amp; low data</string>
