@@ -7,18 +7,19 @@
 pub mod album;
 pub mod analysis;
 pub mod caption;
+pub mod cloud_album;
 pub mod cloud_download;
 pub mod cloud_upload;
-pub mod upload_duplicates;
 pub mod download;
 pub mod encoder;
 pub mod feature_flags;
 pub mod oversize;
 pub mod preflight;
 pub mod profile;
-pub mod scoped_profiles;
 pub mod quality;
+pub mod scoped_profiles;
 pub mod store;
+pub mod upload_duplicates;
 
 pub use album::*;
 pub use analysis::*;

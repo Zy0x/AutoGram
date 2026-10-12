@@ -35,6 +35,10 @@
 - Tightened native upload correlation so only the exact persisted `random_id` mapping (or Telegram's dedicated one-message short-send response) can create a recovery target. Unrelated new-message updates in the same response cannot be mistaken for the uploaded file; scoped read-back still verifies peer, topic, media type, filename and size before completion.
 - Added bounded retries for the exact mapped-message read-back to tolerate Telegram data-center replication delay. Every retry reuses the persisted message ID and only performs a read; it cannot resend the upload.
 
+### Android Visual Album Foundation
+- Added migration 031 and the `transfer/cloud_album` domain/store for immutable account, forum topic, source order, profile snapshot, caption placement, and per-item MTProto `random_id` persistence. Admission enforces Telegram's 2–10 native visual-media envelope and the desktop single-caption rule.
+- Added crash recovery that restarts pre-commit preparation from the staged sources while moving an interrupted `SendMultiMedia` commit to `ReviewRequired`; a lost response can no longer create an automatic second album send. The sender, Android UI wiring, video metadata path, and physical album acceptance are still pending, so visual album parity is not enabled or claimed.
+
 ### Android Cloud Media Deletion
 - Added account-, peer-, topic-, and message-scoped Telegram media deletion through the shared Grammers core. The server re-reads every selected message before deletion, rejects cross-topic or non-media IDs, retries the exact batch on bounded transient failures, reports partial results, and treats already-removed stale selections as complete.
 - Connected the Android Drive confirmation flow to the native delete result. Only server-confirmed IDs leave the selection; failed IDs remain selected and FloodWait feedback is preserved. Physical fixture acceptance is still pending.

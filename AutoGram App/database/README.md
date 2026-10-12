@@ -189,6 +189,17 @@ Ledger of uploaded files enabling sub-millisecond duplicate preflight detection 
 
 ---
 
+#### `native_cloud_albums` (migration 031)
+Persists Android visual-album admission and the MTProto commit boundary:
+- `operation_id` references the v4 `transfer_runs` row; account, authorized user, and serialized request are immutable.
+- `request_json` freezes the account/chat/topic, staged item paths and digests, original order, selected profile revision, summary caption, and one stable nonzero `random_id` per item.
+- `item_count` is constrained to Telegram's 2–10 visual-media range. `prepared_items` is bounded by that count and resets when a process restarts before the commit boundary; per-item phase snapshots remain in `transfer_items_v4`.
+- `state` distinguishes queued/preparing/committing/paused/review-required/completed and terminal outcomes. Uncertain commits remain under review instead of creating new identities.
+- `mapped_message_ids_json`, `grouped_id`, and `receipt_json` hold exact response correlation and the final server-verified album receipt. Completion requires every distinct positive message ID and one nonzero grouped ID.
+- Scope/dispatch indexes support account-owned queue reads and recovery. The immutable-binding trigger prevents a retry from changing destination, item order, profile, caption, digests, or random IDs.
+
+Migration 031 is additive and idempotent. It shares transfer run/item snapshots while retaining a dedicated album receipt, and does not rewrite existing user rows.
+
 ### 2.5 Remote URL Transfers & Resumable Journal
 
 #### `remote_transfer_jobs`

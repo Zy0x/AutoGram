@@ -13,8 +13,9 @@ evidence. A previously ambiguous operation was also reconciled by its persisted 
 ID without another send. Receipt and duplicate checks account for Telegram's observed
 hyphen-to-underscore filename normalization while still verifying scope, document type,
 size, and exact content where applicable. Multiple selected originals remain separate
-operations; Android visual album sending is still unimplemented.
-Visual album sending remains unimplemented.
+operations. Android now has a durable, scoped album-admission contract with the desktop's
+caption/order/random-id rules; the native MTProto album sender and Android controls are
+still unimplemented, so Android visual albums are not yet available.
 Android's gallery now uses the desktop's six grid density presets, responsive column sizing,
 flat card sequence, and touch zoom mapping; physical layout and gesture acceptance remain pending.
 The engine also stores transfer profiles per account and freezes their configuration

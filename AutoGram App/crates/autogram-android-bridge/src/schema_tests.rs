@@ -49,7 +49,10 @@ fn native_upload_checkpoint_schema_is_repeatable_and_matches_master() {
         columns(&runtime, "native_cloud_upload_reuses"),
         columns(&master, "native_cloud_upload_reuses")
     );
-    assert_eq!(columns(&runtime,"native_upload_duplicate_revisions"),columns(&master,"native_upload_duplicate_revisions"));
+    assert_eq!(
+        columns(&runtime, "native_upload_duplicate_revisions"),
+        columns(&master, "native_upload_duplicate_revisions")
+    );
     let count: i64 = runtime
         .query_row("SELECT count(*) FROM native_cloud_uploads", [], |row| {
             row.get(0)
@@ -116,4 +119,43 @@ fn native_download_schema_matches_master_without_promoting_metadata_jobs() {
         })
         .unwrap();
     assert_eq!(count, 0);
+}
+
+#[test]
+fn native_visual_album_schema_matches_master_and_migration_is_repeatable() {
+    let runtime = Connection::open_in_memory().unwrap();
+    runtime
+        .execute_batch(include_str!(
+            "../../../database/migrations/015_transfer_control_plane_v4.sql"
+        ))
+        .unwrap();
+    let album = include_str!("../../../database/migrations/031_native_cloud_albums.sql");
+    runtime.execute_batch(album).unwrap();
+    runtime.execute_batch(album).unwrap();
+
+    let master = Connection::open_in_memory().unwrap();
+    master.execute_batch(MASTER).unwrap();
+    assert_eq!(
+        columns(&runtime, "native_cloud_albums"),
+        columns(&master, "native_cloud_albums")
+    );
+    for name in [
+        "idx_native_cloud_albums_scope",
+        "idx_native_cloud_albums_dispatch",
+        "native_cloud_album_binding_immutable",
+    ] {
+        let kind = if name.starts_with("idx_") {
+            "index"
+        } else {
+            "trigger"
+        };
+        let query = "SELECT sql FROM sqlite_master WHERE type=?1 AND name=?2";
+        let actual: String = runtime
+            .query_row(query, (kind, name), |row| row.get(0))
+            .unwrap();
+        let expected: String = master
+            .query_row(query, (kind, name), |row| row.get(0))
+            .unwrap();
+        assert_eq!(actual, expected);
+    }
 }
