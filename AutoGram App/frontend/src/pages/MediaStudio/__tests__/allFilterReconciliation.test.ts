@@ -313,5 +313,25 @@ describe('allFilterReconciliation', () => {
     );
     expect(updated.stickers?.map((f) => f.id)).toEqual([52400]);
   });
+
+  it('reconciles favorites filter and keeps only pinned items', () => {
+    const baseFiles = [
+      makeFile(52391, { is_pinned: true }),
+      makeFile(52390, { is_pinned: false }),
+      makeFile(52388, { is_pinned: false }),
+    ];
+    const favDedicated = makeFile(52395, { is_pinned: true });
+    const staleDedicated = makeFile(52394, { is_pinned: false });
+
+    const result = resolveActiveFilterContentFiles(
+      'favorites',
+      'telegram',
+      baseFiles,
+      { favorites: [favDedicated, staleDedicated] }
+    );
+
+    expect(result.map((f) => f.id)).toEqual([52395, 52391]);
+    expect(result.every((f) => f.is_pinned)).toBe(true);
+  });
 });
 

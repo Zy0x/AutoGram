@@ -6,6 +6,11 @@
 - Added is_pinned: Option<bool> to Rust Grammers MediaFileRow contract, dynamically extracting m.pinned flags across photo, document, video, sticker, webpage, and link message entries.
 - Implemented toggle_pin_media_blocking and tg_toggle_pin_media in Rust Tauri IPC (permissions/autogram-commands.toml) with full session isolation, rate protection, and peer resolution ("me", numeric IDs, usernames).
 - Implemented optimistic UI updates via useDriveFavoriteToggle hook with instant visual feedback on file cards, list items, and context menus, paired with automatic rollback and localized toast notifications on error.
+- Fixed Favorites filter querying and persistence: mapped MTProto InputMessagesFilterPinned in Rust filtered_query.rs so selecting "Favorit" tab queries native pinned messages from Telegram.
+- Preserved is_pinned property through driveFilesApi.ts when converting messages to DriveFile objects in both tgListMedia and local engine paths.
+- Enhanced useDriveFavoriteToggle to dynamically maintain the favorites lane in filteredFilesMap, ensuring favorited items immediately appear upon toggling and are cleanly removed on unpin.
+- Updated allFilterReconciliation.ts to include favorites in ALL_MERGE_FILTER_KEYS and TRACKED_MUTATION_FILTER_KEYS, filtering out stale non-pinned items and maintaining chronological order.
+- Updated filterCountPolicy.ts so favorites uses the loaded lower bound to avoid provisional zero counts.
 - Added dedicated "Favorit" filter tab ('favorites') in DriveTopBar with live badge count and star icon, matching media where is_pinned is true across both Telegram and Drive view perspectives.
 - Extracted all user-facing labels to src/locales/id/drive.json and src/locales/en/drive.json with 100% key parity and zero hardcoded strings.
 

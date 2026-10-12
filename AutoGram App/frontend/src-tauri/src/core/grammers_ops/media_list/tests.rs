@@ -960,6 +960,17 @@ fn test_row_matches_filtered_query_telegram_and_drive_perspectives() {
     assert!(row_matches_filtered_query(&link_row, "links"));
     assert!(row_matches_filtered_query(&link_row, "web"));
     assert!(!row_matches_filtered_query(&link_row, "files"));
+
+    // 4. Favorites / Pinned
+    let mut fav_row = dummy_row(50000);
+    fav_row.is_pinned = Some(true);
+    let mut non_fav_row = dummy_row(50001);
+    non_fav_row.is_pinned = Some(false);
+
+    assert!(row_matches_filtered_query(&fav_row, "favorites"));
+    assert!(row_matches_filtered_query(&fav_row, "pinned"));
+    assert!(!row_matches_filtered_query(&non_fav_row, "favorites"));
+    assert!(!row_matches_filtered_query(&non_fav_row, "pinned"));
 }
 
 #[test]

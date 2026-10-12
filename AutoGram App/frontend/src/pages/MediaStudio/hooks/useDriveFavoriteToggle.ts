@@ -41,7 +41,21 @@ export function useDriveFavoriteToggle({
       setFilteredFilesMap((prev) => {
         const nextMap: Record<string, DriveFile[]> = {};
         for (const [key, val] of Object.entries(prev)) {
-          nextMap[key] = updateList(val);
+          if (key === 'favorites') {
+            if (nextPinned) {
+              const alreadyHas = val.some((f) => f.id === targetId);
+              nextMap[key] = alreadyHas
+                ? val.map((f) => (f.id === targetId ? { ...f, is_pinned: true } : f))
+                : [{ ...file, is_pinned: true }, ...val];
+            } else {
+              nextMap[key] = val.filter((f) => f.id !== targetId);
+            }
+          } else {
+            nextMap[key] = updateList(val);
+          }
+        }
+        if (nextPinned && !nextMap['favorites']) {
+          nextMap['favorites'] = [{ ...file, is_pinned: true }];
         }
         return nextMap;
       });
@@ -74,7 +88,20 @@ export function useDriveFavoriteToggle({
           setFilteredFilesMap((prev) => {
             const nextMap: Record<string, DriveFile[]> = {};
             for (const [key, val] of Object.entries(prev)) {
-              nextMap[key] = revertList(val);
+              if (key === 'favorites') {
+                if (nextPinned) {
+                  // Failed to add: revert by removing
+                  nextMap[key] = val.filter((f) => f.id !== targetId);
+                } else {
+                  // Failed to remove: revert by restoring
+                  const alreadyHas = val.some((f) => f.id === targetId);
+                  nextMap[key] = alreadyHas
+                    ? val.map((f) => (f.id === targetId ? { ...f, is_pinned: true } : f))
+                    : [{ ...file, is_pinned: true }, ...val];
+                }
+              } else {
+                nextMap[key] = revertList(val);
+              }
             }
             return nextMap;
           });
@@ -94,7 +121,20 @@ export function useDriveFavoriteToggle({
         setFilteredFilesMap((prev) => {
           const nextMap: Record<string, DriveFile[]> = {};
           for (const [key, val] of Object.entries(prev)) {
-            nextMap[key] = revertList(val);
+            if (key === 'favorites') {
+              if (nextPinned) {
+                // Failed to add: revert by removing
+                nextMap[key] = val.filter((f) => f.id !== targetId);
+              } else {
+                // Failed to remove: revert by restoring
+                const alreadyHas = val.some((f) => f.id === targetId);
+                nextMap[key] = alreadyHas
+                  ? val.map((f) => (f.id === targetId ? { ...f, is_pinned: true } : f))
+                  : [{ ...file, is_pinned: true }, ...val];
+              }
+            } else {
+              nextMap[key] = revertList(val);
+            }
           }
           return nextMap;
         });

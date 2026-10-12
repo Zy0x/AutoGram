@@ -37,6 +37,7 @@ pub fn row_matches_filtered_query(row: &MediaFileRow, filter_key: &str) -> bool 
     let icon = row.icon_type.to_ascii_lowercase();
 
     match key.as_str() {
+        "favorites" | "favorite" | "pinned" | "pin" => row.is_pinned.unwrap_or(false),
         "stickers" | "sticker" => tg_cat == "sticker",
         "gifs" | "gif" => tg_cat != "sticker" && (tg_cat == "gif" || icon == "gif" || mime == "image/gif"),
         "links" | "link" | "url" | "urls" | "web" => {
@@ -786,8 +787,13 @@ pub fn list_filtered_media_blocking_topic(
                         });
                     }
 
-                    // 4. Single-Filter Direct Query ("files", "links", "web", "gifs", "photos", "voice")
+                    // 4. Single-Filter Direct Query ("favorites", "files", "links", "web", "gifs", "photos", "voice")
                     let (filter, op_name, is_link) = match filter_str.as_str() {
+                        "favorites" | "favorite" | "pinned" | "pin" => (
+                            grammers_client::tl::enums::MessagesFilter::InputMessagesFilterPinned,
+                            "messages.search.pinned",
+                            false,
+                        ),
                         "links" | "link" | "url" | "urls" | "web" => (
                             grammers_client::tl::enums::MessagesFilter::InputMessagesFilterUrl,
                             "messages.search.url",
@@ -853,6 +859,22 @@ pub fn list_filtered_media_blocking_topic(
                         messages
                             .iter()
                             .filter_map(|message| tl_link_to_row(message, folder_id))
+                            .collect()
+                    } else if filter_str == "favorites"
+                        || filter_str == "favorite"
+                        || filter_str == "pinned"
+                        || filter_str == "pin"
+                    {
+                        messages
+                            .iter()
+                            .filter_map(|message| {
+                                tl_message_to_row(message, folder_id)
+                                    .or_else(|| tl_link_to_row(message, folder_id))
+                                    .map(|mut row| {
+                                        row.is_pinned = Some(true);
+                                        row
+                                    })
+                            })
                             .collect()
                     } else {
                         messages

@@ -15,6 +15,7 @@ const ALL_MERGE_FILTER_KEYS = [
   'documents',
   'archives',
   'web',
+  'favorites',
 ] as const;
 
 const TRACKED_MUTATION_FILTER_KEYS: Array<{
@@ -27,6 +28,7 @@ const TRACKED_MUTATION_FILTER_KEYS: Array<{
   { key: 'audio', perspective: 'telegram' },
   { key: 'links', perspective: 'telegram' },
   { key: 'stickers', perspective: 'telegram' },
+  { key: 'favorites', perspective: 'telegram' },
   { key: 'images', perspective: 'drive' },
   { key: 'videos', perspective: 'drive' },
   { key: 'documents', perspective: 'drive' },
@@ -102,14 +104,19 @@ export function resolveActiveFilterContentFiles(
     return dedicatedLane;
   }
 
+  const cleanDedicatedLane =
+    mediaFilter === 'favorites'
+      ? dedicatedLane.filter((f) => Boolean(f.is_pinned ?? f.isPinned))
+      : dedicatedLane;
+
   const unifiedPool = mergeAllFilterContentFiles(baseFiles, filteredFilesMap);
   if (unifiedPool.length === 0) {
-    return dedicatedLane;
+    return cleanDedicatedLane;
   }
 
   const knownIds = new Set<number>();
-  for (let i = 0; i < dedicatedLane.length; i++) {
-    knownIds.add(dedicatedLane[i].id);
+  for (let i = 0; i < cleanDedicatedLane.length; i++) {
+    knownIds.add(cleanDedicatedLane[i].id);
   }
 
   let merged: DriveFile[] | null = null;
@@ -118,14 +125,14 @@ export function resolveActiveFilterContentFiles(
     if (!candidate || knownIds.has(candidate.id)) continue;
     if (matchesMediaFilter(candidate, mediaFilter, perspective)) {
       if (!merged) {
-        merged = [...dedicatedLane];
+        merged = [...cleanDedicatedLane];
       }
       knownIds.add(candidate.id);
       merged.push(candidate);
     }
   }
 
-  if (!merged) return dedicatedLane;
+  if (!merged) return cleanDedicatedLane;
   return merged.sort((a, b) => b.id - a.id);
 }
 

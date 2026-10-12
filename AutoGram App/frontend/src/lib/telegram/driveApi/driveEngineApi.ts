@@ -142,6 +142,7 @@ export type DriveEngineFile = {
   telegramChatId: string;
   telegramTopicId?: number | null;
   telegramMessageId: number;
+  isPinned?: boolean | null;
   createdAt: number;
   updatedAt: number;
 };

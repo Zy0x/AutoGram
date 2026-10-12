@@ -215,6 +215,7 @@ export async function driveListFiles(
         account_id: creds.session,
         peer_kind: 'channel',
         is_saved_messages: file.telegramChatId === 'me',
+        is_pinned: Boolean(file.isPinned),
       });
     });
     const result = {
@@ -356,6 +357,7 @@ export async function driveListFiles(
           drive_category: f.driveCategory ?? f.drive_category ?? undefined,
           drive_format: f.driveFormat ?? f.drive_format ?? undefined,
           caption: f.caption ?? null,
+          is_pinned: Boolean(f.isPinned ?? f.is_pinned),
           link_urls: String(f.driveFormat ?? f.drive_format ?? '')
             .split('\n')
             .map((value) => value.trim())
