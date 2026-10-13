@@ -31,22 +31,15 @@ import com.autogram.app.R
 import com.autogram.app.features.cloud.preview.CloudRangeSource
 import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.formatFileSize
+import com.autogram.app.ui.drive.zip.SparseZipReader
+import com.autogram.app.ui.drive.zip.ZipEntryItem
+import com.autogram.app.ui.drive.zip.zipErrorMessage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.util.zip.Inflater
-
-data class ZipEntryItem(
-    val name: String,
-    val uncompressedSize: Long,
-    val compressedSize: Long,
-    val isDirectory: Boolean,
-    val isEncrypted: Boolean,
-    val method: Int,
-    val localHeaderOffset: Long
-)
 
 @Composable
 fun DriveZipViewer(
@@ -55,6 +48,7 @@ fun DriveZipViewer(
     modifier: Modifier = Modifier
 ) {
     var entries by remember { mutableStateOf<List<ZipEntryItem>?>(null) }
+    var zipReader by remember(source) { mutableStateOf<SparseZipReader?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedEntry by remember { mutableStateOf<ZipEntryItem?>(null) }
@@ -68,10 +62,14 @@ fun DriveZipViewer(
     LaunchedEffect(source) {
         withContext(Dispatchers.IO) {
             try {
-                val parsed = parseZipCatalog(source)
+                val reader = SparseZipReader(source)
+                val parsed = reader.listEntries()
+                zipReader = reader
                 entries = parsed
-            } catch (t: Throwable) {
-                error = t.message ?: "Failed to parse ZIP archive"
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (t: Exception) {
+                error = zipErrorMessage(context, t)
             }
         }
     }
@@ -83,7 +81,7 @@ fun DriveZipViewer(
     }
 
     val totalUncompressed = remember(entries) {
-        entries?.filter { !it.isDirectory }?.sumOf { it.uncompressedSize } ?: 0L
+        entries?.filter { !it.isFolder }?.sumOf { it.uncompressedSize } ?: 0L
     }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp)) {
@@ -232,14 +230,14 @@ fun DriveZipViewer(
                                 entry = entry,
                                 onPreview = {
                                     scope.launch {
-                                        loadEntryPreview(source, entry, onImage = { previewBitmap = it }, onText = { previewText = it })
+                                        zipReader?.let { reader -> loadEntryPreview(reader, entry, onImage = { previewBitmap = it }, onText = { previewText = it }) }
                                         selectedEntry = entry
                                     }
                                 },
                                 onExtract = {
                                     scope.launch {
                                         isExtracting = true
-                                        val success = extractSingleEntry(source, entry)
+                                        val success = zipReader?.let { extractSingleEntry(it, entry) } == true
                                         isExtracting = false
                                         extractMessage = if (success) {
                                             context.getString(R.string.zip_extract_success)
@@ -321,7 +319,7 @@ fun DriveZipViewer(
                         onClick = {
                             selectedEntry?.let { entry ->
                                 scope.launch {
-                                    val success = extractSingleEntry(source, entry)
+                                    val success = zipReader?.let { extractSingleEntry(it, entry) } == true
                                     extractMessage = if (success) {
                                         context.getString(R.string.zip_extract_success)
                                     } else {
@@ -355,7 +353,7 @@ private fun ZipEntryRow(
 ) {
     val isImage = entry.name.lowercase().let { it.endsWith(".png") || it.endsWith(".jpg") || it.endsWith(".jpeg") || it.endsWith(".webp") }
     val isText = entry.name.lowercase().let { it.endsWith(".txt") || it.endsWith(".md") || it.endsWith(".json") || it.endsWith(".csv") || it.endsWith(".log") }
-    val isPreviewable = !entry.isDirectory && !entry.isEncrypted && (isImage || isText)
+    val isPreviewable = !entry.isFolder && !entry.isEncrypted && (isImage || isText)
 
     Surface(
         shape = RoundedCornerShape(10.dp),
@@ -372,14 +370,14 @@ private fun ZipEntryRow(
         ) {
             Icon(
                 imageVector = when {
-                    entry.isDirectory -> Icons.Default.Folder
+                    entry.isFolder -> Icons.Default.Folder
                     entry.isEncrypted -> Icons.Default.Lock
                     isImage -> Icons.Default.Image
                     isText -> Icons.Default.Description
                     else -> Icons.Default.InsertDriveFile
                 },
                 contentDescription = null,
-                tint = if (entry.isDirectory) GoldAccent else if (isImage) DustySage else MutedIceCyan,
+                tint = if (entry.isFolder) GoldAccent else if (isImage) DustySage else MutedIceCyan,
                 modifier = Modifier.size(24.dp)
             )
 
@@ -391,7 +389,7 @@ private fun ZipEntryRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!entry.isDirectory) {
+                if (!entry.isFolder) {
                     Text(
                         text = "${formatFileSize(entry.uncompressedSize)} (${formatFileSize(entry.compressedSize)} compressed)",
                         style = MaterialTheme.typography.labelSmall,
@@ -400,7 +398,7 @@ private fun ZipEntryRow(
                 }
             }
 
-            if (!entry.isDirectory) {
+            if (!entry.isFolder) {
                 IconButton(
                     onClick = onExtract,
                     modifier = Modifier.size(36.dp)
@@ -417,150 +415,34 @@ private fun ZipEntryRow(
     }
 }
 
-/** Parses Central Directory sparse bytes without downloading the full archive */
-private suspend fun parseZipCatalog(source: CloudRangeSource): List<ZipEntryItem> = withContext(Dispatchers.IO) {
-    val totalSize = source.size
-    if (totalSize < 22) throw IllegalArgumentException("File too small to be a ZIP archive")
-
-    val tailLen = minOf(totalSize, 65536L + 22L).toInt()
-    val tailOffset = totalSize - tailLen
-    val tailBytes = source.read(tailOffset, tailLen)
-
-    // Locate EOCD signature 0x06054b50 scanning backwards
-    var eocdPos = -1
-    for (i in tailLen - 22 downTo 0) {
-        if (tailBytes[i] == 0x50.toByte() &&
-            tailBytes[i + 1] == 0x4B.toByte() &&
-            tailBytes[i + 2] == 0x05.toByte() &&
-            tailBytes[i + 3] == 0x06.toByte()
-        ) {
-            eocdPos = i
-            break
-        }
-    }
-    if (eocdPos == -1) throw IllegalArgumentException("EOCD signature not found in archive tail")
-
-    val cdSize = readIntLE(tailBytes, eocdPos + 12)
-    val cdOffset = readIntLE(tailBytes, eocdPos + 16)
-    if (cdSize <= 0 || cdOffset < 0 || cdOffset + cdSize > totalSize) {
-        throw IllegalArgumentException("Invalid Central Directory offsets")
-    }
-
-    // Read only Central Directory byte slice
-    val cdBytes = source.read(cdOffset, cdSize.toInt())
-    val results = mutableListOf<ZipEntryItem>()
-    var ptr = 0
-
-    while (ptr + 46 <= cdBytes.size) {
-        if (cdBytes[ptr] != 0x50.toByte() ||
-            cdBytes[ptr + 1] != 0x4B.toByte() ||
-            cdBytes[ptr + 2] != 0x01.toByte() ||
-            cdBytes[ptr + 3] != 0x02.toByte()
-        ) {
-            break // End of Central Directory entries
-        }
-
-        val flags = readShortLE(cdBytes, ptr + 8)
-        val method = readShortLE(cdBytes, ptr + 10)
-        val compressedSize = readIntLE(cdBytes, ptr + 20)
-        val uncompressedSize = readIntLE(cdBytes, ptr + 24)
-        val nameLen = readShortLE(cdBytes, ptr + 28)
-        val extraLen = readShortLE(cdBytes, ptr + 30)
-        val commentLen = readShortLE(cdBytes, ptr + 32)
-        val localOffset = readIntLE(cdBytes, ptr + 42)
-
-        if (ptr + 46 + nameLen > cdBytes.size) break
-        val name = String(cdBytes, ptr + 46, nameLen, Charsets.UTF_8)
-        val isDirectory = name.endsWith("/") || (uncompressedSize == 0L && compressedSize == 0L && name.endsWith("/"))
-        val isEncrypted = (flags and 1) != 0
-
-        results.add(
-            ZipEntryItem(
-                name = name,
-                uncompressedSize = uncompressedSize,
-                compressedSize = compressedSize,
-                isDirectory = isDirectory,
-                isEncrypted = isEncrypted,
-                method = method,
-                localHeaderOffset = localOffset
-            )
-        )
-
-        ptr += 46 + nameLen + extraLen + commentLen
-    }
-
-    results
-}
-
-/** Fetches entry bytes and uncompresses for inline preview */
+/** Displays extracted bytes only after the shared sparse reader validates the entry. */
 private suspend fun loadEntryPreview(
-    source: CloudRangeSource,
+    reader: SparseZipReader,
     entry: ZipEntryItem,
     onImage: (Bitmap) -> Unit,
     onText: (String) -> Unit
 ) = withContext(Dispatchers.IO) {
-    val uncompressed = fetchAndDecompressEntry(source, entry) ?: return@withContext
+    val uncompressed = reader.extractEntryBytes(entry)
     val isImage = entry.name.lowercase().let { it.endsWith(".png") || it.endsWith(".jpg") || it.endsWith(".jpeg") || it.endsWith(".webp") }
     if (isImage) {
         val bitmap = BitmapFactory.decodeByteArray(uncompressed, 0, uncompressed.size)
         if (bitmap != null) onImage(bitmap)
     } else {
-        val text = String(uncompressed, 0, minOf(uncompressed.size, 65536), Charsets.UTF_8)
-        onText(text)
+        onText(String(uncompressed, 0, minOf(uncompressed.size, 65536), Charsets.UTF_8))
     }
 }
 
-/** Extracts a single entry to external Downloads folder */
-private suspend fun extractSingleEntry(
-    source: CloudRangeSource,
-    entry: ZipEntryItem
-): Boolean = withContext(Dispatchers.IO) {
+/** Writes only checksum-verified bytes from the selected sparse entry. */
+private suspend fun extractSingleEntry(reader: SparseZipReader, entry: ZipEntryItem): Boolean = withContext(Dispatchers.IO) {
     try {
-        val uncompressed = fetchAndDecompressEntry(source, entry) ?: return@withContext false
+        val uncompressed = reader.extractEntryBytes(entry)
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val destFile = File(downloadsDir, entry.name.substringAfterLast('/'))
-        FileOutputStream(destFile).use { fos ->
-            fos.write(uncompressed)
-        }
+        FileOutputStream(destFile).use { it.write(uncompressed) }
         true
+    } catch (cancelled: CancellationException) {
+        throw cancelled
     } catch (_: Exception) {
         false
     }
-}
-
-private suspend fun fetchAndDecompressEntry(source: CloudRangeSource, entry: ZipEntryItem): ByteArray? = withContext(Dispatchers.IO) {
-    if (entry.compressedSize <= 0) return@withContext ByteArray(0)
-    // Read 30 bytes of Local File Header to calculate exact data payload start
-    val localHeader = source.read(entry.localHeaderOffset, 30)
-    if (localHeader.size < 30) return@withContext null
-    val localNameLen = readShortLE(localHeader, 26)
-    val localExtraLen = readShortLE(localHeader, 28)
-    val payloadStart = entry.localHeaderOffset + 30 + localNameLen + localExtraLen
-
-    val compressed = source.read(payloadStart, entry.compressedSize.toInt())
-    if (entry.method == 0) {
-        // Stored (no compression)
-        compressed
-    } else if (entry.method == 8) {
-        // Deflated
-        val inflater = Inflater(true) // raw deflate without zlib header
-        val out = ByteArray(entry.uncompressedSize.toInt())
-        inflater.setInput(compressed)
-        inflater.inflate(out)
-        inflater.end()
-        out
-    } else {
-        null
-    }
-}
-
-private fun readShortLE(bytes: ByteArray, offset: Int): Int {
-    return (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
-}
-
-private fun readIntLE(bytes: ByteArray, offset: Int): Long {
-    return (bytes[offset].toLong() and 0xFFL) or
-            ((bytes[offset + 1].toLong() and 0xFFL) shl 8) or
-            ((bytes[offset + 2].toLong() and 0xFFL) shl 16) or
-            ((bytes[offset + 3].toLong() and 0xFFL) shl 24)
 }

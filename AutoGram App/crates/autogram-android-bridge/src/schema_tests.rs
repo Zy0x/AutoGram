@@ -131,10 +131,18 @@ fn native_visual_album_schema_matches_master_and_migration_is_repeatable() {
         .unwrap();
     let album = include_str!("../../../database/migrations/031_native_cloud_albums.sql");
     runtime.execute_batch(album).unwrap();
-    runtime.execute_batch(album).unwrap();
+    runtime
+        .execute_batch(include_str!(
+            "../../../database/migrations/032_native_cloud_album_parts.sql"
+        ))
+        .unwrap();
 
     let master = Connection::open_in_memory().unwrap();
     master.execute_batch(MASTER).unwrap();
+    assert_eq!(
+        columns(&runtime, "native_cloud_albums"),
+        columns(&master, "native_cloud_albums")
+    );
     assert_eq!(
         columns(&runtime, "native_cloud_albums"),
         columns(&master, "native_cloud_albums")

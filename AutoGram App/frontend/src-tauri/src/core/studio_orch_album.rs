@@ -11,6 +11,7 @@ use std::path::Path;
 use crate::core::album_account_pool::AlbumAccountPool;
 use super::autogram_core::transfer::{
     apply_album_caption_policy, build_album_plan, classify_prepared_delivery, normalize_caption,
+    streaming_group_size,
     AlbumCompatibilityKey, AlbumFailurePolicy, AlbumPackingPolicy, AlbumPlan, AlbumPlanOptions,
     CaptionOverflowPolicy, MediaCategory, PayloadClass, PreparedAlbumItem, QualityMode,
     TransferFeatureFlags,
@@ -1164,12 +1165,7 @@ pub(super) fn run_intelligent_album(
         && failure_policy.permits_structural_replan()
         && !matches!(packing, AlbumPackingPolicy::Never)
         && !(batch_has_video && matches!(packing, AlbumPackingPolicy::Maximum));
-    let stream_group_size = match packing {
-        AlbumPackingPolicy::Custom => album_grid_size,
-        AlbumPackingPolicy::Balanced => 8,
-        AlbumPackingPolicy::SmartAdaptive if batch_has_video => 8,
-        _ => 10,
-    };
+    let stream_group_size = streaming_group_size(packing, batch_has_video, album_grid_size);
     let stream_lookahead_tail = if batch_has_video
         && matches!(
             packing,

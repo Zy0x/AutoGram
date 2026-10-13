@@ -1,12 +1,13 @@
 //! Chunked Upload Execution Engine
 
+pub mod album_transport;
 pub mod chunk_manager;
-pub mod resume;
-pub mod uploader;
-pub mod transport;
+mod duplicates;
 mod limits;
 mod receipt;
-mod duplicates;
+pub mod resume;
+pub mod transport;
+pub mod uploader;
 
 pub use chunk_manager::{calculate_chunk_allocation, ChunkAllocation};
 pub use resume::UploadResumeState;

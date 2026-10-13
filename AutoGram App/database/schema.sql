@@ -1011,6 +1011,8 @@ CREATE TABLE IF NOT EXISTS native_cloud_albums (
     receipt_json TEXT,
     created_ms INTEGER NOT NULL,
     updated_ms INTEGER NOT NULL,
+    upload_file_ids_json TEXT NOT NULL DEFAULT '[]',
+    acknowledged_parts_json TEXT NOT NULL DEFAULT '[]',
     CHECK((state='completed' AND receipt_json IS NOT NULL AND grouped_id IS NOT NULL) OR state!='completed')
 );
 CREATE INDEX IF NOT EXISTS idx_native_cloud_albums_scope

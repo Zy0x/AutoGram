@@ -116,6 +116,22 @@ fn target_size(policy: AlbumPackingPolicy, custom: usize) -> usize {
     }
 }
 
+/// Maximum compatible visual items prepared before a streaming album flush.
+/// Photos can use Telegram's full ten-item limit; video commits stay bounded
+/// to the active desktop Smart Adaptive/Balanced safety window.
+pub fn streaming_group_size(
+    policy: AlbumPackingPolicy,
+    has_video: bool,
+    custom_size: usize,
+) -> usize {
+    match policy {
+        AlbumPackingPolicy::Custom => custom_size.clamp(2, TELEGRAM_ALBUM_MAX),
+        AlbumPackingPolicy::Balanced | AlbumPackingPolicy::SmartAdaptive if has_video => 8,
+        AlbumPackingPolicy::Never => 1,
+        _ => TELEGRAM_ALBUM_MAX,
+    }
+}
+
 fn partition_sizes(total: usize, target: usize, avoid_single: bool) -> Vec<usize> {
     if total == 0 {
         return vec![];
@@ -237,8 +253,18 @@ pub fn build_album_plan(items: Vec<PreparedAlbumItem>, options: &AlbumPlanOption
                 }
             }
             AlbumPackingPolicy::Balanced => {
-                // Balanced mode for all visual media: 6-8 per group
-                video_balanced_partition_sizes(grouped.len(), 8)
+                // The desktop UI keeps legacy "balanced" as an alias for
+                // Smart Adaptive: photos still use the full Telegram limit,
+                // while video clusters use safe 6-8 groups.
+                if has_video {
+                    video_balanced_partition_sizes(grouped.len(), 8)
+                } else {
+                    partition_sizes(
+                        grouped.len(),
+                        TELEGRAM_ALBUM_MAX,
+                        options.avoid_single_remainder,
+                    )
+                }
             }
             AlbumPackingPolicy::Maximum => {
                 if has_video {
@@ -696,6 +722,27 @@ mod tests {
 
         let p27 = build_album_plan(items(27, PayloadClass::NativeVisual), &smart_adaptive_options());
         assert_eq!(p27.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(), vec![10, 10, 7]);
+    }
+
+    #[test]
+    fn legacy_balanced_photos_match_smart_adaptive_desktop_policy() {
+        let mut balanced = smart_adaptive_options();
+        balanced.packing = AlbumPackingPolicy::Balanced;
+        let plan = build_album_plan(items(17, PayloadClass::NativeVisual), &balanced);
+        assert_eq!(
+            plan.groups.iter().map(|g| g.items.len()).collect::<Vec<_>>(),
+            vec![10, 7]
+        );
+        assert!(plan.singles.is_empty());
+    }
+
+    #[test]
+    fn streaming_group_size_matches_media_specific_album_policy() {
+        assert_eq!(streaming_group_size(AlbumPackingPolicy::Balanced, false, 10), 10);
+        assert_eq!(streaming_group_size(AlbumPackingPolicy::SmartAdaptive, false, 10), 10);
+        assert_eq!(streaming_group_size(AlbumPackingPolicy::Balanced, true, 10), 8);
+        assert_eq!(streaming_group_size(AlbumPackingPolicy::SmartAdaptive, true, 10), 8);
+        assert_eq!(streaming_group_size(AlbumPackingPolicy::Custom, false, 6), 6);
     }
 
     #[test]

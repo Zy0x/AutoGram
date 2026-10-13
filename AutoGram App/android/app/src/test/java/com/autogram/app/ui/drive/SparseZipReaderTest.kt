@@ -2,7 +2,6 @@ package com.autogram.app.ui.drive
 
 import com.autogram.app.features.cloud.preview.CloudRangeSource
 import com.autogram.app.ui.drive.zip.SparseZipReader
-import com.autogram.app.ui.drive.zip.ZipEntryItem
 import java.io.ByteArrayOutputStream
 import java.util.Random
 import java.util.zip.CRC32
@@ -51,10 +50,42 @@ class SparseZipReaderTest {
             bytes.copyOfRange(offset.toInt(), offset.toInt() + length)
         }, {})
         try {
-            val entry = ZipEntryItem("payload.bin", payload.size.toLong(), payload.size.toLong(),
-                false, false, ZipEntry.STORED, 0)
-            assertArrayEquals(payload, SparseZipReader(source).extractEntryBytes(entry))
-            assertEquals(payload.size + 30, fetched)
+            val reader = SparseZipReader(source)
+            val entry = reader.listEntries().single()
+            val beforeExtraction = fetched
+            assertArrayEquals(payload, reader.extractEntryBytes(entry))
+            assertEquals(30 + "payload.bin".length + payload.size, fetched - beforeExtraction)
+        } finally { source.close() }
+    }
+
+    @Test fun extractedPayloadMustMatchCentralDirectoryCrc() = runBlocking {
+        val payload = byteArrayOf(10, 20, 30, 40)
+        val bytes = archive(payload).also { it[30 + "payload.bin".length] = (it[30 + "payload.bin".length].toInt() xor 0x7F).toByte() }
+        val source = CloudRangeSource(bytes.size.toLong(), { offset, length ->
+            bytes.copyOfRange(offset.toInt(), offset.toInt() + length)
+        }, {})
+        try {
+            val reader = SparseZipReader(source)
+            val entry = reader.listEntries().single()
+            val failure = runCatching { reader.extractEntryBytes(entry) }.exceptionOrNull()
+            assertTrue(failure is com.autogram.app.features.cloud.CloudFailure)
+            assertEquals("cloud_media_checksum_mismatch", (failure as com.autogram.app.features.cloud.CloudFailure).code)
+        } finally { source.close() }
+    }
+
+    @Test fun extractionRejectsLocalHeaderThatDisagreesWithCatalog() = runBlocking {
+        val bytes = archive(byteArrayOf(1, 2, 3))
+        val source = CloudRangeSource(bytes.size.toLong(), { offset, length ->
+            val result = bytes.copyOfRange(offset.toInt(), offset.toInt() + length)
+            if (offset == 0L) result[8] = 99
+            result
+        }, {})
+        try {
+            val reader = SparseZipReader(source)
+            val entry = reader.listEntries().single()
+            val failure = runCatching { reader.extractEntryBytes(entry) }.exceptionOrNull()
+            assertTrue(failure is com.autogram.app.features.cloud.CloudFailure)
+            assertEquals("zip_invalid_archive", (failure as com.autogram.app.features.cloud.CloudFailure).code)
         } finally { source.close() }
     }
 

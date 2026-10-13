@@ -13,9 +13,21 @@ evidence. A previously ambiguous operation was also reconciled by its persisted 
 ID without another send. Receipt and duplicate checks account for Telegram's observed
 hyphen-to-underscore filename normalization while still verifying scope, document type,
 size, and exact content where applicable. Multiple selected originals remain separate
-operations. Android now has a durable, scoped album-admission contract with the desktop's
-caption/order/random-id rules; the native MTProto album sender and Android controls are
-still unimplemented, so Android visual albums are not yet available.
+operations. Android now has a native MTProto photo-album sender and separate 2–10 JPEG
+picker, with persisted upload chunks, frozen profile/destination, caption placement,
+idempotent random IDs, queue controls and exact grouped-message verification. Selections
+of up to 500 JPEGs can be divided into groups using the desktop-matched Smart Adaptive
+policy or a custom 2–10 photo grid, with no Telegram group exceeding ten items. The
+last prepared album policy is restored from the account-scoped album profile. A
+dedicated account-scoped album profile copies the active settings without changing the
+selected profile. A physical two-photo fixture on the X698 confirmed Telegram grouping,
+JPEG message types and decoded server-thumbnail content; retry retained the receipt and
+cleanup removed only those fixture messages. A follow-up physical test used textured
+1024×768 JPEGs whose server photo streams exceeded 65,536 bytes; both returned exactly
+65,536 bytes from offset zero with a valid JPEG header. This proves bounded partial reads
+for those fixtures. Physical acceptance currently covers one two-photo group; multi-group
+delivery and visible layout controls still need device acceptance. Video preparation, desktop media options and
+the rest of desktop upload behavior are not yet at parity.
 Android's gallery now uses the desktop's six grid density presets, responsive column sizing,
 flat card sequence, and touch zoom mapping; physical layout and gesture acceptance remain pending.
 The engine also stores transfer profiles per account and freezes their configuration
@@ -74,6 +86,8 @@ Standard ZIP readers download the entire archive before extracting an individual
 2. **Catalog Parsing**: Reads archive directory tables in memory to present file trees instantly.
 3. **Exact Slicing**: Upon user preview or extraction, fetches strictly `[local_header_offset .. local_header_offset + compressed_size]`.
 4. **On-the-Fly Decryption**: Synthesizes a 1-entry micro-archive in RAM for password-protected files (WinZip AES & ZipCrypto) with zero disk writes.
+
+On Android, archive browsing and Stored/Deflate extraction use bounded Telegram byte-range reads and verify the extracted entry's CRC32. Password-protected ZIP and ZIP64 archives are not yet supported on Android.
 
 ---
 

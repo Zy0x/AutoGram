@@ -204,6 +204,9 @@
     <string name="zip_extracted_success">File successfully extracted to storage!</string>
     <string name="zip_in_memory_stream">In-Memory Byte-Range Streaming (Zero Quota Waste)</string>
     <string name="zip_empty">No files found inside the archive.</string>
+    <string name="zip_integrity_failed">The archive entry did not pass its integrity check.</string>
+    <string name="zip_format_unsupported">This archive format or size is not supported yet.</string>
+    <string name="zip_invalid_archive">The archive is damaged or could not be read.</string>
 
     <!-- Drive Tools Suite -->
     <string name="tools_title">Drive Analysis Tools</string>

@@ -6,6 +6,9 @@ use crate::transfer::{
 };
 use std::path::PathBuf;
 
+#[path = "executor_tests.rs"]
+mod executor_tests;
+
 struct TempDb(PathBuf);
 impl TempDb {
     fn new() -> Self {
@@ -131,11 +134,14 @@ fn visual_album_admission_enforces_telegram_size_and_native_media_contract() {
 fn native_album_store_persists_exact_identity_progress_and_receipt() {
     let db = TempDb::new();
     let store = AlbumUploadStore::open(&db.0).unwrap();
+    AlbumUploadStore::open(&db.0).unwrap();
     let request = request();
     let scope = request.destination.scope.clone();
     let record = store.enqueue(request.clone()).unwrap();
     assert_eq!(record.state, AlbumUploadState::Queued);
     assert_eq!(record.request, request);
+    assert_eq!(record.upload_file_ids, vec![None, None, None]);
+    assert_eq!(record.acknowledged_parts, vec![0, 0, 0]);
     assert_eq!(
         store.enqueue(record.request.clone()).unwrap().request,
         record.request
@@ -146,6 +152,17 @@ fn native_album_store_persists_exact_identity_progress_and_receipt() {
         .set_preparing(&record.request.operation_id, &scope)
         .unwrap();
     for index in 0..record.request.items.len() {
+        store
+            .record_upload_file_id(
+                &record.request.operation_id,
+                &scope,
+                index,
+                40 + index as i64,
+            )
+            .unwrap();
+        store
+            .acknowledge_part(&record.request.operation_id, &scope, index, 0)
+            .unwrap();
         let updated = store
             .mark_item_prepared(&record.request.operation_id, &scope, index)
             .unwrap();
@@ -214,6 +231,22 @@ fn recovery_requeues_only_precommit_work_and_never_resends_uncertain_commits() {
         )
         .unwrap();
     store
+        .record_upload_file_id(
+            &queued.request.operation_id,
+            &queued.request.destination.scope,
+            0,
+            77,
+        )
+        .unwrap();
+    store
+        .acknowledge_part(
+            &queued.request.operation_id,
+            &queued.request.destination.scope,
+            0,
+            0,
+        )
+        .unwrap();
+    store
         .mark_item_prepared(
             &queued.request.operation_id,
             &queued.request.destination.scope,
@@ -229,6 +262,8 @@ fn recovery_requeues_only_precommit_work_and_never_resends_uncertain_commits() {
         .unwrap();
     assert_eq!(recovered.state, AlbumUploadState::Queued);
     assert_eq!(recovered.prepared_items, 0);
+    assert_eq!(recovered.upload_file_ids[0], Some(77));
+    assert_eq!(recovered.acknowledged_parts[0], 1);
 
     store
         .set_preparing(
@@ -237,6 +272,23 @@ fn recovery_requeues_only_precommit_work_and_never_resends_uncertain_commits() {
         )
         .unwrap();
     for index in 0..queued.request.items.len() {
+        let file_id = if index == 0 { 77 } else { 80 + index as i64 };
+        store
+            .record_upload_file_id(
+                &queued.request.operation_id,
+                &queued.request.destination.scope,
+                index,
+                file_id,
+            )
+            .unwrap();
+        store
+            .acknowledge_part(
+                &queued.request.operation_id,
+                &queued.request.destination.scope,
+                index,
+                0,
+            )
+            .unwrap();
         store
             .mark_item_prepared(
                 &queued.request.operation_id,

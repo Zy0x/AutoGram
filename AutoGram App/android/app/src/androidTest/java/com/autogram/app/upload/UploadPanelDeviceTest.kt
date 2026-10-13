@@ -1,16 +1,22 @@
 package com.autogram.app.upload
 
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.autogram.app.R
 import com.autogram.app.features.cloud.CloudScope
+import com.autogram.app.features.cloudtransfer.upload.PhotoAlbumGridPicker
 import com.autogram.app.features.cloudtransfer.upload.UploadPanel
 import com.autogram.app.features.cloudtransfer.upload.UploadQueue
 import com.autogram.app.theme.AutoGramTheme
+import com.autogram.app.ui.keepUnlockedFixtureAwake
 import org.junit.Assert.*
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import uniffi.autogram_android_bridge.*
@@ -19,15 +25,18 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /** Isolated queue only; no native auth, Telegram, private sources or production metadata. */
 class UploadPanelDeviceTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val scope = CloudScope("tg_123", "-1000000000456", 17)
     private fun text(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
+    @Before fun requireUnlockedDevice() { keepUnlockedFixtureAwake { compose.activity } }
+    @After fun restoreWindowFlags() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            compose.activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
     private fun awaitPanel() {
         compose.waitUntil(5_000) {
-            try { compose.onAllNodesWithTag("cloud-upload-panel").fetchSemanticsNodes().isNotEmpty() }
-            catch (failure: IllegalStateException) {
-                if (failure.message?.contains("No compose hierarchies") == true) false else throw failure
-            }
+            compose.onAllNodesWithTag("cloud-upload-panel").fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -77,6 +86,23 @@ class UploadPanelDeviceTest {
         compose.onNodeWithTag("cloud-upload-choose").assertIsNotEnabled()
         compose.onNodeWithText(text(R.string.cloud_upload_choose_topic)).assertIsDisplayed()
         assertEquals(0, queue.enqueues.get())
+    }
+    @Test fun photoGridExposesDesktopSmartAdaptiveAndCustomModes() {
+        var packing by mutableStateOf(NativeAlbumPacking.SMART_ADAPTIVE)
+        compose.setContent {
+            AutoGramTheme {
+                PhotoAlbumGridPicker(packing, 7, { packing = it }, {})
+            }
+        }
+        val adaptive = text(R.string.cloud_upload_album_grid_maximum)
+        val custom = text(R.string.cloud_upload_album_grid_custom)
+        compose.onNodeWithText(adaptive).performClick()
+        compose.onNodeWithText(custom).assertIsDisplayed().performClick()
+        assertEquals(NativeAlbumPacking.CUSTOM, packing)
+        compose.onNodeWithTag("cloud-upload-album-grid-size").assertIsDisplayed()
+        compose.onNodeWithText(adaptive).performClick()
+        assertEquals(NativeAlbumPacking.SMART_ADAPTIVE, packing)
+        compose.onNodeWithTag("cloud-upload-album-grid-size").assertDoesNotExist()
     }
     @Test fun navigationDisposesTheOldScopedQueueAndItsControls() {
         val queue = FixtureQueue()

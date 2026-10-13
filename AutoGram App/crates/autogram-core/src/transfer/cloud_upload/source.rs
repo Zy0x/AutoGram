@@ -70,7 +70,7 @@ pub fn snapshot_upload_file_cancellable(
     Ok(snapshot)
 }
 
-pub(super) struct UploadSource {
+pub(crate) struct UploadSource {
     file: File,
     snapshot: UploadFileSnapshot,
 }

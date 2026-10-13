@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 mod auth;
 mod cloud;
+mod cloud_album;
 mod cloud_download;
 mod cloud_topics;
 mod cloud_upload;
@@ -199,6 +200,32 @@ fn open_database() -> Result<Connection, AutoGramBridgeError> {
     .map_err(|_| AutoGramBridgeError::DatabaseError {
         msg: "cloud_upload_reuse_schema_failed".into(),
     })?;
+    conn.execute_batch(include_str!(
+        "../../../database/migrations/031_native_cloud_albums.sql"
+    ))
+    .map_err(|_| AutoGramBridgeError::DatabaseError {
+        msg: "cloud_album_schema_failed".into(),
+    })?;
+    let has_album_part_checkpoints = conn
+        .prepare("PRAGMA table_info(native_cloud_albums)")
+        .and_then(|mut statement| {
+            statement
+                .query_map([], |row| row.get::<_, String>(1))?
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .map_err(|_| AutoGramBridgeError::DatabaseError {
+            msg: "cloud_album_schema_inspection_failed".into(),
+        })?
+        .iter()
+        .any(|column| column == "upload_file_ids_json");
+    if !has_album_part_checkpoints {
+        conn.execute_batch(include_str!(
+            "../../../database/migrations/032_native_cloud_album_parts.sql"
+        ))
+        .map_err(|_| AutoGramBridgeError::DatabaseError {
+            msg: "cloud_album_checkpoint_schema_failed".into(),
+        })?;
+    }
     // Forward-compatible local migration for installations created before the
     // Telegram-native category became part of the Android bridge contract.
     let has_category = conn

@@ -196,6 +196,7 @@ Persists Android visual-album admission and the MTProto commit boundary:
 - `item_count` is constrained to Telegram's 2–10 visual-media range. `prepared_items` is bounded by that count and resets when a process restarts before the commit boundary; per-item phase snapshots remain in `transfer_items_v4`.
 - `state` distinguishes queued/preparing/committing/paused/review-required/completed and terminal outcomes. Uncertain commits remain under review instead of creating new identities.
 - `mapped_message_ids_json`, `grouped_id`, and `receipt_json` hold exact response correlation and the final server-verified album receipt. Completion requires every distinct positive message ID and one nonzero grouped ID.
+- `upload_file_ids_json` and `acknowledged_parts_json` checkpoint each MTProto temporary file and contiguous part acknowledgements. Migration 032 adds these to existing queues; reopening the store applies it once after checking the columns.
 - Scope/dispatch indexes support account-owned queue reads and recovery. The immutable-binding trigger prevents a retry from changing destination, item order, profile, caption, digests, or random IDs.
 
 Migration 031 is additive and idempotent. It shares transfer run/item snapshots while retaining a dedicated album receipt, and does not rewrite existing user rows.

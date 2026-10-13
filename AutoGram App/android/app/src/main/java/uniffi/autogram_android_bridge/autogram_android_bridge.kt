@@ -917,6 +917,22 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -954,6 +970,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_configure_api(`apiId`: Int,`apiHash`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_control_cloud_album(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,`action`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_control_cloud_download(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,`action`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_control_cloud_upload(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,`action`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
@@ -968,6 +986,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_emit_bridge_event(`eventType`: RustBuffer.ByValue,`payloadJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_enqueue_cloud_album(`input`: RustBuffer.ByValue,`profileId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_enqueue_cloud_download(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`messageId`: Int,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_enqueue_cloud_upload(`operationId`: RustBuffer.ByValue,`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`stagedPath`: RustBuffer.ByValue,`filename`: RustBuffer.ByValue,`mimeType`: RustBuffer.ByValue,`caption`: RustBuffer.ByValue,`silent`: Byte,`spoiler`: Byte,
@@ -984,6 +1004,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_available_storage_bytes(uniffi_out_err: UniffiRustCallStatus,
     ): Long
+    fun uniffi_autogram_android_bridge_fn_func_get_cloud_album(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_cloud_download(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_cloud_upload(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
@@ -996,6 +1018,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_get_storage_budget(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_has_recoverable_cloud_albums(uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
     fun uniffi_autogram_android_bridge_fn_func_has_recoverable_cloud_downloads(uniffi_out_err: UniffiRustCallStatus,
     ): Byte
     fun uniffi_autogram_android_bridge_fn_func_has_recoverable_cloud_uploads(uniffi_out_err: UniffiRustCallStatus,
@@ -1009,6 +1033,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_fn_func_last_selected_account(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_authorized_accounts(uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+    fun uniffi_autogram_android_bridge_fn_func_list_cloud_albums(`accountId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_list_cloud_dialogs(`accountId`: RustBuffer.ByValue,`cursor`: RustBuffer.ByValue,
     ): Long
@@ -1034,6 +1060,8 @@ internal interface UniffiLib : Library {
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_open_cloud_media_stream(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`messageId`: Int,
     ): Long
+    fun uniffi_autogram_android_bridge_fn_func_pending_cloud_albums(uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_pending_cloud_downloads(uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
     fun uniffi_autogram_android_bridge_fn_func_pending_cloud_uploads(uniffi_out_err: UniffiRustCallStatus,
@@ -1043,6 +1071,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_fn_func_poll_qr_login(`attemptId`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_read_cloud_media_range(`accountId`: RustBuffer.ByValue,`streamId`: RustBuffer.ByValue,`offset`: Long,`length`: Int,
+    ): Long
+    fun uniffi_autogram_android_bridge_fn_func_reconcile_cloud_album(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_reconcile_cloud_upload(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,
     ): Long
@@ -1064,6 +1094,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_autogram_android_bridge_fn_func_set_transfer_paused(`id`: RustBuffer.ByValue,`paused`: Byte,uniffi_out_err: UniffiRustCallStatus,
     ): Byte
+    fun uniffi_autogram_android_bridge_fn_func_start_cloud_album(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_start_cloud_upload(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_submit_login_code(`attemptId`: RustBuffer.ByValue,`code`: RustBuffer.ByValue,
@@ -1202,6 +1234,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_configure_api(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_control_cloud_album(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_control_cloud_download(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_control_cloud_upload(
@@ -1215,6 +1249,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_checksum_func_delete_transfer_profile(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_emit_bridge_event(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_album(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_download(
     ): Short
@@ -1232,6 +1268,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_available_storage_bytes(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_get_cloud_album(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_cloud_download(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_cloud_upload(
@@ -1243,6 +1281,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_checksum_func_get_runtime_status(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_get_storage_budget(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_has_recoverable_cloud_albums(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_has_recoverable_cloud_downloads(
     ): Short
@@ -1257,6 +1297,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_checksum_func_last_selected_account(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_authorized_accounts(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_list_cloud_albums(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_list_cloud_dialogs(
     ): Short
@@ -1282,6 +1324,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_open_cloud_media_stream(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_pending_cloud_albums(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_pending_cloud_downloads(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_pending_cloud_uploads(
@@ -1291,6 +1335,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_checksum_func_poll_qr_login(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_read_cloud_media_range(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_reconcile_cloud_album(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_reconcile_cloud_upload(
     ): Short
@@ -1311,6 +1357,8 @@ internal interface UniffiLib : Library {
     fun uniffi_autogram_android_bridge_checksum_func_select_transfer_profile(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_set_transfer_paused(
+    ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_start_cloud_album(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_start_cloud_upload(
     ): Short
@@ -1373,6 +1421,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_configure_api() != 59410.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_control_cloud_album() != 11485.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_control_cloud_download() != 3815.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1392,6 +1443,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_emit_bridge_event() != 49474.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_album() != 64968.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_enqueue_cloud_download() != 14370.toShort()) {
@@ -1418,6 +1472,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_available_storage_bytes() != 6977.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_get_cloud_album() != 15128.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_cloud_download() != 17103.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1434,6 +1491,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_get_storage_budget() != 34110.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_has_recoverable_cloud_albums() != 27410.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_has_recoverable_cloud_downloads() != 11387.toShort()) {
@@ -1455,6 +1515,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_authorized_accounts() != 54155.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_list_cloud_albums() != 49253.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_list_cloud_dialogs() != 26723.toShort()) {
@@ -1493,6 +1556,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_autogram_android_bridge_checksum_func_open_cloud_media_stream() != 46094.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_pending_cloud_albums() != 8590.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_autogram_android_bridge_checksum_func_pending_cloud_downloads() != 16763.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1506,6 +1572,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_read_cloud_media_range() != 62792.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_reconcile_cloud_album() != 33333.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_reconcile_cloud_upload() != 2457.toShort()) {
@@ -1536,6 +1605,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_set_transfer_paused() != 59974.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_start_cloud_album() != 441.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_start_cloud_upload() != 56763.toShort()) {
@@ -2317,6 +2389,90 @@ public object FfiConverterTypeNativeAccount: FfiConverterRustBuffer<NativeAccoun
 
 
 
+data class NativeAlbumInput (
+    var `operationId`: kotlin.String,
+    var `accountId`: kotlin.String,
+    var `peerId`: kotlin.String,
+    var `topicId`: kotlin.Int?,
+    var `summaryCaption`: kotlin.String,
+    var `items`: List<NativeAlbumItemInput>
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAlbumInput: FfiConverterRustBuffer<NativeAlbumInput> {
+    override fun read(buf: ByteBuffer): NativeAlbumInput {
+        return NativeAlbumInput(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeNativeAlbumItemInput.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeAlbumInput) = (
+            FfiConverterString.allocationSize(value.`operationId`) +
+            FfiConverterString.allocationSize(value.`accountId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterOptionalInt.allocationSize(value.`topicId`) +
+            FfiConverterString.allocationSize(value.`summaryCaption`) +
+            FfiConverterSequenceTypeNativeAlbumItemInput.allocationSize(value.`items`)
+    )
+
+    override fun write(value: NativeAlbumInput, buf: ByteBuffer) {
+            FfiConverterString.write(value.`operationId`, buf)
+            FfiConverterString.write(value.`accountId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterOptionalInt.write(value.`topicId`, buf)
+            FfiConverterString.write(value.`summaryCaption`, buf)
+            FfiConverterSequenceTypeNativeAlbumItemInput.write(value.`items`, buf)
+    }
+}
+
+
+
+data class NativeAlbumItemInput (
+    var `stagedPath`: kotlin.String,
+    var `filename`: kotlin.String,
+    var `mimeType`: kotlin.String
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeAlbumItemInput: FfiConverterRustBuffer<NativeAlbumItemInput> {
+    override fun read(buf: ByteBuffer): NativeAlbumItemInput {
+        return NativeAlbumItemInput(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeAlbumItemInput) = (
+            FfiConverterString.allocationSize(value.`stagedPath`) +
+            FfiConverterString.allocationSize(value.`filename`) +
+            FfiConverterString.allocationSize(value.`mimeType`)
+    )
+
+    override fun write(value: NativeAlbumItemInput, buf: ByteBuffer) {
+            FfiConverterString.write(value.`stagedPath`, buf)
+            FfiConverterString.write(value.`filename`, buf)
+            FfiConverterString.write(value.`mimeType`, buf)
+    }
+}
+
+
+
 data class NativeAuthStep (
     var `attemptId`: kotlin.String,
     var `phase`: NativeAuthPhase,
@@ -2368,6 +2524,78 @@ public object FfiConverterTypeNativeAuthStep: FfiConverterRustBuffer<NativeAuthS
             FfiConverterBoolean.write(value.`canResend`, buf)
             FfiConverterOptionalString.write(value.`passwordHint`, buf)
             FfiConverterOptionalTypeNativeAccount.write(value.`account`, buf)
+    }
+}
+
+
+
+data class NativeCloudAlbum (
+    var `operationId`: kotlin.String,
+    var `accountId`: kotlin.String,
+    var `peerId`: kotlin.String,
+    var `topicId`: kotlin.Int?,
+    var `state`: kotlin.String,
+    var `itemCount`: kotlin.UInt,
+    var `preparedItems`: kotlin.UInt,
+    var `totalBytes`: kotlin.ULong,
+    var `uploadedBytes`: kotlin.ULong,
+    var `messageIds`: List<kotlin.Int?>,
+    var `groupedId`: kotlin.Long?,
+    var `errorCode`: kotlin.String?
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudAlbum: FfiConverterRustBuffer<NativeCloudAlbum> {
+    override fun read(buf: ByteBuffer): NativeCloudAlbum {
+        return NativeCloudAlbum(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterSequenceOptionalInt.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudAlbum) = (
+            FfiConverterString.allocationSize(value.`operationId`) +
+            FfiConverterString.allocationSize(value.`accountId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterOptionalInt.allocationSize(value.`topicId`) +
+            FfiConverterString.allocationSize(value.`state`) +
+            FfiConverterUInt.allocationSize(value.`itemCount`) +
+            FfiConverterUInt.allocationSize(value.`preparedItems`) +
+            FfiConverterULong.allocationSize(value.`totalBytes`) +
+            FfiConverterULong.allocationSize(value.`uploadedBytes`) +
+            FfiConverterSequenceOptionalInt.allocationSize(value.`messageIds`) +
+            FfiConverterOptionalLong.allocationSize(value.`groupedId`) +
+            FfiConverterOptionalString.allocationSize(value.`errorCode`)
+    )
+
+    override fun write(value: NativeCloudAlbum, buf: ByteBuffer) {
+            FfiConverterString.write(value.`operationId`, buf)
+            FfiConverterString.write(value.`accountId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterOptionalInt.write(value.`topicId`, buf)
+            FfiConverterString.write(value.`state`, buf)
+            FfiConverterUInt.write(value.`itemCount`, buf)
+            FfiConverterUInt.write(value.`preparedItems`, buf)
+            FfiConverterULong.write(value.`totalBytes`, buf)
+            FfiConverterULong.write(value.`uploadedBytes`, buf)
+            FfiConverterSequenceOptionalInt.write(value.`messageIds`, buf)
+            FfiConverterOptionalLong.write(value.`groupedId`, buf)
+            FfiConverterOptionalString.write(value.`errorCode`, buf)
     }
 }
 
@@ -4928,6 +5156,62 @@ public object FfiConverterSequenceTypeNativeAccount: FfiConverterRustBuffer<List
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeNativeAlbumItemInput: FfiConverterRustBuffer<List<NativeAlbumItemInput>> {
+    override fun read(buf: ByteBuffer): List<NativeAlbumItemInput> {
+        val len = buf.getInt()
+        return List<NativeAlbumItemInput>(len) {
+            FfiConverterTypeNativeAlbumItemInput.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NativeAlbumItemInput>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNativeAlbumItemInput.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NativeAlbumItemInput>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNativeAlbumItemInput.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeNativeCloudAlbum: FfiConverterRustBuffer<List<NativeCloudAlbum>> {
+    override fun read(buf: ByteBuffer): List<NativeCloudAlbum> {
+        val len = buf.getInt()
+        return List<NativeCloudAlbum>(len) {
+            FfiConverterTypeNativeCloudAlbum.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NativeCloudAlbum>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNativeCloudAlbum.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NativeCloudAlbum>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNativeCloudAlbum.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeNativeCloudDeleteFailure: FfiConverterRustBuffer<List<NativeCloudDeleteFailure>> {
     override fun read(buf: ByteBuffer): List<NativeCloudDeleteFailure> {
         val len = buf.getInt()
@@ -5177,6 +5461,34 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
 
 
 
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceOptionalInt: FfiConverterRustBuffer<List<kotlin.Int?>> {
+    override fun read(buf: ByteBuffer): List<kotlin.Int?> {
+        val len = buf.getInt()
+        return List<kotlin.Int?>(len) {
+            FfiConverterOptionalInt.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.Int?>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterOptionalInt.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.Int?>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterOptionalInt.write(it, buf)
+        }
+    }
+}
+
+
+
+
 
 
 
@@ -5269,6 +5581,16 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
 
 
 
+    @Throws(NativeUploadException::class) fun `controlCloudAlbum`(`accountId`: kotlin.String, `operationId`: kotlin.String, `action`: kotlin.String): NativeCloudAlbum {
+            return FfiConverterTypeNativeCloudAlbum.lift(
+    uniffiRustCallWithError(NativeUploadException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_control_cloud_album(
+        FfiConverterString.lower(`accountId`),FfiConverterString.lower(`operationId`),FfiConverterString.lower(`action`),_status)
+}
+    )
+    }
+
+
     @Throws(NativeDownloadException::class) fun `controlCloudDownload`(`accountId`: kotlin.String, `operationId`: kotlin.String, `action`: kotlin.String)
         =
     uniffiRustCallWithError(NativeDownloadException) { _status ->
@@ -5343,6 +5665,21 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
 }
 
 
+
+    @Throws(NativeUploadException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `enqueueCloudAlbum`(`input`: NativeAlbumInput, `profileId`: kotlin.String?) : NativeCloudAlbum {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_enqueue_cloud_album(FfiConverterTypeNativeAlbumInput.lower(`input`),FfiConverterOptionalString.lower(`profileId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudAlbum.lift(it) },
+        // Error FFI converter
+        NativeUploadException.ErrorHandler,
+    )
+    }
 
     @Throws(NativeDownloadException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -5454,6 +5791,16 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
     }
 
 
+    @Throws(NativeUploadException::class) fun `getCloudAlbum`(`accountId`: kotlin.String, `operationId`: kotlin.String): NativeCloudAlbum {
+            return FfiConverterTypeNativeCloudAlbum.lift(
+    uniffiRustCallWithError(NativeUploadException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_get_cloud_album(
+        FfiConverterString.lower(`accountId`),FfiConverterString.lower(`operationId`),_status)
+}
+    )
+    }
+
+
     @Throws(NativeDownloadException::class) fun `getCloudDownload`(`accountId`: kotlin.String, `operationId`: kotlin.String): NativeCloudDownload {
             return FfiConverterTypeNativeCloudDownload.lift(
     uniffiRustCallWithError(NativeDownloadException) { _status ->
@@ -5511,6 +5858,16 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
             return FfiConverterTypeStorageBudgetResult.lift(
     uniffiRustCallWithError(AutoGramBridgeException) { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_get_storage_budget(
+        _status)
+}
+    )
+    }
+
+
+    @Throws(NativeUploadException::class) fun `hasRecoverableCloudAlbums`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(NativeUploadException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_has_recoverable_cloud_albums(
         _status)
 }
     )
@@ -5586,6 +5943,16 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
     uniffiRustCallWithError(NativeAuthException) { _status ->
     UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_authorized_accounts(
         _status)
+}
+    )
+    }
+
+
+    @Throws(NativeUploadException::class) fun `listCloudAlbums`(`accountId`: kotlin.String): List<NativeCloudAlbum> {
+            return FfiConverterSequenceTypeNativeCloudAlbum.lift(
+    uniffiRustCallWithError(NativeUploadException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_list_cloud_albums(
+        FfiConverterString.lower(`accountId`),_status)
 }
     )
     }
@@ -5746,6 +6113,16 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
     )
     }
 
+    @Throws(NativeUploadException::class) fun `pendingCloudAlbums`(): List<NativeCloudAlbum> {
+            return FfiConverterSequenceTypeNativeCloudAlbum.lift(
+    uniffiRustCallWithError(NativeUploadException) { _status ->
+    UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_pending_cloud_albums(
+        _status)
+}
+    )
+    }
+
+
     @Throws(NativeDownloadException::class) fun `pendingCloudDownloads`(): List<NativeCloudDownload> {
             return FfiConverterSequenceTypeNativeCloudDownload.lift(
     uniffiRustCallWithError(NativeDownloadException) { _status ->
@@ -5803,6 +6180,21 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
         { FfiConverterByteArray.lift(it) },
         // Error FFI converter
         NativeAuthException.ErrorHandler,
+    )
+    }
+
+    @Throws(NativeUploadException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `reconcileCloudAlbum`(`accountId`: kotlin.String, `operationId`: kotlin.String) : NativeCloudAlbum {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_reconcile_cloud_album(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`operationId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudAlbum.lift(it) },
+        // Error FFI converter
+        NativeUploadException.ErrorHandler,
     )
     }
 
@@ -5922,6 +6314,21 @@ public object FfiConverterSequenceTypeNativeUploadDuplicate: FfiConverterRustBuf
     )
     }
 
+
+    @Throws(NativeUploadException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `startCloudAlbum`(`accountId`: kotlin.String, `operationId`: kotlin.String) : NativeCloudAlbum {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_start_cloud_album(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`operationId`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudAlbum.lift(it) },
+        // Error FFI converter
+        NativeUploadException.ErrorHandler,
+    )
+    }
 
     @Throws(NativeUploadException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")

@@ -155,7 +155,9 @@ fn is_visual_media(filename: &str, mime_type: &str) -> bool {
         .to_ascii_lowercase();
     match mime_type {
         "image/jpeg" => matches!(ext.as_str(), "jpg" | "jpeg"),
-        "video/mp4" => ext == "mp4",
+        // The current Android bridge has no verified video probing/attributes adapter.
+        // Reject videos until duration, dimensions and streamability come from MediaCodec.
+        "video/mp4" => false,
         _ => false,
     }
 }
@@ -223,6 +225,8 @@ pub struct AlbumUploadRecord {
     pub state: AlbumUploadState,
     pub prepared_items: usize,
     pub mapped_message_ids: Vec<Option<i32>>,
+    pub upload_file_ids: Vec<Option<i64>>,
+    pub acknowledged_parts: Vec<usize>,
     pub receipt: Option<AlbumUploadReceipt>,
     pub error_code: Option<String>,
 }
@@ -245,6 +249,28 @@ pub enum AlbumUploadError {
     ReviewRequired,
     #[error("operation_cancelled")]
     Cancelled,
+    #[error("source_changed")]
+    SourceChanged,
+    #[error("io")]
+    Io,
+    #[error("network")]
+    Network,
+    #[error("rejected")]
+    Rejected,
+}
+
+impl From<crate::transfer::cloud_upload::UploadError> for AlbumUploadError {
+    fn from(value: crate::transfer::cloud_upload::UploadError) -> Self {
+        use crate::transfer::cloud_upload::UploadError;
+        match value {
+            UploadError::Cancelled => Self::Cancelled,
+            UploadError::SourceChanged => Self::SourceChanged,
+            UploadError::Network => Self::Network,
+            UploadError::Io => Self::Io,
+            UploadError::WrongScope => Self::WrongScope,
+            _ => Self::InvalidRequest,
+        }
+    }
 }
 
 pub fn validate_album_receipt(

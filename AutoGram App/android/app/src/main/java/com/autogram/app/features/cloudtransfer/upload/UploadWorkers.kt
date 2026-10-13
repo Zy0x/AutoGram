@@ -28,20 +28,29 @@ internal object UploadDispatch {
     suspend fun drain() = mutex.withLock {
         val attempted = mutableSetOf<String>()
         while (currentCoroutineContext().isActive) {
-            val pending = pendingCloudUploads().filter { it.operationId !in attempted }
-            if (pending.isEmpty()) break
-            for (item in pending) {
+            val pendingUploads = pendingCloudUploads().filter { "upload:${it.operationId}" !in attempted }
+            val pendingAlbums = pendingCloudAlbums().filter { "album:${it.operationId}" !in attempted }
+            if (pendingUploads.isEmpty() && pendingAlbums.isEmpty()) break
+            for (item in pendingUploads) {
                 currentCoroutineContext().ensureActive()
-                attempted += item.operationId
+                attempted += "upload:${item.operationId}"
                 try { startCloudUpload(item.accountId, item.operationId) }
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (_: NativeUploadException) { /* Actual persisted state is the UI's evidence. */ }
                 NativeRuntime.invalidate("transfer_task_changed")
             }
+            for (item in pendingAlbums) {
+                currentCoroutineContext().ensureActive()
+                attempted += "album:${item.operationId}"
+                try { startCloudAlbum(item.accountId, item.operationId) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: NativeUploadException) { /* Persisted album state remains visible for recovery. */ }
+                NativeRuntime.invalidate("transfer_task_changed")
+            }
         }
         // Future FloodWait deadlines are deliberately absent from pending().
         // JobScheduler may defer them; no tight retry loop or false completion.
-        hasRecoverableCloudUploads()
+        hasRecoverableCloudUploads() || hasRecoverableCloudAlbums()
     }
 }
 
@@ -64,7 +73,7 @@ object UploadScheduling {
     /** Recovery registration only; never launch a foreground service from cold start. */
     fun restore(context: Context) {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            try { if (hasRecoverableCloudUploads()) schedule(context.applicationContext) }
+            try { if (hasRecoverableCloudUploads() || hasRecoverableCloudAlbums()) schedule(context.applicationContext) }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { NativeRuntime.invalidate("transfer_task_changed") }
         }

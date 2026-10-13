@@ -114,6 +114,10 @@ describe('AlbumStrategyControl - 2-Mode Partition Mathematics & Simulator', () =
       const resultVid = calculateAlbumPartition(17, 'balanced', 'video');
       expect(resultVid.sizes).toEqual([6, 6, 5]);
       expect(resultVid.isSafe).toBe(true);
+
+      const resultPhoto = calculateAlbumPartition(17, 'balanced', 'photo');
+      expect(resultPhoto.sizes).toEqual([10, 7]);
+      expect(resultPhoto.isSafe).toBe(true);
     });
   });
 });

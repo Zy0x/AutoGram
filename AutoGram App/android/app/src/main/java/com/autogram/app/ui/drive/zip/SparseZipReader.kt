@@ -8,6 +8,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.charset.Charset
+import java.util.zip.CRC32
 import java.util.zip.Inflater
 
 data class ZipEntryItem(
@@ -17,7 +19,8 @@ data class ZipEntryItem(
     val isFolder: Boolean,
     val isEncrypted: Boolean,
     val compressionMethod: Int,
-    val localHeaderOffset: Long
+    val localHeaderOffset: Long,
+    val crc32: Long = 0L
 )
 
 /**
@@ -28,7 +31,7 @@ class SparseZipReader(private val source: CloudRangeSource) {
 
     suspend fun listEntries(): List<ZipEntryItem> = withContext(Dispatchers.IO) {
         val totalSize = source.size
-        if (totalSize < 22) return@withContext emptyList()
+        if (totalSize < 22) throw IllegalArgumentException("ZIP archive is too small")
 
         // EOCD record is in the last 65557 bytes (22 min + 65535 max comment)
         val readLength = minOf(totalSize, 65557L).toInt()
@@ -48,19 +51,33 @@ class SparseZipReader(private val source: CloudRangeSource) {
                 break
             }
         }
-        if (eocdPos < 0) return@withContext emptyList()
+        if (eocdPos < 0) throw IllegalArgumentException("ZIP end directory was not found")
 
         val buf = ByteBuffer.wrap(tailBytes, eocdPos, tailBytes.size - eocdPos)
             .slice().order(ByteOrder.LITTLE_ENDIAN)
         buf.position(4) // skip 4-byte signature
-        buf.short // diskNumber
-        buf.short // cdStartDisk
-        buf.short // totalEntriesThisDisk
-        buf.short // totalEntries
+        val diskNumber = buf.short.toInt() and 0xFFFF
+        val cdStartDisk = buf.short.toInt() and 0xFFFF
+        val entriesOnDisk = buf.short.toInt() and 0xFFFF
+        val totalEntries = buf.short.toInt() and 0xFFFF
         val cdSize = buf.int.toLong() and 0xFFFFFFFFL
         val cdOffset = buf.int.toLong() and 0xFFFFFFFFL
+        val commentLength = buf.short.toInt() and 0xFFFF
 
-        if (cdSize <= 0 || cdOffset < 0 || cdOffset + cdSize > totalSize) return@withContext emptyList()
+        if (eocdPos + 22 + commentLength != tailBytes.size) {
+            throw IllegalArgumentException("ZIP end directory comment length is invalid")
+        }
+        if (diskNumber != 0 || cdStartDisk != 0 || entriesOnDisk != totalEntries) {
+            throw CloudFailure("zip_format_unsupported")
+        }
+        if (totalEntries == 0xFFFF || cdSize == 0xFFFFFFFFL || cdOffset == 0xFFFFFFFFL) {
+            throw CloudFailure("zip_format_unsupported")
+        }
+
+        if (cdSize == 0L && totalEntries == 0) return@withContext emptyList()
+        if (cdSize <= 0 || cdOffset + cdSize > totalSize) {
+            throw IllegalArgumentException("ZIP central directory offsets are invalid")
+        }
 
         // Read Central Directory slice
         val cdBytes = readExact(cdOffset, cdSize, 8 * 1024 * 1024L)
@@ -78,7 +95,7 @@ class SparseZipReader(private val source: CloudRangeSource) {
             val compression = cdBuf.short.toInt() and 0xFFFF
             cdBuf.short // modTime
             cdBuf.short // modDate
-            cdBuf.int // crc
+            val crc32 = cdBuf.int.toLong() and 0xFFFFFFFFL
             val compressedSize = cdBuf.int.toLong() and 0xFFFFFFFFL
             val uncompressedSize = cdBuf.int.toLong() and 0xFFFFFFFFL
             val nameLen = cdBuf.short.toInt() and 0xFFFF
@@ -93,7 +110,8 @@ class SparseZipReader(private val source: CloudRangeSource) {
 
             val nameBytes = ByteArray(nameLen)
             cdBuf.get(nameBytes)
-            val name = String(nameBytes, Charsets.UTF_8)
+            val charset = if ((flags and (1 shl 11)) != 0) Charsets.UTF_8 else Charset.forName("IBM437")
+            val name = String(nameBytes, charset)
 
             cdBuf.position(cdBuf.position() + extraLen + commentLen)
 
@@ -107,33 +125,51 @@ class SparseZipReader(private val source: CloudRangeSource) {
                     isFolder = isFolder,
                     isEncrypted = isEncrypted,
                     compressionMethod = compression,
-                    localHeaderOffset = localOffset
+                    localHeaderOffset = localOffset,
+                    crc32 = crc32
                 )
             )
+        }
+
+        if (entries.size != totalEntries) {
+            throw CloudFailure("zip_invalid_archive")
         }
 
         entries
     }
 
     suspend fun extractEntryBytes(entry: ZipEntryItem): ByteArray = withContext(Dispatchers.IO) {
-        if (entry.isEncrypted) throw IllegalStateException("Berkas terenkripsi (ZipCrypto/AES). Masukkan kata sandi.")
-        if (entry.compressedSize > 100 * 1024 * 1024) throw IllegalStateException("Ukuran berkas terlalu besar untuk diekstrak langsung ke RAM.")
+        if (entry.isEncrypted) throw CloudFailure("zip_format_unsupported")
+        if (entry.compressedSize > 100 * 1024 * 1024) throw CloudFailure("zip_format_unsupported")
         if (entry.uncompressedSize !in 0..100 * 1024 * 1024L) throw CloudFailure("cloud_format_unsupported")
 
         // Read Local File Header (minimum 30 bytes)
         val headerBytes = source.read(entry.localHeaderOffset, 30)
-        if (headerBytes.size < 30) throw IllegalStateException("Local header rusak")
+        if (headerBytes.size < 30) throw CloudFailure("zip_invalid_archive")
         val hBuf = ByteBuffer.wrap(headerBytes).order(ByteOrder.LITTLE_ENDIAN)
         val sig = hBuf.int
-        if (sig != 0x04034b50) throw IllegalStateException("Signature local file header salah")
+        if (sig != 0x04034b50) throw CloudFailure("zip_invalid_archive")
+        hBuf.short // version needed
+        val localFlags = hBuf.short.toInt() and 0xFFFF
+        val localMethod = hBuf.short.toInt() and 0xFFFF
+        if ((localFlags and 1 != 0) != entry.isEncrypted || localMethod != entry.compressionMethod) {
+            throw CloudFailure("zip_invalid_archive")
+        }
         hBuf.position(26)
         val localNameLen = hBuf.short.toInt() and 0xFFFF
         val localExtraLen = hBuf.short.toInt() and 0xFFFF
+        if (localNameLen > source.size - entry.localHeaderOffset - 30) {
+            throw CloudFailure("invalid_range")
+        }
+        val localName = source.read(entry.localHeaderOffset + 30, localNameLen)
+        val centralName = entry.name.toByteArray(if ((localFlags and (1 shl 11)) != 0) Charsets.UTF_8 else Charset.forName("IBM437"))
+        if (!localName.contentEquals(centralName)) throw CloudFailure("zip_invalid_archive")
 
         val dataOffset = entry.localHeaderOffset + 30 + localNameLen + localExtraLen
+        if (dataOffset < entry.localHeaderOffset || dataOffset > source.size) throw CloudFailure("invalid_range")
         val compressedBytes = readExact(dataOffset, entry.compressedSize, 100 * 1024 * 1024L)
 
-        when (entry.compressionMethod) {
+        val result = when (entry.compressionMethod) {
             0 -> {
                 if (compressedBytes.size.toLong() != entry.uncompressedSize) throw CloudFailure("cloud_media_truncated")
                 compressedBytes // Stored (no compression)
@@ -153,8 +189,11 @@ class SparseZipReader(private val source: CloudRangeSource) {
                     inflater.end()
                 }
             }
-            else -> throw UnsupportedOperationException("Metode kompresi tidak didukung: ${entry.compressionMethod}")
+            else -> throw CloudFailure("zip_format_unsupported")
         }
+        val crc = CRC32().apply { update(result) }.value
+        if (crc != entry.crc32) throw CloudFailure("cloud_media_checksum_mismatch")
+        result
     }
 
     /** CloudRangeSource intentionally caps each call; consume only the declared slice. */

@@ -206,6 +206,9 @@
     <string name="zip_extracted_success">Berkas berhasil diekstrak ke penyimpanan!</string>
     <string name="zip_in_memory_stream">Streaming Byte-Range In-Memory (Hemat Kuota)</string>
     <string name="zip_empty">Tidak ada berkas yang ditemukan dalam arsip.</string>
+    <string name="zip_integrity_failed">Isi berkas arsip tidak lolos pemeriksaan integritas.</string>
+    <string name="zip_format_unsupported">Format atau ukuran arsip ini belum didukung.</string>
+    <string name="zip_invalid_archive">Arsip rusak atau tidak dapat dibaca.</string>
 
     <!-- Drive Tools Suite -->
     <string name="tools_title">Alat Analisis Drive</string>

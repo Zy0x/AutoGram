@@ -32,8 +32,10 @@ import com.autogram.app.features.cloud.preview.CloudRangeSource
 import com.autogram.app.theme.*
 import com.autogram.app.ui.drive.zip.SparseZipReader
 import com.autogram.app.ui.drive.zip.ZipEntryItem
+import com.autogram.app.ui.drive.zip.zipErrorMessage
 import com.autogram.app.viewmodel.DriveFileItem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -67,9 +69,11 @@ fun ZipExplorerModal(
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, context.getString(R.string.zip_extract_success), Toast.LENGTH_SHORT).show()
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, context.getString(R.string.zip_extract_failed), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, zipErrorMessage(context, e), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -94,8 +98,10 @@ fun ZipExplorerModal(
                 errorMessage = context.getString(R.string.real_preview_unavailable)
                 isLoading = false
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            errorMessage = e.message ?: context.getString(R.string.real_preview_unavailable)
+            errorMessage = zipErrorMessage(context, e)
             isLoading = false
         }
     }
@@ -272,8 +278,10 @@ fun ZipExplorerModal(
                                                     try {
                                                         val bytes = reader!!.extractEntryBytes(entry)
                                                         previewBytes = bytes
+                                                    } catch (e: CancellationException) {
+                                                        throw e
                                                     } catch (e: Exception) {
-                                                        Toast.makeText(context, e.message ?: context.getString(R.string.zip_extract_error), Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, zipErrorMessage(context, e), Toast.LENGTH_SHORT).show()
                                                         previewEntry = null
                                                     } finally {
                                                         isPreviewLoading = false
@@ -423,3 +431,4 @@ fun ZipExplorerModal(
         }
     }
 }
+

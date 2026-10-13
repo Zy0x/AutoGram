@@ -5,7 +5,7 @@ mod executor;
 mod part_recovery;
 mod reuse_store;
 mod send_mapping;
-mod source;
+pub(super) mod source;
 mod store;
 #[cfg(test)]
 mod tests;
@@ -13,5 +13,6 @@ mod tests;
 pub use contracts::*;
 pub use executor::UploadExecutor;
 pub use reuse_store::UploadReuse;
+pub(super) use source::UploadSource;
 pub use source::{snapshot_upload_file, snapshot_upload_file_cancellable};
 pub use store::UploadStore;

@@ -18,7 +18,9 @@ use grammers_session::types::PeerRef;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-use crate::core::media_prep::{ensure_faststart_video, probe_audio_metadata, probe_video_metadata};
+use crate::core::media_prep::{
+    ensure_faststart_video, is_mp4_faststart, probe_audio_metadata, probe_video_metadata,
+};
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
 use crate::core::tg_log;
 
@@ -28,6 +30,16 @@ use super::media_transfer::{
 };
 
 const BACKEND: &str = "grammers";
+
+static FASTSTART_DISK_SEMAPHORE: std::sync::OnceLock<Arc<Semaphore>> = std::sync::OnceLock::new();
+
+/// Bounded semaphore limiting concurrent video FastStart remuxing to 2 parallel tasks,
+/// eliminating disk head thrashing and preserving streaming I/O throughput.
+pub(super) fn faststart_disk_semaphore() -> Arc<Semaphore> {
+    FASTSTART_DISK_SEMAPHORE
+        .get_or_init(|| Arc::new(Semaphore::new(2)))
+        .clone()
+}
 
 /// RAII guard that removes a temporary file on drop (including task abort/cancellation).
 struct TempFileGuard {
@@ -145,9 +157,18 @@ async fn prepare_one_album_item(
 
     let (effective_upload_path, is_temp_faststart) = if !as_document && is_video {
         let p = path.clone();
-        tokio::task::spawn_blocking(move || ensure_faststart_video(&p))
+        if is_mp4_faststart(&p) {
+            (path.clone(), false)
+        } else {
+            let permit = faststart_disk_semaphore().acquire_owned().await.ok();
+            tokio::task::spawn_blocking(move || {
+                let res = ensure_faststart_video(&p);
+                drop(permit);
+                res
+            })
             .await
             .unwrap_or_else(|_| (path.clone(), false))
+        }
     } else {
         (path.clone(), false)
     };
