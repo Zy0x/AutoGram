@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Interactive Duplicate Comparison Lightbox & Full-Resolution Preview Engine
+- Enhanced the Transfer Preflight duplicate comparison grid with full interactive click-to-preview capability for both local source items and Telegram cloud matches.
+- Made the source media thumbnail container (`.td-preflight-compare-media.is-clickable`) clickable with hover micro-scaling (`scale(1.04)`), neon sky border glow, and focus ring, launching `DrivePreviewModal` in high-resolution local rendering.
+- Enabled interactive cloud inspection on `TelegramDuplicateThumb`: clicking the Telegram match opens `DrivePreviewModal` linked to the remote Telegram message (`telegramMessageId`, `peerId`, `topicId`), streaming the original uncompressed image or video directly from Telegram Data Centers via native MTProto Grammers range proxy.
+- Implemented state-isolated preview dismissal: closing the modal (via Close button, backdrop click, or `Escape` key) returns the user seamlessly to the Transfer Preflight dialog without losing queue selections, skip choices, or active filter states.
+
 ### Open Source Licensing Architecture & GNU General Public License v3 (GPL-3.0) Upgrade
 - Upgraded the project license from generic permissive MIT to **GNU General Public License v3.0 (GPL-3.0-or-later)** across the entire monorepo (`LICENSE`, `package.json`, and Cargo manifests).
 - Established robust copyleft protection safeguarding AutoGram's core inventions (4-Level Duplicate Matrix, Sparse In-Memory ZIP Decryption, and MTProto Visual Album Invariant engines) against unauthorized closed-source commercial forks, predatory rebranding, and non-contributing redistribution.

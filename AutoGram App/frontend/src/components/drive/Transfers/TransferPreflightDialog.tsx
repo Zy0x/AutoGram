@@ -351,9 +351,11 @@ function PreflightSourceThumb({
 function TelegramDuplicateThumb({
   match,
   creds,
+  onClick,
 }: {
   match: QualityPreflightDuplicateMatch;
   creds: DriveCredentials | null;
+  onClick?: () => void;
 }) {
   const { t } = useTranslation();
   const [thumb, setThumb] = useState<string | null>(null);
@@ -437,7 +439,20 @@ function TelegramDuplicateThumb({
   }, [creds, match.destinationId, match.telegramMessageId, match.topicId]);
 
   return (
-    <div className={`td-preflight-compare-media ${loading ? 'is-loading' : ''}`}>
+    <div
+      className={`td-preflight-compare-media ${loading ? 'is-loading' : ''} ${onClick ? 'is-clickable' : ''}`}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      title={onClick ? t('drive.preflight_click_to_preview') : undefined}
+      aria-label={onClick ? `${match.existingName} - ${t('drive.preflight_click_to_preview')}` : undefined}
+    >
       {thumb ? (
         <img src={thumb} alt={t('drive.preflight_existing_thumb_alt')} />
       ) : (
@@ -817,6 +832,7 @@ export function TransferPreflightDialog({
   }, [report, activeFilter, choices]);
 
   const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
+  const [previewTelegramMatch, setPreviewTelegramMatch] = useState<QualityPreflightDuplicateMatch | null>(null);
 
   const previewFile = useMemo<DriveFile | null>(() => {
     if (!previewItem) return null;
@@ -845,6 +861,41 @@ export function TransferPreflightDialog({
       original_name: previewItem.sourceName,
     };
   }, [previewItem]);
+
+  const telegramPreviewFile = useMemo<DriveFile | null>(() => {
+    if (!previewTelegramMatch) return null;
+    const ext = previewTelegramMatch.existingName.split('.').pop()?.toLowerCase() || '';
+    const isVideo = previewTelegramMatch.existingPayloadClass === 'video' || /\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|ts)($|\?)/i.test(previewTelegramMatch.existingName);
+    const isPhoto = previewTelegramMatch.existingPayloadClass === 'native_visual' || /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(previewTelegramMatch.existingName);
+    const isAudio = previewTelegramMatch.existingPayloadClass === 'audio_group' || /\.(mp3|flac|wav|ogg|m4a|aac|opus)($|\?)/i.test(previewTelegramMatch.existingName);
+    const kind = isVideo
+      ? 'video'
+      : isPhoto
+      ? 'image'
+      : isAudio
+      ? 'audio'
+      : ext === 'pdf'
+      ? 'pdf'
+      : ['txt', 'json', 'js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'html', 'css', 'md', 'xml', 'yaml', 'yml', 'toml'].includes(ext)
+      ? 'text'
+      : 'file';
+
+    const peerId = previewTelegramMatch.destinationId === 'me' ? null : Number(previewTelegramMatch.destinationId);
+
+    return {
+      id: previewTelegramMatch.telegramMessageId || 999000000,
+      folder_id: Number.isFinite(peerId) ? peerId : null,
+      name: previewTelegramMatch.existingName,
+      size: previewTelegramMatch.existingSize,
+      mime_type: null,
+      file_ext: ext,
+      icon_type: kind,
+      original_name: previewTelegramMatch.existingName,
+      telegram_message_id: previewTelegramMatch.telegramMessageId ?? undefined,
+      topic_id: previewTelegramMatch.topicId ?? undefined,
+      peer_id: previewTelegramMatch.destinationId,
+    };
+  }, [previewTelegramMatch]);
 
   const customPreviewSrc = useMemo(() => {
     if (!previewItem) return null;
@@ -1498,7 +1549,20 @@ export function TransferPreflightDialog({
                   <div className="td-preflight-compare-grid">
                     <section>
                       <span className="td-preflight-compare-label">{t('drive.preflight_source_file')}</span>
-                      <div className="td-preflight-compare-media">
+                      <div
+                        className="td-preflight-compare-media is-clickable"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPreviewItem(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setPreviewItem(item);
+                          }
+                        }}
+                        title={t('drive.preflight_click_to_preview')}
+                        aria-label={`${item.sourceName} - ${t('drive.preflight_click_to_preview')}`}
+                      >
                         <PreflightSourceThumb item={item} />
                       </div>
                       <strong title={item.sourceName}>{item.sourceName}</strong>
@@ -1507,7 +1571,11 @@ export function TransferPreflightDialog({
                     <div className="td-preflight-compare-link" aria-hidden><CopyCheck size={18} /></div>
                     <section>
                       <span className="td-preflight-compare-label">{t('drive.preflight_existing_telegram')}</span>
-                      <TelegramDuplicateThumb match={duplicate} creds={creds} />
+                      <TelegramDuplicateThumb
+                        match={duplicate}
+                        creds={creds}
+                        onClick={() => setPreviewTelegramMatch(duplicate)}
+                      />
                       <strong title={duplicate.existingName}>{duplicate.existingName}</strong>
                       <span>
                         {formatDriveBytes(duplicate.existingSize)} · {t('drive.preflight_message_id', { id: duplicate.telegramMessageId ?? '?' })}
@@ -1599,6 +1667,15 @@ export function TransferPreflightDialog({
               ? { current: currentPreviewIndex + 1, total: filteredItems.length }
               : undefined,
         }}
+      />
+    )}
+
+    {previewTelegramMatch && telegramPreviewFile && (
+      <DrivePreviewModal
+        file={telegramPreviewFile}
+        folderId={telegramPreviewFile.folder_id}
+        creds={creds || { session: '', apiId: '0', apiHash: '' }}
+        onClose={() => setPreviewTelegramMatch(null)}
       />
     )}
   </>
