@@ -1,7 +1,7 @@
-﻿# AutoGram (Open-Source Telegram Cloud Drive & Automation Platform)
+# AutoGram (Open-Source Telegram Cloud Drive & Automation Platform)
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue.svg)](#)
 [![Tech Stack](https://img.shields.io/badge/stack-React%20%7C%20Tauri%20%7C%20Rust%20%7C%20Grammers-orange.svg)](#)
 
@@ -123,4 +123,8 @@ AutoGram/
 
 ## 📄 License & Open-Source
 
-AutoGram is licensed under the [MIT License](../LICENSE). Contributions and pull requests are welcome!
+AutoGram is distributed as free and open-source software under the [GNU General Public License v3.0 (GPL-3.0-or-later)](LICENSE).
+
+- **Community & Open-Source**: You are free to inspect, run, study, and modify AutoGram. Any distributed derivative works or modifications must also remain open-source under GPLv3.
+- **Copyleft Protection**: Closed-source commercial forks, unauthorized proprietary reselling, or non-contributing private redistributions are strictly prohibited by the copyleft provisions.
+- **Dual Licensing & Enterprise Exemption**: Commercial licenses for custom enterprise deployment, closed-source integrations, and white-label distributions exempt from GPLv3 requirements are available directly through the project maintainers.

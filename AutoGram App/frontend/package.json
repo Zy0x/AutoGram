@@ -2,6 +2,7 @@
   "name": "frontend",
   "private": true,
   "version": "4.1.34",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "version:sync": "node tools/sync-version.mjs",

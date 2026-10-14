@@ -5,6 +5,7 @@ edition = "2021"
 rust-version = "1.89"
 description = "Mozilla UniFFI Bridge for AutoGram Android Native (Kotlin/Jetpack Compose)"
 authors = ["AutoGram Team"]
+license = "GPL-3.0-or-later"
 
 [lib]
 name = "autogram_android_bridge"

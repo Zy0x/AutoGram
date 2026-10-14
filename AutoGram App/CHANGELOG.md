@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Open Source Licensing Architecture & GNU General Public License v3 (GPL-3.0) Upgrade
+- Upgraded the project license from generic permissive MIT to **GNU General Public License v3.0 (GPL-3.0-or-later)** across the entire monorepo (`LICENSE`, `package.json`, and Cargo manifests).
+- Established robust copyleft protection safeguarding AutoGram's core inventions (4-Level Duplicate Matrix, Sparse In-Memory ZIP Decryption, and MTProto Visual Album Invariant engines) against unauthorized closed-source commercial forks, predatory rebranding, and non-contributing redistribution.
+- Aligned AutoGram's licensing standard directly with the official Telegram client ecosystem (Telegram Desktop and Telegram Android both operate under GNU GPLv3/GPLv2+).
+- Formulated an explicit Dual Licensing & Enterprise Exemption framework: the community edition remains 100% free and open-source under GPLv3, while custom commercial licenses and white-label rights remain available directly from the project copyright holders for corporate deployments.
+- Updated license metadata in `AutoGram App/frontend/package.json`, `src-tauri/Cargo.toml`, `crates/autogram-core/Cargo.toml`, and `crates/autogram-android-bridge/Cargo.toml`.
+- Updated repository documentation (`README.md`) with official GPLv3 badge and comprehensive terms explanation.
+
 ### MTProto Album History Reconciliation & Duplicate Engine Disambiguation
 - Resolved critical phantom duplicate collision in transfer preflight: eliminated false `[Exact SHA-256]` matches where local source files visually diverged from Telegram cloud thumbnails.
 - Diagnosed and fixed history reconciliation race condition in `media_transfer.rs`: previously, `try_recover_album_from_history` queried recent chat messages with a 30-second lookback (`min_timestamp - 30`), inadvertently capturing and reusing `telegram_message_ids` from preceding album batches during temporary datacenter latency.
