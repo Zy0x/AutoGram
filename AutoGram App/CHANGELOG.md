@@ -1,5 +1,12 @@
 ## Unreleased
 
+### MTProto Album History Reconciliation & Duplicate Engine Disambiguation
+- Resolved critical phantom duplicate collision in transfer preflight: eliminated false `[Exact SHA-256]` matches where local source files visually diverged from Telegram cloud thumbnails.
+- Diagnosed and fixed history reconciliation race condition in `media_transfer.rs`: previously, `try_recover_album_from_history` queried recent chat messages with a 30-second lookback (`min_timestamp - 30`), inadvertently capturing and reusing `telegram_message_ids` from preceding album batches during temporary datacenter latency.
+- Enforced strict history reconciliation invariants: candidate message groups must strictly match expected count (`items.len() == expected_count`), must strictly originate during or after batch dispatch (`min_timestamp - 1`), and must verify via `is_album_message_id_claimed` that zero message IDs in the group have been previously recorded in SQLite (`upload_ledger`, `transfer_items_v4`, or `album_commits`).
+- Removed premature history recovery from the SendMultiMedia retry loop: Telegram MTProto `SendMultiMedia` natively guarantees idempotency using persistent client `random_ids`, allowing direct retries up to 3 attempts without falsely intercepting and claiming stale chat history.
+- Cleaned up 815 phantom duplicate records in `upload_ledger` and 822 corrupted items in `transfer_items_v4`, restoring 1:1 message ID exclusivity across all account and topic scopes.
+
 ### MTProto Parallel Chunk Pipelining & High-Speed Upload Turbo Engine
 - Implemented in-flight sliding window chunk pipelining in `uploader.rs` (`upload_file_resilient` and `upload_stream_resilient`), allowing 4 to 8 concurrent MTProto upload parts (`SaveBigFilePart` and `SaveFilePart`) to saturate WAN network pipes up to 80+ Mbps (~8–10+ MB/s).
 - Eliminated sequential round-trip idle gap to international Telegram Data Centers (Europe/Dubai ~160–220ms RTT) by overlapping chunk request/response cycles.

@@ -81,8 +81,8 @@ async fn try_recover_album_from_history(
 
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
-            // Accept only messages sent during or after this batch attempt (min_timestamp - 30s margin for clock skew)
-            if msg_date < min_timestamp - 30 {
+            // Accept only messages sent during or after this batch attempt (at most 1s clock skew margin)
+            if msg_date < min_timestamp - 1 {
                 break;
             }
             recent_msgs.push(msg);
@@ -111,7 +111,7 @@ async fn try_recover_album_from_history(
             }
         }
 
-        // Find the best matching grouped_id (closest to expected_count, or exact)
+        // Find matching grouped_id with exact item count and 0 claimed IDs
         let mut best_group_mids: Vec<i64> = Vec::new();
 
         for (_gid, items) in grouped_map {
@@ -119,12 +119,18 @@ async fn try_recover_album_from_history(
                 Some(_) => items.iter().any(|(_, matches)| *matches),
                 None => true,
             };
-            if topic_valid && !items.is_empty() {
-                let count = items.len();
-                if count <= expected_count && count > best_group_mids.len() {
-                    best_group_mids = items.into_iter().map(|(m, _)| m).collect();
-                }
+            if !topic_valid || items.len() != expected_count {
+                continue;
             }
+            // Strict Invariant: None of the message IDs in this candidate group can be already claimed
+            let any_claimed = items.iter().any(|(mid, _)| {
+                crate::core::autogram_core::transfer::is_album_message_id_claimed(*mid)
+            });
+            if any_claimed {
+                continue;
+            }
+            best_group_mids = items.into_iter().map(|(m, _)| m).collect();
+            break;
         }
 
         if !best_group_mids.is_empty() {
@@ -884,33 +890,10 @@ pub fn upload_prepared_album_blocking_with_app(
                         BACKEND,
                         "album_send_timeout_retry",
                         format!(
-                            "SendMultiMedia hit timeout/network on attempt {album_send_attempts}. Checking history & retrying with same random_ids in {backoff_secs}s..."
+                            "SendMultiMedia hit timeout/network on attempt {album_send_attempts}. Retrying with same random_ids in {backoff_secs}s..."
                         ),
                     );
                     tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
-
-                    // Check if Telegram completed the album in the background during server load
-                    if let Some(recovered) = try_recover_album_from_history(
-                        client,
-                        peer,
-                        &chat,
-                        topic_id,
-                        &expected_indices,
-                        batch_start_ts,
-                    )
-                    .await
-                    {
-                        if recovered.len() == expected_indices.len()
-                            && recovered.iter().all(|item| item.message_id.is_some())
-                        {
-                            tg_log::info(
-                                BACKEND,
-                                "album_send_background_recovered",
-                                format!("Album successfully recovered from Telegram history during backoff on attempt {album_send_attempts}"),
-                            );
-                            return Ok(recovered);
-                        }
-                    }
 
                     album_send_attempts += 1;
                     // Idempotent retry with exact same persisted random_ids in album_req

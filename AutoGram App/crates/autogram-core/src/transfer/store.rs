@@ -629,6 +629,31 @@ pub fn load_album_commit_recovered(commit_id: &str) -> Result<Vec<(usize, i64)>,
         .collect())
 }
 
+/// Check if a Telegram message ID has already been claimed or committed in SQLite.
+/// Used by album history reconciliation to guarantee that an earlier batch's message IDs
+/// are never falsely claimed by a subsequent batch.
+pub fn is_album_message_id_claimed(message_id: i64) -> bool {
+    let conn = match open() {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    let mid_str = message_id.to_string();
+    let claimed: bool = conn
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM upload_ledger WHERE telegram_message_id = ?1
+                UNION
+                SELECT 1 FROM transfer_items_v4 WHERE telegram_message_id = ?1
+                UNION
+                SELECT 1 FROM album_commits WHERE instr(telegram_message_ids_json, ?2) > 0
+            )",
+            params![message_id, mid_str],
+            |r| r.get(0),
+        )
+        .unwrap_or(false);
+    claimed
+}
+
 pub fn persist_account_rate_gate(
     account_id: &str,
     wait_seconds: u32,
