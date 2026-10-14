@@ -61,7 +61,7 @@ impl IndexDispatchGate {
 
         let now = Instant::now();
         let pacing_wait_ms = if target_time > now {
-            let wait = target_time - now;
+            let wait = target_time.saturating_duration_since(now);
             let ms = wait.as_millis().min(u64::MAX as u128) as u64;
             if let Some(c) = cancel {
                 tokio::select! {

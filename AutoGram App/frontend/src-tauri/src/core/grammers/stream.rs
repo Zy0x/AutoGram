@@ -775,7 +775,11 @@ pub fn start_preview_stream_blocking(
             if now >= deadline {
                 break;
             }
-            cv.wait_for(&mut guard, deadline - now);
+            let wait_dur = deadline.saturating_duration_since(now);
+            if wait_dur.is_zero() {
+                break;
+            }
+            cv.wait_for(&mut guard, wait_dur);
         }
         if guard.done {
             return match guard.outcome.clone() {
@@ -1091,7 +1095,7 @@ fn start_preview_stream_inner(
                 while bytes.len() < TEXT_PREVIEW_BYTES {
                     match iter.next().await {
                         Ok(Some(chunk)) if !chunk.is_empty() => {
-                            let remaining = TEXT_PREVIEW_BYTES - bytes.len();
+                            let remaining = TEXT_PREVIEW_BYTES.saturating_sub(bytes.len());
                             bytes.extend_from_slice(&chunk[..chunk.len().min(remaining)]);
                             if bytes.len() as u64 >= size {
                                 break;
@@ -1831,7 +1835,7 @@ fn start_preview_stream_inner(
             has_moov_head = boot_ranges.iter().any(|&(s, e)| {
                 if let Ok(mut f) = std::fs::File::open(&dest) {
                     if f.seek(SeekFrom::Start(s)).is_ok() {
-                        let mut buf = vec![0u8; (e - s).min(1024 * 1024) as usize];
+                        let mut buf = vec![0u8; (e.saturating_sub(s)).min(1024 * 1024) as usize];
                         if let Ok(n) = f.read(&mut buf) {
                             return buf[..n].windows(4).any(|w| w == b"moov");
                         }

@@ -150,9 +150,21 @@ pub fn spawn_range_bridge(
             let max_fetch = 2 * 1024 * 1024u64;
             let req_end = req_end_opt.unwrap_or(total_size.saturating_sub(1));
             let actual_end = req_end
-                .min(req_start + max_fetch - 1)
+                .min(req_start.saturating_add(max_fetch).saturating_sub(1))
                 .min(total_size.saturating_sub(1));
-            let fetch_len = (actual_end - req_start + 1) as usize;
+            if actual_end < req_start {
+                let mut res = Response::empty(StatusCode(416));
+                res.add_header(
+                    Header::from_bytes(
+                        &b"Content-Range"[..],
+                        format!("bytes */{total_size}").as_bytes(),
+                    )
+                    .unwrap(),
+                );
+                let _ = req.respond(res);
+                continue;
+            }
+            let fetch_len = (actual_end.saturating_sub(req_start).saturating_add(1)) as usize;
 
             tg_log::info(
                 BACKEND,
@@ -296,20 +308,22 @@ pub(crate) async fn fetch_range_bytes(
     }
 
     let chunk_size = DEFAULT_CHUNK_SIZE;
-    let start_chunk = (offset / chunk_size) as i32;
-    let start_chunk_byte = (start_chunk as u64) * chunk_size;
-    let byte_offset_in_first_chunk = (offset - start_chunk_byte) as usize;
+    let start_chunk_idx = offset / chunk_size;
+    let start_chunk_byte = start_chunk_idx * chunk_size;
+    let byte_offset_in_first_chunk = (offset.saturating_sub(start_chunk_byte)) as usize;
 
-    let target_length_with_offset = byte_offset_in_first_chunk + length;
+    let target_length_with_offset = byte_offset_in_first_chunk.saturating_add(length);
 
-    let mut collected = Vec::with_capacity(target_length_with_offset + chunk_size as usize);
+    let mut collected = Vec::with_capacity(target_length_with_offset.saturating_add(chunk_size as usize));
     let mut retry_count = 0;
 
     loop {
+        let skip_chunks_count = (start_chunk_idx.saturating_add(collected.len() as u64 / chunk_size))
+            .min(i32::MAX as u64) as i32;
         let mut iter = client
             .iter_download(doc)
             .chunk_size(chunk_size as i32)
-            .skip_chunks(start_chunk + (collected.len() as u64 / chunk_size) as i32);
+            .skip_chunks(skip_chunks_count);
 
         let mut err_occurred = None;
         while collected.len() < target_length_with_offset {

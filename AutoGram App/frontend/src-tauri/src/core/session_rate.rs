@@ -198,7 +198,7 @@ pub fn flood_remaining_secs(session: &str) -> Option<u32> {
             e.flood_until = None;
             return None;
         }
-        let remaining = (until - now).as_secs();
+        let remaining = until.saturating_duration_since(now).as_secs();
         Some(remaining.min(u64::from(u32::MAX)) as u32)
     })
 }
@@ -210,7 +210,7 @@ pub fn flood_remaining_secs_class(session: &str, class: RpcClass) -> Option<u32>
         // Check global emergency gate first
         let global_rem = if let Some(u) = e.flood_until {
             if u > now {
-                Some((u - now).as_secs())
+                Some(u.saturating_duration_since(now).as_secs())
             } else {
                 e.flood_until = None;
                 None
@@ -222,7 +222,7 @@ pub fn flood_remaining_secs_class(session: &str, class: RpcClass) -> Option<u32>
         // Check class-specific gate
         let class_rem = if let Some(u) = e.class_flood_until.get(&class).copied() {
             if u > now {
-                Some((u - now).as_secs())
+                Some(u.saturating_duration_since(now).as_secs())
             } else {
                 e.class_flood_until.remove(&class);
                 None
@@ -247,7 +247,7 @@ pub async fn wait_if_flooded(session: &str) -> Result<(), TgError> {
             e.flood_until.and_then(|until| {
                 let now = Instant::now();
                 if until > now {
-                    Some(until - now)
+                    Some(until.saturating_duration_since(now))
                 } else {
                     e.flood_until = None;
                     None
@@ -277,7 +277,7 @@ pub async fn wait_if_flooded_capped(session: &str, max_wait: Duration) -> Result
             e.flood_until.and_then(|until| {
                 let now = Instant::now();
                 if until > now {
-                    Some(until - now)
+                    Some(until.saturating_duration_since(now))
                 } else {
                     e.flood_until = None;
                     None

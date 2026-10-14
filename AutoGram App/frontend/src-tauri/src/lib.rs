@@ -1459,11 +1459,28 @@ async fn studio_run_orchestrated(
     ensure_sessions_dir_env(&app);
     let req = request;
     let app_handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        core::studio_orch::run_orchestrated_blocking(Some(&app_handle), &req)
+    let res = tauri::async_runtime::spawn_blocking(move || {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            core::studio_orch::run_orchestrated_blocking(Some(&app_handle), &req)
+        }))
     })
     .await
-    .map_err(|e| format!("orch join: {e}"))?
+    .map_err(|e| format!("orch join: {e}"))?;
+
+    match res {
+        Ok(orch_res) => orch_res,
+        Err(panic_payload) => {
+            let msg = if let Some(s) = panic_payload.downcast_ref::<&str>() {
+                (*s).to_string()
+            } else if let Some(s) = panic_payload.downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "Unknown panic during transfer orchestration".to_string()
+            };
+            core::tg_log::error("studio_orch", "orchestrator_panicked_caught", &msg);
+            Err(format!("Orchestrator error: {msg}"))
+        }
+    }
 }
 
 #[tauri::command]
@@ -3121,6 +3138,25 @@ fn take_remote_assisted_candidates(session_id: String) -> Result<Vec<String>, St
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        let payload = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            (*s).to_string()
+        } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic payload".to_string()
+        };
+        let location = panic_info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "unknown location".to_string());
+        let msg = format!("[AUTOGRAM_PANIC_HOOK] Thread panicked at '{}': {}", location, payload);
+        eprintln!("{}", msg);
+        let _ = std::fs::create_dir_all("worker/temp");
+        let _ = std::fs::write("worker/temp/crash_panic.log", &msg);
+        core::tg_log::error("lib", "panic_hook", &msg);
+    }));
+
     #[cfg(debug_assertions)]
     {
         if std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_err() {

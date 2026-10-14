@@ -1401,7 +1401,7 @@ fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
     // Patch stco (32-bit chunk offset atom)
     let stco_tag = b"stco";
     if moov_buf.len() >= 12 {
-        for i in 4..=moov_buf.len() - 12 {
+        for i in 4..=moov_buf.len().saturating_sub(12) {
             if &moov_buf[i..i + 4] == stco_tag {
                 let entry_count = u32::from_be_bytes([
                     moov_buf[i + 8],
@@ -1432,7 +1432,7 @@ fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
     // Patch co64 (64-bit chunk offset atom)
     let co64_tag = b"co64";
     if moov_buf.len() >= 12 {
-        for i in 4..=moov_buf.len() - 12 {
+        for i in 4..=moov_buf.len().saturating_sub(12) {
             if &moov_buf[i..i + 4] == co64_tag {
                 let entry_count = u32::from_be_bytes([
                     moov_buf[i + 8],
@@ -1468,10 +1468,10 @@ fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
 fn patch_head_mp4(sample_bytes: &[u8]) -> Vec<u8> {
     let mut patched = sample_bytes.to_vec();
     if patched.len() >= 12 {
-        for i in 4..=patched.len() - 8 {
+        for i in 4..=patched.len().saturating_sub(8) {
             if &patched[i..i + 4] == b"mdat" {
-                let mdat_start = i - 4;
-                let new_len = (patched.len() - mdat_start) as u32;
+                let mdat_start = i.saturating_sub(4);
+                let new_len = (patched.len().saturating_sub(mdat_start)) as u32;
                 patched[mdat_start..mdat_start + 4].copy_from_slice(&new_len.to_be_bytes());
                 break;
             }
@@ -1483,7 +1483,7 @@ fn patch_head_mp4(sample_bytes: &[u8]) -> Vec<u8> {
 fn parse_first_chunk_offset(moov_buf: &[u8]) -> Option<u64> {
     let stco_tag = b"stco";
     if moov_buf.len() >= 16 {
-        for i in 4..=moov_buf.len() - 16 {
+        for i in 4..=moov_buf.len().saturating_sub(16) {
             if &moov_buf[i..i + 4] == stco_tag {
                 let entry_count = u32::from_be_bytes([
                     moov_buf[i + 8],
@@ -1507,7 +1507,7 @@ fn parse_first_chunk_offset(moov_buf: &[u8]) -> Option<u64> {
     }
     let co64_tag = b"co64";
     if moov_buf.len() >= 20 {
-        for i in 4..=moov_buf.len() - 20 {
+        for i in 4..=moov_buf.len().saturating_sub(20) {
             if &moov_buf[i..i + 4] == co64_tag {
                 let entry_count = u32::from_be_bytes([
                     moov_buf[i + 8],
@@ -1540,9 +1540,9 @@ fn locate_valid_moov_atom(buf: &[u8]) -> Option<(usize, usize)> {
     if buf.len() < 8 {
         return None;
     }
-    for i in (4..=buf.len() - 4).rev() {
+    for i in (4..=buf.len().saturating_sub(4)).rev() {
         if &buf[i..i + 4] == b"moov" {
-            let pos = i - 4;
+            let pos = i.saturating_sub(4);
             let raw_sz =
                 u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as usize;
             let moov_size = if raw_sz == 1 && pos + 16 <= buf.len() {
@@ -1612,7 +1612,7 @@ pub(crate) fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Opti
     };
 
     let ftyp_len = ftyp_size.min(sample_bytes.len());
-    let mut out = Vec::with_capacity(ftyp_len + moov_size + sample_bytes.len() - ftyp_len);
+    let mut out = Vec::with_capacity(moov_size.saturating_add(sample_bytes.len()));
 
     out.extend_from_slice(&sample_bytes[0..ftyp_len]);
     out.extend_from_slice(&moov_slice);

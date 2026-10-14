@@ -1,5 +1,19 @@
 ## Unreleased
 
+### Rust Backend Saturating Arithmetic Hardening & Global Panic Hook Isolation
+- Completely eliminated arithmetic subtraction underflow panics (`attempt to subtract with overflow`) across all background tasks and async worker threads.
+- Hardened `session_rate.rs`, `telegram_rpc_guard.rs`, and `channel_sync_worker.rs`: replaced raw `Instant` subtractions (`until - now`, `target_time - now`, `next_short_poll_at - now`) with `saturating_duration_since(now)` and zero-duration checks to eliminate clock jitter underflow on Windows timer epochs.
+- Hardened `thumbnail_range_bridge.rs`: eliminated `actual_end - req_start` underflows by adding HTTP 416 range boundary validation, and converted chunk calculations from signed 32-bit arithmetic to `u64` saturating arithmetic (`offset.saturating_sub(start_chunk_byte)`).
+- Hardened `stream.rs` and `thumbs.rs`: guarded `Condvar::wait_for` duration, `TEXT_PREVIEW_BYTES.saturating_sub(bytes.len())`, boot ranges slice length, and MP4 atom header indexing (`stco`, `co64`, `mdat`, `moov`) with `saturating_sub`.
+- Installed global panic hook in `lib.rs` (`run()`): intercepts any thread panic, logs file, line, and column coordinates to `worker/temp/crash_panic.log` and `tg_log::error`, and prevents silent process exit.
+- Wrapped `studio_run_orchestrated` in `std::panic::catch_unwind(AssertUnwindSafe)`: ensures that unexpected worker panics are captured cleanly and reported as structured errors without causing uncaught join panics.
+- Passed all 8 Quality Gates via `npm run test:quality` and verified `cargo check` clean compilation.
+
+### Android Drive Favorites & Telegram Pin Parity
+- Added a Telegram-backed pin/favorite action for selected Android Drive media. The native cloud path verifies the selected message, peer and forum topic before calling `messages.updatePinnedMessage`, then reports confirmed status back to the visible Drive state.
+- Cloud media rows now carry Telegram's actual pinned flag and Android gallery cards show the favorite marker. Selection actions pin the selected set or unpin it when every selected item is already pinned; partial failures remain explicit.
+- Kept pin state in Telegram rather than adding a local database copy, avoiding drift between Desktop, Android and Telegram clients. Physical-device acceptance and regenerated UniFFI bindings remain pending because the Android build cache exceeds the workspace limit.
+
 ### Corrupted 0-Byte File Preflight & Album Isolation Engine
 - Implemented proactive `check_source_file_preflight` in `studio_orch_common.rs`, `studio_orch.rs`, and `studio_orch_album.rs`: empty 0-byte corrupted media files are identified immediately during queue preflight and marked as `ItemState::Skipped` with clear diagnostics (`empty_file_0_bytes`) before FFmpeg transcoding or album chunking.
 - Safeguarded batch album collages: corrupted 0-byte files never enter `prepared_items`, preventing Telegram MTProto `file is empty (0 bytes)` upload rejections from poisoning multi-media albums or causing unintended fallbacks.

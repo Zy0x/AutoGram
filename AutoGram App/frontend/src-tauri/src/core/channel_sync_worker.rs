@@ -622,7 +622,7 @@ impl ChannelSyncWorker {
                     if now >= next_short_poll_at {
                         Duration::from_millis(0)
                     } else {
-                        next_short_poll_at - now
+                        next_short_poll_at.saturating_duration_since(now)
                     }
                 } else {
                     Duration::from_secs(3600)
