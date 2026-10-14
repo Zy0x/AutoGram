@@ -111,7 +111,8 @@ impl AlbumUploadTransport for TelegramAlbumUploadTransport<'_> {
         {
             return Err(AlbumUploadError::InvalidRequest);
         }
-        let expected = (item.source.size - part_index as u64 * UPLOAD_PART_BYTES as u64)
+        let expected = item.source.size
+            .saturating_sub(part_index as u64 * UPLOAD_PART_BYTES as u64)
             .min(UPLOAD_PART_BYTES as u64) as usize;
         if bytes.len() != expected
             || hex::encode(Sha256::digest(&bytes)) != item.source.part_sha256[part_index]

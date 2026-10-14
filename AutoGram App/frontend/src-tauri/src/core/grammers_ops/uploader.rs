@@ -306,7 +306,10 @@ pub async fn upload_file_resilient(
         }
 
         let chunk_offset = part_idx as u64 * CHUNK_SIZE as u64;
-        let chunk_len = ((file_size - chunk_offset) as usize).min(CHUNK_SIZE);
+        let chunk_len = (file_size.saturating_sub(chunk_offset) as usize).min(CHUNK_SIZE);
+        if chunk_len == 0 {
+            break;
+        }
         let mut chunk_buf = vec![0u8; chunk_len];
 
         file.seek(SeekFrom::Start(chunk_offset)).await.map_err(|e| {
@@ -493,7 +496,10 @@ pub async fn upload_stream_resilient<R: AsyncRead + Unpin>(
         }
 
         let chunk_offset = part_idx as u64 * CHUNK_SIZE as u64;
-        let expected_chunk_len = ((total_size - chunk_offset) as usize).min(CHUNK_SIZE);
+        let expected_chunk_len = (total_size.saturating_sub(chunk_offset) as usize).min(CHUNK_SIZE);
+        if expected_chunk_len == 0 {
+            break;
+        }
         let mut chunk_buf = vec![0u8; expected_chunk_len];
 
         // Read chunk from stream
@@ -511,7 +517,7 @@ pub async fn upload_stream_resilient<R: AsyncRead + Unpin>(
         chunk_buf.truncate(read_bytes);
 
         if chunk_buf.is_empty() {
-            if part_idx == total_parts - 1 {
+            if part_idx == total_parts.saturating_sub(1) {
                 break;
             } else {
                 join_set.abort_all();

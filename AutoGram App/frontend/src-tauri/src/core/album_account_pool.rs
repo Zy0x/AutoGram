@@ -212,7 +212,7 @@ impl AlbumAccountPool {
         if self.accounts.len() == 1 {
             let now = Instant::now();
             if self.accounts[0].next_ready_at > now {
-                let wait_duration = self.accounts[0].next_ready_at - now;
+                let wait_duration = self.accounts[0].next_ready_at.saturating_duration_since(now);
                 let wait_ms = wait_duration.as_millis() as u64;
                 if !job_queue::sleep_inter_batch_pacing(tid, wait_ms) {
                     return Err("Transfer cancelled by user".into());

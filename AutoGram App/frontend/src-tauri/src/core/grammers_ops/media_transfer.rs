@@ -82,7 +82,7 @@ async fn try_recover_album_from_history(
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
             // Accept only messages sent during or after this batch attempt (at most 1s clock skew margin)
-            if msg_date < min_timestamp - 1 {
+            if msg_date < min_timestamp.saturating_sub(1) {
                 break;
             }
             recent_msgs.push(msg);
@@ -425,7 +425,7 @@ async fn try_recover_single_file_from_history(
 
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
-            if now - msg_date > 90 {
+            if now.saturating_sub(msg_date) > 90 {
                 break;
             }
 
@@ -1585,7 +1585,7 @@ impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
         let filled_before = buf.filled().len();
         let res = Pin::new(&mut self.inner).poll_read(cx, buf);
         if let Poll::Ready(Ok(())) = &res {
-            let newly_read = buf.filled().len() - filled_before;
+            let newly_read = buf.filled().len().saturating_sub(filled_before);
             if newly_read > 0 {
                 let this = &mut *self;
                 this.current_bytes += newly_read as u64;

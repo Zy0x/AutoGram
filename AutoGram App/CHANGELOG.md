@@ -1,5 +1,14 @@
 ## Unreleased
 
+### MTProto Upload Arithmetic Underflow & Saturating Math Safeguards
+- Resolved panic `"attempt to subtract with overflow"` in `studio_run_orchestrated` tokio blocking tasks during batch and album video uploads.
+- Hardened `uploader.rs` chunk calculation (`upload_file_resilient` and `upload_stream_resilient`): replaced unguarded `((file_size - chunk_offset) as usize).min(CHUNK_SIZE)` with `(file_size.saturating_sub(chunk_offset) as usize).min(CHUNK_SIZE)` and added an explicit empty chunk break guard.
+- Hardened `album_parallel_prep.rs` and `media_transfer.rs`: eliminated unsigned subtraction underflow risks on `ProgressAsyncReader::poll_read` (`buf.filled().len().saturating_sub(filled_before)`), `min_timestamp.saturating_sub(1)`, and `now.saturating_sub(msg_date)`.
+- Replaced unguarded subtractions in `album_account_pool.rs`: used `saturating_duration_since(now)` for cooldown pacing on single-account fast paths.
+- Safeguarded `autogram-core` transfer components (`album_transport.rs`, `transport.rs`, and `cloud_upload/source.rs`): guarded `expected_length`, part offset buffers, and `video_balanced_partition_sizes` with `saturating_sub` and `.max(1)` divisors, preventing division by zero and arithmetic underflows.
+- Hardened `migration_run.rs`: guarded `fetch_cap` calculation with `max_total.saturating_sub((forwarded + skipped) as usize)`.
+- Verified 100% compliance across all 8 Quality Gates via `npm run test:quality` and verified all `autogram-core` album partition tests with zero regressions.
+
 ### Interactive Duplicate Comparison Lightbox & Full-Resolution Preview Engine
 - Enhanced the Transfer Preflight duplicate comparison grid with full interactive click-to-preview capability for both local source items and Telegram cloud matches.
 - Made the source media thumbnail container (`.td-preflight-compare-media.is-clickable`) clickable with hover micro-scaling (`scale(1.04)`), neon sky border glow, and focus ring, launching `DrivePreviewModal` in high-resolution local rendering.

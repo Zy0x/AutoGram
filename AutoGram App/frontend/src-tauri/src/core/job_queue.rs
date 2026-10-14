@@ -236,7 +236,7 @@ pub fn append_log(
     });
     const MAX_LOGS: usize = 500;
     if rec.logs.len() > MAX_LOGS {
-        let drain = rec.logs.len() - MAX_LOGS;
+        let drain = rec.logs.len().saturating_sub(MAX_LOGS);
         rec.logs.drain(0..drain);
     }
     rec.updated_at_ms = now_ms();

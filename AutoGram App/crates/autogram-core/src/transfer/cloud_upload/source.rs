@@ -44,7 +44,7 @@ pub fn snapshot_upload_file_cancellable(
         if cancel.is_cancelled() {
             return Err(UploadError::Cancelled);
         }
-        let length = (size - total).min(UPLOAD_PART_BYTES as u64) as usize;
+        let length = size.saturating_sub(total).min(UPLOAD_PART_BYTES as u64) as usize;
         file.read_exact(&mut buffer[..length])
             .map_err(|_| UploadError::SourceChanged)?;
         sha.update(&buffer[..length]);
@@ -94,7 +94,7 @@ impl UploadSource {
             .ok_or(UploadError::InvalidRequest)?;
         let offset = index as u64 * UPLOAD_PART_BYTES as u64;
         let mut buffer =
-            vec![0; (self.snapshot.size - offset).min(UPLOAD_PART_BYTES as u64) as usize];
+            vec![0; self.snapshot.size.saturating_sub(offset).min(UPLOAD_PART_BYTES as u64) as usize];
         self.file
             .seek(SeekFrom::Start(offset))
             .map_err(|_| UploadError::Io)?;

@@ -238,7 +238,7 @@ fn run_forward(
                 return Err("Job execution dibatalkan oleh pengguna".into());
             }
 
-            let fetch_cap = (max_total - (forwarded + skipped) as usize).min(batch_size);
+            let fetch_cap = max_total.saturating_sub((forwarded + skipped) as usize).min(batch_size);
             if fetch_cap == 0 {
                 break;
             }
@@ -458,7 +458,7 @@ fn run_clean_copy(
                 return Err("Job execution dibatalkan oleh pengguna".into());
             }
 
-            let fetch_cap = (max_total - (uploaded + skipped + failed) as usize).min(batch_size);
+            let fetch_cap = max_total.saturating_sub((uploaded + skipped + failed) as usize).min(batch_size);
             if fetch_cap == 0 {
                 break;
             }

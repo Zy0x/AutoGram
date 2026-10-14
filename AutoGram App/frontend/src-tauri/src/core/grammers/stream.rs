@@ -1902,7 +1902,7 @@ fn start_preview_stream_inner(
             let tail_probe_bytes = startup_policy.tail_probe_bytes;
             let tail_start_offset = size.saturating_sub(tail_probe_bytes);
             let aligned_tail_start = (tail_start_offset / (512 * 1024)) * (512 * 1024);
-            let num_chunks = ((size - aligned_tail_start) + 524287) / (512 * 1024);
+            let num_chunks = (size.saturating_sub(aligned_tail_start) + 524287) / (512 * 1024);
             let tail_clients = if startup_policy.immediate_url {
                 // Reserve index zero (the known-good live client) for the head
                 // fill. Tail metadata can use auxiliary clients in parallel;
@@ -2004,7 +2004,7 @@ fn start_preview_stream_inner(
                 // Read the sparse tail back in file order. Network completions can
                 // arrive out of order, so concatenating response order can miss a
                 // `moov` signature split across adjacent Telegram chunks.
-                let mut tail_bytes_buf = vec![0u8; (size - aligned_tail_start) as usize];
+                let mut tail_bytes_buf = vec![0u8; size.saturating_sub(aligned_tail_start) as usize];
                 let tail_bytes_read = std::fs::File::open(&tail_dest)
                     .and_then(|mut file| {
                         file.seek(SeekFrom::Start(aligned_tail_start))?;

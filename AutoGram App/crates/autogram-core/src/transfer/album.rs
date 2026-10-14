@@ -149,9 +149,9 @@ fn partition_sizes(total: usize, target: usize, avoid_single: bool) -> Vec<usize
         sizes.push(remaining);
     }
     if avoid_single && sizes.len() >= 2 && sizes.last() == Some(&1) {
-        let last_full = sizes.len() - 2;
+        let last_full = sizes.len().saturating_sub(2);
         if sizes[last_full] > 2 {
-            sizes[last_full] -= 1;
+            sizes[last_full] = sizes[last_full].saturating_sub(1);
             *sizes.last_mut().unwrap() = 2;
         }
     }
@@ -185,13 +185,15 @@ fn is_video_path(path: &str) -> bool {
 }
 
 pub fn video_balanced_partition_sizes(total: usize, max_safe: usize) -> Vec<usize> {
-    if total <= max_safe {
+    let safe_limit = max_safe.max(1);
+    if total <= safe_limit {
         return vec![total];
     }
-    let k = (total + max_safe - 1) / max_safe;
-    let base = total / k;
-    let rem = total % k;
-    (0..k)
+    let k = (total + safe_limit.saturating_sub(1)) / safe_limit;
+    let k_safe = k.max(1);
+    let base = total / k_safe;
+    let rem = total % k_safe;
+    (0..k_safe)
         .map(|i| if i < rem { base + 1 } else { base })
         .collect()
 }

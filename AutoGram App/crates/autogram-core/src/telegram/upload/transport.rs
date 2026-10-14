@@ -111,7 +111,8 @@ impl CloudUploadTransport for TelegramUploadTransport<'_> {
         {
             return Err(UploadError::InvalidRequest);
         }
-        let expected_length = (request.source.size - part as u64 * UPLOAD_PART_BYTES as u64)
+        let expected_length = request.source.size
+            .saturating_sub(part as u64 * UPLOAD_PART_BYTES as u64)
             .min(UPLOAD_PART_BYTES as u64) as usize;
         if bytes.len() != expected_length
             || hex::encode(Sha256::digest(&bytes)) != request.source.part_sha256[part]
