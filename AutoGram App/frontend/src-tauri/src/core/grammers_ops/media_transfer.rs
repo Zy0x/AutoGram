@@ -2030,6 +2030,12 @@ pub fn upload_file_blocking_topic_with_delivery(
     let size = std::fs::metadata(&path)
         .map(|metadata| metadata.len())
         .unwrap_or(0);
+    if size == 0 {
+        return Err(TgError::new(
+            TgErrorCode::Io,
+            format!("file is empty (0 bytes): {}", path.display()),
+        ));
+    }
     let filename = path
         .file_name()
         .and_then(|value| value.to_str())

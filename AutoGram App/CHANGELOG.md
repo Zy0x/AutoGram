@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Corrupted 0-Byte File Preflight & Album Isolation Engine
+- Implemented proactive `check_source_file_preflight` in `studio_orch_common.rs`, `studio_orch.rs`, and `studio_orch_album.rs`: empty 0-byte corrupted media files are identified immediately during queue preflight and marked as `ItemState::Skipped` with clear diagnostics (`empty_file_0_bytes`) before FFmpeg transcoding or album chunking.
+- Safeguarded batch album collages: corrupted 0-byte files never enter `prepared_items`, preventing Telegram MTProto `file is empty (0 bytes)` upload rejections from poisoning multi-media albums or causing unintended fallbacks.
+- Added zero-byte file guards in `media_prep.rs` (`prepare_upload_artifact_with_policy`) and `media_transfer.rs` (`upload_file_blocking_topic_with_delivery`), guaranteeing that 0-byte streams are rejected before network transmission.
+- Extracted `studio_orch_common.rs` to maintain strict compliance with the 2,000-line modularization boundary (Rule 17), dropping `studio_orch.rs` from 1,971 lines down to 1,514 lines while keeping all files strictly below the 2,000-line limit.
+
 ### MTProto Upload Arithmetic Underflow & Saturating Math Safeguards
 - Resolved panic `"attempt to subtract with overflow"` in `studio_run_orchestrated` tokio blocking tasks during batch and album video uploads.
 - Hardened `uploader.rs` chunk calculation (`upload_file_resilient` and `upload_stream_resilient`): replaced unguarded `((file_size - chunk_offset) as usize).min(CHUNK_SIZE)` with `(file_size.saturating_sub(chunk_offset) as usize).min(CHUNK_SIZE)` and added an explicit empty chunk break guard.

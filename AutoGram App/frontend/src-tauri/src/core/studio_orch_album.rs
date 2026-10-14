@@ -20,14 +20,12 @@ use super::grammers_ops;
 use super::job_queue::{self, ItemState, TransferRecord, TransferState};
 use super::media_prep;
 use super::tg_log;
+use super::studio_orch_common::*;
 use super::{
-    apply_nonstandard_source_document_guard, approved_alternate_sessions,
-    duplicate_match_for_prepared, duplicate_match_for_source, effective_upload_limit,
-    emit_album_item_result, finalize_transfer, handle_oversize_prepared, item_spoiler, option_bool,
-    option_usize, persist_prepared_decision, persist_upload_ledger_binding, prepare_with_receipt,
-    prepared_ledger_identity, remote_mux_for_item, serialized_label, OrchStartResult,
-    PreparedLedgerIdentity, TelegramIdentity,
+    emit_album_item_result, finalize_transfer, handle_oversize_prepared, OrchStartResult,
+    TelegramIdentity,
 };
+
 
 fn requests_whole_album_alternate(rec: &TransferRecord) -> bool {
     rec.options
@@ -1264,10 +1262,50 @@ pub(super) fn run_intelligent_album(
             continue;
         }
 
-        // Fast pre-transcode duplicate check on original source file before running FFmpeg
+        // Fast pre-transcode duplicate and integrity check on original source file before running FFmpeg
         if !media_prep::is_remote_url(&item.path)
             && remote_mux_for_item(&rec.options, item.index).is_none()
         {
+            match check_source_file_preflight(&item.path) {
+                SourceFilePreflight::NotFound(p) => {
+                    let reason = format!("file_not_found: {p}");
+                    let state = ItemState::Failed;
+                    let _ = job_queue::update_item(tid, item.index, state.clone(), None, Some(reason.clone()));
+                    emit_album_item_result(app, item.index, &state, None, Some(reason.clone()));
+                    if first_error.is_none() {
+                        first_error = Some(reason);
+                    }
+                    preparation_failed = true;
+                    continue;
+                }
+                SourceFilePreflight::Empty(p) => {
+                    let reason = format!("empty_file_0_bytes: {p}");
+                    let state = ItemState::Skipped;
+                    let _ = job_queue::update_item(tid, item.index, state.clone(), None, Some(reason.clone()));
+                    let src_cat = super::autogram_core::transfer::classify_media(Path::new(&item.path));
+                    let _ = super::autogram_core::transfer::record_transfer_item_decision(
+                        tid,
+                        item.index,
+                        &item.path,
+                        &item.path,
+                        &serialized_label(&src_cat),
+                        "document",
+                        "pass_through",
+                        "SKIPPED",
+                        "empty_file_0_bytes",
+                    );
+                    persist_transfer_log(
+                        tid,
+                        "warn",
+                        "empty_file_skipped",
+                        format!("Index {}: berkas berukuran 0 byte dilewati secara otomatis ({p})", item.index),
+                    );
+                    emit_album_item_result(app, item.index, &state, None, Some(reason));
+                    any_ok = true;
+                    continue;
+                }
+                SourceFilePreflight::Valid { .. } => {}
+            }
             if let Ok(Some(ledger_match)) = duplicate_match_for_source(rec, topic_id, &item.path) {
                 if ledger_match.match_level == "exact_sha256" {
                     let reason = format!(

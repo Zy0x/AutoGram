@@ -1386,10 +1386,22 @@ pub fn prepare_upload_artifact_with_policy(
     let mut cleanup_paths = Vec::new();
     let local = if is_remote_url(path) {
         let downloaded = download_remote_url(path, app, item_index)?;
+        let meta = std::fs::metadata(&downloaded).map_err(|e| format!("cannot read downloaded file metadata: {e}"))?;
+        if meta.len() == 0 {
+            return Err(format!("downloaded file is empty (0 bytes): {path}"));
+        }
         cleanup_paths.push(downloaded.clone());
         downloaded.display().to_string()
     } else {
         path_policy::assert_safe_transfer_path(path).map_err(|e| e.to_string())?;
+        let p = std::path::Path::new(path);
+        if !p.exists() {
+            return Err(format!("file not found: {path}"));
+        }
+        let meta = std::fs::metadata(p).map_err(|e| format!("cannot read file metadata {path}: {e}"))?;
+        if meta.len() == 0 {
+            return Err(format!("file is empty (0 bytes): {path}"));
+        }
         path.to_string()
     };
     let prepared = {
