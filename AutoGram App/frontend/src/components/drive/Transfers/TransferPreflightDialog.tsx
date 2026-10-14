@@ -422,7 +422,11 @@ function TelegramDuplicateThumb({
       if (!controller.signal.aborted) {
         setThumb(value);
         setLoading(false);
-        if (value) setMissingReason(null);
+        if (value) {
+          setMissingReason(null);
+        } else {
+          setMissingReason((prev) => prev || 'MessageNotReturned');
+        }
       }
     }).catch(() => {
       if (!controller.signal.aborted) {

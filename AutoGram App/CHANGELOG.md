@@ -4,6 +4,8 @@
 - Enhanced the Transfer Preflight duplicate comparison grid with full interactive click-to-preview capability for both local source items and Telegram cloud matches.
 - Made the source media thumbnail container (`.td-preflight-compare-media.is-clickable`) clickable with hover micro-scaling (`scale(1.04)`), neon sky border glow, and focus ring, launching `DrivePreviewModal` in high-resolution local rendering.
 - Enabled interactive cloud inspection on `TelegramDuplicateThumb`: clicking the Telegram match opens `DrivePreviewModal` linked to the remote Telegram message (`telegramMessageId`, `peerId`, `topicId`), streaming the original uncompressed image or video directly from Telegram Data Centers via native MTProto Grammers range proxy.
+- Standardized thumbnail aspect ratio to portrait 2:3 (`aspect-ratio: 2 / 3`): updated `.td-preflight-thumb` (`44px × 66px`) and `.td-preflight-compare-media` (`60px × 90px`), completely eliminating awkward horizontal cropping and displaying full portrait photos, cosplay portraits, and vertical media without cut-offs.
+- Refined duplicate thumbnail miss classification: ensured empty thumbnail cards accurately reflect when a historical message ID no longer exists in Telegram (`MessageNotReturned`), giving users explicit visual clarity on stale cloud records.
 - Implemented state-isolated preview dismissal: closing the modal (via Close button, backdrop click, or `Escape` key) returns the user seamlessly to the Transfer Preflight dialog without losing queue selections, skip choices, or active filter states.
 
 ### Open Source Licensing Architecture & GNU General Public License v3 (GPL-3.0) Upgrade
