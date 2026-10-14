@@ -29,7 +29,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../DrivePreviewModal';
 import { buildThumbCacheKey, getThumbQuality, requestThumb } from '../../../lib/media/thumbBatcher';
@@ -120,6 +120,45 @@ function transferPreviewSource(path: string, thumbnailUrl?: string | null): stri
     return convertFileSrc(path);
   }
   return null;
+}
+
+/** Lightweight IntersectionObserver hook for viewport-gated thumbnail loading (prevents MTProto FloodWait) */
+function useInView<T extends HTMLElement = HTMLDivElement>(
+  options?: IntersectionObserverInit
+): [React.RefObject<T | null>, boolean] {
+  const ref = useRef<T | null>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
+    if (isInView) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      {
+        rootMargin: options?.rootMargin ?? '120px 0px',
+        threshold: options?.threshold ?? 0.01,
+        ...options,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isInView, options]);
+
+  return [ref, isInView];
 }
 
 function PreflightSourceThumb({
@@ -358,11 +397,14 @@ function TelegramDuplicateThumb({
   onClick?: () => void;
 }) {
   const { t } = useTranslation();
+  const [rootRef, isInView] = useInView<HTMLDivElement>({ rootMargin: '120px 0px' });
   const [thumb, setThumb] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [missingReason, setMissingReason] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isInView) return;
+
     const messageId = Number(match.telegramMessageId || 0);
     if (!creds || messageId <= 0) {
       setThumb(null);
@@ -440,10 +482,11 @@ function TelegramDuplicateThumb({
       window.removeEventListener('autogram-thumb-ready', onThumbReady);
       window.removeEventListener('autogram-thumb-result', onThumbResult);
     };
-  }, [creds, match.destinationId, match.telegramMessageId, match.topicId]);
+  }, [isInView, creds, match.destinationId, match.telegramMessageId, match.topicId]);
 
   return (
     <div
+      ref={rootRef}
       className={`td-preflight-compare-media ${loading ? 'is-loading' : ''} ${onClick ? 'is-clickable' : ''}`}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -929,10 +972,24 @@ export function TransferPreflightDialog({
     }
   }, [hasNextPreview, currentPreviewIndex, filteredItems]);
 
+  const [displayLimit, setDisplayLimit] = useState(40);
+
+  useEffect(() => {
+    setDisplayLimit(40);
+  }, [activeFilter]);
+
+  const visibleItems = filteredItems.slice(0, displayLimit);
+  const hiddenCount = Math.max(0, filteredItems.length - visibleItems.length);
+
+  const handleScrollItems = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 350) {
+      setDisplayLimit((prev) => (prev < filteredItems.length ? Math.min(filteredItems.length, prev + 40) : prev));
+    }
+  }, [filteredItems.length]);
+
   if (!report || typeof document === 'undefined') return null;
 
-  const visibleItems = filteredItems.slice(0, 100);
-  const hiddenCount = Math.max(0, filteredItems.length - visibleItems.length);
   const setChoice = (path: string, choice: TransferDuplicateChoice) => {
     setChoices((current) => ({ ...current, [path]: choice }));
   };
@@ -1344,7 +1401,7 @@ export function TransferPreflightDialog({
           onOpenSettings={onOpenSettings}
         />
 
-        <div className="td-preflight-items">
+        <div className="td-preflight-items" onScroll={handleScrollItems}>
           {visibleItems.length === 0 ? (
             <div className="td-preflight-empty-filter">
               <p>{t('drive.preflight_filter_empty')}</p>
@@ -1600,7 +1657,17 @@ export function TransferPreflightDialog({
               </article>
             );
           }))}
-          {hiddenCount > 0 && <p className="td-xfer-hint">{t('drive.preflight_more_items', { count: hiddenCount })}</p>}
+          {hiddenCount > 0 && (
+            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={() => setDisplayLimit((prev) => Math.min(filteredItems.length, prev + 40))}
+              >
+                {t('drive.preflight_more_items', { count: hiddenCount })}
+              </button>
+            </div>
+          )}
         </div>
 
         <footer className="td-preflight-foot">
