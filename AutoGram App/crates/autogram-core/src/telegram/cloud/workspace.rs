@@ -16,6 +16,10 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
+fn message_is_pinned(message: &grammers_client::tl::enums::Message) -> bool {
+    matches!(message, grammers_client::tl::enums::Message::Message(value) if value.pinned)
+}
+
 const PAGE_SIZE: usize = 50;
 const HISTORY_SCAN: usize = 100;
 const MAX_CACHED_MEDIA: usize = 512;
@@ -250,11 +254,12 @@ impl CloudWorkspace {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(media) = message.media() {
-                        if let Some(item) = metadata::from_media(
+                        if let Some(mut item) = metadata::from_media(
                             message.id(),
                             message.date().timestamp_millis(),
                             &media,
                         ) {
+                            item.is_pinned = message_is_pinned(&message.raw);
                             cached_media
                                 .push(((account.0.clone(), peer_id.clone(), item.id), media));
                             items.push(item);
@@ -273,11 +278,12 @@ impl CloudWorkspace {
                     scanned += 1;
                     last = Some(message.id());
                     if let Some(media) = message.media() {
-                        if let Some(item) = metadata::from_media(
+                        if let Some(mut item) = metadata::from_media(
                             message.id(),
                             message.date().timestamp_millis(),
                             &media,
                         ) {
+                            item.is_pinned = message_is_pinned(&message.raw);
                             cached_media
                                 .push(((account.0.clone(), peer_id.clone(), item.id), media));
                             items.push(item);
@@ -428,6 +434,28 @@ impl CloudWorkspace {
                 });
         }
         Ok(result)
+    }
+
+    pub async fn set_media_pinned(
+        &self,
+        auth: &AuthEngine,
+        account: AccountId,
+        peer_id: String,
+        topic_id: Option<i32>,
+        message_id: i32,
+        is_pinned: bool,
+    ) -> Result<bool, AuthError> {
+        if message_id <= 0 || topic_id.is_some_and(|id| id <= 0) {
+            return Err(AuthError::new("invalid_cloud_pin"));
+        }
+        let revision = auth.cloud_revision();
+        let peer = self.peer(&account, &peer_id, revision)?;
+        super::pin::set_media_pinned(
+            auth, account, peer, topic_id, message_id, is_pinned,
+        )
+        .await?;
+        self.state.lock().refresh(revision)?;
+        Ok(is_pinned)
     }
 
     pub async fn open_stream(

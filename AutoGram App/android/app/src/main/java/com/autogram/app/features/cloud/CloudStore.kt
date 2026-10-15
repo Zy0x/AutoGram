@@ -13,6 +13,7 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
     private var mediaRevision = 0L
     private var locationsRevision = 0L
     private var thumbnailRevision = 0L
+    private var pinRevision = 0L
     private data class MediaKey(val scope: CloudScope, val query: String)
     private data class MediaSnapshot(val items: List<CloudMedia>, val next: Int?)
     private data class ThumbnailKey(val account: String, val peer: String, val id: Int, val quality: String)
@@ -54,7 +55,43 @@ class CloudStore(private val service: CloudService, private val now: () -> Long 
         return result
     }
 
+    suspend fun setPinned(messageIds: List<Int>, isPinned: Boolean): CloudPinBatchResult {
+        val request = mutable.value
+        val ids = messageIds.distinct()
+        if (request.scope.accountId.isBlank() || request.scope.peerId.isBlank() || ids.isEmpty() ||
+            ids.size != messageIds.size || ids.any { it <= 0 } ||
+            ids.any { id -> request.items.none { it.id == id } }) throw CloudFailure("invalid_cloud_pin")
+        val revision = ++pinRevision
+        val updated = mutableListOf<Int>()
+        val failed = mutableListOf<CloudPinFailure>()
+        for (id in ids) {
+            try {
+                val receipt = service.setMediaPinned(request.scope, id, isPinned)
+                if (revision != pinRevision || mutable.value.scope != request.scope) throw CloudFailure("account_changed")
+                if (receipt.accountId != request.scope.accountId || receipt.peerId != request.scope.peerId ||
+                    receipt.topicId != request.scope.topicId || receipt.messageId != id || receipt.isPinned != isPinned)
+                    throw CloudFailure("cloud_pin_result_invalid")
+                updated += id
+                mutable.update { state ->
+                    if (state.scope != request.scope) state else state.copy(items = state.items.map { item ->
+                        if (item.id == id) item.copy(isPinned = isPinned) else item
+                    })
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (revision != pinRevision || mutable.value.scope != request.scope) throw CloudFailure("account_changed")
+                val failure = error as? CloudFailure ?: CloudFailure("cloud_request_failed")
+                failed += CloudPinFailure(id, failure.code)
+            }
+        }
+        mediaCache.replaceIfFresh(MediaKey(request.scope, request.query),
+            MediaSnapshot(mutable.value.items, mutable.value.nextOffset))
+        return CloudPinBatchResult(request.scope, updated, failed)
+    }
+
     fun scope(scope: CloudScope) {
+        pinRevision++
         invalidateThumbnails()
         mediaRevision++
         val current = mutable.value

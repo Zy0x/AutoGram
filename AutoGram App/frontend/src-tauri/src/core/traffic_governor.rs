@@ -147,8 +147,9 @@ pub fn record_bytes(direction: TransferDirection, bytes: u64) {
     let now = now_ms();
     let mut guard = state().lock();
     let lane = lane_mut(&mut guard, direction);
-    if lane.last_bytes_at_ms > 0 && now > lane.last_bytes_at_ms {
-        let instant = bytes as f64 * 1000.0 / (now - lane.last_bytes_at_ms) as f64;
+    let delta = now.saturating_sub(lane.last_bytes_at_ms);
+    if lane.last_bytes_at_ms > 0 && delta > 0 {
+        let instant = bytes as f64 * 1000.0 / delta as f64;
         lane.goodput_bps = if lane.goodput_bps > 0.0 {
             lane.goodput_bps * 0.72 + instant * 0.28
         } else {
@@ -335,7 +336,7 @@ pub fn snapshot() -> TrafficSnapshot {
         dc_latency_ms: guard.dc_latency_ms,
         flood_wait_seconds: guard
             .flood_wait_until_ms
-            .and_then(|until| (until > now).then_some((until - now).div_ceil(1_000))),
+            .and_then(|until| until.checked_sub(now).filter(|&d| d > 0).map(|d| d.div_ceil(1_000))),
         preview_observation: if preview_alive {
             guard.preview_observation.clone()
         } else {
@@ -426,5 +427,18 @@ mod tests {
         set_data_saver(false);
         observe_preview(Some(50.0), true);
         assert_eq!(stream_buffer_pacing_ms(), None);
+    }
+
+    #[test]
+    fn flood_wait_expired_never_overflows() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
+        {
+            let mut guard = state().lock();
+            guard.flood_wait_until_ms = Some(100); // simulated past timestamp
+        }
+        let snap = snapshot();
+        assert_eq!(snap.flood_wait_seconds, None);
+        assert_ne!(snap.governor_reason, "telegram_cooldown");
     }
 }

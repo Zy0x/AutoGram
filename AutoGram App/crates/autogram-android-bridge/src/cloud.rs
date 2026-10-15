@@ -35,6 +35,7 @@ pub struct NativeCloudMedia {
     pub height: Option<i32>,
     pub duration_seconds: Option<f64>,
     pub thumbnail_bytes: Option<Vec<u8>>,
+    pub is_pinned: bool,
 }
 impl From<metadata::MediaMetadata> for NativeCloudMedia {
     fn from(item: metadata::MediaMetadata) -> Self {
@@ -50,6 +51,7 @@ impl From<metadata::MediaMetadata> for NativeCloudMedia {
             height: item.height,
             duration_seconds: item.duration_seconds,
             thumbnail_bytes: item.thumbnail_bytes,
+            is_pinned: item.is_pinned,
         }
     }
 }
@@ -89,6 +91,15 @@ pub struct NativeCloudDeleteResult {
     pub topic_id: Option<i32>,
     pub deleted_ids: Vec<i32>,
     pub failed: Vec<NativeCloudDeleteFailure>,
+}
+
+#[derive(Clone, uniffi::Record)]
+pub struct NativeCloudPinResult {
+    pub account_id: String,
+    pub peer_id: String,
+    pub topic_id: Option<i32>,
+    pub message_id: i32,
+    pub is_pinned: bool,
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -215,6 +226,34 @@ pub async fn delete_cloud_media(
                 retry_after_seconds: item.retry_after_seconds,
             })
             .collect(),
+    })
+}
+
+#[uniffi::export(async_runtime = "tokio")]
+pub async fn set_cloud_media_pinned(
+    account_id: String,
+    peer_id: String,
+    topic_id: Option<i32>,
+    message_id: i32,
+    is_pinned: bool,
+) -> Result<NativeCloudPinResult, NativeAuthError> {
+    let account = AccountId(account_id.clone());
+    let actual = workspace()
+        .set_media_pinned(
+            engine()?,
+            account.clone(),
+            peer_id.clone(),
+            topic_id,
+            message_id,
+            is_pinned,
+        )
+        .await?;
+    Ok(NativeCloudPinResult {
+        account_id,
+        peer_id,
+        topic_id,
+        message_id,
+        is_pinned: actual,
     })
 }
 

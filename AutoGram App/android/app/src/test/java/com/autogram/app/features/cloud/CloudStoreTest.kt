@@ -24,6 +24,37 @@ class CloudStoreTest {
         assertEquals(listOf(3), store.state.value.items.map { it.id })
     }
 
+    @Test fun pinStatePublishesOnlyForExactServerConfirmedScope() = runBlocking {
+        var requestedScope: CloudScope? = null
+        var requestedId = 0
+        var requestedValue = false
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(8)), null, s.topicId) },
+            pinProvider = { s, id, value ->
+                requestedScope = s; requestedId = id; requestedValue = value
+                CloudPinResult(s.accountId, s.peerId, s.topicId, id, value)
+            }
+        ))
+        store.scope(scope.copy(topicId = 17)); store.media()
+        val result = store.setPinned(listOf(8), true)
+        assertEquals(scope.copy(topicId = 17), requestedScope)
+        assertEquals(8, requestedId); assertTrue(requestedValue)
+        assertEquals(listOf(8), result.updatedIds); assertTrue(result.failed.isEmpty())
+        assertTrue(store.state.value.items.single().isPinned)
+    }
+
+    @Test fun mismatchedPinReceiptDoesNotPublishFavoriteState() = runBlocking {
+        val store = CloudStore(Service(
+            read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(8)), null, s.topicId) },
+            pinProvider = { s, id, value -> CloudPinResult(s.accountId, "other", s.topicId, id, value) }
+        ))
+        store.scope(scope); store.media()
+        val result = store.setPinned(listOf(8), true)
+        assertTrue(result.updatedIds.isEmpty())
+        assertEquals("cloud_pin_result_invalid", result.failed.single().code)
+        assertFalse(store.state.value.items.single().isPinned)
+    }
+
     @Test fun deleteResultFromAnotherScopeIsRejectedWithoutRemovingVisibleItems() = runBlocking {
         val store = CloudStore(Service(
             read = { s, _, _ -> CloudMediaPage(s.accountId, s.peerId, listOf(item(1)), null, s.topicId) },
@@ -166,12 +197,14 @@ class CloudStoreTest {
         val read: suspend (CloudScope, Int, String) -> CloudMediaPage,
         val dialogs: suspend (String, String?) -> CloudLocationsPage = { account, _ -> CloudLocationsPage(account, emptyList(), null) },
         val thumbProvider: suspend (CloudScope, List<Int>, String) -> List<CloudThumbnail> = { _, _, _ -> emptyList() },
-        val deleteProvider: suspend (CloudScope, List<Int>) -> CloudDeleteResult = { s, _ -> CloudDeleteResult(s, emptyList(), emptyList()) }
+        val deleteProvider: suspend (CloudScope, List<Int>) -> CloudDeleteResult = { s, _ -> CloudDeleteResult(s, emptyList(), emptyList()) },
+        val pinProvider: suspend (CloudScope, Int, Boolean) -> CloudPinResult = { s, id, pinned -> CloudPinResult(s.accountId, s.peerId, s.topicId, id, pinned) }
     ) : CloudService {
         override suspend fun media(scope: CloudScope, before: Int, query: String) = read(scope, before, query)
         override suspend fun locations(accountId: String, cursor: String?) = dialogs(accountId, cursor)
         override suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String) = thumbProvider(scope, messageIds, quality)
         override suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>) = deleteProvider(scope, messageIds)
+        override suspend fun setMediaPinned(scope: CloudScope, messageId: Int, isPinned: Boolean) = pinProvider(scope, messageId, isPinned)
     }
 
     @Test fun accountABARejectsEarlierCompletionEvenWithoutTransportCancellation() = runBlocking {

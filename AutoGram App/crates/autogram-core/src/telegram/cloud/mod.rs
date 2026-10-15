@@ -1,6 +1,7 @@
 //! Actual Telegram cloud reads. No session material or cache rows enter these contracts.
 mod contracts;
 mod delete;
+mod pin;
 pub mod jpeg;
 pub mod metadata;
 mod ranges;

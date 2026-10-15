@@ -36,7 +36,8 @@ data class DriveFileItem(
     val height: Int? = null,
     val durationSeconds: Double? = null,
     val thumbnailBytes: ByteArray? = null,
-    val topicId: Long? = null
+    val topicId: Long? = null,
+    val isPinned: Boolean = false
 )
 
 enum class DriveMediaFilter {
@@ -173,7 +174,7 @@ class DriveViewModel(
             telegramCategory = record.telegramCategory, cloudAccountId = result.scope.accountId,
             cloudPeerId = result.scope.peerId, cloudMessageId = record.id, width = record.width,
             height = record.height, durationSeconds = record.durationSeconds,
-            thumbnailBytes = record.thumbnailBytes, topicId = record.topicId)
+            thumbnailBytes = record.thumbnailBytes, topicId = record.topicId, isPinned = record.isPinned)
     }
 
     init {
@@ -476,6 +477,48 @@ class DriveViewModel(
                 _uiState.update { current ->
                     if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
                         current.copy(errorCode = "cloud_read_failed") else current
+                }
+            }
+        }
+    }
+
+    fun toggleSelectedPinned() {
+        val snapshot = _uiState.value
+        if (snapshot.selectedIds.isEmpty() || snapshot.sessionId.isBlank()) return
+        val scope = CloudScope(snapshot.sessionId, snapshot.peerId, snapshot.topicId)
+        val selected = snapshot.items.filter { it.id in snapshot.selectedIds }
+        val ids = selected.mapNotNull { item ->
+            item.cloudMessageId?.takeIf {
+                item.cloudAccountId == scope.accountId && item.cloudPeerId == scope.peerId &&
+                    item.topicId == scope.topicId
+            }
+        }
+        if (ids.size != snapshot.selectedIds.size) {
+            _uiState.update { current ->
+                if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
+                    current.copy(errorCode = "cloud_pin_scope_mismatch") else current
+            }
+            return
+        }
+        val desired = !selected.all { it.isPinned }
+        viewModelScope.launch {
+            try {
+                val result = cloud.setPinned(ids, desired)
+                _uiState.update { current ->
+                    if (current.sessionId != scope.accountId || current.peerId != scope.peerId || current.topicId != scope.topicId)
+                        current
+                    else current.copy(errorCode = when {
+                        result.failed.isEmpty() -> null
+                        result.updatedIds.isEmpty() -> result.failed.first().code
+                        else -> "cloud_pin_partial"
+                    })
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: CloudFailure) {
+                _uiState.update { current ->
+                    if (current.sessionId == scope.accountId && current.peerId == scope.peerId && current.topicId == scope.topicId)
+                        current.copy(errorCode = failure.code) else current
                 }
             }
         }

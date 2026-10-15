@@ -147,6 +147,9 @@ fun FileListItem(
                 }
             }
 
+            if (item.isPinned) Icon(Icons.Default.PushPin, stringResource(R.string.drive_favorite_status),
+                tint = MutedIceCyan, modifier = Modifier.size(18.dp))
+
             // Selection Circle Indicator
             Box(
                 modifier = Modifier

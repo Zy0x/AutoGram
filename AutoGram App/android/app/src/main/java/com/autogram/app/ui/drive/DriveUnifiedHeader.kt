@@ -27,6 +27,7 @@ fun DriveUnifiedHeader(
     onRefresh: () -> Unit, onOpenTools: () -> Unit, onCustomizeIcon: () -> Unit,
     onClearSelection: () -> Unit, onSelectAll: () -> Unit, onInvertSelection: () -> Unit,
     onCopyLinks: () -> Unit, modifier: Modifier = Modifier,
+    onTogglePinned: () -> Unit = {}, selectedAllPinned: Boolean = false,
     onOpenDownloads: () -> Unit = {}, compact: Boolean = false,
     locations: (@Composable () -> Unit)? = null
 ) {
@@ -81,6 +82,9 @@ fun DriveUnifiedHeader(
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_select_all)) },
                             onClick = { menuOpen = false; onSelectAll() })
                     } else {
+                        DropdownMenuItem(text = { Text(stringResource(
+                            if (selectedAllPinned) R.string.drive_action_unpin_favorite else R.string.drive_action_pin_favorite
+                        )) }, onClick = { menuOpen = false; onTogglePinned() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_invert_selection)) },
                             onClick = { menuOpen = false; onInvertSelection() })
                         DropdownMenuItem(text = { Text(stringResource(R.string.drive_action_copy_links)) },

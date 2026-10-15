@@ -4,6 +4,10 @@
     <string name="app_tagline">Telegram Cloud Suite</string>
     <string name="nav_home">Beranda</string>
     <string name="nav_drive">Drive</string>
+    <string name="drive_action_pin_favorite">Sematkan sebagai favorit</string>
+    <string name="drive_action_unpin_favorite">Lepas sematan favorit</string>
+    <string name="cloud_pin_partial">Sebagian status favorit gagal diperbarui. Coba lagi untuk item yang belum berubah.</string>
+    <string name="drive_favorite_status">Favorit Telegram</string>
     <string name="nav_transfer">Transfer</string>
     <string name="nav_forwarder">Forwarder</string>
     <string name="forwarder_title">Media Forwarder</string>

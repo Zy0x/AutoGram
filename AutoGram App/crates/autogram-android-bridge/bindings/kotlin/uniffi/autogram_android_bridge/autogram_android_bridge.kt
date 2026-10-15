@@ -933,6 +933,8 @@ internal open class UniffiVTableCallbackInterfaceNativeAuthVault(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -1092,6 +1094,8 @@ internal interface UniffiLib : Library {
     ): Long
     fun uniffi_autogram_android_bridge_fn_func_select_transfer_profile(`accountId`: RustBuffer.ByValue,`profileId`: RustBuffer.ByValue,`expectedRevision`: Long,uniffi_out_err: UniffiRustCallStatus,
     ): Unit
+    fun uniffi_autogram_android_bridge_fn_func_set_cloud_media_pinned(`accountId`: RustBuffer.ByValue,`peerId`: RustBuffer.ByValue,`topicId`: RustBuffer.ByValue,`messageId`: Int,`isPinned`: Byte,
+    ): Long
     fun uniffi_autogram_android_bridge_fn_func_set_transfer_paused(`id`: RustBuffer.ByValue,`paused`: Byte,uniffi_out_err: UniffiRustCallStatus,
     ): Byte
     fun uniffi_autogram_android_bridge_fn_func_start_cloud_album(`accountId`: RustBuffer.ByValue,`operationId`: RustBuffer.ByValue,
@@ -1356,6 +1360,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_select_transfer_profile(
     ): Short
+    fun uniffi_autogram_android_bridge_checksum_func_set_cloud_media_pinned(
+    ): Short
     fun uniffi_autogram_android_bridge_checksum_func_set_transfer_paused(
     ): Short
     fun uniffi_autogram_android_bridge_checksum_func_start_cloud_album(
@@ -1602,6 +1608,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_select_transfer_profile() != 32493.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_autogram_android_bridge_checksum_func_set_cloud_media_pinned() != 41103.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_autogram_android_bridge_checksum_func_set_transfer_paused() != 59974.toShort()) {
@@ -2836,7 +2845,8 @@ data class NativeCloudMedia (
     var `width`: kotlin.Int?,
     var `height`: kotlin.Int?,
     var `durationSeconds`: kotlin.Double?,
-    var `thumbnailBytes`: kotlin.ByteArray?
+    var `thumbnailBytes`: kotlin.ByteArray?,
+    var `isPinned`: kotlin.Boolean
 ) {
 
     companion object
@@ -2859,6 +2869,7 @@ public object FfiConverterTypeNativeCloudMedia: FfiConverterRustBuffer<NativeClo
             FfiConverterOptionalInt.read(buf),
             FfiConverterOptionalDouble.read(buf),
             FfiConverterOptionalByteArray.read(buf),
+            FfiConverterBoolean.read(buf),
         )
     }
 
@@ -2873,7 +2884,8 @@ public object FfiConverterTypeNativeCloudMedia: FfiConverterRustBuffer<NativeClo
             FfiConverterOptionalInt.allocationSize(value.`width`) +
             FfiConverterOptionalInt.allocationSize(value.`height`) +
             FfiConverterOptionalDouble.allocationSize(value.`durationSeconds`) +
-            FfiConverterOptionalByteArray.allocationSize(value.`thumbnailBytes`)
+            FfiConverterOptionalByteArray.allocationSize(value.`thumbnailBytes`) +
+            FfiConverterBoolean.allocationSize(value.`isPinned`)
     )
 
     override fun write(value: NativeCloudMedia, buf: ByteBuffer) {
@@ -2888,6 +2900,7 @@ public object FfiConverterTypeNativeCloudMedia: FfiConverterRustBuffer<NativeClo
             FfiConverterOptionalInt.write(value.`height`, buf)
             FfiConverterOptionalDouble.write(value.`durationSeconds`, buf)
             FfiConverterOptionalByteArray.write(value.`thumbnailBytes`, buf)
+            FfiConverterBoolean.write(value.`isPinned`, buf)
     }
 }
 
@@ -2928,6 +2941,50 @@ public object FfiConverterTypeNativeCloudMediaPage: FfiConverterRustBuffer<Nativ
             FfiConverterString.write(value.`peerId`, buf)
             FfiConverterSequenceTypeNativeCloudMedia.write(value.`items`, buf)
             FfiConverterOptionalInt.write(value.`nextOffset`, buf)
+    }
+}
+
+
+
+data class NativeCloudPinResult (
+    var `accountId`: kotlin.String,
+    var `peerId`: kotlin.String,
+    var `topicId`: kotlin.Int?,
+    var `messageId`: kotlin.Int,
+    var `isPinned`: kotlin.Boolean
+) {
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNativeCloudPinResult: FfiConverterRustBuffer<NativeCloudPinResult> {
+    override fun read(buf: ByteBuffer): NativeCloudPinResult {
+        return NativeCloudPinResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterInt.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NativeCloudPinResult) = (
+            FfiConverterString.allocationSize(value.`accountId`) +
+            FfiConverterString.allocationSize(value.`peerId`) +
+            FfiConverterOptionalInt.allocationSize(value.`topicId`) +
+            FfiConverterInt.allocationSize(value.`messageId`) +
+            FfiConverterBoolean.allocationSize(value.`isPinned`)
+    )
+
+    override fun write(value: NativeCloudPinResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`accountId`, buf)
+            FfiConverterString.write(value.`peerId`, buf)
+            FfiConverterOptionalInt.write(value.`topicId`, buf)
+            FfiConverterInt.write(value.`messageId`, buf)
+            FfiConverterBoolean.write(value.`isPinned`, buf)
     }
 }
 
@@ -6304,6 +6361,21 @@ public object FfiConverterSequenceOptionalInt: FfiConverterRustBuffer<List<kotli
 }
 
 
+
+    @Throws(NativeAuthException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `setCloudMediaPinned`(`accountId`: kotlin.String, `peerId`: kotlin.String, `topicId`: kotlin.Int?, `messageId`: kotlin.Int, `isPinned`: kotlin.Boolean) : NativeCloudPinResult {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_autogram_android_bridge_fn_func_set_cloud_media_pinned(FfiConverterString.lower(`accountId`),FfiConverterString.lower(`peerId`),FfiConverterOptionalInt.lower(`topicId`),FfiConverterInt.lower(`messageId`),FfiConverterBoolean.lower(`isPinned`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_autogram_android_bridge_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeNativeCloudPinResult.lift(it) },
+        // Error FFI converter
+        NativeAuthException.ErrorHandler,
+    )
+    }
 
     @Throws(AutoGramBridgeException::class) fun `setTransferPaused`(`id`: kotlin.String, `paused`: kotlin.Boolean): kotlin.Boolean {
             return FfiConverterBoolean.lift(

@@ -20,6 +20,7 @@ pub struct MediaMetadata {
     pub height: Option<i32>,
     pub duration_seconds: Option<f64>,
     pub thumbnail_bytes: Option<Vec<u8>>,
+    pub is_pinned: bool,
 }
 
 fn inline_thumbnail(thumbs: Vec<PhotoSize>) -> Option<Vec<u8>> {
@@ -156,6 +157,7 @@ fn document_metadata(
             .duration()
             .filter(|value| value.is_finite() && *value >= 0.0),
         thumbnail_bytes: inline_thumbnail(doc.thumbs()),
+        is_pinned: false,
     })
 }
 
@@ -173,6 +175,7 @@ pub fn from_media(message_id: i32, modified_ms: i64, media: &Media) -> Option<Me
             height: None,
             duration_seconds: None,
             thumbnail_bytes: inline_thumbnail(photo.thumbs()),
+            is_pinned: false,
         }),
         Media::Document(doc) => document_metadata(message_id, modified_ms, doc, false),
         Media::Sticker(sticker) => {
@@ -184,7 +187,12 @@ pub fn from_media(message_id: i32, modified_ms: i64, media: &Media) -> Option<Me
 
 pub fn from_message(message: &Message) -> Option<MediaMetadata> {
     let media = message.media()?;
-    from_media(message.id(), message.date().timestamp_millis(), &media)
+    let mut item = from_media(message.id(), message.date().timestamp_millis(), &media)?;
+    item.is_pinned = matches!(
+        &message.raw,
+        tl::enums::Message::Message(value) if value.pinned
+    );
+    Some(item)
 }
 
 /// Extracts `(message_id, Option<(MediaMetadata, Media)>)` directly from a raw TL `Message`
@@ -196,11 +204,13 @@ pub fn from_raw_message(
         tl::enums::Message::Message(msg) => {
             let id = msg.id;
             let modified_ms = i64::from(msg.date) * 1000;
+            let is_pinned = msg.pinned;
             let parsed = msg
                 .media
                 .and_then(Media::from_raw)
                 .and_then(|media| {
-                    let item = from_media(id, modified_ms, &media)?;
+                    let mut item = from_media(id, modified_ms, &media)?;
+                    item.is_pinned = is_pinned;
                     Some((item, media))
                 });
             (Some(id), parsed)

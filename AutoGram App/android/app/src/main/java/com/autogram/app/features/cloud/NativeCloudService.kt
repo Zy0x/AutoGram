@@ -34,7 +34,7 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
         CloudMediaPage(page.accountId, page.peerId, page.items.map {
             CloudMedia(it.id, it.name, it.size.coerceAtMost(Long.MAX_VALUE.toULong()).toLong(),
                 it.mimeType, it.modifiedMs, it.deliveryKind, it.telegramCategory,
-                it.width, it.height, it.durationSeconds, it.thumbnailBytes, topic)
+                it.width, it.height, it.durationSeconds, it.thumbnailBytes, topic, it.isPinned)
         }, page.nextOffset, topic)
     }
     override suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>) = invoke {
@@ -46,6 +46,13 @@ class NativeCloudService : CloudService, com.autogram.app.features.cloud.topics.
             deletedIds = result.deletedIds,
             failed = result.failed.map { CloudDeleteFailure(it.messageId, it.code, it.retryAfterSeconds.toLong()) }
         )
+    }
+    override suspend fun setMediaPinned(scope: CloudScope, messageId: Int, isPinned: Boolean) = invoke {
+        if (scope.accountId.isBlank() || scope.peerId.isBlank() || messageId <= 0 ||
+            scope.topicId?.let { it !in 1..Int.MAX_VALUE.toLong() } == true)
+            throw CloudFailure("invalid_cloud_pin")
+        val result = setCloudMediaPinned(scope.accountId, scope.peerId, scope.topicId?.toInt(), messageId, isPinned)
+        CloudPinResult(result.accountId, result.peerId, result.topicId?.toLong(), result.messageId, result.isPinned)
     }
     override suspend fun topics(scope: CloudScope, cursor: com.autogram.app.features.cloud.topics.TopicCursor?) = invoke {
         com.autogram.app.features.cloud.reads.NativeCloudReadScheduling.metadata.awaitTurn()

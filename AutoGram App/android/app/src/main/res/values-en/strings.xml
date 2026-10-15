@@ -4,6 +4,10 @@
     <string name="app_tagline">Telegram Cloud Suite</string>
     <string name="nav_home">Home</string>
     <string name="nav_drive">Drive</string>
+    <string name="drive_action_pin_favorite">Pin as favorite</string>
+    <string name="drive_action_unpin_favorite">Unpin favorite</string>
+    <string name="cloud_pin_partial">Some favorite statuses could not be updated. Retry the items that did not change.</string>
+    <string name="drive_favorite_status">Telegram favorite</string>
     <string name="nav_transfer">Transfers</string>
     <string name="nav_forwarder">Forwarder</string>
     <string name="nav_studio">Studio</string>

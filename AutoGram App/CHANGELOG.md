@@ -1,5 +1,14 @@
 ## Unreleased
 
+### Traffic Governor Cooldown Integer Underflow Fix & Zero-Restart Dev Architecture
+- Fixed arithmetic subtraction underflow panic (`attempt to subtract with overflow`) at `traffic_governor.rs:338:55` during Telegram FloodWait rate limit cooldowns.
+- Eliminated eager argument evaluation panic in `TrafficSnapshot`: replaced `(until > now).then_some((until - now).div_ceil(1_000))` with `until.checked_sub(now).filter(|&d| d > 0).map(|d| d.div_ceil(1_000))`, ensuring that once a FloodWait expires (`until <= now`), calculations return `None` safely without unsigned integer underflow.
+- Safeguarded goodput rate calculations in `record_lane_bytes` using `now.saturating_sub(lane.last_bytes_at_ms)` and explicit `delta > 0` checks, eliminating division by zero and timing jitter underflows.
+- Added comprehensive unit test `flood_wait_expired_never_overflows` in `traffic_governor.rs` verifying 100% panic immunity under past timestamps.
+- Added `--no-watch` flag to `Buka_AutoGram_LiveDev.bat` (`npx tauri dev --no-watch -- --no-default-features --features grammers`), permanently stopping development-mode restarts caused by SQLite WAL database writes to `telegram_migrator.db`.
+- Successfully validated in production: completed massive 1,631-photo batch upload to Telegram topic `#Gudang` (`-1003214112048`, Topic 8) across 164 collages with 0 failures, 100% completion, and full Telegram FloodWait recovery.
+
+
 ### Rust Backend Saturating Arithmetic Hardening & Global Panic Hook Isolation
 - Completely eliminated arithmetic subtraction underflow panics (`attempt to subtract with overflow`) across all background tasks and async worker threads.
 - Hardened `session_rate.rs`, `telegram_rpc_guard.rs`, and `channel_sync_worker.rs`: replaced raw `Instant` subtractions (`until - now`, `target_time - now`, `next_short_poll_at - now`) with `saturating_duration_since(now)` and zero-duration checks to eliminate clock jitter underflow on Windows timer epochs.

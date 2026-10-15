@@ -65,8 +65,11 @@ fun cloudErrorLabel(code: String): Int = when (code) {
     "cloud_media_truncated", "cloud_stream_closed", "cloud_cursor_invalid" -> R.string.cloud_read_failed
     "cloud_image_too_large" -> R.string.cloud_image_too_large
     "cloud_delete_partial" -> R.string.cloud_delete_partial
+    "cloud_pin_partial" -> R.string.cloud_pin_partial
     "cloud_delete_scope_mismatch", "cloud_delete_media_missing" -> R.string.cloud_refresh_required
+    "cloud_pin_scope_mismatch", "cloud_pin_media_missing" -> R.string.cloud_refresh_required
     "cloud_delete_unavailable", "cloud_delete_result_invalid", "invalid_cloud_delete" -> R.string.cloud_read_failed
+    "cloud_pin_unavailable", "cloud_pin_result_invalid", "invalid_cloud_pin" -> R.string.cloud_read_failed
     "storage_space_unavailable" -> R.string.preview_image_storage_low
     "cloud_format_unsupported" -> R.string.cloud_format_unsupported
     "drive_operation_unavailable", "drive_delete_unavailable" -> R.string.real_cloud_unavailable

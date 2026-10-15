@@ -70,6 +70,11 @@ fun FileGridItem(item: DriveFileItem, isSelected: Boolean, onClick: () -> Unit,
             color = scheme.surface.copy(alpha = 0.92f), shape = RoundedCornerShape(4.dp)) {
             Text(formatFileSize(item.size), Modifier.padding(4.dp), style = MaterialTheme.typography.labelSmall)
         }
+        if (item.isPinned) Surface(Modifier.align(Alignment.TopStart).padding(6.dp),
+            color = scheme.surface.copy(alpha = 0.92f), shape = RoundedCornerShape(6.dp)) {
+            Icon(Icons.Default.PushPin, stringResource(R.string.drive_favorite_status),
+                Modifier.padding(4.dp).size(16.dp), tint = scheme.primary)
+        }
         if (isSelected) Icon(Icons.Default.CheckCircle, null, Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp),
             tint = scheme.primary)
     }

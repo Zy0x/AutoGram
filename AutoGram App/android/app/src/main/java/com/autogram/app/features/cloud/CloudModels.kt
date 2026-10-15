@@ -6,7 +6,8 @@ data class CloudMedia(
     val id: Int, val name: String, val size: Long, val mimeType: String,
     val modifiedMs: Long, val deliveryKind: String, val telegramCategory: String,
     val width: Int? = null, val height: Int? = null, val durationSeconds: Double? = null,
-    val thumbnailBytes: ByteArray? = null, val topicId: Long? = null
+    val thumbnailBytes: ByteArray? = null, val topicId: Long? = null,
+    val isPinned: Boolean = false
 )
 data class CloudLocationsPage(val accountId: String, val items: List<CloudLocation>, val nextCursor: String?)
 data class CloudMediaPage(val accountId: String, val peerId: String, val items: List<CloudMedia>, val nextOffset: Int?, val topicId: Long? = null)
@@ -26,6 +27,10 @@ data class CloudDeleteResult(
     val deletedIds: List<Int>,
     val failed: List<CloudDeleteFailure>
 )
+data class CloudPinResult(val accountId: String, val peerId: String, val topicId: Long?,
+    val messageId: Int, val isPinned: Boolean)
+data class CloudPinFailure(val messageId: Int, val code: String)
+data class CloudPinBatchResult(val scope: CloudScope, val updatedIds: List<Int>, val failed: List<CloudPinFailure>)
 class CloudFailure(val code: String, val retryAfterSeconds: Long = 0) : Exception(code)
 interface CloudService {
     suspend fun locations(accountId: String, cursor: String?): CloudLocationsPage
@@ -33,5 +38,7 @@ interface CloudService {
     suspend fun thumbnails(scope: CloudScope, messageIds: List<Int>, quality: String): List<CloudThumbnail>
     suspend fun deleteMedia(scope: CloudScope, messageIds: List<Int>): CloudDeleteResult =
         throw CloudFailure("cloud_delete_unavailable")
+    suspend fun setMediaPinned(scope: CloudScope, messageId: Int, isPinned: Boolean): CloudPinResult =
+        throw CloudFailure("cloud_pin_unavailable")
 }
 
