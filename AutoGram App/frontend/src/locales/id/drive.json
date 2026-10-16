@@ -784,6 +784,7 @@
   "zoom_xl": "Sangat Besar",
   "zoom_xxl": "Maksimal",
   "tm_title": "Pengelola Transfer",
+  "tm_showing_windowed_items": "Menampilkan {{shown}} dari {{total}} media (dioptimalkan untuk performa)",
   "tm_no_transfers": "Belum ada transfer",
   "tm_empty_title": "Belum ada unduhan/unggahan.",
   "tm_empty_hint": "Mulai unduh atau unggah — kemajuan akan tampil di sini. Panel tidak hilang saat klik di luar area drive.",

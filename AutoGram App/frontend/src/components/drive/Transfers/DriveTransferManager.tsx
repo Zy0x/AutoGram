@@ -214,6 +214,25 @@ export function DriveTransferManager({
   const activeProgressItem = itemsList.find((item: any) =>
     ['active', 'preparing', 'uploaded', 'waiting_commit', 'committing'].includes(item.status)
   );
+
+  const MAX_RENDERED_TM_ITEMS = 60;
+  const isWindowed = itemsList.length > MAX_RENDERED_TM_ITEMS;
+
+  const renderedItems = useMemo(() => {
+    if (!isWindowed) return itemsList;
+    const failed = itemsList.filter((it: any) => it.status === 'failed');
+    const active = itemsList.filter((it: any) => ['active', 'preparing', 'uploaded', 'waiting_commit', 'committing'].includes(it.status));
+    const others = itemsList.filter((it: any) => it.status !== 'failed' && !['active', 'preparing', 'uploaded', 'waiting_commit', 'committing'].includes(it.status));
+    const budget = Math.max(15, MAX_RENDERED_TM_ITEMS - failed.length - active.length);
+    const recentOthers = others.slice(-budget);
+    const selectedIds = new Set([
+      ...failed.map((i: any) => i.id),
+      ...active.map((i: any) => i.id),
+      ...recentOthers.map((i: any) => i.id)
+    ]);
+    return itemsList.filter((it: any) => selectedIds.has(it.id));
+  }, [itemsList, isWindowed]);
+
   const currentPhase = phaseClass(activeProgressItem || { direction: session.direction });
   const scanPhase = ['cache_warmup', 'recent', 'sampling', 'forensic'].includes(String((session as any).scanPhase))
     ? String((session as any).scanPhase)
@@ -655,7 +674,22 @@ export function DriveTransferManager({
           )}
 
           <ul className="tm-list" aria-label={t('drive.tm_list_aria')}>
-            {session.items.map((it: any) => {
+            {isWindowed && (
+              <li
+                className="tm-windowed-hint"
+                style={{
+                  fontSize: '11px',
+                  opacity: 0.65,
+                  padding: '6px 12px',
+                  textAlign: 'center',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  listStyle: 'none'
+                }}
+              >
+                {t('drive.tm_showing_windowed_items', { shown: renderedItems.length, total: itemsList.length })}
+              </li>
+            )}
+            {renderedItems.map((it: any) => {
               const destInfo = formatDestination(it.destination, t);
               const errInfo = formatItemError(it.error, t);
 

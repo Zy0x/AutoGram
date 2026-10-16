@@ -784,6 +784,7 @@
   "zoom_xl": "Extra Large",
   "zoom_xxl": "Maximum",
   "tm_title": "Transfer Manager",
+  "tm_showing_windowed_items": "Showing {{shown}} of {{total}} media (optimized for performance)",
   "tm_no_transfers": "No active transfers",
   "tm_empty_title": "No downloads or uploads yet.",
   "tm_empty_hint": "Start downloading or uploading — progress will appear here. The panel will not close when clicking outside the drive area.",
