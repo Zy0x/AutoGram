@@ -798,6 +798,7 @@
   "tm_status_done": "Selesai",
   "tm_status_ready": "Siap",
   "tm_stat_done": "berhasil",
+  "tm_stat_processed": "diproses",
   "tm_stat_failed": "gagal",
   "tm_stat_failed_hint": "File gagal diproses atau tautan tidak valid",
   "tm_stat_skipped": "dilewati",

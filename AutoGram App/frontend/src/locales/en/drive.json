@@ -798,6 +798,7 @@
   "tm_status_done": "Completed",
   "tm_status_ready": "Ready",
   "tm_stat_done": "completed",
+  "tm_stat_processed": "processed",
   "tm_stat_failed": "failed",
   "tm_stat_failed_hint": "Files failed to process or invalid source link",
   "tm_stat_skipped": "skipped",

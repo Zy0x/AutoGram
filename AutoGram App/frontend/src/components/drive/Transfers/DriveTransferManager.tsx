@@ -352,7 +352,9 @@ export function DriveTransferManager({
       .join(' · ');
     const fileFrac =
       counts.total > 0
-        ? `${counts.done}/${counts.total}`
+        ? counts.skipped > 0
+          ? `${counts.done + counts.skipped}/${counts.total}`
+          : `${counts.done}/${counts.total}`
         : '';
 
     return (
@@ -492,16 +494,22 @@ export function DriveTransferManager({
                 {counts.total > 0 && (
                   <span className="tm-stat-breakdown">
                     <span className="tm-stat-item">
-                      {counts.done}/{counts.total} {t('drive.tm_stat_done')}
+                      {counts.skipped > 0 ? (
+                        <>
+                          <strong>{counts.done + counts.skipped}/{counts.total}</strong> {counts.done + counts.skipped === counts.total ? t('jobs.status_completed') : t('drive.tm_stat_processed')}
+                          <span style={{ opacity: 0.82, fontSize: '0.9em', marginLeft: '4px' }}>
+                            ({counts.done} {t('drive.tm_stat_done')}, {counts.skipped} {t('drive.tm_stat_skipped')})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {counts.done}/{counts.total} {t('drive.tm_stat_done')}
+                        </>
+                      )}
                     </span>
                     {counts.failed > 0 && (
                       <span className="tm-stat-item err" title={t('drive.tm_stat_failed_hint')}>
                         · {counts.failed} {t('drive.tm_stat_failed')}
-                      </span>
-                    )}
-                    {counts.skipped > 0 && (
-                      <span className="tm-skip-badge" title={t('drive.tm_skipped_hint')}>
-                        · {counts.skipped} {t('drive.tm_stat_skipped')}
                       </span>
                     )}
                     {(session as any).reuploadedCount > 0 && (

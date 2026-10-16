@@ -5683,10 +5683,40 @@ function MediaDriveDesktop({
         }
 
         setStatusText(`Upload (Grammers)${label}: ${namesLabel}`);
-        // Keep untouched files queued. The Rust worker promotes only the item
-        // that is actually active, which makes pause-at-safe-boundary useful
-        // and prevents the UI from claiming every file is uploading at once.
-        setTransfer((current) => ({ ...current, active: true }));
+        // Seed or refresh transfer session for this specific task chunk
+        // so that UI stays ultra-lightweight, accurate, and reflects the active chunk slice!
+        setTransfer((current) => {
+          const taskNames = task.names && task.names.length > 0
+            ? task.names
+            : (task.paths || []).map((p) => p.split(/[/\\]/).pop() || p);
+          const chunkItems: TransferItem[] = taskNames.map((name, idx) => ({
+            id: `${task.id}-${idx}`,
+            index: idx,
+            name: name || `File ${idx + 1}`,
+            direction: 'upload' as const,
+            status: 'queued' as const,
+            percent: 0,
+            transferred: 0,
+            total: (task.options as any)?.source_sizes?.[idx] ?? 0,
+            speed_mb_s: 0,
+            destination: task.targetLabel || current.label,
+            path: task.paths?.[idx],
+          }));
+
+          return {
+            ...current,
+            active: true,
+            paused: false,
+            jobKey: task.id,
+            label: task.targetLabel || current.label,
+            items: chunkItems,
+            total: chunkItems.reduce((acc, it) => acc + (it.total || 0), 0),
+            overallPercent: 0,
+            transferred: 0,
+            speed_mb_s: 0,
+            eta_seconds: 0,
+          };
+        });
 
         const apiIdNum = Number(creds!.apiId) || 0;
         const topicFromOpts =
@@ -5696,6 +5726,10 @@ function MediaDriveDesktop({
             : task.options?.topicId != null
               ? Number(task.options.topicId)
               : null);
+
+        const effectiveAlternatePool = Array.isArray(task.options?.alternate_account_pool) && task.options.alternate_account_pool.length > 0
+          ? task.options.alternate_account_pool
+          : ['tg_62881012533172'];
 
         const orchOutcome = await studioRunUploadDefault(
           creds!,
@@ -5712,6 +5746,7 @@ function MediaDriveDesktop({
             options: {
               ...task.options,
               transfer_id: task.id,
+              alternate_account_pool: effectiveAlternatePool,
             },
             transferId: task.id,
           },
@@ -6160,18 +6195,13 @@ function MediaDriveDesktop({
         const queue: QueueTask[] = JSON.parse(stored);
         if (queue.length > 0) {
           transferQueueRef.current = queue;
-          const allNames = queue.flatMap((q) => q.names);
-          
-          const destinations = queue.flatMap((q) => {
-            const dest = q.targetLabel || (q.kind.includes('download') ? q.saveDir || q.savePath || 'Folder' : 'Saved Messages');
-            return q.names.map(() => dest);
-          });
+          const firstTask = queue[0];
           setTransfer(
             seedTransferSession({
               direction: 'upload',
-              names: allNames,
-              label: queue[0].targetLabel || 'Melanjutkan unggahan',
-              destinations,
+              names: firstTask.names,
+              label: firstTask.targetLabel || 'Melanjutkan unggahan',
+              destination: firstTask.targetLabel,
             })
           );
           
