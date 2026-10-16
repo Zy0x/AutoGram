@@ -520,8 +520,8 @@ async fn quality_preflight(
     // High-performance preflight engine with candidate pre-filtering
     request: core::autogram_core::transfer::QualityPreflightRequest,
 ) -> Result<core::autogram_core::transfer::QualityPreflightReport, String> {
-    if request.paths.is_empty() || request.paths.len() > 10_000 {
-        return Err("quality preflight requires 1..10000 items".into());
+    if request.paths.is_empty() || request.paths.len() > 25_000 {
+        return Err("quality preflight requires 1..25000 items".into());
     }
     for path in &request.paths {
         if !(path.starts_with("http://") || path.starts_with("https://")) {

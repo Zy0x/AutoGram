@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   ImageOff,
   Info,
+  Layers,
   Loader2,
   Music,
   RefreshCw,
@@ -861,22 +862,60 @@ export function TransferPreflightDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [report, activePopover, onCancel, handleConfirm]);
 
+  const [activeChunkIndex, setActiveChunkIndex] = useState(report?.activeChunkIndex ?? 0);
+
+  const activeChunkItems = useMemo<QualityPreflightItem[]>(() => {
+    if (!report) return [];
+    if (!report.batchChunks || report.batchChunks.length <= 1 || activeChunkIndex === 0) {
+      return report.items || [];
+    }
+    const chunk = report.batchChunks[activeChunkIndex];
+    if (!chunk) return report.items || [];
+
+    return chunk.paths.map((p, idx) => {
+      const name = (chunk.names && chunk.names[idx]) ? chunk.names[idx] : p.split(/[/\\]/).pop() || p;
+      const ext = name.split('.').pop()?.toLowerCase() || '';
+      const isVid = ['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', '3gp', 'flv', 'ts'].includes(ext);
+      const isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'avif'].includes(ext);
+      const isAud = ['mp3', 'm4a', 'flac', 'wav', 'ogg', 'opus', 'aac'].includes(ext);
+      const category = isVid ? 'mp4_video' : isImg ? (ext === 'png' ? 'png_image' : 'jpeg_image') : isAud ? 'audio' : 'unknown_binary';
+      const payloadClass = isVid || (isImg && ext !== 'png') ? 'native_visual' : isAud ? 'audio_group' : 'document_group';
+      return {
+        index: chunk.startIndex + idx,
+        sourcePath: p,
+        sourceName: name,
+        sourceSize: (chunk.sourceSizes && chunk.sourceSizes[idx]) ? chunk.sourceSizes[idx] : 0,
+        category,
+        transform: 'pass_through',
+        payloadClass,
+        asDocument: payloadClass === 'document_group',
+        albumEligible: payloadClass === 'native_visual' || payloadClass === 'audio_group',
+        reasonCode: 'chunk_preview',
+        warnings: [],
+        rejectedAlternatives: [],
+        requiresConfirmation: false,
+        duplicateMatch: null,
+        thumbnailUrl: (chunk.thumbnailUrls && chunk.thumbnailUrls[idx]) || null,
+      };
+    });
+  }, [report, activeChunkIndex]);
+
   const filteredItems = useMemo(() => {
-    if (!report?.items) return [];
+    if (!activeChunkItems.length) return [];
     if (activeFilter === 'queue') {
-      return report.items.filter((item) => (choices[item.sourcePath] || 'upload') !== 'skip');
+      return activeChunkItems.filter((item) => (choices[item.sourcePath] || 'upload') !== 'skip');
     }
     if (activeFilter === 'skip') {
-      return report.items.filter((item) => (choices[item.sourcePath] || 'upload') === 'skip');
+      return activeChunkItems.filter((item) => (choices[item.sourcePath] || 'upload') === 'skip');
     }
     if (activeFilter === 'duplicate') {
-      return report.items.filter((item) => !!item.duplicateMatch);
+      return activeChunkItems.filter((item) => !!item.duplicateMatch);
     }
     if (activeFilter === 'oversize') {
-      return report.items.filter((item) => isPreflightItemOversize(item, report));
+      return report ? activeChunkItems.filter((item) => isPreflightItemOversize(item, report)) : [];
     }
-    return report.items;
-  }, [report, activeFilter, choices]);
+    return activeChunkItems;
+  }, [activeChunkItems, activeFilter, choices, report]);
 
   const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
   const [previewTelegramMatch, setPreviewTelegramMatch] = useState<QualityPreflightDuplicateMatch | null>(null);
@@ -976,7 +1015,7 @@ export function TransferPreflightDialog({
 
   useEffect(() => {
     setDisplayLimit(40);
-  }, [activeFilter]);
+  }, [activeChunkIndex, activeFilter]);
 
   const visibleItems = filteredItems.slice(0, displayLimit);
   const hiddenCount = Math.max(0, filteredItems.length - visibleItems.length);
@@ -1400,6 +1439,80 @@ export function TransferPreflightDialog({
           isReevaluating={isReevaluating}
           onOpenSettings={onOpenSettings}
         />
+
+        {report.batchChunks && report.batchChunks.length > 1 && (
+          <div
+            className="td-preflight-chunk-nav"
+            style={{
+              padding: '12px 20px',
+              borderBottom: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
+              background: 'color-mix(in srgb, var(--accent-primary, #38bdf8) 6%, transparent)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '10px',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={15} style={{ color: 'var(--accent-primary, #38bdf8)' }} />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {t('drive.batch_chunk_nav_title', {
+                    total: (report.totalMassiveCount || report.items.length).toLocaleString(),
+                    count: report.batchChunks.length,
+                  })}
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', fontWeight: 500 }}>
+                {t('drive.batch_chunk_config_applied')}
+              </span>
+            </div>
+            <div
+              className="td-preflight-chunk-pills"
+              style={{
+                display: 'flex',
+                gap: '6px',
+                overflowX: 'auto',
+                paddingBottom: '4px',
+              }}
+            >
+              {report.batchChunks.map((chunk, idx) => (
+                <button
+                  key={chunk.chunkIndex}
+                  type="button"
+                  onClick={() => setActiveChunkIndex(idx)}
+                  className={`td-chunk-pill-btn ${activeChunkIndex === idx ? 'is-active' : ''}`}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: activeChunkIndex === idx ? 700 : 500,
+                    background:
+                      activeChunkIndex === idx
+                        ? 'var(--accent-primary, #38bdf8)'
+                        : 'rgba(255, 255, 255, 0.06)',
+                    color: activeChunkIndex === idx ? '#050b14' : 'var(--text-secondary, #cbd5e1)',
+                    border: '1px solid',
+                    borderColor:
+                      activeChunkIndex === idx
+                        ? 'var(--accent-primary, #38bdf8)'
+                        : 'rgba(255, 255, 255, 0.08)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {chunk.label} ({chunk.itemCount.toLocaleString()})
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="td-preflight-items" onScroll={handleScrollItems}>
           {visibleItems.length === 0 ? (

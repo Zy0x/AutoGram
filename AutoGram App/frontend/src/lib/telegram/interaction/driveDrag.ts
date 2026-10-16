@@ -43,6 +43,20 @@ let lastHoverDropKey: string | null = null;
  * HTML5 File.path is often empty in Tauri 2 — Tauri event fills this.
  */
 let lastOsPaths: string[] = [];
+let pendingRawOsPaths: unknown[] | null = null;
+let pendingRawOsPathsCount = 0;
+
+function flushPendingOsPaths(): void {
+  if (pendingRawOsPaths && pendingRawOsPaths.length) {
+    const raw = pendingRawOsPaths;
+    pendingRawOsPaths = null;
+    pendingRawOsPathsCount = 0;
+    const next = uniquePaths(raw);
+    if (next.length) {
+      lastOsPaths = uniquePaths([...lastOsPaths, ...next]);
+    }
+  }
+}
 
 const dragUiListeners = new Set<() => void>();
 
@@ -137,11 +151,14 @@ export function getLastHoverDropKey(): string | null {
 }
 
 export function getLastOsPaths(): string[] {
+  flushPendingOsPaths();
   return lastOsPaths.slice();
 }
 
 export function clearLastOsPaths(): void {
   lastOsPaths = [];
+  pendingRawOsPaths = null;
+  pendingRawOsPathsCount = 0;
 }
 
 /** 1×1 transparent pixel — hide browser default drag image (we draw custom ghost). */
@@ -260,7 +277,7 @@ export function hasDriveDrag(dt: DataTransfer): boolean {
 }
 
 export function hasOsFiles(dt: DataTransfer): boolean {
-  if (lastOsPaths.length > 0) return true;
+  if (lastOsPaths.length > 0 || pendingRawOsPathsCount > 0) return true;
   return Array.from(dt.types || []).some((t) => String(t).toLowerCase() === 'files');
 }
 
@@ -311,7 +328,7 @@ export function isExternalOsFileDrag(dt?: DataTransfer | null): boolean {
   }
 
   // Tauri cached absolute paths from onDragDropEvent
-  if (lastOsPaths.length > 0) return true;
+  if (lastOsPaths.length > 0 || pendingRawOsPathsCount > 0) return true;
 
   if (!dt) return false;
   return hasOsFiles(dt);
@@ -371,9 +388,25 @@ function uniquePaths(paths: unknown[]): string[] {
 }
 
 /** Merge absolute paths into the OS-drop cache (enter/over/drop). */
-export function setLastOsPaths(paths: unknown): void {
+export function setLastOsPaths(paths: unknown, isDrop = false): void {
   const arr = Array.isArray(paths) ? paths : [paths];
-  const next = uniquePaths(arr);
+  if (!arr.length) return;
+
+  // Performance optimization for massive drops (> 50 files):
+  // During mouse hovering ('enter' / 'over'), DO NOT run expensive regex normalization & deduping
+  // 60 times a second on the JavaScript main thread. Store raw reference and count.
+  if (!isDrop && arr.length > 50) {
+    pendingRawOsPaths = arr;
+    pendingRawOsPathsCount = arr.length;
+    return;
+  }
+
+  // Materialize pending or new paths
+  const toProcess = pendingRawOsPaths ? [...pendingRawOsPaths, ...arr] : arr;
+  pendingRawOsPaths = null;
+  pendingRawOsPathsCount = 0;
+
+  const next = uniquePaths(toProcess);
   if (!next.length) return;
   // Merge with existing (over may arrive in chunks)
   lastOsPaths = uniquePaths([...lastOsPaths, ...next]);
@@ -385,6 +418,7 @@ export function setLastOsPaths(paths: unknown): void {
  * Does NOT clear the cache — call clearLastOsPaths() after a successful upload start.
  */
 export function extractOsPaths(dt?: DataTransfer | null): string[] {
+  flushPendingOsPaths();
   if (lastOsPaths.length) return lastOsPaths.slice();
   if (!dt) return [];
   const list = Array.from(dt.files || []);

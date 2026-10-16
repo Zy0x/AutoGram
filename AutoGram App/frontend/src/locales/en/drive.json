@@ -2704,5 +2704,8 @@
   "ctx_menu_unfavorite": "Remove from Favorites",
   "toast_favorite_added": "Added to Favorites",
   "toast_favorite_removed": "Removed from Favorites",
-  "toast_favorite_error": "Failed to update favorite status"
+  "toast_favorite_error": "Failed to update favorite status",
+  "batch_chunk_nav_title": "Automatic Batch Partitioning ({{total}} media split into {{count}} batches)",
+  "batch_chunk_config_applied": "Settings below will automatically apply to all sequential batches",
+  "batch_inter_cooldown": "Adaptive batch cooldown: waiting {{seconds}}s before starting {{label}}..."
 }

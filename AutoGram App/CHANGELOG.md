@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Automatic Sequential Multi-Chunking & Zero-Lag Drag-and-Drop Pipeline for 10k–20k+ Media
+- Resolved critical main-thread lag, freezing, and preflight saturation when dragging and dropping massive file sets (>10,000 files, e.g. 17,000 items).
+- Implemented lazy drag-and-drop extraction in `driveDrag.ts`: decoupled drag-over coordinate tracking from intensive regex, lowercasing, and set deduplication. Drag hover retains lightweight item count tracking, executing heavy string normalization strictly on drop.
+- Developed `transferBatchChunker.ts`: deterministically partitions massive upload queues into balanced, sequential chunks of 1,500 items (`Kloter 1/N`, `Kloter 2/N`, ...).
+- Designed 100% automated sequential queue orchestration: users review and approve transfer configuration once in Transfer Preflight, and all subsequent chunks automatically inherit identical album settings, duplicate policies, and topic destinations, executing sequentially via chained `QueueTask` entries.
+- Implemented adaptive inter-chunk cooldown in `processNextQueueTask`: introduces a safe 10s–15s pause between chunks (`drive.batch_inter_cooldown`) to protect Telegram DC rate limiters from flood score penalties and prevent aggressive FloodWait lockouts.
+- Enhanced Transfer Preflight dialog (`TransferPreflightDialog.tsx`): added interactive Kloter Selector Bar with chunk pills (`Kloter 1 (1.500)`, `Kloter 2 (1.500)`, etc.), enabling users to inspect any chunk before dispatching.
+- Increased Rust backend quality preflight item guard in `lib.rs` from 10,000 to 25,000 items.
+- Added comprehensive unit test suite in `transferBatchChunker.test.ts` (6 tests passing), 100% i18n key parity (6,847 keys in both ID and EN), and passed all 8 Quality Gates via `npm run test:quality`.
+
 ### Traffic Governor Cooldown Integer Underflow Fix & Zero-Restart Dev Architecture
 - Fixed arithmetic subtraction underflow panic (`attempt to subtract with overflow`) at `traffic_governor.rs:338:55` during Telegram FloodWait rate limit cooldowns.
 - Eliminated eager argument evaluation panic in `TrafficSnapshot`: replaced `(until > now).then_some((until - now).div_ceil(1_000))` with `until.checked_sub(now).filter(|&d| d > 0).map(|d| d.div_ceil(1_000))`, ensuring that once a FloodWait expires (`until <= now`), calculations return `None` safely without unsigned integer underflow.

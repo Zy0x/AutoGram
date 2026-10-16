@@ -53,6 +53,9 @@ export interface QualityPreflightReport {
   plannedAlbumSizes: number[];
   remoteEngineMode?: RemoteEngineMode;
   storagePolicy?: StorageLocalPolicy;
+  batchChunks?: import('./transferBatchChunker').BatchChunk[];
+  activeChunkIndex?: number;
+  totalMassiveCount?: number;
 }
 
 export interface QualityPreflightRequest {
@@ -114,7 +117,9 @@ export function createOptimisticPreflightReport(
   sourceSizes?: number[],
   thumbnailUrls?: string[],
   remoteEngineMode?: RemoteEngineMode,
-  storagePolicy?: StorageLocalPolicy
+  storagePolicy?: StorageLocalPolicy,
+  batchChunks?: import('./transferBatchChunker').BatchChunk[],
+  totalMassiveCount?: number
 ): QualityPreflightReport {
   const items: QualityPreflightItem[] = paths.map((p, idx) => {
     const name = (names && names[idx]) ? names[idx] : p.split(/[/\\]/).pop() || p;
@@ -160,5 +165,8 @@ export function createOptimisticPreflightReport(
     plannedAlbumSizes: [],
     remoteEngineMode: remoteEngineMode || 'auto',
     storagePolicy: storagePolicy || 'telegram',
+    batchChunks,
+    activeChunkIndex: batchChunks && batchChunks.length > 1 ? 0 : undefined,
+    totalMassiveCount: totalMassiveCount || paths.length,
   };
 }

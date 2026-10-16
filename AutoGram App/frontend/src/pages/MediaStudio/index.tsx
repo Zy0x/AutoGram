@@ -30,6 +30,12 @@ import {
   type QualityPreflightReport,
 } from '../../lib/transfer/qualityPreflight';
 import { cancelledPreflightDecision } from '../../lib/transfer/preflightDuplicateDecision';
+import {
+  partitionUploadItems,
+  createChainedUploadTasks,
+  DEFAULT_BATCH_CHUNK_SIZE,
+  type BatchChunk,
+} from '../../lib/transfer/transferBatchChunker';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import {
   flushTransferDebugLog,
@@ -5592,6 +5598,13 @@ function MediaDriveDesktop({
     const skipRestartWarm = transferQueueRef.current.length > 1;
     activeTaskStartIndexRef.current = task.startIndex;
 
+    // Adaptive inter-chunk cooldown to protect Telegram DC rate limiter & account safety
+    if (task.options?.interChunkCooldownMs && Number(task.options.interChunkCooldownMs) > 0) {
+      const waitSecs = Math.round(Number(task.options.interChunkCooldownMs) / 1000);
+      setStatusText(t('drive.batch_inter_cooldown', { seconds: waitSecs, label: task.options.chunkLabel || '' }));
+      await new Promise((r) => setTimeout(r, Number(task.options.interChunkCooldownMs)));
+    }
+
     const label = `→ ${task.targetLabel}`;
     const namesLabel = task.names.length > 3
       ? `${task.names.slice(0, 3).join(', ')} (+ ${task.names.length - 3} file lainnya)`
@@ -6990,15 +7003,27 @@ function MediaDriveDesktop({
     })();
     let duplicateForceUploadPaths: string[] = [];
     let effectiveRemoteMuxes = opts?.remoteMuxes;
+    let effectiveChunk0Paths: string[] = [];
+    let effectiveChunk0Names: string[] = [];
+
+    const isMassiveUpload = cleanPaths.length > DEFAULT_BATCH_CHUNK_SIZE;
+    const batchChunks: BatchChunk[] = isMassiveUpload
+      ? partitionUploadItems(cleanPaths, names, opts?.sourceSizes, opts?.thumbnailUrls, DEFAULT_BATCH_CHUNK_SIZE)
+      : [];
+    const firstChunk = isMassiveUpload ? batchChunks[0] : null;
+    let preflightPaths = firstChunk ? firstChunk.paths : cleanPaths;
+    let preflightNames = firstChunk ? firstChunk.names : names;
+    let preflightSizes = firstChunk ? firstChunk.sourceSizes : opts?.sourceSizes;
+    let preflightThumbs = firstChunk ? firstChunk.thumbnailUrls : opts?.thumbnailUrls;
 
     try {
       setStatusText(String(t('drive.preflight_running')));
       lastPreflightRequestRef.current = {
         creds,
-        cleanPaths,
-        customFilenames: names,
-        sourceSizes: opts?.sourceSizes,
-        thumbnailUrls: opts?.thumbnailUrls,
+        cleanPaths: preflightPaths,
+        customFilenames: preflightNames,
+        sourceSizes: preflightSizes,
+        thumbnailUrls: preflightThumbs,
         destinationId: studioChatIdFromFolder(uploadPeer),
         topicId: uploadTopicId,
         remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
@@ -7006,12 +7031,14 @@ function MediaDriveDesktop({
       };
       // Instant Preflight: Mount dialog immediately with optimistic shell (< 16ms)
       const optimisticReport = createOptimisticPreflightReport(
-        cleanPaths,
-        names,
-        opts?.sourceSizes,
-        opts?.thumbnailUrls,
+        preflightPaths,
+        preflightNames,
+        preflightSizes,
+        preflightThumbs,
         opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
-        opts?.storagePolicy || 'telegram'
+        opts?.storagePolicy || 'telegram',
+        isMassiveUpload ? batchChunks : undefined,
+        cleanPaths.length
       );
       const preflightDecisionPromise = reviewPreflight(optimisticReport);
 
@@ -7019,10 +7046,10 @@ function MediaDriveDesktop({
         session: creds.session,
         apiId: Number(creds.apiId) || 0,
         apiHash: creds.apiHash,
-        paths: cleanPaths,
-        customFilenames: names,
-        sourceSizes: opts?.sourceSizes,
-        thumbnailUrls: opts?.thumbnailUrls,
+        paths: preflightPaths,
+        customFilenames: preflightNames,
+        sourceSizes: preflightSizes,
+        thumbnailUrls: preflightThumbs,
         qualityMode: transferSettings.qualityMode,
         presentationOverride: opts?.presentationOverride ?? transferSettings.presentationOverride,
         groupAsAlbum: transferSettings.groupAsAlbum,
@@ -7050,11 +7077,13 @@ function MediaDriveDesktop({
             ...report,
             remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
             storagePolicy: opts?.storagePolicy || 'telegram',
+            batchChunks: isMassiveUpload ? batchChunks : undefined,
+            totalMassiveCount: cleanPaths.length,
             items: report.items.map((item, idx) => ({
               ...item,
-              sourceName: (names && names[idx]) ? names[idx] : item.sourceName,
-              sourceSize: (opts?.sourceSizes && opts.sourceSizes[idx]) ? opts.sourceSizes[idx] : item.sourceSize,
-              thumbnailUrl: item.thumbnailUrl || (opts?.thumbnailUrls && opts.thumbnailUrls[idx]) || null,
+              sourceName: (preflightNames && preflightNames[idx]) ? preflightNames[idx] : item.sourceName,
+              sourceSize: (preflightSizes && preflightSizes[idx]) ? preflightSizes[idx] : item.sourceSize,
+              thumbnailUrl: item.thumbnailUrl || (preflightThumbs && preflightThumbs[idx]) || null,
             })),
           };
           setPreflightReport(enrichedReport);
@@ -7074,52 +7103,61 @@ function MediaDriveDesktop({
         /* proceed */
       }
       const skippedPaths = new Set(decision.skippedPaths);
-      const retainedIndexes = cleanPaths
-        .map((path, index) => ({ path, index }))
-        .filter(({ path }) => !skippedPaths.has(path))
-        .map(({ index }) => index);
-      cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
-      if (effectiveRemoteMuxes) {
-        effectiveRemoteMuxes = retainedIndexes.map((index) => effectiveRemoteMuxes?.[index] || null);
-      }
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
-      names = cleanPaths.map((path, idx) => {
-        if (opts?.customFilenames && opts.customFilenames[idx]) {
-          return opts.customFilenames[idx];
+
+      if (isMassiveUpload && firstChunk) {
+        effectiveChunk0Paths = firstChunk.paths.filter((path) => !skippedPaths.has(path));
+        effectiveChunk0Names = firstChunk.names.filter((_, idx) => !skippedPaths.has(firstChunk.paths[idx]));
+      } else {
+        const retainedIndexes = cleanPaths
+          .map((path, index) => ({ path, index }))
+          .filter(({ path }) => !skippedPaths.has(path))
+          .map(({ index }) => index);
+        cleanPaths = cleanPaths.filter((path) => !skippedPaths.has(path));
+        if (effectiveRemoteMuxes) {
+          effectiveRemoteMuxes = retainedIndexes.map((index) => effectiveRemoteMuxes?.[index] || null);
         }
-        if (opts?.customFilename) {
-          if (cleanPaths.length === 1) {
-            return opts.customFilename;
+        names = cleanPaths.map((path, idx) => {
+          if (opts?.customFilenames && opts.customFilenames[idx]) {
+            return opts.customFilenames[idx];
           }
-          const dotIdx = opts.customFilename.lastIndexOf('.');
-          if (dotIdx > 0) {
-            const base = opts.customFilename.substring(0, dotIdx);
-            const ext = opts.customFilename.substring(dotIdx);
-            return `${base}_${idx + 1}${ext}`;
+          if (opts?.customFilename) {
+            if (cleanPaths.length === 1) {
+              return opts.customFilename;
+            }
+            const dotIdx = opts.customFilename.lastIndexOf('.');
+            if (dotIdx > 0) {
+              const base = opts.customFilename.substring(0, dotIdx);
+              const ext = opts.customFilename.substring(dotIdx);
+              return `${base}_${idx + 1}${ext}`;
+            }
+            return `${opts.customFilename}_${idx + 1}`;
           }
-          return `${opts.customFilename}_${idx + 1}`;
-        }
-        return path.startsWith('http://') || path.startsWith('https://')
-          ? (() => {
-              try {
-                const u = new URL(path);
-                const rawSegment = u.pathname.split('/').filter(Boolean).pop();
-                if (rawSegment && !rawSegment.startsWith('?')) {
-                  let decoded = decodeURIComponent(rawSegment);
-                  if (decoded.includes('?')) decoded = decoded.split('?')[0];
-                  if (decoded.includes('.')) return decoded;
-                  if (path.includes('photomode') || path.includes('image') || path.includes('avatar')) return `${decoded}.jpg`;
-                  if (path.includes('music') || path.includes('audio')) return `${decoded}.mp3`;
-                  return `${decoded}.mp4`;
+          return path.startsWith('http://') || path.startsWith('https://')
+            ? (() => {
+                try {
+                  const u = new URL(path);
+                  const rawSegment = u.pathname.split('/').filter(Boolean).pop();
+                  if (rawSegment && !rawSegment.startsWith('?')) {
+                    let decoded = decodeURIComponent(rawSegment);
+                    if (decoded.includes('?')) decoded = decoded.split('?')[0];
+                    if (decoded.includes('.')) return decoded;
+                    if (path.includes('photomode') || path.includes('image') || path.includes('avatar')) return `${decoded}.jpg`;
+                    if (path.includes('music') || path.includes('audio')) return `${decoded}.mp3`;
+                    return `${decoded}.mp4`;
+                  }
+                  return u.hostname || 'Remote_Stream.mp4';
+                } catch {
+                  return 'Remote_Stream.mp4';
                 }
-                return u.hostname || 'Remote_Stream.mp4';
-              } catch {
-                return 'Remote_Stream.mp4';
-              }
-            })()
-          : path.split(/[/\\]/).pop() || path;
-      });
-      if (!cleanPaths.length) {
+              })()
+            : path.split(/[/\\]/).pop() || path;
+        });
+        effectiveChunk0Paths = cleanPaths;
+        effectiveChunk0Names = names;
+      }
+
+      if (!effectiveChunk0Paths.length && (!isMassiveUpload || batchChunks.length <= 1)) {
         setStatusText(String(t('drive.preflight_all_duplicates_skipped')));
         return false;
       }
@@ -7194,42 +7232,78 @@ function MediaDriveDesktop({
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
       remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
-      source_sizes: opts?.sourceSizes,
-      thumbnail_urls: opts?.thumbnailUrls,
+      source_sizes: isMassiveUpload && firstChunk ? firstChunk.sourceSizes : opts?.sourceSizes,
+      thumbnail_urls: isMassiveUpload && firstChunk ? firstChunk.thumbnailUrls : opts?.thumbnailUrls,
       remote_muxes: effectiveRemoteMuxes,
-      custom_filenames: opts?.customFilenames || names,
+      custom_filenames: opts?.customFilenames || effectiveChunk0Names,
       storage_policy: opts?.storagePolicy || 'telegram',
       custom_disk_path: opts?.customDiskPath,
     };
     // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
     if (uploadTopicId != null) options.topic_id = uploadTopicId;
 
+    const chainedTasks: QueueTask[] = isMassiveUpload && batchChunks.length > 1
+      ? createChainedUploadTasks(
+          batchChunks,
+          {
+            targetFolderId: uploadPeer != null ? uploadPeer : null,
+            targetLabel: destLabel,
+            topicId: (options.topic_id as number | null) ?? (opts?.topicId ?? null),
+            skipTopic: opts?.skipTopic ?? (opts?.topicId === null ? true : undefined),
+            options: {
+              ...options,
+              duplicate_force_upload_paths: [],
+            },
+            baseTaskIdPrefix: `upload_${Date.now()}`,
+          },
+          1
+        )
+      : [];
+
     // Determine startIndex
     const currentItemsCount = transferRef.current.items.length;
     const isActive = transferRef.current.active;
     const startIndex = isActive ? currentItemsCount : 0;
 
+    let cumulativeIndex = startIndex + effectiveChunk0Paths.length;
+    for (const ct of chainedTasks) {
+      ct.startIndex = cumulativeIndex;
+      cumulativeIndex += ct.paths?.length || 0;
+    }
+
     const newTask: QueueTask = {
       id: `upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       kind: 'upload',
-      paths: cleanPaths,
+      paths: effectiveChunk0Paths,
       targetFolderId: uploadPeer,
-      targetLabel: destLabel,
+      targetLabel: isMassiveUpload ? `${destLabel} (${batchChunks[0].label})` : destLabel,
       skipTopic: opts?.skipTopic ?? (opts?.topicId === null ? true : undefined),
       topicId: (options.topic_id as number | null) ?? (opts?.topicId ?? null),
-      names,
-      options,
+      names: effectiveChunk0Names,
+      options: {
+        ...options,
+        chunkIndex: isMassiveUpload ? 0 : undefined,
+        totalChunks: isMassiveUpload ? batchChunks.length : undefined,
+        chunkLabel: isMassiveUpload ? batchChunks[0].label : undefined,
+      },
       startIndex,
     };
 
     lastUploadRetryRef.current = {
-      paths: cleanPaths,
-      names,
+      paths: isMassiveUpload ? cleanPaths : effectiveChunk0Paths,
+      names: isMassiveUpload ? names : effectiveChunk0Names,
       targetFolderId: uploadPeer,
       targetLabel: destLabel,
       topicId: (options.topic_id as number | null) ?? (opts?.topicId ?? null),
       options,
     };
+
+    const allTransferNames = isMassiveUpload
+      ? [...effectiveChunk0Names, ...chainedTasks.flatMap((ct) => ct.names || [])]
+      : effectiveChunk0Names;
+    const allTransferPaths = isMassiveUpload
+      ? [...effectiveChunk0Paths, ...chainedTasks.flatMap((ct) => ct.paths || [])]
+      : effectiveChunk0Paths;
 
     // If no active transfer, seed the session
     if (!isActive) {
@@ -7238,16 +7312,16 @@ function MediaDriveDesktop({
       setTransfer(
         seedTransferSession({
           direction: 'upload',
-          names,
-          label,
+          names: allTransferNames,
+          label: isMassiveUpload ? `${label} (${batchChunks[0].label})` : label,
           destination: destLabel,
-          paths: cleanPaths,
+          paths: allTransferPaths,
         })
       );
     } else {
       // Append new items to the existing transfer session
       setTransfer((prev) => {
-        const newItems: TransferItem[] = names.map((name, index) => ({
+        const newItems: TransferItem[] = allTransferNames.map((name: string, index: number) => ({
           id: `${newTask.id}-${index}`,
           index: startIndex + index,
           name: name || `File ${index + 1}`,
@@ -7258,7 +7332,7 @@ function MediaDriveDesktop({
           total: 0,
           speed_mb_s: 0,
           destination: destLabel,
-          path: cleanPaths[index],
+          path: allTransferPaths[index],
         }));
         return {
           ...prev,
@@ -7269,6 +7343,9 @@ function MediaDriveDesktop({
 
     // Add to queue and trigger runner
     transferQueueRef.current.push(newTask);
+    if (chainedTasks.length > 0) {
+      transferQueueRef.current.push(...chainedTasks);
+    }
     savePersistedQueue(transferQueueRef.current);
     setTransferMinimized(false);
     localStorage.setItem(LS_TM_MIN, '0');
