@@ -1007,6 +1007,9 @@ function MediaDriveDesktop({
         ...updated,
         remoteEngineMode: req.remoteEngineMode || nextSettings.remoteEngineMode || 'auto',
         storagePolicy: req.storagePolicy || 'telegram',
+        batchChunks: preflightReport?.batchChunks,
+        totalMassiveCount: preflightReport?.totalMassiveCount,
+        activeChunkIndex: preflightReport?.activeChunkIndex,
         items: updated.items.map((item, idx) => ({
           ...item,
           sourceName: (req.customFilenames && req.customFilenames[idx]) ? req.customFilenames[idx] : item.sourceName,
@@ -7007,14 +7010,13 @@ function MediaDriveDesktop({
     let effectiveChunk0Names: string[] = [];
 
     const isMassiveUpload = cleanPaths.length > DEFAULT_BATCH_CHUNK_SIZE;
-    const batchChunks: BatchChunk[] = isMassiveUpload
+    let batchChunks: BatchChunk[] = isMassiveUpload
       ? partitionUploadItems(cleanPaths, names, opts?.sourceSizes, opts?.thumbnailUrls, DEFAULT_BATCH_CHUNK_SIZE)
       : [];
-    const firstChunk = isMassiveUpload ? batchChunks[0] : null;
-    let preflightPaths = firstChunk ? firstChunk.paths : cleanPaths;
-    let preflightNames = firstChunk ? firstChunk.names : names;
-    let preflightSizes = firstChunk ? firstChunk.sourceSizes : opts?.sourceSizes;
-    let preflightThumbs = firstChunk ? firstChunk.thumbnailUrls : opts?.thumbnailUrls;
+    const preflightPaths = cleanPaths;
+    const preflightNames = names;
+    const preflightSizes = opts?.sourceSizes;
+    const preflightThumbs = opts?.thumbnailUrls;
 
     try {
       setStatusText(String(t('drive.preflight_running')));
@@ -7073,11 +7075,25 @@ function MediaDriveDesktop({
       reportPromise
         .then((report) => {
           if (!preflightResolverRef.current) return;
+          const enrichedChunks: BatchChunk[] = isMassiveUpload
+            ? batchChunks.map((chunk) => {
+                const chunkItems = report.items.slice(chunk.startIndex, chunk.startIndex + chunk.itemCount);
+                return {
+                  ...chunk,
+                  sourceSizes: chunkItems.map((item) => item.sourceSize),
+                  thumbnailUrls: chunkItems.some((item) => item.thumbnailUrl)
+                    ? chunkItems.map((item) => item.thumbnailUrl || '')
+                    : undefined,
+                };
+              })
+            : [];
+          batchChunks = enrichedChunks;
+
           const enrichedReport: QualityPreflightReport = {
             ...report,
             remoteEngineMode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
             storagePolicy: opts?.storagePolicy || 'telegram',
-            batchChunks: isMassiveUpload ? batchChunks : undefined,
+            batchChunks: isMassiveUpload ? enrichedChunks : undefined,
             totalMassiveCount: cleanPaths.length,
             items: report.items.map((item, idx) => ({
               ...item,
@@ -7098,16 +7114,51 @@ function MediaDriveDesktop({
         return false;
       }
       try {
-        await reportPromise;
+        const completedReport = await reportPromise;
+        if (isMassiveUpload && completedReport?.items?.length) {
+          batchChunks = batchChunks.map((chunk) => {
+            const chunkItems = completedReport.items.slice(chunk.startIndex, chunk.startIndex + chunk.itemCount);
+            return {
+              ...chunk,
+              sourceSizes: chunkItems.map((item) => item.sourceSize),
+              thumbnailUrls: chunkItems.some((item) => item.thumbnailUrl)
+                ? chunkItems.map((item) => item.thumbnailUrl || '')
+                : undefined,
+            };
+          });
+        }
       } catch {
         /* proceed */
       }
       const skippedPaths = new Set(decision.skippedPaths);
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
 
-      if (isMassiveUpload && firstChunk) {
-        effectiveChunk0Paths = firstChunk.paths.filter((path) => !skippedPaths.has(path));
-        effectiveChunk0Names = firstChunk.names.filter((_, idx) => !skippedPaths.has(firstChunk.paths[idx]));
+      if (isMassiveUpload) {
+        const filteredBatchChunks: BatchChunk[] = batchChunks
+          .map((chunk) => {
+            const keptIndices: number[] = [];
+            chunk.paths.forEach((p, idx) => {
+              if (!skippedPaths.has(p)) keptIndices.push(idx);
+            });
+            return {
+              ...chunk,
+              paths: keptIndices.map((i) => chunk.paths[i]),
+              names: keptIndices.map((i) => chunk.names[i]),
+              sourceSizes: chunk.sourceSizes ? keptIndices.map((i) => chunk.sourceSizes![i]) : undefined,
+              thumbnailUrls: chunk.thumbnailUrls ? keptIndices.map((i) => chunk.thumbnailUrls![i]) : undefined,
+              itemCount: keptIndices.length,
+            };
+          })
+          .filter((chunk) => chunk.itemCount > 0);
+
+        if (!filteredBatchChunks.length) {
+          setStatusText(String(t('drive.preflight_all_duplicates_skipped')));
+          return false;
+        }
+
+        batchChunks = filteredBatchChunks;
+        effectiveChunk0Paths = batchChunks[0].paths;
+        effectiveChunk0Names = batchChunks[0].names;
       } else {
         const retainedIndexes = cleanPaths
           .map((path, index) => ({ path, index }))
@@ -7157,7 +7208,7 @@ function MediaDriveDesktop({
         effectiveChunk0Names = names;
       }
 
-      if (!effectiveChunk0Paths.length && (!isMassiveUpload || batchChunks.length <= 1)) {
+      if (!effectiveChunk0Paths.length) {
         setStatusText(String(t('drive.preflight_all_duplicates_skipped')));
         return false;
       }
@@ -7232,8 +7283,8 @@ function MediaDriveDesktop({
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
       remote_engine_mode: opts?.remoteEngineMode || transferSettings.remoteEngineMode || 'auto',
-      source_sizes: isMassiveUpload && firstChunk ? firstChunk.sourceSizes : opts?.sourceSizes,
-      thumbnail_urls: isMassiveUpload && firstChunk ? firstChunk.thumbnailUrls : opts?.thumbnailUrls,
+      source_sizes: isMassiveUpload && batchChunks[0] ? batchChunks[0].sourceSizes : opts?.sourceSizes,
+      thumbnail_urls: isMassiveUpload && batchChunks[0] ? batchChunks[0].thumbnailUrls : opts?.thumbnailUrls,
       remote_muxes: effectiveRemoteMuxes,
       custom_filenames: opts?.customFilenames || effectiveChunk0Names,
       storage_policy: opts?.storagePolicy || 'telegram',
@@ -7252,7 +7303,7 @@ function MediaDriveDesktop({
             skipTopic: opts?.skipTopic ?? (opts?.topicId === null ? true : undefined),
             options: {
               ...options,
-              duplicate_force_upload_paths: [],
+              duplicate_force_upload_paths: duplicateForceUploadPaths,
             },
             baseTaskIdPrefix: `upload_${Date.now()}`,
           },
@@ -7285,6 +7336,10 @@ function MediaDriveDesktop({
         chunkIndex: isMassiveUpload ? 0 : undefined,
         totalChunks: isMassiveUpload ? batchChunks.length : undefined,
         chunkLabel: isMassiveUpload ? batchChunks[0].label : undefined,
+        source_sizes: isMassiveUpload && batchChunks[0] ? batchChunks[0].sourceSizes : opts?.sourceSizes,
+        thumbnail_urls: isMassiveUpload && batchChunks[0] ? batchChunks[0].thumbnailUrls : opts?.thumbnailUrls,
+        custom_filenames: effectiveChunk0Names,
+        duplicate_force_upload_paths: duplicateForceUploadPaths.filter((p) => effectiveChunk0Paths.includes(p)),
       },
       startIndex,
     };
@@ -7304,6 +7359,9 @@ function MediaDriveDesktop({
     const allTransferPaths = isMassiveUpload
       ? [...effectiveChunk0Paths, ...chainedTasks.flatMap((ct) => ct.paths || [])]
       : effectiveChunk0Paths;
+    const allTransferSizes = isMassiveUpload
+      ? [...(batchChunks[0]?.sourceSizes || []), ...chainedTasks.flatMap((ct) => (ct.options as any)?.source_sizes || [])]
+      : (opts?.sourceSizes || []);
 
     // If no active transfer, seed the session
     if (!isActive) {
@@ -7316,6 +7374,7 @@ function MediaDriveDesktop({
           label: isMassiveUpload ? `${label} (${batchChunks[0].label})` : label,
           destination: destLabel,
           paths: allTransferPaths,
+          totals: allTransferSizes,
         })
       );
     } else {
@@ -7329,7 +7388,7 @@ function MediaDriveDesktop({
           status: 'queued' as const,
           percent: 0,
           transferred: 0,
-          total: 0,
+          total: allTransferSizes?.[index] ?? 0,
           speed_mb_s: 0,
           destination: destLabel,
           path: allTransferPaths[index],
@@ -7337,6 +7396,7 @@ function MediaDriveDesktop({
         return {
           ...prev,
           items: [...prev.items, ...newItems],
+          total: prev.total + newItems.reduce((acc, it) => acc + (it.total || 0), 0),
         };
       });
     }

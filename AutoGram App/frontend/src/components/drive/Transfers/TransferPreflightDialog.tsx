@@ -866,12 +866,21 @@ export function TransferPreflightDialog({
 
   const activeChunkItems = useMemo<QualityPreflightItem[]>(() => {
     if (!report) return [];
-    if (!report.batchChunks || report.batchChunks.length <= 1 || activeChunkIndex === 0) {
+    if (!report.batchChunks || report.batchChunks.length <= 1) {
       return report.items || [];
     }
     const chunk = report.batchChunks[activeChunkIndex];
     if (!chunk) return report.items || [];
 
+    // When report.items is populated and covers this chunk, slice directly:
+    if (report.items && report.items.length >= chunk.startIndex + chunk.itemCount) {
+      return report.items.slice(chunk.startIndex, chunk.startIndex + chunk.itemCount);
+    }
+    if (report.items && report.items.length > chunk.startIndex) {
+      return report.items.slice(chunk.startIndex);
+    }
+
+    // Fallback for optimistic state before Rust finishes:
     return chunk.paths.map((p, idx) => {
       const name = (chunk.names && chunk.names[idx]) ? chunk.names[idx] : p.split(/[/\\]/).pop() || p;
       const ext = name.split('.').pop()?.toLowerCase() || '';
@@ -1481,35 +1490,66 @@ export function TransferPreflightDialog({
                 paddingBottom: '4px',
               }}
             >
-              {report.batchChunks.map((chunk, idx) => (
-                <button
-                  key={chunk.chunkIndex}
-                  type="button"
-                  onClick={() => setActiveChunkIndex(idx)}
-                  className={`td-chunk-pill-btn ${activeChunkIndex === idx ? 'is-active' : ''}`}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: activeChunkIndex === idx ? 700 : 500,
-                    background:
-                      activeChunkIndex === idx
-                        ? 'var(--accent-primary, #38bdf8)'
-                        : 'rgba(255, 255, 255, 0.06)',
-                    color: activeChunkIndex === idx ? '#050b14' : 'var(--text-secondary, #cbd5e1)',
-                    border: '1px solid',
-                    borderColor:
-                      activeChunkIndex === idx
-                        ? 'var(--accent-primary, #38bdf8)'
-                        : 'rgba(255, 255, 255, 0.08)',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {chunk.label} ({chunk.itemCount.toLocaleString()})
-                </button>
-              ))}
+              {report.batchChunks.map((chunk, idx) => {
+                const chunkItems = report.items && report.items.length >= chunk.startIndex + chunk.itemCount
+                  ? report.items.slice(chunk.startIndex, chunk.startIndex + chunk.itemCount)
+                  : [];
+                const chunkTotalBytes = chunk.sourceSizes && chunk.sourceSizes.length === chunk.itemCount
+                  ? chunk.sourceSizes.reduce((a, b) => a + (b || 0), 0)
+                  : chunkItems.reduce((a, it) => a + (it.sourceSize || 0), 0);
+                const chunkDupes = chunkItems.filter((it) => !!it.duplicateMatch).length;
+
+                return (
+                  <button
+                    key={chunk.chunkIndex}
+                    type="button"
+                    onClick={() => setActiveChunkIndex(idx)}
+                    className={`td-chunk-pill-btn ${activeChunkIndex === idx ? 'is-active' : ''}`}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: activeChunkIndex === idx ? 700 : 500,
+                      background:
+                        activeChunkIndex === idx
+                          ? 'var(--accent-primary, #38bdf8)'
+                          : 'rgba(255, 255, 255, 0.06)',
+                      color: activeChunkIndex === idx ? '#050b14' : 'var(--text-secondary, #cbd5e1)',
+                      border: '1px solid',
+                      borderColor:
+                        activeChunkIndex === idx
+                          ? 'var(--accent-primary, #38bdf8)'
+                          : 'rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <span>
+                      {chunk.label} ({chunk.itemCount.toLocaleString()}
+                      {chunkTotalBytes > 0 ? ` · ${formatDriveBytes(chunkTotalBytes)}` : ''})
+                    </span>
+                    {chunkDupes > 0 && (
+                      <span
+                        style={{
+                          padding: '1px 5px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          background: activeChunkIndex === idx ? 'rgba(0, 0, 0, 0.2)' : 'rgba(245, 158, 11, 0.25)',
+                          color: activeChunkIndex === idx ? '#050b14' : '#fbbf24',
+                        }}
+                        title={t('drive.preflight_filter_duplicate', { count: chunkDupes })}
+                      >
+                        {chunkDupes}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

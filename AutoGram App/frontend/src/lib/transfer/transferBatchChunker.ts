@@ -106,6 +106,12 @@ export function createChainedUploadTasks(
         chunkIndex: chunk.chunkIndex,
         totalChunks: chunk.totalChunks,
         chunkLabel: chunk.label,
+        source_sizes: chunk.sourceSizes,
+        thumbnail_urls: chunk.thumbnailUrls,
+        custom_filenames: chunk.names,
+        duplicate_force_upload_paths: Array.isArray(baseTaskConfig.options?.duplicate_force_upload_paths)
+          ? baseTaskConfig.options.duplicate_force_upload_paths.filter((p: string) => chunk.paths.includes(p))
+          : [],
         interChunkCooldownMs: calculateAdaptiveCooldown(chunk.chunkIndex, chunks.length),
       },
       startIndex: chunk.startIndex,

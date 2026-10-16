@@ -1,5 +1,17 @@
 ## Unreleased
 
+### Multi-Kloter Parallel Preflight Metadata Probing & Decision Inheritance Architecture
+- Fixed critical bug where files in Kloter 2 through N displayed `0 B` / `0 MB` during massive transfer preflight (10,000–20,000+ items).
+- Root Cause Analysis: Previously, `MediaStudio/index.tsx` passed only `firstChunk.paths` (1,500 items) to `runQualityPreflight` to conserve IPC bandwidth, leaving items 1501..N without probed disk metadata or SQLite upload ledger checks. When switching to subsequent kloters, the preflight dialog synthesized placeholder items with fallback `sourceSize: 0`. Furthermore, preflight decisions (skip / force upload) on subsequent kloters were ignored because chained upload tasks were initialized with un-filtered chunk paths and empty `duplicate_force_upload_paths`.
+- Comprehensive Solution:
+  1. Full-Batch Parallel Probing: In `MediaStudio/index.tsx`, `cleanPaths` passes all items to Rust `runQualityPreflight`. Rust resolves file sizes concurrently across 4–8 worker threads using `std::thread::scope` (~100–200ms) and checks duplicates against SQLite ledger using indexed `unique_sizes.chunks(400)`.
+  2. Multi-Kloter Slicing & Metadata Inheritance: `TransferPreflightDialog.tsx` now slices active chunk items directly from the fully enriched `report.items` (`startIndex..startIndex + itemCount`). Every single kloter (Kloter 1, 2, ... 12) immediately displays real byte sizes (e.g. `92.9 KB`, `1.4 MB`), accurate duplicate badges, and 2GB oversize warnings.
+  3. Interactive Kloter Navigation Bar: Enhanced chunk pill buttons in `TransferPreflightDialog.tsx` to display real byte totals (e.g. `Kloter 2/12 (1.500 · 138,2 MB)`) and badges indicating duplicate counts per kloter.
+  4. End-to-End Decision & Metadata Propagation: Filtered all chunks in `batchChunks` by `skippedPaths` upon user approval, passed each chunk's real `sourceSizes`, `thumbnailUrls`, and scoped `duplicate_force_upload_paths` into `createChainedUploadTasks`, and seeded the initial transfer session with real byte totals (`allTransferSizes`) for accurate progress bars and ETA calculations.
+  5. Settings Re-evaluation Safeguard: Preserved `batchChunks`, `totalMassiveCount`, and `activeChunkIndex` in `reevaluatePreflight`, preventing dialog state reset when users alter transfer settings.
+- Added automated unit test in `transferBatchChunker.test.ts` verifying `source_sizes`, `thumbnail_urls`, `custom_filenames`, and scoped `duplicate_force_upload_paths` propagation into chained tasks.
+- Verified 100% compliance across all 8 Quality Gates via `npm run test:quality`.
+
 ### Automatic Sequential Multi-Chunking & Zero-Lag Drag-and-Drop Pipeline for 10k–20k+ Media
 - Resolved critical main-thread lag, freezing, and preflight saturation when dragging and dropping massive file sets (>10,000 files, e.g. 17,000 items).
 - Implemented lazy drag-and-drop extraction in `driveDrag.ts`: decoupled drag-over coordinate tracking from intensive regex, lowercasing, and set deduplication. Drag hover retains lightweight item count tracking, executing heavy string normalization strictly on drop.

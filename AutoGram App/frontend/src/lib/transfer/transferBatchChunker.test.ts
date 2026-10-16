@@ -100,4 +100,33 @@ describe('transferBatchChunker', () => {
     expect(formatBatchChunkSummary(3000, 1500)).toContain('2 kloter');
     expect(formatBatchChunkSummary(17000, 1500)).toContain('12 kloter');
   });
+
+  it('propagates source_sizes, thumbnails, and scopes duplicate_force_upload_paths', () => {
+    const paths = Array.from({ length: 200 }, (_, i) => `D:/file_${i}.jpg`);
+    const names = Array.from({ length: 200 }, (_, i) => `file_${i}.jpg`);
+    const sizes = Array.from({ length: 200 }, (_, i) => (i + 1) * 10);
+    const thumbs = Array.from({ length: 200 }, (_, i) => `thumb://${i}`);
+    const chunks = partitionUploadItems(paths, names, sizes, thumbs, 100);
+    expect(chunks.length).toBe(2);
+
+    const tasks = createChainedUploadTasks(
+      chunks,
+      {
+        targetFolderId: 100,
+        targetLabel: 'DestTopic',
+        options: {
+          duplicate_force_upload_paths: ['D:/file_0.jpg', 'D:/file_150.jpg'],
+        },
+      },
+      1
+    );
+
+    expect(tasks.length).toBe(1);
+    expect(tasks[0].options.source_sizes).toEqual(sizes.slice(100, 200));
+    expect(tasks[0].options.thumbnail_urls).toEqual(thumbs.slice(100, 200));
+    expect(tasks[0].options.custom_filenames).toEqual(names.slice(100, 200));
+    // D:/file_0.jpg belongs to chunk 0, so only D:/file_150.jpg must be in chunk 1's duplicate_force_upload_paths
+    expect(tasks[0].options.duplicate_force_upload_paths).toEqual(['D:/file_150.jpg']);
+  });
 });
+
