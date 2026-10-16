@@ -54,7 +54,6 @@ import {
 } from '../../../lib/transfer/preflightDuplicateDecision';
 import {
   isPreflightItemOversize,
-  getPreflightOversizeCount,
   type PreflightReviewDecision,
   type QualityPreflightDuplicateMatch,
   type QualityPreflightItem,
@@ -806,29 +805,114 @@ export function TransferPreflightDialog({
     }
   }, [report]);
 
-  const duplicateCount = useMemo(
-    () => report?.items.filter((item) => item.duplicateMatch).length || 0,
-    [report]
-  );
-  const oversizeCount = useMemo(
-    () => (report ? getPreflightOversizeCount(report) : 0),
-    [report]
-  );
-  const skippedCount = useMemo(
-    () => report?.items.filter((item) => choices[item.sourcePath] === 'skip').length || 0,
-    [choices, report]
-  );
-  const queuedCount = Math.max(0, (report?.items.length || 0) - skippedCount);
+  const totalItemCount = report?.totalMassiveCount || report?.items?.length || 0;
 
-  const convertCount = useMemo(() => {
-    if (typeof report?.transformConvertCount === 'number') return report.transformConvertCount;
-    return report?.items.filter((i) => i.transform === 'convert_webp_png').length || 0;
+  const reportStats = useMemo(() => {
+    if (!report || !report.items) {
+      return { duplicateCount: 0, oversizeCount: 0, convertCount: 0, reencodeCount: 0 };
+    }
+    const isCloud = (report.storagePolicy || 'telegram') !== 'custom_disk';
+    const maxBytes = isCloud && report.effectiveMaxBytes ? report.effectiveMaxBytes : 0;
+
+    let dup = 0;
+    let over = 0;
+    let conv = typeof report.transformConvertCount === 'number' ? report.transformConvertCount : 0;
+    let reenc = typeof report.transformReencodeCount === 'number' ? report.transformReencodeCount : 0;
+    const needConvScan = typeof report.transformConvertCount !== 'number';
+    const needReencScan = typeof report.transformReencodeCount !== 'number';
+
+    for (let i = 0; i < report.items.length; i++) {
+      const it = report.items[i];
+      if (it.duplicateMatch) dup++;
+      if (maxBytes > 0 && it.sourceSize > maxBytes) over++;
+      if (needConvScan && it.transform === 'convert_webp_png') conv++;
+      if (needReencScan && it.transform === 'reencode') reenc++;
+    }
+
+    return {
+      duplicateCount: dup,
+      oversizeCount: over,
+      convertCount: conv,
+      reencodeCount: reenc,
+    };
   }, [report]);
 
-  const reencodeCount = useMemo(() => {
-    if (typeof report?.transformReencodeCount === 'number') return report.transformReencodeCount;
-    return report?.items.filter((i) => i.transform === 'reencode').length || 0;
-  }, [report]);
+  const duplicateCount = reportStats.duplicateCount;
+  const oversizeCount = reportStats.oversizeCount;
+  const convertCount = reportStats.convertCount;
+  const reencodeCount = reportStats.reencodeCount;
+
+  const skippedCount = useMemo(() => {
+    let count = 0;
+    for (const path in choices) {
+      if (choices[path] === 'skip') count++;
+    }
+    return count;
+  }, [choices]);
+
+  const queuedCount = Math.max(0, totalItemCount - skippedCount);
+
+  const albumPartitionPlan = useMemo(() => {
+    const isGroupAlbum = transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum;
+    if (!isGroupAlbum || !report?.items) return null;
+
+    let eligibleCount = 0;
+    let videoCount = 0;
+    let photoCount = 0;
+
+    for (let i = 0; i < report.items.length; i++) {
+      const it = report.items[i];
+      if (!it.albumEligible) continue;
+      eligibleCount++;
+      const isVid =
+        it.category === 'video' ||
+        it.category === 'mp4_video' ||
+        it.category === 'other_video' ||
+        /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName);
+      if (isVid) {
+        videoCount++;
+      } else {
+        const isPhoto =
+          it.category === 'jpeg_image' ||
+          it.category === 'png_image' ||
+          it.category === 'photo' ||
+          /\.(jpe?g|png)/i.test(it.sourceName);
+        if (isPhoto) photoCount++;
+      }
+    }
+
+    if (eligibleCount <= 1) return null;
+
+    const mediaType = videoCount > 0 && photoCount === 0 ? 'video' : photoCount > 0 && videoCount === 0 ? 'photo' : 'mixed';
+    const strategy = transferSettings?.albumPacking || DEFAULT_TRANSFER_SETTINGS.albumPacking;
+    const customSize = transferSettings?.albumGroupSize || DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
+    const avoidSingle = transferSettings?.albumAvoidSingle ?? DEFAULT_TRANSFER_SETTINGS.albumAvoidSingle;
+    const partition = calculateAlbumPartition(eligibleCount, strategy, mediaType === 'mixed' ? 'video' : mediaType, customSize, avoidSingle);
+    const fullCollages = partition.sizes.filter((s) => s > 1).length;
+    const stratName =
+      strategy === 'smart_adaptive'
+        ? t('drive.album_strategy_smart_adaptive')
+        : strategy === 'balanced'
+        ? t('drive.album_strategy_safe_balanced')
+        : strategy === 'maximum'
+        ? t('drive.album_strategy_maximum')
+        : t('drive.album_strategy_custom');
+
+    const typeLabel =
+      mediaType === 'mixed'
+        ? `${t('drive.album_type_media_visual')} ${t('drive.album_type_composition', { photos: photoCount, videos: videoCount })}`
+        : mediaType === 'video'
+        ? t('drive.album_simulator_type_video')
+        : t('drive.album_simulator_type_photo');
+
+    return {
+      partition,
+      fullCollages,
+      stratName,
+      typeLabel,
+      eligibleCount,
+    };
+  }, [report, transferSettings, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!report || isAnalyzing || report.hasBlockingIssues || queuedCount === 0 || isConfirming) return;
@@ -1103,10 +1187,10 @@ export function TransferPreflightDialog({
               aria-pressed={activeFilter === 'all'}
               className={`td-preflight-stat-pill is-filter ${activeFilter === 'all' ? 'is-active' : ''}`}
               onClick={() => setActiveFilter('all')}
-              title={t('drive.preflight_filter_all', { count: report.items.length })}
+              title={t('drive.preflight_filter_all', { count: totalItemCount })}
             >
               <span>{t('drive.preflight_filter_all_label')}</span>
-              <span className="td-preflight-pill-count">{report.items.length}</span>
+              <span className="td-preflight-pill-count">{totalItemCount}</span>
             </button>
             <button
               type="button"
@@ -1200,78 +1284,51 @@ export function TransferPreflightDialog({
           </div>
         )}
 
-        {/* Real-time Album Partition Summary Banner */}
-        {(transferSettings?.groupAsAlbum ?? DEFAULT_TRANSFER_SETTINGS.groupAsAlbum) && (() => {
-          const eligibleItems = report.items.filter((it) => it.albumEligible);
-          if (eligibleItems.length <= 1) return null;
-
-          const videoCount = eligibleItems.filter((it) => it.category === 'video' || it.category === 'mp4_video' || it.category === 'other_video' || /\.(mp4|mkv|mov|webm|avi|wmv|ts|flv|3gp)/i.test(it.sourceName)).length;
-          const photoCount = eligibleItems.filter((it) => it.category === 'jpeg_image' || it.category === 'png_image' || it.category === 'photo' || /\.(jpe?g|png)/i.test(it.sourceName)).length;
-          const mediaType = videoCount > 0 && photoCount === 0 ? 'video' : photoCount > 0 && videoCount === 0 ? 'photo' : 'mixed';
-          const strategy = transferSettings?.albumPacking || DEFAULT_TRANSFER_SETTINGS.albumPacking;
-          const customSize = transferSettings?.albumGroupSize || DEFAULT_TRANSFER_SETTINGS.albumGroupSize;
-          const avoidSingle = transferSettings?.albumAvoidSingle ?? DEFAULT_TRANSFER_SETTINGS.albumAvoidSingle;
-          const partition = calculateAlbumPartition(eligibleItems.length, strategy, mediaType === 'mixed' ? 'video' : mediaType, customSize, avoidSingle);
-          const fullCollages = partition.sizes.filter((s) => s > 1).length;
-          const stratName = strategy === 'smart_adaptive'
-            ? t('drive.album_strategy_smart_adaptive')
-            : strategy === 'balanced'
-            ? t('drive.album_strategy_safe_balanced')
-            : strategy === 'maximum'
-            ? t('drive.album_strategy_maximum')
-            : t('drive.album_strategy_custom');
-
-          const typeLabel = mediaType === 'mixed'
-            ? `${t('drive.album_type_media_visual')} ${t('drive.album_type_composition', { photos: photoCount, videos: videoCount })}`
-            : mediaType === 'video'
-            ? t('drive.album_simulator_type_video')
-            : t('drive.album_simulator_type_photo');
-
-          return (
-            <div
-              className="td-preflight-banner"
-              style={{
-                background: partition.isSafe ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : 'rgba(245, 158, 11, 0.12)',
-                border: partition.isSafe ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)' : '1px solid rgba(245, 158, 11, 0.35)',
-                color: 'var(--text-primary, #0f172a)',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
-                marginBottom: '10px',
-              }}
-              role="status"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={14} style={{ color: partition.isSafe ? 'var(--accent-primary, #38bdf8)' : '#f59e0b', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                  {t('drive.album_preflight_plan_summary', {
-                    count: eligibleItems.length,
-                    type: typeLabel,
-                    groups: fullCollages,
-                    partition: formatCompactAlbumPartition(partition.sizes),
-                    strategy: stratName,
-                  })}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: partition.isSafe ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                  color: partition.isSafe ? '#34d399' : '#fbbf24',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {partition.isSafe ? t('drive.album_strategy_smart_badge') : t('drive.album_strategy_maximum_warning')}
+        {/* Real-time Album Partition Summary Banner (Memoized for silky-smooth 60fps) */}
+        {albumPartitionPlan && (
+          <div
+            className="td-preflight-banner"
+            style={{
+              background: albumPartitionPlan.partition.isSafe ? 'color-mix(in srgb, var(--accent-primary, #38bdf8) 10%, transparent)' : 'rgba(245, 158, 11, 0.12)',
+              border: albumPartitionPlan.partition.isSafe ? '1px solid color-mix(in srgb, var(--accent-primary, #38bdf8) 30%, transparent)' : '1px solid rgba(245, 158, 11, 0.35)',
+              color: 'var(--text-primary, #0f172a)',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              marginBottom: '10px',
+            }}
+            role="status"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={14} style={{ color: albumPartitionPlan.partition.isSafe ? 'var(--accent-primary, #38bdf8)' : '#f59e0b', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                {t('drive.album_preflight_plan_summary', {
+                  count: albumPartitionPlan.eligibleCount,
+                  type: albumPartitionPlan.typeLabel,
+                  groups: albumPartitionPlan.fullCollages,
+                  partition: formatCompactAlbumPartition(albumPartitionPlan.partition.sizes),
+                  strategy: albumPartitionPlan.stratName,
+                })}
               </span>
             </div>
-          );
-        })()}
+            <span
+              style={{
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: albumPartitionPlan.partition.isSafe ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                color: albumPartitionPlan.partition.isSafe ? '#34d399' : '#fbbf24',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {albumPartitionPlan.partition.isSafe ? t('drive.album_strategy_smart_badge') : t('drive.album_strategy_maximum_warning')}
+            </span>
+          </div>
+        )}
 
         {oversizeCount > 0 && (
           <div

@@ -64,7 +64,6 @@ describe('transfer preflight duplicate decisions', () => {
     expect(defaultDuplicateChoices(report())).toEqual({
       'exact.jpg': 'skip',
       'probable.jpg': 'upload',
-      'new.jpg': 'upload',
     });
   });
 

@@ -1010,12 +1010,7 @@ function MediaDriveDesktop({
         batchChunks: preflightReport?.batchChunks,
         totalMassiveCount: preflightReport?.totalMassiveCount,
         activeChunkIndex: preflightReport?.activeChunkIndex,
-        items: updated.items.map((item, idx) => ({
-          ...item,
-          sourceName: (req.customFilenames && req.customFilenames[idx]) ? req.customFilenames[idx] : item.sourceName,
-          sourceSize: (req.sourceSizes && req.sourceSizes[idx]) ? req.sourceSizes[idx] : item.sourceSize,
-          thumbnailUrl: item.thumbnailUrl || (req.thumbnailUrls && req.thumbnailUrls[idx]) || null,
-        })),
+        items: updated.items,
       };
       setPreflightReport(enriched);
     } catch (err) {
@@ -7095,12 +7090,7 @@ function MediaDriveDesktop({
             storagePolicy: opts?.storagePolicy || 'telegram',
             batchChunks: isMassiveUpload ? enrichedChunks : undefined,
             totalMassiveCount: cleanPaths.length,
-            items: report.items.map((item, idx) => ({
-              ...item,
-              sourceName: (preflightNames && preflightNames[idx]) ? preflightNames[idx] : item.sourceName,
-              sourceSize: (preflightSizes && preflightSizes[idx]) ? preflightSizes[idx] : item.sourceSize,
-              thumbnailUrl: item.thumbnailUrl || (preflightThumbs && preflightThumbs[idx]) || null,
-            })),
+            items: report.items,
           };
           setPreflightReport(enrichedReport);
         })

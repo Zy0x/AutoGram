@@ -19,12 +19,17 @@ export function defaultDuplicateChoices(
   if (isOptimisticPreflightReport(report)) {
     return {};
   }
-  return Object.fromEntries(
-    report.items.map((item) => [
-      item.sourcePath,
-      item.duplicateMatch?.matchLevel === 'exact_sha256' ? 'skip' : 'upload',
-    ])
-  );
+  // Sparse choices map: only record items that have duplicates.
+  // Clean items cleanly default to 'upload' without allocating 17k dictionary keys.
+  const choices: Record<string, TransferDuplicateChoice> = {};
+  for (const item of report.items) {
+    if (item.duplicateMatch?.matchLevel === 'exact_sha256') {
+      choices[item.sourcePath] = 'skip';
+    } else if (item.duplicateMatch) {
+      choices[item.sourcePath] = 'upload';
+    }
+  }
+  return choices;
 }
 
 /**

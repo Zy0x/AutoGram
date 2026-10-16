@@ -111,6 +111,10 @@ export function getPreflightOversizeCount(report: QualityPreflightReport): numbe
   return report.items.filter((it) => it.sourceSize > report.effectiveMaxBytes).length;
 }
 
+const OPTIMISTIC_VIDEO_EXTS = new Set(['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', '3gp', 'flv', 'ts']);
+const OPTIMISTIC_IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'avif']);
+const OPTIMISTIC_AUDIO_EXTS = new Set(['mp3', 'm4a', 'flac', 'wav', 'ogg', 'opus', 'aac']);
+
 export function createOptimisticPreflightReport(
   paths: string[],
   names: string[],
@@ -121,19 +125,27 @@ export function createOptimisticPreflightReport(
   batchChunks?: import('./transferBatchChunker').BatchChunk[],
   totalMassiveCount?: number
 ): QualityPreflightReport {
-  const items: QualityPreflightItem[] = paths.map((p, idx) => {
-    const name = (names && names[idx]) ? names[idx] : p.split(/[/\\]/).pop() || p;
+  // Ultra-fast path: For massive batches (e.g. 17k items), only map the first chunk (1,500 items)
+  // to achieve instant dialog mounting (< 5ms) instead of blocking the main thread mapping all 17k.
+  const hasMultipleChunks = Boolean(batchChunks && batchChunks.length > 1);
+  const targetPaths = hasMultipleChunks && batchChunks![0]?.paths ? batchChunks![0].paths : paths;
+  const targetNames = hasMultipleChunks && batchChunks![0]?.names ? batchChunks![0].names : names;
+  const targetSizes = hasMultipleChunks && batchChunks![0]?.sourceSizes ? batchChunks![0].sourceSizes : sourceSizes;
+  const targetThumbs = hasMultipleChunks && batchChunks![0]?.thumbnailUrls ? batchChunks![0].thumbnailUrls : thumbnailUrls;
+
+  const items: QualityPreflightItem[] = targetPaths.map((p, idx) => {
+    const name = (targetNames && targetNames[idx]) ? targetNames[idx] : p.split(/[/\\]/).pop() || p;
     const ext = name.split('.').pop()?.toLowerCase() || '';
-    const isVid = ['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', '3gp', 'flv', 'ts'].includes(ext);
-    const isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'avif'].includes(ext);
-    const isAud = ['mp3', 'm4a', 'flac', 'wav', 'ogg', 'opus', 'aac'].includes(ext);
+    const isVid = OPTIMISTIC_VIDEO_EXTS.has(ext);
+    const isImg = OPTIMISTIC_IMAGE_EXTS.has(ext);
+    const isAud = OPTIMISTIC_AUDIO_EXTS.has(ext);
     const category = isVid ? 'mp4_video' : isImg ? (ext === 'png' ? 'png_image' : 'jpeg_image') : isAud ? 'audio' : 'unknown_binary';
     const payloadClass: PreflightPayload = isVid || (isImg && ext !== 'png') ? 'native_visual' : isAud ? 'audio_group' : 'document_group';
     return {
       index: idx,
       sourcePath: p,
       sourceName: name,
-      sourceSize: (sourceSizes && sourceSizes[idx]) ? sourceSizes[idx] : 0,
+      sourceSize: (targetSizes && targetSizes[idx]) ? targetSizes[idx] : 0,
       category,
       transform: 'pass_through',
       payloadClass,
@@ -144,7 +156,7 @@ export function createOptimisticPreflightReport(
       rejectedAlternatives: [],
       requiresConfirmation: false,
       duplicateMatch: null,
-      thumbnailUrl: (thumbnailUrls && thumbnailUrls[idx]) || null,
+      thumbnailUrl: (targetThumbs && targetThumbs[idx]) || null,
     };
   });
 
@@ -166,7 +178,7 @@ export function createOptimisticPreflightReport(
     remoteEngineMode: remoteEngineMode || 'auto',
     storagePolicy: storagePolicy || 'telegram',
     batchChunks,
-    activeChunkIndex: batchChunks && batchChunks.length > 1 ? 0 : undefined,
+    activeChunkIndex: hasMultipleChunks ? 0 : undefined,
     totalMassiveCount: totalMassiveCount || paths.length,
   };
 }
