@@ -1,6 +1,6 @@
 @echo off
-title AutoGram - Live Monitor Transfer (Donghua NSFW)
-mode con: cols=92 lines=30
+title AutoGram - Advanced Dynamic Transfer Monitor & Config Inspector
+mode con: cols=96 lines=36
 color 0F
 python "%~dp0tools\live_monitor.py"
 pause
