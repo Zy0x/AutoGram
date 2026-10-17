@@ -2707,6 +2707,7 @@
   "toast_favorite_added": "Ditambahkan ke Favorit",
   "toast_favorite_removed": "Dihapus dari Favorit",
   "toast_favorite_error": "Gagal memperbarui status favorit",
+  "toast_favorite_permission_error": "Gagal: Anda tidak memiliki izin untuk menyematkan (pin) pesan di obrolan ini",
   "batch_chunk_nav_title": "Partisi Kloter Otomatis ({{total}} media terbagi menjadi {{count}} kloter)",
   "batch_chunk_config_applied": "Pengaturan di bawah akan otomatis diterapkan ke seluruh kloter",
   "batch_inter_cooldown": "Jeda adaptif kloter: menunggu {{seconds}} detik sebelum memulai {{label}}..."

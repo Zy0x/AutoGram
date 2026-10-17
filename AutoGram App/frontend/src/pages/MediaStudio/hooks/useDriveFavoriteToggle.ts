@@ -128,10 +128,22 @@ export function useDriveFavoriteToggle({
           if (liveFilesRef?.current) {
             liveFilesRef.current = revertList(liveFilesRef.current);
           }
-          setPreviewFile?.((prev) =>
-            prev && prev.id === targetId ? { ...prev, is_pinned: !nextPinned } : prev
+          const errCode = String(res?.error?.code || '').toUpperCase();
+          const errMsg = String(res?.error?.message || '').toUpperCase();
+          const isPermissionErr =
+            errCode.includes('ADMIN') ||
+            errCode.includes('FORBIDDEN') ||
+            errCode.includes('RIGHT') ||
+            errMsg.includes('CHAT_ADMIN_REQUIRED') ||
+            errMsg.includes('RIGHT_FORBIDDEN') ||
+            errMsg.includes('PIN_RESTRICTED');
+
+          showToast(
+            isPermissionErr
+              ? t('drive.toast_favorite_permission_error')
+              : res?.error?.message || t('drive.toast_favorite_error'),
+            'error'
           );
-          showToast(res?.error?.message || t('drive.toast_favorite_error'), 'error');
         }
       } catch (err: any) {
         // Revert optimistic update on exception
@@ -173,7 +185,19 @@ export function useDriveFavoriteToggle({
         setPreviewFile?.((prev) =>
           prev && prev.id === targetId ? { ...prev, is_pinned: !nextPinned } : prev
         );
-        showToast(err?.message || t('drive.toast_favorite_error'), 'error');
+        const errStr = String(err?.message || err || '').toUpperCase();
+        const isPermissionErr =
+          errStr.includes('ADMIN') ||
+          errStr.includes('FORBIDDEN') ||
+          errStr.includes('RIGHT') ||
+          errStr.includes('PIN');
+
+        showToast(
+          isPermissionErr
+            ? t('drive.toast_favorite_permission_error')
+            : err?.message || t('drive.toast_favorite_error'),
+          'error'
+        );
       }
     },
     [creds, peerId, locationKind, setFiles, setFilteredFilesMap, setFilteredTotalCountMap, setPreviewFile, liveFilesRef, showToast, t]

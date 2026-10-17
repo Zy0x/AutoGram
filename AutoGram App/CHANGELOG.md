@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Telegram Architecture Invariant: Unified "Pin adalah Favorit" & Zero Saved Messages Clutter
+- Codified strict architectural standard in `AGENTS.md` and `.agents/AGENTS.md` regarding Telegram media favoriting:
+  1. In-Place Pinned Message Execution: Prioritizes native MTProto `messages.updatePinnedMessage` directly in the origin chat/group/drive/topic rather than forwarding media into Saved Messages, keeping the user's Saved Messages clean and free of duplicate clutter.
+  2. Permission-Aware Compliance: Respects destination pin rights (`can_pin_messages`), with localized user-friendly feedback (`toast_favorite_permission_error`) and clean state rollback when permissions are restricted.
+  3. Pre-Existing Pinned Media Recognition: Automatically classifies all pre-existing pinned media as Favorit (`is_pinned: true`) across indexing and the Favorites filter lane (`InputMessagesFilterPinned`).
+- Added `drive.toast_favorite_permission_error` localized strings across `id/drive.json` and `en/drive.json` with 100% key parity (6,850 keys).
+
 ### Android Physical Device Testing: Mandatory Debug Directory & Zero-Trace Cleanup Invariant
 - Codified strict operational requirements in `AGENTS.md` and `.agents/AGENTS.md` for physical Android device testing over ADB:
   1. Mandatory Test Artifact Isolation: All generated UI hierarchy dumps (`.xml`), screenshots (`.png`), video screen captures, shell logs, and temporary probe files must reside strictly in `/sdcard/Debug/` (or `/storage/emulated/0/Debug/`). Writing test files directly to root internal storage or general directories is strictly prohibited.
