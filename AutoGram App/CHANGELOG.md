@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Android Physical Device Testing: Mandatory Debug Directory & Zero-Trace Cleanup Invariant
+- Codified strict operational requirements in `AGENTS.md` and `.agents/AGENTS.md` for physical Android device testing over ADB:
+  1. Mandatory Test Artifact Isolation: All generated UI hierarchy dumps (`.xml`), screenshots (`.png`), video screen captures, shell logs, and temporary probe files must reside strictly in `/sdcard/Debug/` (or `/storage/emulated/0/Debug/`). Writing test files directly to root internal storage or general directories is strictly prohibited.
+  2. Immediate Pull & Clean-Sweep Protocol: Immediately after pulling artifacts to the host workstation (`adb pull`), all test files must be deleted from the Android device.
+  3. Zero Residual Traces Guarantee: Prohibited from leaving residual artifacts in `/data/local/tmp/`, the `/sdcard/Debug/` folder, or internal storage, ensuring zero device clutter.
+
 ### Transfer Manager Kloter Isolation, Processed Breakdown & Multi-Account Session Rotation
 - Resolved Transfer Manager UI stuck at `1049/1500` during kloter transitions and eliminated single-account FloodWait bottlenecks during massive transfers.
 - Root Cause Analysis:
