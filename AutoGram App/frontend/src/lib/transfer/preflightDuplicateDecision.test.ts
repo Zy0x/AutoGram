@@ -128,6 +128,24 @@ describe('transfer preflight duplicate decisions', () => {
       forceUploadPaths: ['exact.jpg'],
     });
   });
+
+  it('supports duplicatePolicyOverride for skip or allow', () => {
+    expect(buildPreflightReviewDecision(report(), {
+      'exact.jpg': 'skip',
+    }, 'skip')).toEqual({
+      approved: true,
+      skippedPaths: ['exact.jpg'],
+      forceUploadPaths: ['probable.jpg'],
+      duplicatePolicyOverride: 'skip',
+    });
+
+    expect(buildPreflightReviewDecision(report(), {}, 'allow')).toEqual({
+      approved: true,
+      skippedPaths: [],
+      forceUploadPaths: ['exact.jpg', 'probable.jpg'],
+      duplicatePolicyOverride: 'allow',
+    });
+  });
 });
 
 describe('formatCompactAlbumPartition', () => {

@@ -6969,6 +6969,7 @@ function MediaDriveDesktop({
       return null;
     })();
     let duplicateForceUploadPaths: string[] = [];
+    let duplicatePolicyOverride: 'skip' | 'allow' | undefined = undefined;
     let effectiveRemoteMuxes = opts?.remoteMuxes;
 
     try {
@@ -7062,6 +7063,7 @@ function MediaDriveDesktop({
         effectiveRemoteMuxes = retainedIndexes.map((index) => effectiveRemoteMuxes?.[index] || null);
       }
       duplicateForceUploadPaths = decision.forceUploadPaths.filter((path) => !skippedPaths.has(path));
+      duplicatePolicyOverride = decision.duplicatePolicyOverride;
       names = cleanPaths.map((path, idx) => {
         if (opts?.customFilenames && opts.customFilenames[idx]) {
           return opts.customFilenames[idx];
@@ -7164,9 +7166,15 @@ function MediaDriveDesktop({
       download_conflict_policy: transferSettings.downloadConflictPolicy,
       download_resume_partial: transferSettings.downloadResumePartial,
       download_integrity: transferSettings.downloadIntegrity,
-      duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
+      duplicate_policy: duplicatePolicyOverride === 'allow'
+        ? 'ALLOW'
+        : duplicatePolicyOverride === 'skip'
+        ? 'SKIP'
+        : transferSettings.duplicatePolicy || 'SKIP',
       dry_run: transferSettings.dryRun,
-      duplicate_force_upload_paths: duplicateForceUploadPaths,
+      duplicate_force_upload_paths: duplicatePolicyOverride === 'allow'
+        ? cleanPaths
+        : duplicateForceUploadPaths,
       scan_mode: transferSettings.scanMode || 'smart',
       guardrail_enabled: transferSettings.guardrailEnabled !== false,
       guardrail_threshold_days: transferSettings.guardrailThresholdDays ?? 7,

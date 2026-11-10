@@ -45,6 +45,7 @@ import {
 import type { SubMenuCategory } from './transferSettingsSearchRegistry';
 import { calculateAlbumPartition } from './AlbumStrategyControl';
 import { PreflightPopoverModal, type PreflightPopoverType } from './PreflightPopoverModal';
+import { PreflightEarlyConfirmModal } from './PreflightEarlyConfirmModal';
 import {
   buildPreflightReviewDecision,
   defaultDuplicateChoices,
@@ -798,6 +799,8 @@ export function TransferPreflightDialog({
     return report?.items.filter((i) => i.transform === 'reencode').length || 0;
   }, [report]);
 
+  const [showEarlyConfirmModal, setShowEarlyConfirmModal] = useState(false);
+
   const canConfirm =
     !!report &&
     !report.hasBlockingIssues &&
@@ -805,17 +808,64 @@ export function TransferPreflightDialog({
     report.items.length > 0 &&
     (isAnalyzing || queuedCount > 0 || skippedCount > 0);
 
-  const handleConfirm = useCallback(async () => {
+  const executeConfirm = useCallback(
+    async (
+      targetChoices: Record<string, TransferDuplicateChoice>,
+      policyOverride?: 'skip' | 'allow',
+      overrideForceAll?: boolean
+    ) => {
+      if (!report) return;
+      setIsConfirming(true);
+      try {
+        if (overrideForceAll) {
+          const allPaths = report.items.map((i) => i.sourcePath);
+          await Promise.resolve(
+            onConfirm({
+              approved: true,
+              skippedPaths: [],
+              forceUploadPaths: allPaths,
+              duplicatePolicyOverride: 'allow',
+            })
+          );
+        } else {
+          await Promise.resolve(
+            onConfirm(buildPreflightReviewDecision(report, targetChoices, policyOverride))
+          );
+        }
+      } catch (err) {
+        console.error('Preflight confirm error:', err);
+      } finally {
+        setIsConfirming(false);
+      }
+    },
+    [report, onConfirm]
+  );
+
+  const handleConfirm = useCallback(() => {
     if (!canConfirm) return;
-    setIsConfirming(true);
-    try {
-      await Promise.resolve(onConfirm(buildPreflightReviewDecision(report, choices)));
-    } catch (err) {
-      console.error('Preflight confirm error:', err);
-    } finally {
-      setIsConfirming(false);
+    if (isAnalyzing) {
+      setShowEarlyConfirmModal(true);
+      return;
     }
-  }, [canConfirm, report, choices, onConfirm]);
+    void executeConfirm(choices);
+  }, [canConfirm, isAnalyzing, choices, executeConfirm]);
+
+  const handleEarlyConfirmSkip = useCallback(() => {
+    if (!report) return;
+    setShowEarlyConfirmModal(false);
+    const nextChoices: Record<string, TransferDuplicateChoice> = { ...choices };
+    for (const item of report.items) {
+      if (item.duplicateMatch) {
+        nextChoices[item.sourcePath] = 'skip';
+      }
+    }
+    void executeConfirm(nextChoices, 'skip', false);
+  }, [choices, report, executeConfirm]);
+
+  const handleEarlyConfirmSendAll = useCallback(() => {
+    setShowEarlyConfirmModal(false);
+    void executeConfirm(choices, 'allow', true);
+  }, [choices, executeConfirm]);
 
   const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
   const [previewTelegramMatch, setPreviewTelegramMatch] = useState<QualityPreflightDuplicateMatch | null>(null);
@@ -824,7 +874,10 @@ export function TransferPreflightDialog({
     if (!report) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (previewItem) {
+        if (showEarlyConfirmModal) {
+          setShowEarlyConfirmModal(false);
+          e.stopPropagation();
+        } else if (previewItem) {
           setPreviewItem(null);
           e.stopPropagation();
         } else if (previewTelegramMatch) {
@@ -842,6 +895,7 @@ export function TransferPreflightDialog({
         !e.ctrlKey &&
         !e.altKey &&
         !activePopover &&
+        !showEarlyConfirmModal &&
         !previewItem &&
         !previewTelegramMatch
       ) {
@@ -852,7 +906,7 @@ export function TransferPreflightDialog({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [report, activePopover, previewItem, previewTelegramMatch, onCancel, handleConfirm]);
+  }, [report, activePopover, showEarlyConfirmModal, previewItem, previewTelegramMatch, onCancel, handleConfirm]);
 
   const filteredItems = useMemo(() => {
     if (!report?.items) return [];
@@ -1393,6 +1447,17 @@ export function TransferPreflightDialog({
           onOpenSettings={onOpenSettings}
         />
 
+        <PreflightEarlyConfirmModal
+          open={showEarlyConfirmModal}
+          onClose={() => setShowEarlyConfirmModal(false)}
+          onSkipDuplicates={handleEarlyConfirmSkip}
+          onSendAll={handleEarlyConfirmSendAll}
+          itemCount={report.items.length}
+          duplicateCount={duplicateCount}
+          queuedCount={queuedCount}
+          skippedCount={skippedCount}
+        />
+
         <div className="td-preflight-items">
           {visibleItems.length === 0 ? (
             <div className="td-preflight-empty-filter">
@@ -1742,9 +1807,7 @@ export function TransferPreflightDialog({
                 <Send size={14} aria-hidden />
               )}
               <span>
-                {isAnalyzing
-                  ? t('drive.preflight_confirm_instant_queue', { count: report.items.length })
-                  : t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
+                {t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
               </span>
             </button>
           </div>

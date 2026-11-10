@@ -15374,6 +15374,184 @@ section.docx *,
   font-size: 0.78rem;
   font-weight: 650;
 }
+.td-preflight-early-card {
+  width: min(540px, 94vw);
+  border-radius: 16px;
+  background: #152230;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  animation: preflightPopoverIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.td-preflight-early-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #111b27;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.td-preflight-early-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.td-preflight-early-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+.td-preflight-early-head strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+.td-preflight-early-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.td-preflight-early-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  color: #7dd3fc;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.td-preflight-early-desc {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.td-preflight-early-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.td-preflight-early-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  min-height: 48px;
+}
+.td-preflight-early-opt:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+.td-preflight-early-opt.is-recommended {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.24);
+}
+.td-preflight-early-opt.is-recommended:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.12);
+}
+.td-preflight-early-opt.is-send-all:hover {
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 4px 18px rgba(14, 165, 233, 0.1);
+}
+.td-preflight-early-opt-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.td-preflight-early-opt-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.td-preflight-early-opt-icon.is-skip {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+.td-preflight-early-opt-icon.is-send {
+  background: rgba(14, 165, 233, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+.td-preflight-early-opt-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.td-preflight-early-opt-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.td-preflight-early-opt-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.td-preflight-early-badge-rec {
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+.td-preflight-early-opt-desc {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+.td-preflight-early-opt-action {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.td-preflight-early-opt-action-text {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+.td-preflight-early-opt.is-recommended .td-preflight-early-opt-action-text {
+  color: #34d399;
+}
+.td-preflight-early-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  background: #111b27;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
 .td-preflight-thumb {
   width: 72px;
   height: 48px;

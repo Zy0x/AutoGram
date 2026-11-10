@@ -88,6 +88,7 @@ export interface PreflightReviewDecision {
   approved: boolean;
   skippedPaths: string[];
   forceUploadPaths: string[];
+  duplicatePolicyOverride?: 'skip' | 'allow';
 }
 
 export function runQualityPreflight(request: QualityPreflightRequest): Promise<QualityPreflightReport> {

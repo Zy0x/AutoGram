@@ -70,7 +70,8 @@ export function formatCompactAlbumPartition(
 
 export function buildPreflightReviewDecision(
   report: QualityPreflightReport,
-  choices: Record<string, TransferDuplicateChoice>
+  choices: Record<string, TransferDuplicateChoice>,
+  duplicatePolicyOverride?: 'skip' | 'allow'
 ): PreflightReviewDecision {
   const skippedPaths: string[] = [];
   const forceUploadPaths: string[] = [];
@@ -78,7 +79,11 @@ export function buildPreflightReviewDecision(
     if (choices[item.sourcePath] === 'skip') skippedPaths.push(item.sourcePath);
     else if (item.duplicateMatch) forceUploadPaths.push(item.sourcePath);
   }
-  return { approved: true, skippedPaths, forceUploadPaths };
+  const decision: PreflightReviewDecision = { approved: true, skippedPaths, forceUploadPaths };
+  if (duplicatePolicyOverride) {
+    decision.duplicatePolicyOverride = duplicatePolicyOverride;
+  }
+  return decision;
 }
 
 export const cancelledPreflightDecision: PreflightReviewDecision = {
