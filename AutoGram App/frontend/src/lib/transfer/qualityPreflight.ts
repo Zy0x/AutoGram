@@ -6,7 +6,7 @@ export type PreflightTransform = 'pass_through' | 'lossless_remux' | 'reencode' 
 export type PreflightPayload = 'native_visual' | 'document_group' | 'audio_group' | 'original_document_batch' | 'split_part_batch';
 
 export interface QualityPreflightDuplicateMatch {
-  matchLevel: 'exact_sha256' | 'probable_filename_size';
+  matchLevel: 'exact_sha256' | 'probable_filename_size' | 'intra_batch_exact';
   telegramMessageId: number | null;
   telegramUniqueId: string | null;
   existingName: string;

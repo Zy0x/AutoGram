@@ -255,6 +255,65 @@ pub fn build_quality_preflight(
             std::collections::HashMap::new()
         };
 
+    let intra_batch_duplicates: std::collections::HashMap<usize, (usize, String, u64, String)> =
+        if duplicate_check_enabled && total_paths > 1 {
+            let mut size_groups: std::collections::HashMap<u64, Vec<usize>> = std::collections::HashMap::new();
+            for (idx, (path, &sz)) in request.paths.iter().zip(resolved_sizes.iter()).enumerate() {
+                if !is_remote(path) && sz > 0 {
+                    size_groups.entry(sz).or_default().push(idx);
+                }
+            }
+            let mut dups = std::collections::HashMap::new();
+            for (_sz, indices) in size_groups {
+                if indices.len() > 1 {
+                    let mut hash_to_first: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+                    for &idx in &indices {
+                        let path = Path::new(&request.paths[idx]);
+                        let name = request
+                            .custom_filenames
+                            .as_ref()
+                            .and_then(|names| names.get(idx))
+                            .filter(|n| !n.trim().is_empty())
+                            .cloned()
+                            .unwrap_or_else(|| source_name(&request.paths[idx], idx));
+                        if let Ok(hash) = super::sha256_file(path) {
+                            if let Some(&first_idx) = hash_to_first.get(&hash) {
+                                let first_name = request
+                                    .custom_filenames
+                                    .as_ref()
+                                    .and_then(|names| names.get(first_idx))
+                                    .filter(|n| !n.trim().is_empty())
+                                    .cloned()
+                                    .unwrap_or_else(|| source_name(&request.paths[first_idx], first_idx));
+                                dups.insert(idx, (first_idx, first_name, resolved_sizes[first_idx], "exact_sha256".to_string()));
+                            } else {
+                                hash_to_first.insert(hash, idx);
+                            }
+                        } else {
+                            for &prev_idx in &indices {
+                                if prev_idx < idx {
+                                    let prev_name = request
+                                        .custom_filenames
+                                        .as_ref()
+                                        .and_then(|names| names.get(prev_idx))
+                                        .filter(|n| !n.trim().is_empty())
+                                        .cloned()
+                                        .unwrap_or_else(|| source_name(&request.paths[prev_idx], prev_idx));
+                                    if prev_name == name {
+                                        dups.insert(idx, (prev_idx, prev_name, resolved_sizes[prev_idx], "probable_filename_size".to_string()));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            dups
+        } else {
+            std::collections::HashMap::new()
+        };
+
     let eval_item = |index: usize, source: &String| -> QualityPreflightItem {
         let remote = is_remote(source);
         let source_path = Path::new(source);
@@ -524,43 +583,57 @@ pub fn build_quality_preflight(
                 PayloadClass::NativeVisual | PayloadClass::AudioGroup
             );
         let duplicate_match = if duplicate_check_enabled && !remote && source_size > 0 {
-            request.destination_id.as_deref().and_then(|destination_id| {
-                let candidates = ledger_candidates.get(&source_size)?;
-                let name_candidate = candidates.iter().find(|c| c.filename == resolved_name);
-                let exact_candidate = if candidates.iter().any(|c| !c.prepared_sha256.is_empty()) {
-                    super::sha256_file(source_path).ok().and_then(|source_sha256| {
-                        candidates.iter().find(|c| c.prepared_sha256 == source_sha256)
-                    })
-                } else {
-                    None
-                };
+            if let Some((first_idx, first_name, first_sz, match_level)) = intra_batch_duplicates.get(&index) {
+                warnings.push(format!("intra_batch_duplicate_of_item_{}", first_idx + 1));
+                Some(QualityPreflightDuplicateMatch {
+                    match_level: match_level.clone(),
+                    telegram_message_id: None,
+                    telegram_unique_id: None,
+                    existing_name: first_name.clone(),
+                    existing_size: *first_sz,
+                    existing_payload_class: "intra_batch".into(),
+                    destination_id: request.destination_id.clone().unwrap_or_default(),
+                    topic_id: request.topic_id,
+                })
+            } else {
+                request.destination_id.as_deref().and_then(|destination_id| {
+                    let candidates = ledger_candidates.get(&source_size)?;
+                    let name_candidate = candidates.iter().find(|c| c.filename == resolved_name);
+                    let exact_candidate = if candidates.iter().any(|c| !c.prepared_sha256.is_empty()) {
+                        super::sha256_file(source_path).ok().and_then(|source_sha256| {
+                            candidates.iter().find(|c| c.prepared_sha256 == source_sha256)
+                        })
+                    } else {
+                        None
+                    };
 
-                if let Some(cand) = exact_candidate {
-                    Some(QualityPreflightDuplicateMatch {
-                        match_level: "exact_sha256".into(),
-                        telegram_message_id: cand.telegram_message_id,
-                        telegram_unique_id: cand.telegram_unique_id.clone(),
-                        existing_name: cand.filename.clone(),
-                        existing_size: cand.file_size,
-                        existing_payload_class: cand.payload_class.clone(),
-                        destination_id: destination_id.to_string(),
-                        topic_id: request.topic_id,
-                    })
-                } else if let Some(cand) = name_candidate {
-                    Some(QualityPreflightDuplicateMatch {
-                        match_level: "probable_filename_size".into(),
-                        telegram_message_id: cand.telegram_message_id,
-                        telegram_unique_id: cand.telegram_unique_id.clone(),
-                        existing_name: cand.filename.clone(),
-                        existing_size: cand.file_size,
-                        existing_payload_class: cand.payload_class.clone(),
-                        destination_id: destination_id.to_string(),
-                        topic_id: request.topic_id,
-                    })
-                } else {
-                    None
-                }
-            })
+                    if let Some(cand) = exact_candidate {
+                        Some(QualityPreflightDuplicateMatch {
+                            match_level: "exact_sha256".into(),
+                            telegram_message_id: cand.telegram_message_id,
+                            telegram_unique_id: cand.telegram_unique_id.clone(),
+                            existing_name: cand.filename.clone(),
+                            existing_size: cand.file_size,
+                            existing_payload_class: cand.payload_class.clone(),
+                            destination_id: destination_id.to_string(),
+                            topic_id: request.topic_id,
+                        })
+                    } else if let Some(cand) = name_candidate {
+                        Some(QualityPreflightDuplicateMatch {
+                            match_level: "probable_filename_size".into(),
+                            telegram_message_id: cand.telegram_message_id,
+                            telegram_unique_id: cand.telegram_unique_id.clone(),
+                            existing_name: cand.filename.clone(),
+                            existing_size: cand.file_size,
+                            existing_payload_class: cand.payload_class.clone(),
+                            destination_id: destination_id.to_string(),
+                            topic_id: request.topic_id,
+                        })
+                    } else {
+                        None
+                    }
+                })
+            }
         } else {
             None
         };
@@ -1110,5 +1183,102 @@ mod tests {
 
         // Item 2 (file_c): No collision in ledger, immediately None
         assert!(report.items[2].duplicate_match.is_none());
+    }
+
+    #[test]
+    fn intra_batch_exact_duplicate_detection_without_ledger() {
+        let temp_dir = std::env::temp_dir().join("autogram_intra_batch_test");
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let file_orig = temp_dir.join("video_original.mp4");
+        let file_copy = temp_dir.join("video_original - Copy.mp4");
+        let file_diff = temp_dir.join("video_different.mp4");
+
+        // Write identical payload to file_orig and file_copy
+        fs::write(&file_orig, b"identical_video_bytes_1234567890").unwrap();
+        fs::write(&file_copy, b"identical_video_bytes_1234567890").unwrap();
+        // Write different payload to file_diff
+        fs::write(&file_diff, b"completely_different_payload_987654321").unwrap();
+
+        let mut req = request(&file_orig, "SMART");
+        req.session = "brand_new_session_no_ledger".into();
+        req.destination_id = Some("-1009988776655".into());
+        req.paths = vec![
+            file_orig.display().to_string(),
+            file_copy.display().to_string(),
+            file_diff.display().to_string(),
+        ];
+
+        let report = build_quality_preflight(
+            &req,
+            "live",
+            u64::MAX,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+
+        assert_eq!(report.items.len(), 3);
+
+        // Item 0: Original file, no duplicate match (it is the primary)
+        assert!(report.items[0].duplicate_match.is_none());
+
+        // Item 1: Copy file, detected as intra-batch duplicate of item 0!
+        let dup_1 = report.items[1].duplicate_match.as_ref().expect("copy must be detected as duplicate");
+        assert_eq!(dup_1.match_level, "exact_sha256");
+        assert_eq!(dup_1.existing_name, "video_original.mp4");
+        assert_eq!(dup_1.existing_payload_class, "intra_batch");
+        assert_eq!(dup_1.telegram_message_id, None);
+        assert!(report.items[1].warnings.iter().any(|w| w.contains("intra_batch_duplicate_of_item_1")));
+
+        // Item 2: Different file, clean
+        assert!(report.items[2].duplicate_match.is_none());
+    }
+
+    #[test]
+    fn cross_account_shared_destination_duplicate_detection() {
+        let temp_dir = std::env::temp_dir().join("autogram_cross_account_test");
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let file_x = temp_dir.join("shared_file_x.jpg");
+        fs::write(&file_x, b"shared_bytes_cross_account_999").unwrap();
+        let sha_x = super::super::sha256_file(&file_x).unwrap();
+
+        let shared_dest = "-1003214112048";
+        let topic_id = Some(4);
+
+        // Uploaded by Account A
+        super::super::store::record_upload_ledger(
+            "session_account_a",
+            shared_dest,
+            topic_id,
+            Some(77777),
+            Some("unique_media_x".into()),
+            &sha_x,
+            "shared_file_x.jpg",
+            file_x.metadata().unwrap().len(),
+            "native_visual",
+        ).unwrap();
+
+        // Account B checks preflight for the same destination & topic
+        let mut req = request(&file_x, "SMART");
+        req.session = "session_account_b".into(); // Different account!
+        req.destination_id = Some(shared_dest.into());
+        req.topic_id = topic_id;
+        req.paths = vec![file_x.display().to_string()];
+
+        let report = build_quality_preflight(
+            &req,
+            "live",
+            u64::MAX,
+            1_024,
+            true,
+            TransferFeatureFlags::default(),
+        );
+
+        assert_eq!(report.items.len(), 1);
+        let dup = report.items[0].duplicate_match.as_ref().expect("cross-account duplicate must be detected");
+        assert_eq!(dup.match_level, "exact_sha256");
+        assert_eq!(dup.telegram_message_id, Some(77777));
     }
 }

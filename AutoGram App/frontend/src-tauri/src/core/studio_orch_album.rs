@@ -20,11 +20,12 @@ use super::media_prep;
 use super::tg_log;
 use super::{
     apply_nonstandard_source_document_guard, approved_alternate_sessions,
-    duplicate_match_for_prepared, duplicate_match_for_source, effective_upload_limit,
-    emit_album_item_result, finalize_transfer, handle_oversize_prepared, item_spoiler, option_bool,
-    option_usize, persist_prepared_decision, persist_upload_ledger_binding, prepare_with_receipt,
-    prepared_ledger_identity, remote_mux_for_item, serialized_label, OrchStartResult,
-    PreparedLedgerIdentity, TelegramIdentity,
+    duplicate_match_for_prepared, duplicate_match_for_source, duplicate_skip_enabled,
+    effective_upload_limit, emit_album_item_result, finalize_transfer, handle_oversize_prepared,
+    item_spoiler, option_bool, option_usize, persist_prepared_decision,
+    persist_upload_ledger_binding, prepare_with_receipt, prepared_ledger_identity,
+    remote_mux_for_item, serialized_label, OrchStartResult, PreparedLedgerIdentity,
+    TelegramIdentity,
 };
 
 fn requests_whole_album_alternate(rec: &TransferRecord) -> bool {
@@ -1071,6 +1072,9 @@ pub(super) fn run_intelligent_album(
         2
     };
 
+    let mut seen_source_hashes_in_run: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut seen_prepared_hashes_in_run: std::collections::HashSet<String> = std::collections::HashSet::new();
+
     for item in &rec.items {
         if let Err(error) = job_queue::wait_while_transfer_paused(tid) {
             for (_, artifact) in artifacts.drain() {
@@ -1163,6 +1167,42 @@ pub(super) fn run_intelligent_album(
         if !media_prep::is_remote_url(&item.path)
             && remote_mux_for_item(&rec.options, item.index).is_none()
         {
+            if duplicate_skip_enabled(rec, &item.path) {
+                let src_path = Path::new(&item.path);
+                if let Ok(src_sha) = super::autogram_core::transfer::sha256_file(src_path) {
+                    if seen_source_hashes_in_run.contains(&src_sha) {
+                        let reason = format!(
+                            "duplicate_exact_sha256: intra-batch duplicate of earlier item in current queue (sha256={})",
+                            &src_sha[..12.min(src_sha.len())]
+                        );
+                        let state = ItemState::Skipped;
+                        job_queue::update_item(
+                            tid,
+                            item.index,
+                            state.clone(),
+                            None,
+                            Some(reason.clone()),
+                        )?;
+                        let src_cat = super::autogram_core::transfer::classify_media(src_path);
+                        super::autogram_core::transfer::record_transfer_item_decision(
+                            tid,
+                            item.index,
+                            &item.path,
+                            &item.path,
+                            &serialized_label(&src_cat),
+                            "native_visual",
+                            "pass_through",
+                            "SKIPPED",
+                            "duplicate_exact_sha256",
+                        )?;
+                        emit_album_item_result(app, item.index, &state, None, Some(reason));
+                        any_ok = true;
+                        continue;
+                    }
+                    seen_source_hashes_in_run.insert(src_sha);
+                }
+            }
+
             if let Ok(Some(ledger_match)) = duplicate_match_for_source(rec, topic_id, &item.path) {
                 if ledger_match.match_level == "exact_sha256" {
                     let reason = format!(
@@ -1440,6 +1480,30 @@ pub(super) fn run_intelligent_album(
             ),
         );
         let ledger_identity = prepared_ledger_identity(&artifact.prepared_path, &classification)?;
+        if duplicate_skip_enabled(rec, &item.path) && seen_prepared_hashes_in_run.contains(&ledger_identity.sha256) {
+            let reason = format!(
+                "duplicate_exact_sha256: intra-batch prepared duplicate of earlier item in queue (sha256={})",
+                &ledger_identity.sha256[..12.min(ledger_identity.sha256.len())]
+            );
+            let state = ItemState::Skipped;
+            job_queue::update_item(tid, item.index, state.clone(), None, Some(reason.clone()))?;
+            super::autogram_core::transfer::record_transfer_item_decision(
+                tid,
+                item.index,
+                &item.path,
+                &artifact.prepared_path,
+                &serialized_label(&classification.category),
+                &serialized_label(&classification.payload_class),
+                &serialized_label(&classification.transform),
+                "SKIPPED",
+                "duplicate_exact_sha256",
+            )?;
+            emit_album_item_result(app, item.index, &state, None, Some(reason));
+            any_ok = true;
+            artifact.cleanup();
+            continue;
+        }
+        seen_prepared_hashes_in_run.insert(ledger_identity.sha256.clone());
         if let Some(ledger_match) =
             duplicate_match_for_prepared(rec, topic_id, &item.path, &ledger_identity)?
         {

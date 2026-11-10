@@ -737,7 +737,17 @@ export function TransferPreflightDialog({
       setChoices((prev) => {
         const nextDefaults = defaultDuplicateChoices(report);
         if (Object.keys(prev).length === 0) return nextDefaults;
-        return { ...nextDefaults, ...prev };
+        const merged = { ...nextDefaults };
+        for (const [key, val] of Object.entries(prev)) {
+          const item = report.items.find((it) => it.sourcePath === key);
+          const isExactDup =
+            item?.duplicateMatch?.matchLevel === 'exact_sha256' ||
+            item?.duplicateMatch?.matchLevel === 'intra_batch_exact';
+          if (!isExactDup || val === 'skip') {
+            merged[key] = val;
+          }
+        }
+        return merged;
       });
       setIsConfirming(false);
     }
@@ -1506,11 +1516,25 @@ export function TransferPreflightDialog({
                     </section>
                     <div className="td-preflight-compare-link" aria-hidden><CopyCheck size={18} /></div>
                     <section>
-                      <span className="td-preflight-compare-label">{t('drive.preflight_existing_telegram')}</span>
-                      <TelegramDuplicateThumb match={duplicate} creds={creds} />
+                      <span className="td-preflight-compare-label">
+                        {duplicate.telegramMessageId ? t('drive.preflight_existing_telegram') : t('drive.preflight_intra_batch_notice')}
+                      </span>
+                      {duplicate.telegramMessageId ? (
+                        <TelegramDuplicateThumb match={duplicate} creds={creds} />
+                      ) : (
+                        <div className="td-preflight-compare-media">
+                          {(() => {
+                            const sibling = report?.items.find((i) => i.sourceName === duplicate.existingName);
+                            return sibling ? <PreflightSourceThumb item={sibling} /> : <PreflightSourceThumb item={item} />;
+                          })()}
+                        </div>
+                      )}
                       <strong title={duplicate.existingName}>{duplicate.existingName}</strong>
                       <span>
-                        {formatDriveBytes(duplicate.existingSize)} · {t('drive.preflight_message_id', { id: duplicate.telegramMessageId ?? '?' })}
+                        {formatDriveBytes(duplicate.existingSize)} ·{' '}
+                        {duplicate.telegramMessageId
+                          ? t('drive.preflight_message_id', { id: duplicate.telegramMessageId })
+                          : t('drive.preflight_intra_batch_badge')}
                       </span>
                     </section>
                   </div>

@@ -88,6 +88,36 @@ describe('transfer preflight duplicate decisions', () => {
     expect(merged['exact.jpg']).toBe('skip');
   });
 
+  it('defaults intra_batch_exact matches to skip', () => {
+    const rep = report();
+    rep.items.push({
+      index: 3,
+      sourcePath: 'exact - Copy.jpg',
+      sourceName: 'exact - Copy.jpg',
+      sourceSize: 123,
+      category: 'jpeg_image',
+      transform: 'pass_through',
+      payloadClass: 'native_visual',
+      asDocument: false,
+      albumEligible: true,
+      reasonCode: 'native',
+      warnings: ['intra_batch_duplicate_of_item_1'],
+      rejectedAlternatives: [],
+      requiresConfirmation: true,
+      duplicateMatch: {
+        matchLevel: 'intra_batch_exact',
+        telegramMessageId: null,
+        telegramUniqueId: null,
+        existingName: 'exact.jpg',
+        existingSize: 123,
+        existingPayloadClass: 'intra_batch',
+        destinationId: 'me',
+        topicId: null,
+      },
+    });
+    expect(defaultDuplicateChoices(rep)['exact - Copy.jpg']).toBe('skip');
+  });
+
   it('returns only duplicate paths and preserves explicit choices', () => {
     expect(buildPreflightReviewDecision(report(), {
       'exact.jpg': 'upload',

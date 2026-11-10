@@ -253,7 +253,7 @@ pub fn load_upload_ledger_candidates(
         let sql = format!(
             "SELECT telegram_message_id, telegram_unique_id, prepared_sha256, filename, file_size, payload_class
              FROM upload_ledger
-             WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND file_size IN ({placeholders})
+             WHERE (account_id=?1 OR (?2 != 'me' AND ?2 != '')) AND destination_id=?2 AND topic_id=?3 AND file_size IN ({placeholders})
              ORDER BY updated_at DESC"
         );
         let mut stmt = conn.prepare(&sql).map_err(|e| format!("prepare ledger candidates: {e}"))?;
@@ -298,7 +298,7 @@ pub fn find_upload_ledger_match_with_conn(
     let exact = conn.query_row(
         "SELECT telegram_message_id, telegram_unique_id, filename, file_size, payload_class
          FROM upload_ledger
-         WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND prepared_sha256=?4
+         WHERE (account_id=?1 OR (?2 != 'me' AND ?2 != '')) AND destination_id=?2 AND topic_id=?3 AND prepared_sha256=?4
          ORDER BY updated_at DESC LIMIT 1",
         params![account_id, destination_id, topic_key, prepared_sha256],
         |row| {
@@ -328,7 +328,7 @@ pub fn find_upload_ledger_match_with_conn(
     let probable = conn.query_row(
         "SELECT telegram_message_id, telegram_unique_id, filename, file_size, payload_class
          FROM upload_ledger
-         WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3
+         WHERE (account_id=?1 OR (?2 != 'me' AND ?2 != '')) AND destination_id=?2 AND topic_id=?3
            AND filename=?4 AND file_size=?5
          ORDER BY updated_at DESC LIMIT 1",
         params![
@@ -394,7 +394,7 @@ pub fn find_source_upload_ledger_match(
     let topic_key = topic_id.unwrap_or(0);
     let has_size_candidate: bool = match conn.query_row(
         "SELECT 1 FROM upload_ledger
-         WHERE account_id=?1 AND destination_id=?2 AND topic_id=?3 AND file_size=?4
+         WHERE (account_id=?1 OR (?2 != 'me' AND ?2 != '')) AND destination_id=?2 AND topic_id=?3 AND file_size=?4
          LIMIT 1",
         params![account_id, destination_id, topic_key, source_size as i64],
         |_| Ok(true),
@@ -443,7 +443,7 @@ pub fn record_upload_ledger(
               payload_class, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)
              ON CONFLICT(account_id, destination_id, topic_id, prepared_sha256)
-             DO UPDATE SET telegram_message_id=excluded.telegram_message_id,
+             DO UPDATE SET telegram_message_id=COALESCE(excluded.telegram_message_id, upload_ledger.telegram_message_id),
                telegram_unique_id=COALESCE(excluded.telegram_unique_id, upload_ledger.telegram_unique_id),
                filename=excluded.filename, file_size=excluded.file_size,
                payload_class=excluded.payload_class, updated_at=excluded.updated_at",

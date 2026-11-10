@@ -22,7 +22,10 @@ export function defaultDuplicateChoices(
   return Object.fromEntries(
     report.items.map((item) => [
       item.sourcePath,
-      item.duplicateMatch?.matchLevel === 'exact_sha256' ? 'skip' : 'upload',
+      item.duplicateMatch?.matchLevel === 'exact_sha256' ||
+      item.duplicateMatch?.matchLevel === 'intra_batch_exact'
+        ? 'skip'
+        : 'upload',
     ])
   );
 }
