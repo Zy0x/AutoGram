@@ -29,7 +29,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../DrivePreviewModal';
 import { buildThumbCacheKey, getThumbQuality, requestThumb } from '../../../lib/media/thumbBatcher';
@@ -351,9 +351,15 @@ function PreflightSourceThumb({
 function TelegramDuplicateThumb({
   match,
   creds,
+  onClick,
+  title,
+  ariaLabel,
 }: {
   match: QualityPreflightDuplicateMatch;
   creds: DriveCredentials | null;
+  onClick?: () => void;
+  title?: string;
+  ariaLabel?: string;
 }) {
   const { t } = useTranslation();
   const [thumb, setThumb] = useState<string | null>(null);
@@ -437,7 +443,24 @@ function TelegramDuplicateThumb({
   }, [creds, match.destinationId, match.telegramMessageId, match.topicId]);
 
   return (
-    <div className={`td-preflight-compare-media ${loading ? 'is-loading' : ''}`}>
+    <div
+      className={`td-preflight-compare-media ${loading ? 'is-loading' : ''} ${onClick ? 'is-clickable' : ''}`}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      title={title}
+      aria-label={ariaLabel}
+    >
       {thumb ? (
         <img src={thumb} alt={t('drive.preflight_existing_thumb_alt')} />
       ) : (
@@ -732,6 +755,8 @@ export function TransferPreflightDialog({
     [transferSettings, onTransferSettingsChange]
   );
 
+  const userOverriddenRef = useRef<Record<string, boolean>>({});
+
   useEffect(() => {
     if (report) {
       setChoices((prev) => {
@@ -739,11 +764,7 @@ export function TransferPreflightDialog({
         if (Object.keys(prev).length === 0) return nextDefaults;
         const merged = { ...nextDefaults };
         for (const [key, val] of Object.entries(prev)) {
-          const item = report.items.find((it) => it.sourcePath === key);
-          const isExactDup =
-            item?.duplicateMatch?.matchLevel === 'exact_sha256' ||
-            item?.duplicateMatch?.matchLevel === 'intra_batch_exact';
-          if (!isExactDup || val === 'skip') {
+          if (userOverriddenRef.current[key]) {
             merged[key] = val;
           }
         }
@@ -777,8 +798,16 @@ export function TransferPreflightDialog({
     return report?.items.filter((i) => i.transform === 'reencode').length || 0;
   }, [report]);
 
+  const canConfirm =
+    !!report &&
+    !isAnalyzing &&
+    !report.hasBlockingIssues &&
+    !isConfirming &&
+    report.items.length > 0 &&
+    (queuedCount > 0 || skippedCount > 0);
+
   const handleConfirm = useCallback(async () => {
-    if (!report || isAnalyzing || report.hasBlockingIssues || queuedCount === 0 || isConfirming) return;
+    if (!canConfirm) return;
     setIsConfirming(true);
     try {
       await Promise.resolve(onConfirm(buildPreflightReviewDecision(report, choices)));
@@ -787,19 +816,36 @@ export function TransferPreflightDialog({
     } finally {
       setIsConfirming(false);
     }
-  }, [report, isAnalyzing, choices, queuedCount, isConfirming, onConfirm]);
+  }, [canConfirm, report, choices, onConfirm]);
+
+  const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
+  const [previewTelegramMatch, setPreviewTelegramMatch] = useState<QualityPreflightDuplicateMatch | null>(null);
 
   useEffect(() => {
     if (!report) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (activePopover) {
+        if (previewItem) {
+          setPreviewItem(null);
+          e.stopPropagation();
+        } else if (previewTelegramMatch) {
+          setPreviewTelegramMatch(null);
+          e.stopPropagation();
+        } else if (activePopover) {
           setActivePopover(null);
           e.stopPropagation();
         } else {
           onCancel();
         }
-      } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !activePopover) {
+      } else if (
+        e.key === 'Enter' &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !activePopover &&
+        !previewItem &&
+        !previewTelegramMatch
+      ) {
         const target = e.target as HTMLElement | null;
         if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
         handleConfirm();
@@ -807,7 +853,7 @@ export function TransferPreflightDialog({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [report, activePopover, onCancel, handleConfirm]);
+  }, [report, activePopover, previewItem, previewTelegramMatch, onCancel, handleConfirm]);
 
   const filteredItems = useMemo(() => {
     if (!report?.items) return [];
@@ -825,8 +871,6 @@ export function TransferPreflightDialog({
     }
     return report.items;
   }, [report, activeFilter, choices]);
-
-  const [previewItem, setPreviewItem] = useState<QualityPreflightItem | null>(null);
 
   const previewFile = useMemo<DriveFile | null>(() => {
     if (!previewItem) return null;
@@ -855,6 +899,41 @@ export function TransferPreflightDialog({
       original_name: previewItem.sourceName,
     };
   }, [previewItem]);
+
+  const previewTelegramFile = useMemo<DriveFile | null>(() => {
+    if (!previewTelegramMatch || !previewTelegramMatch.telegramMessageId) return null;
+    const match = previewTelegramMatch;
+    const messageId = Number(match.telegramMessageId);
+    const ext = match.existingName.split('.').pop()?.toLowerCase() || '';
+    const kind =
+      /\.(mp4|mov|webm|m4v|3gp|flv|ts)($|\?)/i.test(match.existingName) || match.existingPayloadClass === 'native_visual'
+        ? 'video'
+        : /\.(jpe?g|png|webp|gif|bmp|heic|avif)($|\?)/i.test(match.existingName)
+        ? 'image'
+        : /\.(mp3|flac|wav|ogg|m4a|aac|opus)($|\?)/i.test(match.existingName) || match.existingPayloadClass === 'audio_group'
+        ? 'audio'
+        : ext === 'pdf'
+        ? 'pdf'
+        : ['txt', 'json', 'js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'html', 'css', 'md', 'xml', 'yaml', 'yml', 'toml'].includes(ext)
+        ? 'text'
+        : 'other';
+
+    const peerId = match.destinationId === 'me' ? 'me' : match.destinationId;
+    const folderId = peerId === 'me' ? null : Number(peerId);
+
+    return {
+      id: messageId,
+      folder_id: Number.isFinite(folderId) ? folderId : null,
+      peer_id: peerId,
+      topic_id: match.topicId ?? null,
+      name: match.existingName,
+      size: match.existingSize,
+      mime_type: null,
+      file_ext: ext,
+      icon_type: kind,
+      original_name: match.existingName,
+    };
+  }, [previewTelegramMatch]);
 
   const customPreviewSrc = useMemo(() => {
     if (!previewItem) return null;
@@ -889,13 +968,17 @@ export function TransferPreflightDialog({
   const visibleItems = filteredItems.slice(0, 100);
   const hiddenCount = Math.max(0, filteredItems.length - visibleItems.length);
   const setChoice = (path: string, choice: TransferDuplicateChoice) => {
+    userOverriddenRef.current[path] = true;
     setChoices((current) => ({ ...current, [path]: choice }));
   };
   const setAllDuplicates = (choice: TransferDuplicateChoice) => {
     setChoices((current) => {
       const next = { ...current };
       report.items.forEach((item) => {
-        if (item.duplicateMatch) next[item.sourcePath] = choice;
+        if (item.duplicateMatch) {
+          userOverriddenRef.current[item.sourcePath] = true;
+          next[item.sourcePath] = choice;
+        }
       });
       return next;
     });
@@ -906,7 +989,7 @@ export function TransferPreflightDialog({
 
   const node = (
     <>
-      <div className={`td-preflight-overlay ${hasStackedModal ? 'has-stacked-modal' : ''}`} role="presentation">
+      <div className={`td-preflight-overlay ${hasStackedModal || previewItem || previewTelegramMatch ? 'has-stacked-modal' : ''}`} role="presentation">
       <section className="td-preflight-dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-preflight-title">
         <header className="td-preflight-head">
           <div className="td-preflight-head-main">
@@ -1508,10 +1591,29 @@ export function TransferPreflightDialog({
                   <div className="td-preflight-compare-grid">
                     <section>
                       <span className="td-preflight-compare-label">{t('drive.preflight_source_file')}</span>
-                      <div className="td-preflight-compare-media">
+                      <div
+                        className="td-preflight-compare-media is-clickable"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPreviewItem(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setPreviewItem(item);
+                          }
+                        }}
+                        title={t('drive.preflight_click_to_preview')}
+                        aria-label={`${item.sourceName} - ${t('drive.preflight_click_to_preview')}`}
+                      >
                         <PreflightSourceThumb item={item} />
                       </div>
-                      <strong title={item.sourceName}>{item.sourceName}</strong>
+                      <strong
+                        title={item.sourceName}
+                        className="is-clickable"
+                        onClick={() => setPreviewItem(item)}
+                      >
+                        {item.sourceName}
+                      </strong>
                       <span>{formatDriveBytes(item.sourceSize)}</span>
                     </section>
                     <div className="td-preflight-compare-link" aria-hidden><CopyCheck size={18} /></div>
@@ -1520,16 +1622,52 @@ export function TransferPreflightDialog({
                         {duplicate.telegramMessageId ? t('drive.preflight_existing_telegram') : t('drive.preflight_intra_batch_notice')}
                       </span>
                       {duplicate.telegramMessageId ? (
-                        <TelegramDuplicateThumb match={duplicate} creds={creds} />
+                        <TelegramDuplicateThumb
+                          match={duplicate}
+                          creds={creds}
+                          onClick={() => setPreviewTelegramMatch(duplicate)}
+                          title={t('drive.preflight_click_to_preview')}
+                          ariaLabel={`${duplicate.existingName} - ${t('drive.preflight_click_to_preview')}`}
+                        />
                       ) : (
-                        <div className="td-preflight-compare-media">
+                        <div
+                          className="td-preflight-compare-media is-clickable"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            const sibling = report?.items.find((i) => i.sourceName === duplicate.existingName);
+                            if (sibling) setPreviewItem(sibling);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              const sibling = report?.items.find((i) => i.sourceName === duplicate.existingName);
+                              if (sibling) setPreviewItem(sibling);
+                            }
+                          }}
+                          title={t('drive.preflight_click_to_preview')}
+                          aria-label={`${duplicate.existingName} - ${t('drive.preflight_click_to_preview')}`}
+                        >
                           {(() => {
                             const sibling = report?.items.find((i) => i.sourceName === duplicate.existingName);
                             return sibling ? <PreflightSourceThumb item={sibling} /> : <PreflightSourceThumb item={item} />;
                           })()}
                         </div>
                       )}
-                      <strong title={duplicate.existingName}>{duplicate.existingName}</strong>
+                      <strong
+                        title={duplicate.existingName}
+                        className="is-clickable"
+                        onClick={() => {
+                          if (duplicate.telegramMessageId) {
+                            setPreviewTelegramMatch(duplicate);
+                          } else {
+                            const sibling = report?.items.find((i) => i.sourceName === duplicate.existingName);
+                            if (sibling) setPreviewItem(sibling);
+                          }
+                        }}
+                      >
+                        {duplicate.existingName}
+                      </strong>
                       <span>
                         {formatDriveBytes(duplicate.existingSize)} ·{' '}
                         {duplicate.telegramMessageId
@@ -1585,7 +1723,7 @@ export function TransferPreflightDialog({
               type="button"
               className={`td-btn-primary td-preflight-confirm-btn ${isConfirming || isAnalyzing ? 'is-loading' : ''}`}
               onClick={handleConfirm}
-              disabled={isAnalyzing || report.hasBlockingIssues || queuedCount === 0 || isConfirming}
+              disabled={!canConfirm}
             >
               {isConfirming || isAnalyzing ? (
                 <Loader2 size={14} className="td-spin animate-spin" aria-hidden />
@@ -1623,6 +1761,15 @@ export function TransferPreflightDialog({
               ? { current: currentPreviewIndex + 1, total: filteredItems.length }
               : undefined,
         }}
+      />
+    )}
+
+    {previewTelegramMatch && previewTelegramFile && (
+      <DrivePreviewModal
+        file={previewTelegramFile}
+        folderId={previewTelegramFile.folder_id}
+        creds={creds || { session: '', apiId: '0', apiHash: '' }}
+        onClose={() => setPreviewTelegramMatch(null)}
       />
     )}
   </>

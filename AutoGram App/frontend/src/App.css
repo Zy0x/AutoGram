@@ -15724,6 +15724,26 @@ section.docx *,
   background: #08111b;
   color: #62788e;
 }
+.td-preflight-compare-media.is-clickable {
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
+}
+.td-preflight-compare-media.is-clickable:hover {
+  transform: scale(1.04);
+  border-color: color-mix(in srgb, var(--accent-primary, #38bdf8) 50%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px color-mix(in srgb, var(--accent-primary, #38bdf8) 35%, transparent);
+}
+.td-preflight-compare-media.is-clickable:active {
+  transform: scale(0.97);
+}
+.td-preflight-compare-grid > section > strong.is-clickable {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.td-preflight-compare-grid > section > strong.is-clickable:hover {
+  color: var(--accent-primary, #38bdf8);
+  text-decoration: underline;
+}
 .td-preflight-compare-media img { width: 100%; height: 100%; object-fit: cover; }
 .td-preflight-compare-media.is-loading { animation: td-preflight-pulse 1.2s ease-in-out infinite; }
 @keyframes td-preflight-pulse { 50% { opacity: 0.58; } }
