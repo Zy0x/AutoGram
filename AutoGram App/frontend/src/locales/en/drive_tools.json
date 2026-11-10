@@ -1684,6 +1684,8 @@
   "preflight_send_anyway": "Send anyway",
   "preflight_include_item": "Include",
   "preflight_confirm_selection": "Queue {{queue}}, skip {{skip}}",
+  "preflight_confirm_instant_queue": "Start Queue ({{count}} files) — Auto-skip duplicates in background",
+  "preflight_analyzing_banner_with_dups": "Analyzing {{count}} files ({{dups}} duplicate(s) detected so far). You can start the queue anytime.",
   "preflight_all_duplicates_skipped": "All selected files were skipped. Nothing was added to the transfer queue.",
   "preflight_item_count": "{{count}} items analyzed",
   "preflight_limit": "Effective account limit: {{value}} per item",

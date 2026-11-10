@@ -1896,6 +1896,8 @@
   "preflight_send_anyway": "Tetap kirim",
   "preflight_include_item": "Sertakan",
   "preflight_confirm_selection": "Antrekan {{queue}}, lewati {{skip}}",
+  "preflight_confirm_instant_queue": "Mulai Antrean ({{count}} berkas) — Lewati duplikat di latar belakang",
+  "preflight_analyzing_banner_with_dups": "Menganalisis {{count}} berkas ({{dups}} duplikat terdeteksi sejauh ini). Anda dapat langsung memulai antrean kapan saja.",
   "preflight_all_duplicates_skipped": "Semua berkas terpilih dilewati. Tidak ada yang ditambahkan ke antrean transfer.",
   "preflight_item_count": "{{count}} item dianalisis",
   "preflight_limit": "Batas efektif akun: {{value}} per item",

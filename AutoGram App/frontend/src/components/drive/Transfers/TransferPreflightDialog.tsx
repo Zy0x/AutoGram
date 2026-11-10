@@ -800,11 +800,10 @@ export function TransferPreflightDialog({
 
   const canConfirm =
     !!report &&
-    !isAnalyzing &&
     !report.hasBlockingIssues &&
     !isConfirming &&
     report.items.length > 0 &&
-    (queuedCount > 0 || skippedCount > 0);
+    (isAnalyzing || queuedCount > 0 || skippedCount > 0);
 
   const handleConfirm = useCallback(async () => {
     if (!canConfirm) return;
@@ -1271,9 +1270,21 @@ export function TransferPreflightDialog({
                 <Loader2 size={14} className="animate-spin" aria-hidden />
               </div>
               <span className="td-preflight-banner-text" style={{ color: '#bfdbfe' }}>
-                {t('drive.preflight_scanning_banner', { count: report.items.length })}
+                {duplicateCount > 0
+                  ? t('drive.preflight_analyzing_banner_with_dups', { count: report.items.length, dups: duplicateCount })
+                  : t('drive.preflight_scanning_banner', { count: report.items.length })}
               </span>
             </div>
+            {duplicateCount > 0 && (
+              <div className="td-preflight-banner-actions">
+                <button type="button" className="td-banner-pill-btn" onClick={() => setAllDuplicates('skip')}>
+                  {t('drive.preflight_skip_all_duplicates')}
+                </button>
+                <button type="button" className="td-banner-pill-btn" onClick={() => setAllDuplicates('upload')}>
+                  {t('drive.preflight_send_all_duplicates')}
+                </button>
+              </div>
+            )}
             <button
               type="button"
               className={`td-preflight-info-btn ${activePopover === 'duplicate' ? 'is-active' : ''}`}
@@ -1721,18 +1732,18 @@ export function TransferPreflightDialog({
             </button>
             <button
               type="button"
-              className={`td-btn-primary td-preflight-confirm-btn ${isConfirming || isAnalyzing ? 'is-loading' : ''}`}
+              className={`td-btn-primary td-preflight-confirm-btn ${isConfirming ? 'is-loading' : ''}`}
               onClick={handleConfirm}
               disabled={!canConfirm}
             >
-              {isConfirming || isAnalyzing ? (
+              {isConfirming ? (
                 <Loader2 size={14} className="td-spin animate-spin" aria-hidden />
               ) : (
                 <Send size={14} aria-hidden />
               )}
               <span>
                 {isAnalyzing
-                  ? t('drive.preflight_analyzing_btn', { count: report.items.length })
+                  ? t('drive.preflight_confirm_instant_queue', { count: report.items.length })
                   : t('drive.preflight_confirm_selection', { queue: queuedCount, skip: skippedCount })}
               </span>
             </button>

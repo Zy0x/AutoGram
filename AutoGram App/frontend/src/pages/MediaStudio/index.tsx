@@ -7048,11 +7048,10 @@ function MediaDriveDesktop({
         setStatusText(String(t('drive.preflight_cancelled')));
         return false;
       }
-      try {
-        await reportPromise;
-      } catch {
-        /* proceed */
-      }
+      // For large batch uploads (1,000 - 10,000+ files), user can confirm instantly.
+      // Do not block queue dispatch on full preflight hash computation; Rust upload
+      // worker handles just-in-time SHA-256 and Telegram ledger deduplication in background.
+      void reportPromise.catch(() => undefined);
       const skippedPaths = new Set(decision.skippedPaths);
       const retainedIndexes = cleanPaths
         .map((path, index) => ({ path, index }))
