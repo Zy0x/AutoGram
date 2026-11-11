@@ -335,7 +335,7 @@ pub fn snapshot() -> TrafficSnapshot {
         dc_latency_ms: guard.dc_latency_ms,
         flood_wait_seconds: guard
             .flood_wait_until_ms
-            .and_then(|until| (until > now).then_some((until - now).div_ceil(1_000))),
+            .and_then(|until| until.checked_sub(now).filter(|&rem| rem > 0).map(|rem| rem.div_ceil(1_000))),
         preview_observation: if preview_alive {
             guard.preview_observation.clone()
         } else {
@@ -426,5 +426,26 @@ mod tests {
         set_data_saver(false);
         observe_preview(Some(50.0), true);
         assert_eq!(stream_buffer_pacing_ms(), None);
+    }
+
+    #[test]
+    fn expired_flood_wait_does_not_overflow_or_panic() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
+        // Simulate a flood wait timestamp in the past
+        {
+            let mut guard = state().lock();
+            guard.flood_wait_until_ms = Some(now_ms().saturating_sub(5_000));
+        }
+        let snap = snapshot();
+        assert_eq!(snap.flood_wait_seconds, None);
+
+        // Simulate an active flood wait in the future
+        {
+            let mut guard = state().lock();
+            guard.flood_wait_until_ms = Some(now_ms().saturating_add(3_500));
+        }
+        let snap2 = snapshot();
+        assert!(snap2.flood_wait_seconds.is_some_and(|s| s >= 3 && s <= 4));
     }
 }

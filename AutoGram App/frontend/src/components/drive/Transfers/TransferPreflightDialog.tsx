@@ -32,7 +32,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DrivePreviewModal } from '../DrivePreviewModal';
-import { buildThumbCacheKey, getThumbQuality, requestThumb } from '../../../lib/media/thumbBatcher';
+import { buildThumbCacheKey, getCachedThumb, getThumbQuality, requestThumb } from '../../../lib/media/thumbBatcher';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { getSessionDisplayName } from '../../../lib/telegram';
 import {
@@ -941,6 +941,8 @@ export function TransferPreflightDialog({
         ? 'text'
         : 'other';
 
+    const cachedThumb = previewItem.sourcePath ? preflightThumbCache.get(previewItem.sourcePath) : null;
+
     return {
       id: 998000000 + previewItem.index,
       folder_id: null,
@@ -950,8 +952,10 @@ export function TransferPreflightDialog({
       file_ext: ext,
       icon_type: kind,
       original_name: previewItem.sourceName,
+      account_id: creds?.session || undefined,
+      thumb_data_url: cachedThumb || undefined,
     };
-  }, [previewItem]);
+  }, [previewItem, creds?.session]);
 
   const previewTelegramFile = useMemo<DriveFile | null>(() => {
     if (!previewTelegramMatch || !previewTelegramMatch.telegramMessageId) return null;
@@ -973,6 +977,10 @@ export function TransferPreflightDialog({
 
     const peerId = match.destinationId === 'me' ? 'me' : match.destinationId;
     const folderId = peerId === 'me' ? null : Number(peerId);
+    const cachedThumb = getCachedThumb(folderId, messageId, {
+      peerId,
+      topicId: match.topicId ?? null,
+    }) || getCachedThumb(folderId, messageId);
 
     return {
       id: messageId,
@@ -985,8 +993,10 @@ export function TransferPreflightDialog({
       file_ext: ext,
       icon_type: kind,
       original_name: match.existingName,
+      account_id: creds?.session || undefined,
+      thumb_data_url: cachedThumb || undefined,
     };
-  }, [previewTelegramMatch]);
+  }, [previewTelegramMatch, creds]);
 
   const customPreviewSrc = useMemo(() => {
     if (!previewItem) return null;

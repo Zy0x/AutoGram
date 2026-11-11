@@ -3110,6 +3110,17 @@ fn take_remote_assisted_candidates(session_id: String) -> Result<Vec<String>, St
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::panic::set_hook(Box::new(|info| {
+        let msg = format!("[AUTOGRAM_PANIC_HOOK] {}", info);
+        eprintln!("{msg}");
+        if let Ok(dir) = std::env::var("AUTOGRAM_SESSIONS_DIR") {
+            let p = std::path::Path::new(&dir).parent().map(|w| w.join("temp").join("crash_panic.log"));
+            if let Some(path) = p {
+                let _ = std::fs::create_dir_all(path.parent().unwrap());
+                let _ = std::fs::write(path, msg);
+            }
+        }
+    }));
     #[cfg(debug_assertions)]
     {
         if std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").is_err() {
