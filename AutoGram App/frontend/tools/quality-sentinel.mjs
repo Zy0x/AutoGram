@@ -8,6 +8,31 @@ const srcRoot = path.join(root, 'src');
 const localesRoot = path.join(srcRoot, 'locales');
 const dbRoot = path.join(appRoot, 'database');
 
+function ensureMsvcEnvironment() {
+  if (process.platform !== 'win32') return;
+  try {
+    execSync('where link.exe', { stdio: 'ignore' });
+  } catch {
+    const initBat = path.resolve(appRoot, '..', 'build', 'init_msvc.bat');
+    if (fs.existsSync(initBat)) {
+      try {
+        const envOut = execSync(`cmd.exe /s /c ""${initBat}" >nul 2>nul && set"`, { encoding: 'utf8' });
+        for (const line of envOut.split(/\r?\n/)) {
+          const eq = line.indexOf('=');
+          if (eq > 0) {
+            const k = line.slice(0, eq);
+            const v = line.slice(eq + 1);
+            process.env[k] = v;
+          }
+        }
+      } catch {
+        // Fallback to inherited env
+      }
+    }
+  }
+}
+ensureMsvcEnvironment();
+
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
