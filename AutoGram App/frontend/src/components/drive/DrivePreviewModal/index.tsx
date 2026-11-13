@@ -1012,6 +1012,14 @@ export function DrivePreviewModal({
     setThumbsPaused(true);
     return () => {
       setThumbsPaused(false);
+      if (detectTauriRuntime()) {
+        import('@tauri-apps/api/core').then(({ invoke }) => {
+          invoke('traffic_governor_observe_preview', {
+            runwaySeconds: null,
+            playbackActive: false,
+          }).catch(() => {});
+        }).catch(() => {});
+      }
     };
   }, []);
 

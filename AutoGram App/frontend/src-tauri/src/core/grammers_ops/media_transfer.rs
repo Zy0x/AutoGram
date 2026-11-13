@@ -714,7 +714,12 @@ pub fn upload_prepared_album_blocking_with_app(
             let send_as = send_as.clone();
             let random_ids = random_ids.clone();
             let commit_id = commit_id.clone();
-            with_client(sessions_dir, identity, true, move |client| {
+            with_client_class(
+                sessions_dir,
+                identity,
+                true,
+                crate::core::session_rate::RpcClass::WriteOperation,
+                move |client| {
                 let app_handle = app_handle.clone();
                 let transfer_id = transfer_id.clone();
                 let send_as = send_as.clone();
@@ -1431,8 +1436,13 @@ fn upload_prepared_album_blocking_with_app_legacy(
     let reply_to = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            let app_handle_outer = app_handle.clone();
+        with_client_class(
+            sessions_dir,
+            identity,
+            true,
+            crate::core::session_rate::RpcClass::WriteOperation,
+            |client| {
+                let app_handle_outer = app_handle.clone();
             let tid_outer = transfer_id.clone();
             Box::pin(async move {
                 if !client
@@ -2005,8 +2015,13 @@ pub fn upload_remote_url_blocking_topic_with_app(
     let url = url.to_string();
     let rt = runtime()?;
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            let app_handle = app_handle.clone();
+        with_client_class(
+            sessions_dir,
+            identity,
+            true,
+            crate::core::session_rate::RpcClass::WriteOperation,
+            |client| {
+                let app_handle = app_handle.clone();
             let transfer_id = transfer_id.clone();
             let filename = filename.clone();
             let content_type = content_type.clone();
@@ -2358,8 +2373,13 @@ pub fn upload_file_blocking_topic_with_app(
     let reply_to = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            let app_handle_inner = app_handle.clone();
+        with_client_class(
+            sessions_dir,
+            identity,
+            true,
+            crate::core::session_rate::RpcClass::WriteOperation,
+            |client| {
+                let app_handle_inner = app_handle.clone();
             let tid_inner = transfer_id.clone();
             Box::pin(async move {
                 if !client
@@ -2687,7 +2707,12 @@ pub fn upload_file_blocking_topic_with_delivery(
             let send_as = send_as.clone();
             let path = path.clone();
             let filename = filename.clone();
-            with_client(sessions_dir, identity, true, move |client| {
+            with_client_class(
+                sessions_dir,
+                identity,
+                true,
+                crate::core::session_rate::RpcClass::WriteOperation,
+                move |client| {
                 let app_handle = app_handle.clone();
                 let transfer_id = transfer_id.clone();
                 let caption = caption.clone();
@@ -3106,8 +3131,13 @@ pub fn download_file_blocking_with_policy(
     crate::core::job_queue::clear_cancel_flag_for(&transfer_id);
 
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            Box::pin(async move {
+        with_client_class(
+            sessions_dir,
+            identity,
+            true,
+            crate::core::session_rate::RpcClass::MediaDownload,
+            |client| {
+                Box::pin(async move {
                 if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }

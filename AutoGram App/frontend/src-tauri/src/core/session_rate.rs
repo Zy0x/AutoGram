@@ -379,7 +379,7 @@ pub async fn acquire_index_slot(session: &str) -> Result<OwnedSemaphorePermit, T
 /// Acquire media-download slot (short bootstrap only — never hold for full file).
 pub async fn acquire_media_slot(session: &str) -> Result<OwnedSemaphorePermit, TgError> {
     // Fail-fast on flood (don't sleep minutes inside preview open).
-    ensure_not_flooded(session)?;
+    ensure_not_flooded_class(session, RpcClass::MediaDownload)?;
     let sem = with_rate(session, |e| e.media_sem.clone());
     match sem.clone().try_acquire_owned() {
         Ok(p) => Ok(p),
@@ -399,7 +399,7 @@ pub async fn acquire_media_slot(session: &str) -> Result<OwnedSemaphorePermit, T
 
 /// Try acquire without waiting (warm heads).
 pub fn try_acquire_media_slot(session: &str) -> Option<OwnedSemaphorePermit> {
-    if flood_remaining_secs(session).unwrap_or(0) > 0 {
+    if flood_remaining_secs_class(session, RpcClass::MediaDownload).unwrap_or(0) > 0 {
         return None;
     }
     let sem = with_rate(session, |e| e.media_sem.clone());
@@ -408,7 +408,7 @@ pub fn try_acquire_media_slot(session: &str) -> Option<OwnedSemaphorePermit> {
 
 /// Acquire high-priority preview slot (2 permits, never blocked by thumbnail batches).
 pub async fn acquire_preview_slot(session: &str) -> Result<OwnedSemaphorePermit, TgError> {
-    ensure_not_flooded(session)?;
+    ensure_not_flooded_class(session, RpcClass::MediaPreview)?;
     let sem = with_rate(session, |e| e.preview_sem.clone());
     match sem.clone().try_acquire_owned() {
         Ok(p) => Ok(p),
@@ -428,7 +428,7 @@ pub async fn acquire_preview_slot(session: &str) -> Result<OwnedSemaphorePermit,
 
 /// Acquire fast thumbnail slot (12 permits for fast image/stripped thumbs).
 pub fn try_acquire_fast_thumb_slot(session: &str) -> Option<OwnedSemaphorePermit> {
-    if flood_remaining_secs(session).unwrap_or(0) > 0 {
+    if flood_remaining_secs_class(session, RpcClass::MediaPreview).unwrap_or(0) > 0 {
         return None;
     }
     let sem = with_rate(session, |e| e.fast_sem.clone());
@@ -437,7 +437,7 @@ pub fn try_acquire_fast_thumb_slot(session: &str) -> Option<OwnedSemaphorePermit
 
 /// Acquire video thumbnail slot (4 permits for video FFmpeg frame extraction).
 pub fn try_acquire_video_thumb_slot(session: &str) -> Option<OwnedSemaphorePermit> {
-    if flood_remaining_secs(session).unwrap_or(0) > 0 {
+    if flood_remaining_secs_class(session, RpcClass::MediaPreview).unwrap_or(0) > 0 {
         return None;
     }
     let sem = with_rate(session, |e| e.video_sem.clone());
@@ -516,6 +516,19 @@ pub fn note_error(session: &str, err: &TgError) {
     }
 }
 
+/// Record a class-specific error without setting the global session lockout.
+pub fn note_error_class(session: &str, class: RpcClass, err: &TgError) {
+    if err.code() == TgErrorCode::FloodWait {
+        let secs = err
+            .flood_wait_secs()
+            .or_else(|| parse_flood_secs(&err.to_string()))
+            .unwrap_or(30);
+
+        note_flood_wait_class(session, class, secs);
+        crate::core::traffic_governor::record_flood_wait(Some(secs as u64));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -567,5 +580,30 @@ mod tests {
         let err_flood = TgError::with_flood(20, "FLOOD_WAIT_20");
         note_error(&sess, &err_flood);
         assert!(flood_remaining_secs(&sess).unwrap_or(0) >= 18);
+    }
+
+    #[test]
+    fn class_specific_flood_wait_isolates_media_preview() {
+        let sess = format!(
+            "test-session-class-isolation-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
+
+        // Record a 120s FloodWait on WriteOperation (e.g. background upload)
+        let err_write_flood = TgError::with_flood(120, "FLOOD_WAIT_120");
+        note_error_class(&sess, RpcClass::WriteOperation, &err_write_flood);
+
+        // WriteOperation must be gated
+        assert!(flood_remaining_secs_class(&sess, RpcClass::WriteOperation).unwrap_or(0) >= 100);
+
+        // MediaPreview must remain completely UNBLOCKED
+        assert_eq!(flood_remaining_secs_class(&sess, RpcClass::MediaPreview), None);
+
+        // Global session gate must NOT be locked by class-specific write error
+        assert_eq!(flood_remaining_secs(&sess), None);
     }
 }

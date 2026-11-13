@@ -210,6 +210,13 @@ pub async fn upload_file_resilient(
             chunk_len as u64,
         );
 
+        let pacing_ms = crate::core::traffic_governor::background_pacing_ms(
+            crate::core::traffic_governor::TransferDirection::Upload,
+        );
+        if pacing_ms > 0 {
+            tokio::time::sleep(Duration::from_millis(pacing_ms)).await;
+        }
+
         let elapsed_ms = last_emit_time.elapsed().as_millis();
         if elapsed_ms >= 300 || transferred_bytes == file_size {
             let elapsed_sec = (elapsed_ms as f64 / 1000.0).max(0.001);
@@ -434,6 +441,13 @@ pub async fn upload_stream_resilient<R: AsyncRead + Unpin>(
             crate::core::traffic_governor::TransferDirection::Upload,
             chunk_len as u64,
         );
+
+        let pacing_ms = crate::core::traffic_governor::background_pacing_ms(
+            crate::core::traffic_governor::TransferDirection::Upload,
+        );
+        if pacing_ms > 0 {
+            tokio::time::sleep(Duration::from_millis(pacing_ms)).await;
+        }
 
         let elapsed_ms = last_emit_time.elapsed().as_millis();
         if elapsed_ms >= 300 || transferred_bytes == total_size {

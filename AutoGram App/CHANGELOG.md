@@ -1,5 +1,24 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### MTProto Dynamic Upload Pacing & Fine-Grained RPC Class Rate Gate Isolation (`traffic_governor.rs`, `uploader.rs`, `session_rate.rs`, `client_pool.rs`, `media_transfer.rs`, `stream.rs`, `previewCache.ts`, `transferProgressStore.ts`, `DrivePreviewModal/index.tsx`)
+- **Dynamic Fair-Share Upload Pacing (`traffic_governor.rs`, `uploader.rs`, `media_transfer.rs`)**:
+  - Implemented adaptive upload pacing in `uploader.rs` (`upload_file` and `upload_stream`) and `media_transfer.rs` using `traffic_governor::background_pacing_ms(TransferDirection::Upload)`.
+  - When a user opens media or navigates previews, `stream.rs` immediately signals `traffic_governor::observe_preview(None, true)`.
+  - Background uploads automatically yield 150ms between 512KB chunks during preview handshake (`preview_waiting_metadata`) and 200ms if playback buffer is critical (`preview_runway_critical`), freeing up socket throughput and Telegram DC request slots for `messages.getMessages` and `upload.getFile`.
+  - When no preview is active or when media is comfortably buffered/idle, pacing immediately returns to 0ms, allowing uploads to run at 100% line speed.
+  - Added Rust unit test `preview_waiting_metadata_paces_upload` confirming that upload pacing automatically activates during preview handshakes and clears when idle.
+- **Fine-Grained RPC Class Isolation (`session_rate.rs`, `client_pool.rs`, `media_transfer.rs`, `stream.rs`)**:
+  - Eliminated the global collateral lockout where upload FloodWait errors (`messages.sendMedia`, `messages.sendMultiMedia`, or `upload.saveBigFilePart`) previously called `note_error` and set `e.flood_until` across the entire session, which blocked all subsequent `stream.rs` preview requests for minutes.
+  - Introduced `note_error_class(session, class, err)` and `with_client_class(sessions_dir, identity, import_if_missing, class, f)` in `client_pool.rs`. Upload and transfer routines now record errors under `RpcClass::WriteOperation`, while downloads use `RpcClass::MediaDownload`.
+  - Updated `acquire_preview_slot`, `try_acquire_fast_thumb_slot`, `try_acquire_video_thumb_slot`, and `start_preview_stream_blocking` to evaluate `flood_remaining_secs_class(&session_name, RpcClass::MediaPreview)`. Write-operation flood waits no longer block media previewing or streaming.
+  - Added Rust unit test `class_specific_flood_wait_isolates_media_preview` in `session_rate.rs` verifying that 120s WriteOperation flood gates leave `MediaPreview` 100% unblocked.
+- **Anti-Storming & Prefetch Throttling during Active Transfers (`previewCache.ts`, `transferProgressStore.ts`, `DrivePreviewModal/index.tsx`)**:
+  - Added `hasActiveTransfers()` to `transferProgressStore.ts` tracking active upload/download/encode jobs.
+  - In `previewCache.ts`, `isPreviewWarmPaused()` checks `transferProgressStore.hasActiveTransfers()`. When background transfers are running, speculative neighbor prefetching (`prefetchPreviews`) is suppressed, preventing multi-image download storms over MTProto while the user navigates.
+  - Added lifecycle cleanup in `DrivePreviewModal/index.tsx` notifying `traffic_governor_observe_preview` on modal unmount so upload pacing returns to full throughput immediately when previewing finishes.
+- **Autonomous Quality Gate Certification**:
+  - Passed all 8 automated quality gates (`npm run test:quality`): 100% i18n parity, 0 TypeScript errors, 64 Vitest tests, database schema WAL integrity, zero plaintext secrets, MTProto album invariants, and universal theme checks.
+
 ### Media Preview Force-Close Fix & Traffic Governor Overflow Guard (`traffic_governor.rs`, `lib.rs`, `Buka_AutoGram_LiveDev.bat`, `TransferPreflightDialog.tsx`)
 - **Traffic Governor Arithmetic Underflow Patch (`traffic_governor.rs`)**: Resolved a critical runtime panic where opening media previews (`DrivePreviewModal`) caused the desktop application to instantly crash / force-close with `attempt to subtract with overflow` at `src/core/traffic_governor.rs:338`. Rust's `bool::then_some` evaluates its argument eagerly; when a Telegram `FLOOD_WAIT` cooldown window expired (`now >= until`), `(until > now).then_some((until - now).div_ceil(1_000))` eagerly subtracted `now` from a smaller unsigned integer `until`, triggering an underflow panic that aborted the Tauri process. Replaced with safe checked subtraction: `until.checked_sub(now).filter(|&rem| rem > 0).map(|rem| rem.div_ceil(1_000))`. Added Rust unit test `expired_flood_wait_does_not_overflow_or_panic` confirming zero panics across past, present, and future flood wait timestamps.
 - **Global Panic Hook & Diagnostics (`lib.rs`)**: Installed a global Rust panic hook in `src-tauri/src/lib.rs` that logs panic traces directly to `worker/temp/crash_panic.log` and stderr, ensuring that any future panic details are retained and fully diagnosable.

@@ -276,15 +276,26 @@ fn governor_reason(state: &GovernorState, now: u64) -> &'static str {
     }
 }
 
-/// Delay background chunks only while an actual playing preview is at risk.
-/// The maximum is deliberately tiny; it is removed as soon as runway recovers.
-pub fn background_pacing_ms(_direction: TransferDirection) -> u64 {
+/// Delay background chunks only while an actual playing preview is at risk
+/// or when a preview has just opened and is handshaking initial metadata.
+pub fn background_pacing_ms(direction: TransferDirection) -> u64 {
     let guard = state().lock();
-    match governor_reason(&guard, now_ms()) {
-        "preview_runway_critical" => 3,
-        "preview_runway_recovering" => 1,
-        "telegram_cooldown" => 0,
-        _ => 0,
+    let now = now_ms();
+    let preview_alive = now.saturating_sub(guard.preview_active_at_ms) <= 15_000;
+    if !preview_alive {
+        return 0;
+    }
+    match direction {
+        TransferDirection::Upload | TransferDirection::Download => {
+            match governor_reason(&guard, now) {
+                "preview_waiting_metadata" => 150,
+                "preview_runway_critical" => 200,
+                "preview_runway_recovering" => 100,
+                "telegram_cooldown" => 0,
+                _ => 0,
+            }
+        }
+        TransferDirection::Stream => 0,
     }
 }
 
@@ -365,6 +376,18 @@ mod tests {
         assert_eq!(background_pacing_ms(TransferDirection::Download), 0);
         observe_preview(Some(3.5), true);
         assert!(background_pacing_ms(TransferDirection::Upload) > 0);
+        observe_preview(None, false);
+        assert_eq!(background_pacing_ms(TransferDirection::Upload), 0);
+    }
+
+    #[test]
+    fn preview_waiting_metadata_paces_upload() {
+        let _lock = TEST_MUTEX.lock();
+        reset_state();
+        // When preview starts and is waiting for metadata (handshake), upload must pace
+        observe_preview(None, true);
+        assert_eq!(background_pacing_ms(TransferDirection::Upload), 150);
+        // Idle preview clears pacing
         observe_preview(None, false);
         assert_eq!(background_pacing_ms(TransferDirection::Upload), 0);
     }

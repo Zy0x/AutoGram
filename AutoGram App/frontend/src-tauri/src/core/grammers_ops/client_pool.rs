@@ -255,10 +255,11 @@ pub(crate) async fn connect_client(
     })
 }
 
-pub(crate) async fn with_client<F, T>(
+pub(crate) async fn with_client_class<F, T>(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
     import_if_missing: bool,
+    class: crate::core::session_rate::RpcClass,
     f: F,
 ) -> Result<T, TgError>
 where
@@ -303,11 +304,34 @@ where
             );
         }
         Err(e) => {
-            // Record FLOOD_WAIT so preview/warm stop hammering Telegram.
-            crate::core::session_rate::note_error(&identity.session, e);
+            // Record class-specific FLOOD_WAIT without locking unrelated RPC classes.
+            crate::core::session_rate::note_error_class(&identity.session, class, e);
         }
     }
     result
+}
+
+pub(crate) async fn with_client<F, T>(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    import_if_missing: bool,
+    f: F,
+) -> Result<T, TgError>
+where
+    F: for<'a> FnOnce(
+        &'a Client,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>,
+    >,
+{
+    with_client_class(
+        sessions_dir,
+        identity,
+        import_if_missing,
+        crate::core::session_rate::RpcClass::GeneralRead,
+        f,
+    )
+    .await
 }
 
 /// Re-run an async MTProto op when the SenderPool dies mid-request.

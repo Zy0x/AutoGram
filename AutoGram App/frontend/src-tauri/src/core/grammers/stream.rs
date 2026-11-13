@@ -724,14 +724,15 @@ pub fn start_preview_stream_blocking(
     let chat = chat_id.to_string();
     let session_name = identity.session.clone();
     register_preview_request(&session_name, consumer_id, request_id);
+    crate::core::traffic_governor::observe_preview(None, true);
     let key = preview_key(&session_name, &chat, message_id);
     let cache_generation = preview_cache_generation().load(Ordering::SeqCst);
 
     // Fail-fast during active FloodWait window to avoid thread blocking or MTProto hammering.
-    if let Some(secs) = session_rate::flood_remaining_secs(&session_name) {
+    if let Some(secs) = session_rate::flood_remaining_secs_class(&session_name, session_rate::RpcClass::MediaPreview) {
         if secs > 0 {
             let e = TgError::with_flood(secs, "FLOOD_WAIT");
-            session_rate::note_error(&session_name, &e);
+            session_rate::note_error_class(&session_name, session_rate::RpcClass::MediaPreview, &e);
             return Err(e);
         }
     }
@@ -805,7 +806,7 @@ pub fn start_preview_stream_blocking(
                 insert_live_preview(key, r.clone());
             }
         } else if let Err(e) = &result {
-            session_rate::note_error(&identity.session, e);
+            session_rate::note_error_class(&identity.session, session_rate::RpcClass::MediaPreview, e);
         }
         return result;
     }
@@ -827,7 +828,7 @@ pub fn start_preview_stream_blocking(
         {
             insert_live_preview(key.clone(), r.clone());
         }
-        Err(e) => session_rate::note_error(&identity.session, e),
+        Err(e) => session_rate::note_error_class(&identity.session, session_rate::RpcClass::MediaPreview, e),
         _ => {}
     }
 
@@ -873,7 +874,7 @@ fn start_preview_stream_inner(
         let _preview_permit = session_rate::acquire_preview_slot(&session_name).await?;
 
         // Smart wait if flood duration is short (<= 35s), otherwise fail fast
-        session_rate::wait_if_flooded_capped(&session_name, Duration::from_secs(35)).await?;
+        session_rate::wait_if_flooded_class(&session_name, session_rate::RpcClass::MediaPreview).await?;
 
         let live = obtain_live_client(sessions_dir, identity, true, false).await?;
         let client = &live.client;
@@ -887,7 +888,7 @@ fn start_preview_stream_inner(
             Ok(m) => m,
             Err(e) => {
                 let err = map_invocation(&e);
-                session_rate::note_error(&session_name, &err);
+                session_rate::note_error_class(&session_name, session_rate::RpcClass::MediaPreview, &err);
                 let err_str = err.to_string();
                 let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
                 if is_timeout {
@@ -922,7 +923,7 @@ fn start_preview_stream_inner(
                             .await
                             .map_err(|retry_err| {
                                 let mapped = map_invocation(&retry_err);
-                                session_rate::note_error(&session_name, &mapped);
+                                session_rate::note_error_class(&session_name, session_rate::RpcClass::MediaPreview, &mapped);
                                 mapped
                             })?
                     } else {
@@ -943,7 +944,7 @@ fn start_preview_stream_inner(
                                 .await
                                 .map_err(|retry_err| {
                                     let mapped = map_invocation(&retry_err);
-                                    session_rate::note_error(&session_name, &mapped);
+                                    session_rate::note_error_class(&session_name, session_rate::RpcClass::MediaPreview, &mapped);
                                     mapped
                                 })?
                         } else {
@@ -1806,7 +1807,7 @@ fn start_preview_stream_inner(
                     Ok(Some(_)) | Ok(None) => break,
                     Err(e) => {
                         let err = map_invocation(&e);
-                        session_rate::note_error(&session_name, &err);
+                        session_rate::note_error_class(&session_name, session_rate::RpcClass::MediaPreview, &err);
                         if err.code() == TgErrorCode::FloodWait {
                             if let Some(secs) = err.flood_wait_secs() {
                                 if secs <= 35 {
@@ -2246,7 +2247,7 @@ fn start_preview_stream_inner(
                                     }
                                     Err(e) => {
                                         let mapped = map_invocation(&e);
-                                        session_rate::note_error(&session_bg, &mapped);
+                                        session_rate::note_error_class(&session_bg, session_rate::RpcClass::MediaPreview, &mapped);
                                         if mapped.code() == TgErrorCode::FloodWait {
                                             if let Some(secs) = mapped.flood_wait_secs() {
                                                 crate::core::traffic_governor::record_flood_wait(Some(u64::from(secs)));
@@ -2521,7 +2522,7 @@ pub fn warm_preview_head_blocking(
             .await
             .map_err(|e| {
                 let err = map_invocation(&e);
-                session_rate::note_error(&identity.session, &err);
+                session_rate::note_error_class(&identity.session, session_rate::RpcClass::MediaPreview, &err);
                 err
             })?;
         let msg = msgs.into_iter().flatten().next().ok_or_else(|| {
@@ -2554,7 +2555,7 @@ pub fn warm_preview_head_blocking(
                 Ok(Some(_)) | Ok(None) => break,
                 Err(e) => {
                     let err = map_invocation(&e);
-                    session_rate::note_error(&identity.session, &err);
+                    session_rate::note_error_class(&identity.session, session_rate::RpcClass::MediaPreview, &err);
                     return Err(err);
                 }
             }

@@ -251,6 +251,19 @@ class TransferProgressStore {
       this.notify();
     }).catch((err) => console.warn('Tauri event transfer-progress listen error:', err));
   }
+
+  hasActiveTransfers(): boolean {
+    for (const job of this.jobs.values()) {
+      if (
+        job.activeStage === 'upload' ||
+        job.activeStage === 'download' ||
+        job.activeStage === 'encode'
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 export const transferProgressStore = new TransferProgressStore();

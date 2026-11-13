@@ -4,6 +4,7 @@
  */
 import type { DriveCredentials } from '../telegram/driveApi';
 import { drivePreview, drivePreviewWarm } from '../telegram/driveApi';
+import { transferProgressStore } from '../../stores/transferProgressStore';
 
 export type CachedPreview = {
   data_url?: string | null;
@@ -285,7 +286,9 @@ export function pausePreviewWarm(ms = 35_000): void {
 }
 
 export function isPreviewWarmPaused(): boolean {
-  return Date.now() < warmPausedUntil;
+  if (Date.now() < warmPausedUntil) return true;
+  if (transferProgressStore.hasActiveTransfers()) return true;
+  return false;
 }
 
 function noteFloodFromError(err: unknown): void {
