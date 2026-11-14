@@ -28,10 +28,11 @@ else
     exit 1
 fi
 
+export PYTHONUNBUFFERED=1
 echo -e "\033[1m\033[96m>> Menjalankan AutoGram Smart Uploader via $PYTHON_BIN...\033[0m"
 
-# Jalankan script python dengan argumen yang diberikan (atau default 500)
-"$PYTHON_BIN" "$PYTHON_SCRIPT" "$@"
+# Jalankan script python unbuffered dengan argumen yang diberikan
+"$PYTHON_BIN" -u "$PYTHON_SCRIPT" "$@"
 
 EXIT_CODE=$?
 exit $EXIT_CODE

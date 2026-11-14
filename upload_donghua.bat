@@ -14,7 +14,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-python "%PYTHON_SCRIPT%" %*
+python -u "%PYTHON_SCRIPT%" %*
 
 if %errorlevel% neq 0 (
     echo.

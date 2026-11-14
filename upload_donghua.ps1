@@ -20,5 +20,6 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-& python $PythonScript $ArgsList
+$env:PYTHONUNBUFFERED = "1"
+& python -u $PythonScript $ArgsList
 exit $LASTEXITCODE
