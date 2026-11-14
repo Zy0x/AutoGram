@@ -1,5 +1,14 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
+### Dedicated Smart Media Uploader Script (`tools/upload_donghua/`, `upload_donghua.sh`, `upload_donghua.bat`, `upload_donghua.ps1`)
+- **Autonomous Local MTProto Media Uploader**:
+  - Implemented standalone CLI and bash script (`upload_donghua.sh`), batch script (`upload_donghua.bat`), and PowerShell launcher (`upload_donghua.ps1`) powered by pure local Telethon MTProto engine (`tools/upload_donghua/upload_donghua.py`).
+  - Directly matches active AutoGram settings for `'U8542241823/D-1003214112048/T8'` (`#Gudang` -> `Donghua NSFW` topic 8): 10-media visual album limit, silent delivery (`silent=True`), single caption collage layout, and zero AI tokens.
+  - **Batch Limit & Verified Deletion**: Batches files strictly at 500 media per run from `E:\Data\Upload\Dong`. Successfully uploaded files are deleted from the local disk immediately and only after 100% verified confirmation by the Telegram server. Failed uploads remain untouched in the source folder.
+  - **Intelligent Crash & Restart Recovery**: Built-in SQLite ledger (`upload_ledger_donghua.sqlite`) tracks uploaded files and hashes. In case of abrupt reboot, power cut, or terminal termination, re-running the script automatically recovers, resumes seamlessly, and prevents duplicate uploads.
+  - **Real-Time Telemetry & Progress Display**: Interactive terminal progress bar displaying live percentage, upload throughput (MB/s), freed disk space, remaining file counts, and countdown timers for FloodWait rate limits.
+
+
 ### MTProto Dynamic Upload Pacing & Fine-Grained RPC Class Rate Gate Isolation (`traffic_governor.rs`, `uploader.rs`, `session_rate.rs`, `client_pool.rs`, `media_transfer.rs`, `stream.rs`, `previewCache.ts`, `transferProgressStore.ts`, `DrivePreviewModal/index.tsx`)
 - **Dynamic Fair-Share Upload Pacing (`traffic_governor.rs`, `uploader.rs`, `media_transfer.rs`)**:
   - Implemented adaptive upload pacing in `uploader.rs` (`upload_file` and `upload_stream`) and `media_transfer.rs` using `traffic_governor::background_pacing_ms(TransferDirection::Upload)`.
