@@ -404,20 +404,77 @@ def find_ffmpeg_binary(repo_root: Optional[Path] = None) -> Optional[Path]:
     return None
 
 
+class PlannedAlbum:
+    def __init__(self, album_type: str, files: List[Path]):
+        self.album_type = album_type  # "visual" (Kolase Foto/Video) or "document" (Dokumen Asli Mentah)
+        self.files = files
+        self.force_document = (album_type == "document")
+
+
+def is_native_visual(path: Path) -> bool:
+    """
+    Sesuai autogram-core/src/transfer/quality.rs:
+    Hanya file berekstensi JPEG asli (.jpg, .jpeg, .jfif) dan MP4 yang masuk ke NativeVisual.
+    Seluruh format lainnya (PNG, WebP, GIF, BMP, TIFF, HEIC, MKV, ZIP, dll) masuk ke Dokumen Asli (DocumentGroup).
+    """
+    ext = path.suffix.lower()
+    return ext in {".jpg", ".jpeg", ".jfif", ".mp4"}
+
+
+def plan_media_batches_clustered(files: List[Path], max_album_size: int = 10, mode: str = "auto_raw") -> List[PlannedAlbum]:
+    """
+    Membagi berkas ke dalam album cerdas sesuai arsitektur AutoGram:
+    - Mode 'auto_raw' (Default Pintar): Mengelompokkan NativeVisual (.jpg, .mp4) ke dalam Kolase Grid
+      dan format lainnya (.png, .webp, dll) ke dalam Dokumen Asli uncompressed tanpa penurunan kualitas.
+    - Mode 'all_document': Seluruh berkas dipaksa dikirim sebagai Dokumen Asli.
+    - Mode 'transcode': Mengonversi format gambar non-standar ke JPEG untuk disatukan dalam album visual.
+    """
+    if not files:
+        return []
+
+    if mode == "all_document":
+        chunks = partition_album_batches(files, max_album_size)
+        return [PlannedAlbum("document", c) for c in chunks]
+
+    if mode == "transcode":
+        chunks = partition_album_batches(files, max_album_size)
+        return [PlannedAlbum("visual", c) for c in chunks]
+
+    # Mode 'auto_raw' (Arsitektur AutoGram):
+    visual_files = []
+    document_files = []
+    for f in files:
+        if is_native_visual(f):
+            visual_files.append(f)
+        else:
+            document_files.append(f)
+
+    planned_albums = []
+    if visual_files:
+        for chunk in partition_album_batches(visual_files, max_album_size):
+            planned_albums.append(PlannedAlbum("visual", chunk))
+    if document_files:
+        for chunk in partition_album_batches(document_files, max_album_size):
+            planned_albums.append(PlannedAlbum("document", chunk))
+
+    return planned_albums
+
+
 def prepare_media_for_telegram(
     file_path: Path,
     ffmpeg_bin: Optional[Path],
     temp_dir: Path,
-    item_index: int = 0
+    item_index: int = 0,
+    enable_transcode: bool = False
 ) -> Tuple[Path, bool, str]:
     """
-    Menyiapkan media sebelum dikirimkan ke Telegram sesuai standar AutoGram media_prep.
-    - Format gambar non-standar (PNG, WebP, BMP, TIFF, HEIC, AVIF, GIF) ditranscode ke JPEG Q92-95 (Q2)
-      agar album visual Telegram utuh dan tidak broken/gagal.
-    - Format video non-MP4 (MKV, WebM, AVI, MOV) ditranscode/remux ke MP4 H.264/AAC (+faststart).
-    - Format yang sudah standar (.jpg, .jpeg, .mp4) langsung dikirim tanpa konversi (0 overhead).
-    Mengembalikan (prepared_path, is_temp, transcode_type).
+    Menyiapkan media sebelum dikirimkan ke Telegram.
+    - Jika enable_transcode=False (default Dokumen Asli): berkas dilewatkan langsung 100% utuh tanpa konversi.
+    - Jika enable_transcode=True: format non-standar dikonversi ke JPEG Q95 / MP4 via FFmpeg.
     """
+    if not enable_transcode:
+        return file_path, False, "passthrough_original"
+
     ext = file_path.suffix.lower()
 
     if ext in IMAGE_TRANSCODE_EXTS:
@@ -569,40 +626,62 @@ async def run_uploader(args):
     filter_list = [a.strip() for a in args.accounts.split(",") if a.strip()] if args.accounts else None
     pool = await build_account_pool(repo_root, args.chat, filter_accounts=filter_list)
 
-    # 2.5 Inisialisasi Transcoder Engine AutoGram (FFmpeg)
-    ffmpeg_bin = find_ffmpeg_binary(repo_root)
-    if ffmpeg_bin:
-        print(f"\n{CLR_BLUE}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg AutoGram terdeteksi: {CLR_GREEN}{ffmpeg_bin}{CLR_RESET}")
-        print(f"  ✔ Auto-Transcode Aktif: Incompatible Images (PNG/WebP/BMP/TIFF/HEIC/AVIF) -> JPEG Q95")
-        print(f"  ✔ Auto-Transcode Aktif: Incompatible Videos (MKV/WebM/AVI/MOV) -> MP4 H.264/AAC")
+    # 2.5 Inisialisasi Mode Format & Engine AutoGram
+    enable_transcode = (args.mode == "transcode")
+    ffmpeg_bin = find_ffmpeg_binary(repo_root) if enable_transcode else None
+    if enable_transcode:
+        if ffmpeg_bin:
+            print(f"\n{CLR_BLUE}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg AutoGram terdeteksi: {CLR_GREEN}{ffmpeg_bin}{CLR_RESET} (Mode Transcode Aktif)")
+        else:
+            print(f"\n{CLR_YELLOW}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg tidak ditemukan. Berkas non-standar akan dikirim sebagai Dokumen Asli.")
+    elif args.mode == "all_document":
+        print(f"\n{CLR_YELLOW}[MANAGEMENT ENGINE]{CLR_RESET} Mode {CLR_BOLD}All Document (Dokumen Asli){CLR_RESET} Aktif:")
+        print(f"  ✔ Seluruh berkas dikirim sebagai Dokumen Asli Lossless (100% Bit-Exact Uncompressed, max {args.album_size}/grup)")
     else:
-        print(f"\n{CLR_YELLOW}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg tidak ditemukan. Transcoding dinonaktifkan.")
+        print(f"\n{CLR_GREEN}[MANAGEMENT ENGINE]{CLR_RESET} Mode {CLR_BOLD}AutoGram Smart Grid & Document{CLR_RESET} Aktif:")
+        print(f"  ✔ JPG/MP4      -> Kolase Visual Grid (Maksimal {args.album_size} media/album)")
+        print(f"  ✔ PNG/WebP/dll -> Dokumen Asli Lossless (100% Bit-Exact Uncompressed, Maksimal {args.album_size} media/grup)")
 
     temp_prep_dir = Path(tempfile.gettempdir()) / "autogram_upload_prep"
-    temp_prep_dir.mkdir(parents=True, exist_ok=True)
+    if enable_transcode:
+        temp_prep_dir.mkdir(parents=True, exist_ok=True)
 
-    # 3. Bagi menjadi album-album
-    album_batches = partition_album_batches(batch_files, max_album_size=args.album_size)
-    total_albums = len(album_batches)
+    # 3. Analisis & Rencana Pengiriman Cerdas AutoGram (Grid & Album Management)
+    planned_albums = plan_media_batches_clustered(batch_files, max_album_size=args.album_size, mode=args.mode)
+    total_albums = len(planned_albums)
 
-    print(f"\n{CLR_GREEN}[START]{CLR_RESET} Memulai pengiriman {len(batch_files)} file dalam {total_albums} album visual dengan rotasi multi-akun...\n")
+    v_count = sum(1 for p in planned_albums if not p.force_document)
+    d_count = sum(1 for p in planned_albums if p.force_document)
+    print(f"\n{CLR_CYAN}[ALBUM PLANNER AUTO]{CLR_RESET} Rencana pengiriman {CLR_BOLD}{len(batch_files)}{CLR_RESET} berkas dalam {CLR_BOLD}{total_albums}{CLR_RESET} grup:")
+    if v_count > 0:
+        vf_num = sum(len(p.files) for p in planned_albums if not p.force_document)
+        print(f"  * {CLR_CYAN}Kolase Grid Visual{CLR_RESET} : {v_count} album ({vf_num} berkas .jpg/.mp4)")
+    if d_count > 0:
+        df_num = sum(len(p.files) for p in planned_albums if p.force_document)
+        print(f"  * {CLR_YELLOW}Dokumen Asli Mentah{CLR_RESET}: {d_count} grup ({df_num} berkas .png/non-standar)")
+
+    print(f"\n{CLR_GREEN}[START]{CLR_RESET} Memulai pengiriman dengan rotasi multi-akun...\n")
 
     uploaded_files_count = 0
     deleted_files_count = 0
     freed_bytes = 0
     start_time = time.time()
 
-    for album_idx, album_files in enumerate(album_batches, start=1):
+    for album_idx, album_obj in enumerate(planned_albums, start=1):
         if g_shutdown_requested:
             print(f"\n{CLR_YELLOW}[INTERRUPTED] Pengunggahan dihentikan secara aman oleh pengguna.{CLR_RESET}")
             break
 
-        # Siapkan media (transcode on-the-fly jika format non-standar Telegram)
+        album_files = album_obj.files
+        is_doc = album_obj.force_document
+        type_badge = f"{CLR_YELLOW}[DOKUMEN ASLI]{CLR_RESET}" if is_doc else f"{CLR_CYAN}[KOLASE GRID]{CLR_RESET}"
+
+        # Siapkan media (jika mode transcode diaktifkan)
         prepared_items: List[Tuple[Path, Path, bool, str]] = []
         for f_idx, orig_f in enumerate(album_files):
-            prep_p, is_tmp, t_type = prepare_media_for_telegram(orig_f, ffmpeg_bin, temp_prep_dir, f_idx)
+            prep_p, is_tmp, t_type = prepare_media_for_telegram(orig_f, ffmpeg_bin, temp_prep_dir, f_idx, enable_transcode=enable_transcode)
             if is_tmp:
-                print(f"  ⚡ {CLR_YELLOW}[TRANSCODE]{CLR_RESET} {orig_f.name} ({orig_f.suffix}) -> {prep_p.name} ({format_size(prep_p.stat().st_size)}) [AutoGram Engine]")
+                print(f"  ⚡ {CLR_YELLOW}[TRANSCODE]{CLR_RESET} {orig_f.name} ({orig_f.suffix}) -> {prep_p.name} ({format_size(prep_p.stat().st_size)})")
             prepared_items.append((orig_f, prep_p, is_tmp, t_type))
 
         file_paths_str = [str(item[1]) for item in prepared_items]
@@ -611,7 +690,7 @@ async def run_uploader(args):
         if args.dry_run:
             acc, _ = pool.get_account_for_album()
             acc_name = acc.display_name() if acc else "DryRun-Sim"
-            print(f"{CLR_BOLD}{CLR_CYAN}[ALBUM {album_idx:02d}/{total_albums:02d}]{CLR_RESET} [{CLR_MAGENTA}Akun: {acc_name}{CLR_RESET}] Mengirim {len(album_files)} media ({format_size(album_bytes)})...")
+            print(f"{CLR_BOLD}[GRUP {album_idx:02d}/{total_albums:02d}] {type_badge} [{CLR_MAGENTA}Akun: {acc_name}{CLR_RESET}] Mengirim {len(album_files)} berkas ({format_size(album_bytes)})...")
             for orig_f, prep_p, is_tmp, _ in prepared_items:
                 note = f" -> Transcoded to {prep_p.name}" if is_tmp else ""
                 print(f"  -> {CLR_WHITE}{orig_f.name}{CLR_RESET} ({format_size(orig_f.stat().st_size)}){note}")
@@ -638,7 +717,7 @@ async def run_uploader(args):
         if g_shutdown_requested or not account:
             break
 
-        print(f"{CLR_BOLD}{CLR_CYAN}[ALBUM {album_idx:02d}/{total_albums:02d}]{CLR_RESET} [{CLR_MAGENTA}Akun: {account.label} (@{account.username}){CLR_RESET}] Mengirim {len(album_files)} media ({format_size(album_bytes)})...")
+        print(f"{CLR_BOLD}[GRUP {album_idx:02d}/{total_albums:02d}] {type_badge} [{CLR_MAGENTA}Akun: {account.label} (@{account.username}){CLR_RESET}] Mengirim {len(album_files)} berkas ({format_size(album_bytes)})...")
         for f in album_files:
             print(f"  -> {CLR_WHITE}{f.name}{CLR_RESET} ({format_size(f.stat().st_size)})")
 
@@ -665,7 +744,7 @@ async def run_uploader(args):
                     file_paths_str,
                     reply_to=args.topic,
                     silent=True,
-                    force_document=False,
+                    force_document=album_obj.force_document,
                     progress_callback=upload_progress
                 )
                 print()  # newline
@@ -778,7 +857,7 @@ async def run_uploader(args):
                 if not single_acc:
                     break
 
-                prep_p, is_tmp, _ = prepare_media_for_telegram(single_file, ffmpeg_bin, temp_prep_dir, 0)
+                prep_p, is_tmp, _ = prepare_media_for_telegram(single_file, ffmpeg_bin, temp_prep_dir, 0, enable_transcode=enable_transcode)
                 try:
                     await single_acc.ensure_connected()
                     s_res = await single_acc.client.send_file(
@@ -786,7 +865,7 @@ async def run_uploader(args):
                         str(prep_p),
                         reply_to=args.topic,
                         silent=True,
-                        force_document=False
+                        force_document=album_obj.force_document
                     )
                     if s_res and s_res.id > 0:
                         f_sz = single_file.stat().st_size
@@ -852,6 +931,7 @@ def main():
     parser.add_argument("--album-size", type=int, default=DEFAULT_ALBUM_SIZE, help=f"Banyak media per album visual (default: {DEFAULT_ALBUM_SIZE})")
     parser.add_argument("--accounts", default="", help="Pilih akun tertentu dipisahkan koma (default: seluruh akun aktif)")
     parser.add_argument("--strategy", default="round_robin", choices=["round_robin", "failover_only"], help="Strategi multi-akun (default: round_robin)")
+    parser.add_argument("--mode", default="auto_raw", choices=["auto_raw", "all_document", "transcode"], help="Mode pengiriman media: 'auto_raw' (default: JPG/MP4 kolase visual, PNG/lainnya Dokumen Asli uncompressed), 'all_document' (semua dokumen asli), 'transcode' (convert non-standar ke JPEG)")
     parser.add_argument("--dry-run", action="store_true", help="Simulasi tanpa benar-benar upload dan hapus file")
 
     args = parser.parse_args()
