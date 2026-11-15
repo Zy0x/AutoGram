@@ -32,6 +32,9 @@ import signal
 import argparse
 import asyncio
 import ipaddress
+import subprocess
+import tempfile
+import shutil
 from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
 
@@ -63,8 +66,13 @@ API_HASH = "b18441a1ed607e10a39a6b584d3034f9"
 
 SUPPORTED_EXTENSIONS = (
     ".jpg", ".jpeg", ".png", ".webp", ".gif",
-    ".mp4", ".mov", ".mkv", ".webm", ".avi"
+    ".mp4", ".mov", ".mkv", ".webm", ".avi",
+    ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"
 )
+
+# Format yang membutuhkan konversi (transcoding) otomatis agar album Telegram tidak gagal / pecah
+IMAGE_TRANSCODE_EXTS = {".png", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"}
+VIDEO_TRANSCODE_EXTS = {".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv"}
 
 # ANSI Color Codes
 CLR_RESET   = "\033[0m"
@@ -378,6 +386,112 @@ def partition_album_batches(files: List[Path], max_album_size: int = 10) -> List
     return batches
 
 
+def find_ffmpeg_binary(repo_root: Optional[Path] = None) -> Optional[Path]:
+    candidates = []
+    if repo_root:
+        candidates.append(repo_root / "bin" / "ffmpeg.exe")
+        candidates.append(repo_root / "bin" / "ffmpeg")
+    candidates.append(Path(r"F:\AutoGram\bin\ffmpeg.exe"))
+    candidates.append(Path(r"F:\AutoGram\bin\ffmpeg"))
+
+    which_ff = shutil.which("ffmpeg")
+    if which_ff:
+        candidates.append(Path(which_ff))
+
+    for c in candidates:
+        if c and c.is_file():
+            return c
+    return None
+
+
+def prepare_media_for_telegram(
+    file_path: Path,
+    ffmpeg_bin: Optional[Path],
+    temp_dir: Path,
+    item_index: int = 0
+) -> Tuple[Path, bool, str]:
+    """
+    Menyiapkan media sebelum dikirimkan ke Telegram sesuai standar AutoGram media_prep.
+    - Format gambar non-standar (PNG, WebP, BMP, TIFF, HEIC, AVIF, GIF) ditranscode ke JPEG Q92-95 (Q2)
+      agar album visual Telegram utuh dan tidak broken/gagal.
+    - Format video non-MP4 (MKV, WebM, AVI, MOV) ditranscode/remux ke MP4 H.264/AAC (+faststart).
+    - Format yang sudah standar (.jpg, .jpeg, .mp4) langsung dikirim tanpa konversi (0 overhead).
+    Mengembalikan (prepared_path, is_temp, transcode_type).
+    """
+    ext = file_path.suffix.lower()
+
+    if ext in IMAGE_TRANSCODE_EXTS:
+        if not ffmpeg_bin:
+            return file_path, False, "passthrough_no_ffmpeg"
+
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        out_jpg = temp_dir / f"{file_path.stem}_{os.getpid()}_{item_index}_{int(time.time()*1000)}.jpg"
+
+        # Sesuai formula media_prep_image.rs AutoGram:
+        # -pix_fmt yuvj444p -q:v 2 (approx JPEG Q92-95 Maximum Fidelity)
+        cmd = [
+            str(ffmpeg_bin),
+            "-hide_banner",
+            "-loglevel", "error",
+            "-nostdin",
+            "-y",
+            "-i", str(file_path),
+            "-vframes", "1",
+            "-pix_fmt", "yuvj444p",
+            "-q:v", "2",
+            str(out_jpg)
+        ]
+        try:
+            res = subprocess.run(cmd, capture_output=True, timeout=60)
+            if res.returncode == 0 and out_jpg.is_file() and out_jpg.stat().st_size > 0:
+                return out_jpg, True, "image_transcode_jpg"
+            else:
+                err_str = res.stderr.decode("utf-8", errors="ignore").strip()
+                print(f"  {CLR_YELLOW}[WARN] Transcode gambar gagal ({err_str}), menggunakan file asli.{CLR_RESET}")
+                return file_path, False, "transcode_failed"
+        except Exception as ex:
+            print(f"  {CLR_YELLOW}[WARN] Gagal menjalankan FFmpeg untuk gambar: {ex}{CLR_RESET}")
+            return file_path, False, "transcode_error"
+
+    elif ext in VIDEO_TRANSCODE_EXTS:
+        if not ffmpeg_bin:
+            return file_path, False, "passthrough_no_ffmpeg"
+
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        out_mp4 = temp_dir / f"{file_path.stem}_{os.getpid()}_{item_index}_{int(time.time()*1000)}.mp4"
+
+        # Sesuai formula media_prep.rs AutoGram untuk video:
+        # H.264 + AAC + faststart
+        cmd = [
+            str(ffmpeg_bin),
+            "-hide_banner",
+            "-loglevel", "error",
+            "-nostdin",
+            "-y",
+            "-i", str(file_path),
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "22",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
+            str(out_mp4)
+        ]
+        try:
+            res = subprocess.run(cmd, capture_output=True, timeout=300)
+            if res.returncode == 0 and out_mp4.is_file() and out_mp4.stat().st_size > 0:
+                return out_mp4, True, "video_transcode_mp4"
+            else:
+                err_str = res.stderr.decode("utf-8", errors="ignore").strip()
+                print(f"  {CLR_YELLOW}[WARN] Transcode video gagal ({err_str}), menggunakan file asli.{CLR_RESET}")
+                return file_path, False, "transcode_failed"
+        except Exception as ex:
+            print(f"  {CLR_YELLOW}[WARN] Gagal menjalankan FFmpeg untuk video: {ex}{CLR_RESET}")
+            return file_path, False, "transcode_error"
+
+    return file_path, False, "passthrough"
+
+
 # =============================================================================
 # MAIN SMART UPLOADER ENGINE
 # =============================================================================
@@ -455,6 +569,18 @@ async def run_uploader(args):
     filter_list = [a.strip() for a in args.accounts.split(",") if a.strip()] if args.accounts else None
     pool = await build_account_pool(repo_root, args.chat, filter_accounts=filter_list)
 
+    # 2.5 Inisialisasi Transcoder Engine AutoGram (FFmpeg)
+    ffmpeg_bin = find_ffmpeg_binary(repo_root)
+    if ffmpeg_bin:
+        print(f"\n{CLR_BLUE}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg AutoGram terdeteksi: {CLR_GREEN}{ffmpeg_bin}{CLR_RESET}")
+        print(f"  ✔ Auto-Transcode Aktif: Incompatible Images (PNG/WebP/BMP/TIFF/HEIC/AVIF) -> JPEG Q95")
+        print(f"  ✔ Auto-Transcode Aktif: Incompatible Videos (MKV/WebM/AVI/MOV) -> MP4 H.264/AAC")
+    else:
+        print(f"\n{CLR_YELLOW}[TRANSCODER ENGINE]{CLR_RESET} FFmpeg tidak ditemukan. Transcoding dinonaktifkan.")
+
+    temp_prep_dir = Path(tempfile.gettempdir()) / "autogram_upload_prep"
+    temp_prep_dir.mkdir(parents=True, exist_ok=True)
+
     # 3. Bagi menjadi album-album
     album_batches = partition_album_batches(batch_files, max_album_size=args.album_size)
     total_albums = len(album_batches)
@@ -471,17 +597,29 @@ async def run_uploader(args):
             print(f"\n{CLR_YELLOW}[INTERRUPTED] Pengunggahan dihentikan secara aman oleh pengguna.{CLR_RESET}")
             break
 
-        album_bytes = sum(f.stat().st_size for f in album_files)
-        file_paths_str = [str(f) for f in album_files]
+        # Siapkan media (transcode on-the-fly jika format non-standar Telegram)
+        prepared_items: List[Tuple[Path, Path, bool, str]] = []
+        for f_idx, orig_f in enumerate(album_files):
+            prep_p, is_tmp, t_type = prepare_media_for_telegram(orig_f, ffmpeg_bin, temp_prep_dir, f_idx)
+            if is_tmp:
+                print(f"  ⚡ {CLR_YELLOW}[TRANSCODE]{CLR_RESET} {orig_f.name} ({orig_f.suffix}) -> {prep_p.name} ({format_size(prep_p.stat().st_size)}) [AutoGram Engine]")
+            prepared_items.append((orig_f, prep_p, is_tmp, t_type))
+
+        file_paths_str = [str(item[1]) for item in prepared_items]
+        album_bytes = sum(item[1].stat().st_size for item in prepared_items)
 
         if args.dry_run:
             acc, _ = pool.get_account_for_album()
             acc_name = acc.display_name() if acc else "DryRun-Sim"
             print(f"{CLR_BOLD}{CLR_CYAN}[ALBUM {album_idx:02d}/{total_albums:02d}]{CLR_RESET} [{CLR_MAGENTA}Akun: {acc_name}{CLR_RESET}] Mengirim {len(album_files)} media ({format_size(album_bytes)})...")
-            for f in album_files:
-                print(f"  -> {CLR_WHITE}{f.name}{CLR_RESET} ({format_size(f.stat().st_size)})")
+            for orig_f, prep_p, is_tmp, _ in prepared_items:
+                note = f" -> Transcoded to {prep_p.name}" if is_tmp else ""
+                print(f"  -> {CLR_WHITE}{orig_f.name}{CLR_RESET} ({format_size(orig_f.stat().st_size)}){note}")
             print(f"  {CLR_YELLOW}[DRY-RUN]{CLR_RESET} Simulasi upload sukses.")
             uploaded_files_count += len(album_files)
+            for _, prep_p, is_tmp, _ in prepared_items:
+                if is_tmp and prep_p.exists():
+                    prep_p.unlink(missing_ok=True)
             continue
 
         # Pilih akun dari pool (Round-Robin)
@@ -584,22 +722,26 @@ async def run_uploader(args):
             print(f"  {CLR_GREEN}[VERIFIED]{CLR_RESET} Telegram Server ({current_acc.label}) mengonfirmasi {len(msg_ids)} pesan (Msg IDs: {id_range_str})")
 
             album_deleted = 0
-            for file_path, msg_obj in zip(album_files, res_messages):
+            for (orig_file, prep_file, is_temp, _), msg_obj in zip(prepared_items, res_messages):
                 try:
-                    f_size = file_path.stat().st_size
-                    f_sha256 = calculate_sha256(file_path)
+                    f_size = orig_file.stat().st_size
+                    f_sha256 = calculate_sha256(orig_file)
 
                     ledger.record_success(
-                        file_path.name, f_size, f_sha256, msg_obj.id, args.chat, args.topic, current_acc.label
+                        orig_file.name, f_size, f_sha256, msg_obj.id, args.chat, args.topic, current_acc.label
                     )
-                    try_sync_to_autogram_db(repo_root, file_path.name, f_size, msg_obj.id, args.chat, args.topic)
+                    try_sync_to_autogram_db(repo_root, orig_file.name, f_size, msg_obj.id, args.chat, args.topic)
 
-                    file_path.unlink()
-                    if not file_path.exists():
+                    orig_file.unlink(missing_ok=True)
+                    if not orig_file.exists():
                         album_deleted += 1
                         freed_bytes += f_size
+
+                    # Bersihkan file temporary transcode jika ada
+                    if is_temp and prep_file.exists():
+                        prep_file.unlink(missing_ok=True)
                 except Exception as del_err:
-                    print(f"  {CLR_RED}[ERROR] Gagal menghapus {file_path.name}: {del_err}{CLR_RESET}")
+                    print(f"  {CLR_RED}[ERROR] Gagal menghapus {orig_file.name}: {del_err}{CLR_RESET}")
 
             uploaded_files_count += len(album_files)
             deleted_files_count += album_deleted
@@ -622,20 +764,26 @@ async def run_uploader(args):
             print(f"  {CLR_RED}[ALBUM FAILED]{CLR_RESET} Album {album_idx} gagal dikirim setelah percobaan.")
             print(f"  {CLR_YELLOW}[SAFEGUARD]{CLR_RESET} File tetap aman di folder source.")
             
+            # Bersihkan file temporary transcode yang gagal
+            for _, prep_file, is_temp, _ in prepared_items:
+                if is_temp and prep_file.exists():
+                    prep_file.unlink(missing_ok=True)
+
             # Fallback kirim per-file
             print(f"  {CLR_CYAN}[FALLBACK]{CLR_RESET} Mencoba kirim per-file secara individual...")
             for single_file in album_files:
                 if g_shutdown_requested:
                     break
-                # Ambil akun yang siap
                 single_acc, _ = pool.get_account_for_album()
                 if not single_acc:
                     break
+
+                prep_p, is_tmp, _ = prepare_media_for_telegram(single_file, ffmpeg_bin, temp_prep_dir, 0)
                 try:
                     await single_acc.ensure_connected()
                     s_res = await single_acc.client.send_file(
                         single_acc.entity,
-                        str(single_file),
+                        str(prep_p),
                         reply_to=args.topic,
                         silent=True,
                         force_document=False
@@ -645,7 +793,7 @@ async def run_uploader(args):
                         f_sha = calculate_sha256(single_file)
                         ledger.record_success(single_file.name, f_sz, f_sha, s_res.id, args.chat, args.topic, single_acc.label)
                         try_sync_to_autogram_db(repo_root, single_file.name, f_sz, s_res.id, args.chat, args.topic)
-                        single_file.unlink()
+                        single_file.unlink(missing_ok=True)
                         uploaded_files_count += 1
                         deleted_files_count += 1
                         freed_bytes += f_sz
@@ -654,6 +802,9 @@ async def run_uploader(args):
                         await asyncio.sleep(1.0)
                 except Exception as s_err:
                     print(f"    {CLR_RED}[FAIL]{CLR_RESET} {single_file.name} gagal ({s_err}) - Tersisa di folder.")
+                finally:
+                    if is_tmp and prep_p.exists():
+                        prep_p.unlink(missing_ok=True)
 
     # 5. Selesai & Laporan Akhir
     total_elapsed = time.time() - start_time
@@ -680,6 +831,12 @@ async def run_uploader(args):
         print(f"Jalankan kembali script ini untuk memproses batch 500 media berikutnya secara cerdas tanpa redundan.\n")
     else:
         print(f"\n{CLR_GREEN}[SUKSES TOTAL]{CLR_RESET} Seluruh file di '{source_dir}' telah 100% tuntas ter-upload dan dibersihkan!\n")
+
+    try:
+        if temp_prep_dir.exists():
+            shutil.rmtree(temp_prep_dir, ignore_errors=True)
+    except Exception:
+        pass
 
     await pool.disconnect_all()
     ledger.close()
