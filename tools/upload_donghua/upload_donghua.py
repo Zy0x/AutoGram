@@ -96,16 +96,29 @@ signal.signal(signal.SIGINT, sigint_handler)
 # MULTI-ACCOUNT POOL MANAGER
 # =============================================================================
 class TelegramAccount:
-    def __init__(self, key: str, label: str, client: TelegramClient, entity: Any, user_id: int, username: str):
+    def __init__(self, key: str, label: str, client: TelegramClient, entity: Any, user_id: int, username: str, target_chat: int):
         self.key = key
         self.label = label
         self.client = client
         self.entity = entity
         self.user_id = user_id
         self.username = username
+        self.target_chat = target_chat
         self.flood_until = 0.0
         self.uploaded_albums = 0
         self.uploaded_files = 0
+
+    async def ensure_connected(self):
+        if not self.client.is_connected():
+            try:
+                await self.client.connect()
+            except Exception:
+                pass
+        if not self.entity:
+            try:
+                self.entity = await self.client.get_entity(self.target_chat)
+            except Exception:
+                pass
 
     def is_available(self) -> bool:
         return time.time() >= self.flood_until
@@ -237,7 +250,8 @@ async def build_account_pool(repo_root: Path, target_chat: int, filter_accounts:
                 client=client,
                 entity=target_entity,
                 user_id=me.id,
-                username=me.username or ""
+                username=me.username or "",
+                target_chat=target_chat
             )
             accounts.append(acc)
             print(f"  ✔ {CLR_GREEN}[TERHUBUNG]{CLR_RESET} Akun #{len(accounts)}: {CLR_BOLD}{acc.display_name()}{CLR_RESET} (Key: {acc_key})")
@@ -279,6 +293,9 @@ class UploadLedger:
                 );
             """)
             self.conn.execute("CREATE INDEX IF NOT EXISTS idx_ledger_fn ON upload_ledger(filename);")
+            cols = [col[1] for col in self.conn.execute("PRAGMA table_info(upload_ledger)").fetchall()]
+            if "account_name" not in cols:
+                self.conn.execute("ALTER TABLE upload_ledger ADD COLUMN account_name TEXT;")
 
     def is_already_uploaded(self, filename: str, file_size: int) -> Optional[int]:
         cursor = self.conn.cursor()
@@ -504,6 +521,7 @@ async def run_uploader(args):
                     sys.stdout.write(f"\r  {CLR_BLUE}[{current_acc.label}]{CLR_RESET} [{bar}] {pct:5.1f}% | {format_size(int(current))}/{format_size(int(total))}")
                     sys.stdout.flush()
 
+                await current_acc.ensure_connected()
                 res_messages = await current_acc.client.send_file(
                     current_acc.entity,
                     file_paths_str,
@@ -614,6 +632,7 @@ async def run_uploader(args):
                 if not single_acc:
                     break
                 try:
+                    await single_acc.ensure_connected()
                     s_res = await single_acc.client.send_file(
                         single_acc.entity,
                         str(single_file),
