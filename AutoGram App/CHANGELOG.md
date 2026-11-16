@@ -1,8 +1,9 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
-### Dedicated Smart Media Uploader Script (`tools/upload_donghua/`, `upload_donghua.sh`, `upload_donghua.bat`, `upload_donghua.ps1`, `upload_pilih_topik.bat`, `upload_pilih_topik.sh`)
+### Dedicated Smart Media Uploader Script (`tools/upload_donghua/`, `upload_donghua.sh`, `upload_donghua.bat`, `upload_donghua.ps1`, `upload_pilih_topik.bat`, `upload_pilih_topik.sh`, `run_multi_batch.py`)
 - **Autonomous Local MTProto Media Uploader & Multi-Account Pool**:
   - Implemented standalone CLI and bash script (`upload_donghua.sh`), batch script (`upload_donghua.bat`), and PowerShell launcher (`upload_donghua.ps1`) powered by pure local Telethon MTProto engine (`tools/upload_donghua/upload_donghua.py`).
+  - Added clean isolated multi-batch orchestrator (`tools/upload_donghua/run_multi_batch.py`) enabling chained sequential runs of $N \times 500$ media with process-isolated execution cycles and automatic inter-batch cooldowns.
   - Directly matches active AutoGram settings for `'U8542241823/D-1003214112048/T8'` (`#Gudang` -> `Donghua NSFW` topic 8): 10-media visual album limit, silent delivery (`silent=True`), single caption collage layout, and zero AI tokens.
   - **Dynamic Forum Topic Selection & Discovery Engine**:
     - Added `--list-topics` argument to dynamically fetch and display all forum topics from the target supergroup (`#Gudang`) with topic IDs, titles, and active statuses in a formatted CLI table.
