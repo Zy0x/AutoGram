@@ -301,13 +301,17 @@ class UploadLedger:
                 );
             """)
             self.conn.execute("CREATE INDEX IF NOT EXISTS idx_ledger_fn ON upload_ledger(filename);")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_ledger_chat_topic ON upload_ledger(chat_id, topic_id);")
             cols = [col[1] for col in self.conn.execute("PRAGMA table_info(upload_ledger)").fetchall()]
             if "account_name" not in cols:
                 self.conn.execute("ALTER TABLE upload_ledger ADD COLUMN account_name TEXT;")
 
-    def is_already_uploaded(self, filename: str, file_size: int) -> Optional[int]:
+    def is_already_uploaded(self, filename: str, file_size: int, chat_id: Optional[int] = None, topic_id: Optional[int] = None) -> Optional[int]:
         cursor = self.conn.cursor()
-        cursor.execute("SELECT telegram_message_id FROM upload_ledger WHERE filename = ? AND file_size = ?", (filename, file_size))
+        if chat_id is not None and topic_id is not None:
+            cursor.execute("SELECT telegram_message_id FROM upload_ledger WHERE filename = ? AND file_size = ? AND chat_id = ? AND topic_id = ?", (filename, file_size, str(chat_id), topic_id))
+        else:
+            cursor.execute("SELECT telegram_message_id FROM upload_ledger WHERE filename = ? AND file_size = ?", (filename, file_size))
         row = cursor.fetchone()
         return row[0] if row else None
 
@@ -550,6 +554,118 @@ def prepare_media_for_telegram(
 
 
 # =============================================================================
+# FORUM TOPIC MANAGEMENT & SELECTION ENGINE
+# =============================================================================
+async def fetch_forum_topics(client: TelegramClient, entity: Any) -> List[Dict[str, Any]]:
+    """
+    Mengambil seluruh daftar topik forum dari supergroup target via Telegram MTProto.
+    """
+    try:
+        res = await client(functions.messages.GetForumTopicsRequest(
+            peer=entity,
+            offset_date=None,
+            offset_id=0,
+            offset_topic=0,
+            limit=100
+        ))
+        topics = []
+        for t in res.topics:
+            title = getattr(t, 'title', f'Topic {getattr(t, "id", "?")}')
+            pinned = getattr(t, 'pinned', False)
+            closed = getattr(t, 'closed', False)
+            hidden = getattr(t, 'hidden', False)
+            topics.append({
+                'id': t.id,
+                'title': title,
+                'pinned': pinned,
+                'closed': closed,
+                'hidden': hidden,
+                'top_message': getattr(t, 'top_message', None)
+            })
+        topics.sort(key=lambda x: (not x['pinned'], x['id']))
+        return topics
+    except Exception as e:
+        print(f"{CLR_RED}[ERROR] Gagal mengambil daftar topik forum: {e}{CLR_RESET}")
+        return []
+
+
+def print_topics_table(topics: List[Dict[str, Any]], chat_title: str = "", active_topic_id: Optional[int] = None):
+    """
+    Menampilkan tabel daftar topik yang rapi dan informatif di terminal.
+    """
+    header_title = f" DAFTAR TOPIK FORUM DI '{chat_title}'" if chat_title else " DAFTAR TOPIK FORUM TERSEDIA"
+    print(f"\n{CLR_BOLD}{CLR_CYAN}================================================================================{CLR_RESET}")
+    print(f"{CLR_BOLD}{CLR_WHITE}{header_title:^80}{CLR_RESET}")
+    print(f"{CLR_BOLD}{CLR_CYAN}================================================================================{CLR_RESET}")
+    print(f" {'No':<4} | {'ID Topik':<10} | {'Status':<12} | {'Nama Topik'}")
+    print(f" {('-'*4)} | {('-'*10)} | {('-'*12)} | {('-'*45)}")
+    for idx, t in enumerate(topics, start=1):
+        if t['closed']:
+            status_str = f"{CLR_RED}[Closed]{CLR_RESET}"
+        elif t['pinned']:
+            status_str = f"{CLR_GREEN}[Pinned]{CLR_RESET}"
+        else:
+            status_str = f"{CLR_WHITE}[Active]{CLR_RESET}"
+
+        is_active = (active_topic_id is not None and t['id'] == active_topic_id)
+        highlight = f"{CLR_GREEN}* {CLR_BOLD}" if is_active else "  "
+        active_tag = f" {CLR_YELLOW}(Topik Aktif Saat Ini){CLR_RESET}" if is_active else ""
+        print(f"{highlight}{idx:<3} | {t['id']:<10} | {status_str:<21} | {CLR_BOLD}{t['title']}{CLR_RESET}{active_tag}")
+    print(f"{CLR_BOLD}{CLR_CYAN}================================================================================{CLR_RESET}\n")
+
+
+def prompt_select_topic(topics: List[Dict[str, Any]], default_topic_id: int, chat_title: str = "") -> Tuple[int, str]:
+    """
+    Menampilkan menu interaktif dan meminta input pengguna untuk memilih topik target.
+    Mendukung input berupa: nomor urut (1..N), ID topik langsung (misal: 15415), atau nama topik.
+    """
+    print_topics_table(topics, chat_title=chat_title, active_topic_id=default_topic_id)
+    default_t = next((t for t in topics if t['id'] == default_topic_id), None)
+    default_name = default_t['title'] if default_t else f"ID {default_topic_id}"
+
+    print(f"{CLR_CYAN}[PILIHAN TOPIK INTERAKTIF]{CLR_RESET}")
+    print(f"Anda dapat memilih dengan:")
+    print(f"  1. Mengetik {CLR_BOLD}Nomor Urut{CLR_RESET} (1 - {len(topics)})")
+    print(f"  2. Mengetik {CLR_BOLD}ID Topik{CLR_RESET} langsung (contoh: 15415)")
+    print(f"  3. Mengetik {CLR_BOLD}Nama Topik{CLR_RESET} (contoh: 'NSFW Pict' atau 'Twitter')")
+    print(f"  4. Tekan {CLR_BOLD}[Enter]{CLR_RESET} langsung untuk default: {CLR_YELLOW}{default_name} (ID: {default_topic_id}){CLR_RESET}\n")
+
+    while True:
+        try:
+            choice = input(f"{CLR_WHITE}Pilih topik target: {CLR_RESET}").strip()
+            if not choice:
+                print(f"✔ Menggunakan default: {CLR_GREEN}{default_name}{CLR_RESET} (ID: {default_topic_id})\n")
+                return default_topic_id, default_name
+
+            # 1. Cek apakah input berupa angka
+            if choice.isdigit():
+                val = int(choice)
+                if 1 <= val <= len(topics):
+                    sel = topics[val - 1]
+                    print(f"✔ Dipilih: {CLR_GREEN}{sel['title']}{CLR_RESET} (ID: {sel['id']})\n")
+                    return sel['id'], sel['title']
+                matched_id = next((t for t in topics if t['id'] == val), None)
+                if matched_id:
+                    print(f"✔ Dipilih: {CLR_GREEN}{matched_id['title']}{CLR_RESET} (ID: {matched_id['id']})\n")
+                    return matched_id['id'], matched_id['title']
+
+            # 2. Cek apakah input berupa pencarian nama topik (case-insensitive)
+            matched_by_name = [t for t in topics if choice.lower() in t['title'].lower()]
+            if len(matched_by_name) == 1:
+                sel = matched_by_name[0]
+                print(f"✔ Dipilih: {CLR_GREEN}{sel['title']}{CLR_RESET} (ID: {sel['id']})\n")
+                return sel['id'], sel['title']
+            elif len(matched_by_name) > 1:
+                print(f"{CLR_YELLOW}[AMBIGU]{CLR_RESET} Ditemukan beberapa topik dengan kata kunci '{choice}': {[t['title'] for t in matched_by_name]}. Mohon masukkan nomor urut yang spesifik.")
+                continue
+
+            print(f"{CLR_RED}[INVALID]{CLR_RESET} Pilihan '{choice}' tidak ditemukan. Silakan masukkan nomor urut 1 - {len(topics)} atau ID topik yang terdaftar.")
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{CLR_YELLOW}[CANCELLED] Pemilihan topik dibatalkan.{CLR_RESET}")
+            sys.exit(0)
+
+
+# =============================================================================
 # MAIN SMART UPLOADER ENGINE
 # =============================================================================
 async def run_uploader(args):
@@ -561,24 +677,61 @@ async def run_uploader(args):
             break
         curr = curr.parent
 
-    source_dir = Path(args.source)
-    if not source_dir.exists():
-        print(f"{CLR_RED}[ERROR] Folder source '{source_dir}' tidak ditemukan!{CLR_RESET}")
-        return 1
-
     ledger_path = repo_root / "tools" / "upload_donghua" / "upload_ledger_donghua.sqlite"
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     ledger = UploadLedger(ledger_path)
 
+    # 1. Inisialisasi Pool Multi-Account terlebih dahulu (diperlukan untuk fetch topik & upload)
+    filter_list = [a.strip() for a in args.accounts.split(",") if a.strip()] if args.accounts else None
+    pool = await build_account_pool(repo_root, args.chat, filter_accounts=filter_list)
+
+    # 2. Ambil daftar topik forum di grup target
+    topics = await fetch_forum_topics(pool.accounts[0].client, pool.accounts[0].entity)
+    chat_title = getattr(pool.accounts[0].entity, "title", str(args.chat))
+
+    # 2.1 Mode List Topics (--list-topics)
+    if args.list_topics:
+        print_topics_table(topics, chat_title=chat_title, active_topic_id=args.topic)
+        await pool.disconnect_all()
+        ledger.close()
+        return 0
+
+    # 2.2 Mode Pemilihan Topik Interaktif (--select-topic / -i / --interactive)
+    target_topic_name = ""
+    if args.select_topic:
+        args.topic, target_topic_name = prompt_select_topic(topics, default_topic_id=args.topic, chat_title=chat_title)
+    elif args.topic_name:
+        matched = [t for t in topics if args.topic_name.lower() in t['title'].lower()]
+        if not matched:
+            print(f"{CLR_RED}[ERROR] Topik dengan nama '{args.topic_name}' tidak ditemukan di '{chat_title}'!{CLR_RESET}")
+            print_topics_table(topics, chat_title=chat_title)
+            await pool.disconnect_all()
+            ledger.close()
+            return 1
+        args.topic = matched[0]['id']
+        target_topic_name = matched[0]['title']
+        print(f"{CLR_GREEN}[TOPIK DITEMUKAN]{CLR_RESET} Menggunakan topik: {CLR_BOLD}{target_topic_name}{CLR_RESET} (ID: {args.topic})\n")
+    else:
+        curr_t = next((t for t in topics if t['id'] == args.topic), None)
+        target_topic_name = curr_t['title'] if curr_t else f"Topic {args.topic}"
+
+    source_dir = Path(args.source)
+    if not source_dir.exists():
+        print(f"{CLR_RED}[ERROR] Folder source '{source_dir}' tidak ditemukan!{CLR_RESET}")
+        await pool.disconnect_all()
+        ledger.close()
+        return 1
+
     print(f"\n{CLR_BOLD}{CLR_CYAN}========================================================================{CLR_RESET}")
-    print(f"{CLR_BOLD}{CLR_WHITE} AutoGram Multi-Account Smart Media Uploader - Topic 'Donghua NSFW'{CLR_RESET}")
-    print(f"{CLR_CYAN} Target Destination : {CLR_YELLOW}D{args.chat}/T{args.topic}{CLR_RESET}")
+    print(f"{CLR_BOLD}{CLR_WHITE} AutoGram Multi-Account Smart Media Uploader{CLR_RESET}")
+    print(f"{CLR_CYAN} Target Chat        : {CLR_WHITE}{chat_title} ({args.chat}){CLR_RESET}")
+    print(f"{CLR_CYAN} Target Topik       : {CLR_GREEN}{target_topic_name} (ID: {args.topic}){CLR_RESET}")
     print(f"{CLR_CYAN} Source Directory   : {CLR_WHITE}{source_dir}{CLR_RESET}")
     print(f"{CLR_CYAN} Batch Limit        : {CLR_GREEN}{args.limit} media per running{CLR_RESET}")
     print(f"{CLR_CYAN} Multi-Account Mode : {CLR_MAGENTA}Round-Robin Load Balance + Instant Anti-FloodWait Failover{CLR_RESET}")
     print(f"{CLR_BOLD}{CLR_CYAN}========================================================================{CLR_RESET}\n")
 
-    # 1. Bersihkan sisa file yang sebelumnya sudah sukses di-upload (Crash recovery)
+    # 3. Bersihkan sisa file yang sebelumnya sudah sukses di-upload (Crash recovery)
     all_raw_files = [
         source_dir / f for f in os.listdir(source_dir)
         if (source_dir / f).is_file() and f.lower().endswith(SUPPORTED_EXTENSIONS)
@@ -595,7 +748,7 @@ async def run_uploader(args):
             size = file_path.stat().st_size
         except OSError:
             continue
-        prev_msg_id = ledger.is_already_uploaded(file_path.name, size)
+        prev_msg_id = ledger.is_already_uploaded(file_path.name, size, chat_id=args.chat, topic_id=args.topic)
         if prev_msg_id:
             print(f"  {CLR_YELLOW}[RECOVERED]{CLR_RESET} File '{file_path.name}' sudah ada di Telegram (Msg ID: {prev_msg_id}). Menghapus duplikat lokal...")
             try:
@@ -611,6 +764,7 @@ async def run_uploader(args):
 
     if not clean_files:
         print(f"{CLR_GREEN}{CLR_BOLD}[SELESAI]{CLR_RESET} Tidak ada file baru yang perlu di-upload di '{source_dir}'. Semua beres!")
+        await pool.disconnect_all()
         ledger.close()
         return 0
 
@@ -622,11 +776,7 @@ async def run_uploader(args):
     if remaining_after_batch > 0:
         print(f"{CLR_YELLOW}[INFO]{CLR_RESET} Sisa {remaining_after_batch} media lainnya akan diproses pada running berikutnya.\n")
 
-    # 2. Inisialisasi Pool Multi-Account
-    filter_list = [a.strip() for a in args.accounts.split(",") if a.strip()] if args.accounts else None
-    pool = await build_account_pool(repo_root, args.chat, filter_accounts=filter_list)
-
-    # 2.5 Inisialisasi Mode Format & Engine AutoGram
+    # 4. Inisialisasi Mode Format & Engine AutoGram
     enable_transcode = (args.mode == "transcode")
     ffmpeg_bin = find_ffmpeg_binary(repo_root) if enable_transcode else None
     if enable_transcode:
@@ -927,6 +1077,9 @@ def main():
     parser.add_argument("--source", default=DEFAULT_SOURCE_DIR, help=f"Folder source media (default: {DEFAULT_SOURCE_DIR})")
     parser.add_argument("--chat", type=int, default=DEFAULT_TARGET_CHAT, help=f"Target Telegram Chat/Supergroup ID (default: {DEFAULT_TARGET_CHAT})")
     parser.add_argument("--topic", type=int, default=DEFAULT_TOPIC_ID, help=f"Target Topic ID (default: {DEFAULT_TOPIC_ID})")
+    parser.add_argument("--topic-name", default="", help="Cari dan pilih topik berdasarkan nama (misal: --topic-name 'NSFW Pict' atau 'Twitter')")
+    parser.add_argument("--list-topics", action="store_true", help="Tampilkan seluruh daftar topik forum di grup target lalu keluar")
+    parser.add_argument("--select-topic", "-i", "--interactive", action="store_true", help="Pilih topik secara interaktif dari daftar sebelum proses upload dimulai")
     parser.add_argument("--limit", type=int, default=DEFAULT_BATCH_LIMIT, help=f"Maksimal media per running (default: {DEFAULT_BATCH_LIMIT})")
     parser.add_argument("--album-size", type=int, default=DEFAULT_ALBUM_SIZE, help=f"Banyak media per album visual (default: {DEFAULT_ALBUM_SIZE})")
     parser.add_argument("--accounts", default="", help="Pilih akun tertentu dipisahkan koma (default: seluruh akun aktif)")

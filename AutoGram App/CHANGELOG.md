@@ -1,9 +1,15 @@
 ## Unreleased — Multi-Vendor Hardware GPU/CPU Probing Engine & On-Demand Hardware Rescan Suite
 
-### Dedicated Smart Media Uploader Script (`tools/upload_donghua/`, `upload_donghua.sh`, `upload_donghua.bat`, `upload_donghua.ps1`)
+### Dedicated Smart Media Uploader Script (`tools/upload_donghua/`, `upload_donghua.sh`, `upload_donghua.bat`, `upload_donghua.ps1`, `upload_pilih_topik.bat`, `upload_pilih_topik.sh`)
 - **Autonomous Local MTProto Media Uploader & Multi-Account Pool**:
   - Implemented standalone CLI and bash script (`upload_donghua.sh`), batch script (`upload_donghua.bat`), and PowerShell launcher (`upload_donghua.ps1`) powered by pure local Telethon MTProto engine (`tools/upload_donghua/upload_donghua.py`).
   - Directly matches active AutoGram settings for `'U8542241823/D-1003214112048/T8'` (`#Gudang` -> `Donghua NSFW` topic 8): 10-media visual album limit, silent delivery (`silent=True`), single caption collage layout, and zero AI tokens.
+  - **Dynamic Forum Topic Selection & Discovery Engine**:
+    - Added `--list-topics` argument to dynamically fetch and display all forum topics from the target supergroup (`#Gudang`) with topic IDs, titles, and active statuses in a formatted CLI table.
+    - Added interactive topic selector (`--select-topic`, `-i`, `--interactive`) allowing users to choose target topics via index number (1..N), direct topic ID (e.g. `15415`), or topic name string before commencing upload.
+    - Added `--topic-name "<Name>"` parameter for direct topic resolution by name (e.g. `--topic-name "NSFW Pict"` or `--topic-name "Twitter"`).
+    - Created dedicated Windows batch launcher `upload_pilih_topik.bat` and shell script `upload_pilih_topik.sh` for one-click interactive topic selection.
+    - Upgraded `UploadLedger` SQLite schema to index and partition crash recovery records by `(chat_id, topic_id)`, ensuring files targeted across different forum topics do not falsely collide.
   - **Multi-Account Load Balancing & Anti-FloodWait Failover**: Automatically detects and pools all active authorized accounts (Lavender `8542241823` and Mantan `8420671507`). Distributes uploads via round-robin per album (50% rate division). If any account encounters a Telegram `FloodWaitError`, the engine immediately performs a zero-wait failover to the other available account in the pool, continuing upload without stopping or dropping queue state.
   - **AutoGram-Native Smart Grid & Raw Lossless Document Management (`plan_media_batches_clustered`)**:
     - Strictly mirrors AutoGram core delivery classification (`autogram-core/src/transfer/quality.rs` & `album.rs`).
