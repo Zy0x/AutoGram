@@ -19,10 +19,13 @@ def main():
     total_batches = int(sys.argv[1]) if len(sys.argv) > 1 else 3
     batch_limit = int(sys.argv[2]) if len(sys.argv) > 2 else 500
     topic_id = int(sys.argv[3]) if len(sys.argv) > 3 else 8
+    source_dir = sys.argv[4] if len(sys.argv) > 4 else None
 
     print("=" * 80)
     print(f" AUTOGRAM MULTI-BATCH RUNNER: {total_batches} BATCH x {batch_limit} MEDIA (TOTAL: {total_batches * batch_limit})")
-    print(f" Target Topik : Donghua NSFW (ID: {topic_id})")
+    print(f" Target Topik : ID {topic_id}")
+    if source_dir:
+        print(f" Source Folder: {source_dir}")
     print("=" * 80 + "\n")
 
     start_all = time.time()
@@ -38,6 +41,8 @@ def main():
             "--topic", str(topic_id),
             "--limit", str(batch_limit)
         ]
+        if source_dir:
+            cmd.extend(["--source", source_dir])
 
         ret = subprocess.run(cmd)
         if ret.returncode != 0:
