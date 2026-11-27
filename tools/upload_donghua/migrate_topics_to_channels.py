@@ -750,7 +750,7 @@ async def run_migration(args):
 
                 except (FloodWaitError, SlowModeWaitError) as fw:
                     wait_s = fw.seconds + 3
-                    chosen_acc.set_cooldown(wait_s)
+                    chosen_acc.flood_until = time.time() + wait_s
                     print(f"  {CLR_YELLOW}[FLOODWAIT]{CLR_RESET} Akun {chosen_acc.label} terkena limit {fw.seconds}s -> Failover instan!")
                 except MessageIdInvalidError:
                     # Fallback kirim per unit atomik agar pesan valid tetap tersalin
