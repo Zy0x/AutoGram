@@ -83,6 +83,7 @@ AutoGram App/worker/temp/
 *.sqlite3
 *.db
 *.db-journal
+tools/upload_donghua/channel_registry.json
 
 # Environments / Secrets
 .signing/
